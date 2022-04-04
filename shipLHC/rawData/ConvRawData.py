@@ -54,7 +54,23 @@ class ConvRawDataPY(ROOT.FairTask):
       ioman.RegisterInputObject('stop', ROOT.TObjString(str(options.stop)))
       ioman.RegisterInputObject('heartBeat', ROOT.TObjString(str(options.heartBeat)))
       ioman.RegisterInputObject('withGeoFile', ROOT.TObjString(str(int(options.withGeoFile))))
+      ioman.RegisterInputObject('makeCalibration', ROOT.TObjString(str(int(options.makeCalibration))))
+      ioman.RegisterInputObject('chi2Max', ROOT.TObjString(str(options.chi2Max)))
+      ioman.RegisterInputObject('saturationLimit', ROOT.TObjString(str(options.saturationLimit))) 
       self.options = options
+      
+  # Initialize logger: set severity and verbosity
+      logger = ROOT.FairLogger.GetLogger()
+      logger.SetColoredLog(True)
+      logger.SetLogVerbosityLevel('low')
+      logger.SetLogScreenLevel('warn')
+      logger.SetLogToScreen(True)
+      if options.debug:
+         logger.SetLogToFile(True)
+         logger.SetLogFileName('run_'+str(options.runNumber)+'-'+part+'_CPP.log')
+         logger.SetLogFileLevel('info')   
+         logger.SetLogScreenLevel('info')
+      
   # Pass raw data file as input object
       ioman.RegisterInputObject("rawData", self.fiN)
 
@@ -72,6 +88,8 @@ class ConvRawDataPY(ROOT.FairTask):
       if options.FairTask_convRaw:
           self.run.AddTask(ROOT.ConvRawData())
           self.fSink = ROOT.FairRootFileSink(self.outFile)
+          if not self.monitoring:
+             self.run.Init()
 
 #-------end of init for cpp ------------------------------------
       else:
@@ -320,7 +338,7 @@ class ConvRawDataPY(ROOT.FairTask):
 
    def Run(self):
       if self.options.FairTask_convRaw:
-          self.run.Run(self.options.nStart, self.nEvents)          
+          self.run.Run(self.options.nStart, self.nEvents)
       else:
           for eventNumber in range(self.options.nStart,self.nEvents):
              self.executeEvent(eventNumber)
