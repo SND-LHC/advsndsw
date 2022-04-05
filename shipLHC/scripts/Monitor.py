@@ -329,7 +329,7 @@ class Monitoring():
      srun = 'run'+str(self.options.runNumber)
      tc.Update()
      if withRootFile:
-         Fself.presenterFile.cd(subdir)
+         self.presenterFile.cd(subdir)
          tc.Write()
      else:
          if not os.path.isdir(srun): os.system('mkdir '+srun)
