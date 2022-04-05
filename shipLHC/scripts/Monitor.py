@@ -165,7 +165,7 @@ class Monitoring():
             if partitions>0:  self.eventTree = ioman.GetInChain()
             else:                 self.eventTree = ioman.GetInTree()
 
-            self.presenterFile = ROOT.TFile.('run'+self.runNr+'.root','update')
+            self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','update')
             self.presenterFile.mkdir('scifi')
             self.presenterFile.mkdir('mufilter')
             self.presenterFile.mkdir('eventdisplay')
