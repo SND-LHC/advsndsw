@@ -165,6 +165,11 @@ class Monitoring():
             if partitions>0:  self.eventTree = ioman.GetInChain()
             else:                 self.eventTree = ioman.GetInTree()
 
+            self.presenterFile = ROOT.TFile.('run'+self.runNr+'.root','update')
+            self.presenterFile.mkdir('scifi')
+            self.presenterFile.mkdir('mufilter')
+            self.presenterFile.mkdir('eventdisplay')
+
    def GetEvent(self,n):
       if self.options.online:
             self.options.online.executeEvent(n)
@@ -320,12 +325,14 @@ class Monitoring():
 #
       return (par[2] * step * summe * invsq2pi / par[3])
 
-   def myPrint(self,tc,name,withRootFile=True):
+   def myPrint(self,tc,name,subdir='',withRootFile=True):
      srun = 'run'+str(self.options.runNumber)
-     if not os.path.isdir(srun): os.system('mkdir '+sdir)
      tc.Update()
-     pname = srun+'/'+name+'-'+srun
-     tc.Print(pname+'.png')
-     tc.Print(pname+'.pdf')
-     if withRootFile: tc.Print(pname+'.root')
-
+     if withRootFile:
+         Fself.presenterFile.cd(subdir)
+         tc.Write()
+     else:
+         if not os.path.isdir(srun): os.system('mkdir '+srun)
+         pname = srun+'/'+name+'-'+srun
+         tc.Print(pname+'.png')
+         tc.Print(pname+'.pdf')

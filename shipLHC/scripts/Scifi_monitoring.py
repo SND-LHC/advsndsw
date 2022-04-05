@@ -65,7 +65,7 @@ class Scifi_hitMaps(ROOT.FairTask):
 
        for canvas in ['hitmaps','signal','mult']:
            self.M.h[canvas].Update()
-           self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas)
+           self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas,subdir='scifi')
 
 class Scifi_residuals(ROOT.FairTask):
    " produce residuals for Scifi"

@@ -50,15 +50,16 @@ def currentRun():
             status, L = f.read()
             Lcrun = L.decode().split('\n')
             f.close()
-         for l in Lcrun:
+      for l in Lcrun:
+            if not l.find('FINISHED')<0:
+               print("DAQ not running. Don't know which file to open, stop.")
+               quit()
             if not l.find('/home/snd/snd/') < 0:
                  tmp = l.split('/')
-                 currentRun = tmp[len(tmp)-2]
-                 currentPart = tmp[len(tmp)-1]
+                 curRun = tmp[len(tmp)-2]
+                 curPart = tmp[len(tmp)-1]
                  break
-      return currentRun,currentPart
-
-('run_000045', 'data_0000.root')
+      return curRun,curPart
 
 
 if options.auto:
@@ -66,13 +67,13 @@ if options.auto:
    from XRootD import client
 # search for current run
    if options.runNumber < 0:
-        currentRun,currentPart =  currentRun()
-        options.runNumber = int(currentRun.split('_')[1])
-        options.partition = int(currentPart.split('_')[1].split('.')[0])
+        curRun,curPart =  currentRun()
+        options.runNumber = int(curRun.split('_')[1])
+        options.partition = int(curPart.split('_')[1].split('.')[0])
 else:
    if options.runNumber < 0:
        print("run number required for non-auto mode")
-       exit()
+       quit()
 
 # prepare tasks:
 FairTasks = []
@@ -125,7 +126,6 @@ else:
    dN = 10
    Nupdate = 10000
    N0 = 0
-   lastEvent = M.converter.fiN.event.GetEntries()
    lastFile = M.converter.fiN.GetName()
    tmp = lastFile.split('/')
    lastRun  = tmp[len(tmp)-2]
@@ -146,7 +146,7 @@ else:
 
       M.converter.fiN = ROOT.TFile.Open(lastFile)
       newEntries = M.converter.fiN.event.GetEntries()
-      if newEntries>lastEvent:
+      if newEntries>nLast:
          nStart = max(nLast,newEntries-dN)
          nLast = newEntries
          continue
@@ -156,20 +156,16 @@ else:
          if not currentRun == lastRun:
             for m in monitorTasks:
                monitorTasks[m].Plot()
-            exit()  # should reinitialize everything with new run number
+            print("run ",lastRun," has finished.")
+            quit()  # reinitialize everything with new run number
          if not currentPart == lastPart:
             lastPart = currentPart
             lastFile = options.server+ l
             M.converter.fiN = ROOT.TFile.Open(lastFile)
          else:
-            time.sleep(5) # sleep 5 secondsile and check for new events
-            print('do not know what to do')
-            1/0
-"""
-       if none available, 
-         check every 5 seconds: if no new file re-open again
-         if new file, finish run, publish histograms, and restart with new file
-"""
+            time.sleep(30) # sleep 30 seconds and check for new events
+            print('DAQ inactive for 30sec')
+            nStart = nLast
 
 
 

@@ -126,7 +126,10 @@ class twod(ROOT.FairTask):
 
        h[ 'simpleDisplay'].Update()
        if options.save: h['simpleDisplay'].Print('event_'+"{:04d}".format(N)+'.png')
-       if not options.auto:  rc = input("hit return for next event ")
+       if not options.auto:  
+           rc = input("hit return for next event ")
+       else:
+           self.M.myPrint(h[ 'simpleDisplay'],'event',subdir='eventdisplay'))
 
    def Plot(self):
        if self.M.options.save: os.system("convert -delay 60 -loop 0 event*.png animated.gif")

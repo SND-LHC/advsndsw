@@ -290,10 +290,10 @@ class Mufi_hitMaps(ROOT.FairTask):
 
            for canvas in ['signalUSVeto','LR','USBars']:
               h[canvas].Update()
-              self.M.myPrint(h[canvas],canvas)
+              self.M.myPrint(h[canvas],canvas,subdir='mufilter'))
            for canvas in ['hitmaps','barmaps','signal','Tsignal']:
               for s in range(1,4):
                   h[canvas+str(s)].Update()
-                  self.M.myPrint(h[canvas+str(s)],canvas+sdict[s])
+                  self.M.myPrint(h[canvas+str(s)],canvas+sdict[s],subdir='mufilter')
 
 
