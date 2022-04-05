@@ -129,7 +129,7 @@ class twod(ROOT.FairTask):
        if not options.auto:  
            rc = input("hit return for next event ")
        else:
-           self.M.myPrint(h[ 'simpleDisplay'],'event',subdir='eventdisplay'))
+           self.M.myPrint(h[ 'simpleDisplay'],'event',subdir='eventdisplay')
 
    def Plot(self):
        if self.M.options.save: os.system("convert -delay 60 -loop 0 event*.png animated.gif")
