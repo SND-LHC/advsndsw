@@ -389,8 +389,8 @@ def Scifi_hitMaps(Nev=options.nEvents):
     else: ut.bookHist(h,'mult_'+str(s),'mult horizontal station '+str(s//2+1),100,-0.5,99.5)
  for mat in range(30):
     ut.bookHist(h,'mat_'+str(mat),'hit map / mat',512,-0.5,511.5)
-    ut.bookHist(h,'sig_'+str(mat),'signal / mat',150,0.0,150.)
-    ut.bookHist(h,'tdc_'+str(mat),'tdc / mat',100,0.0,4.)
+    ut.bookHist(h,'sig_'+str(mat),'signal / mat',200,-50.0,150.)
+    ut.bookHist(h,'tdc_'+str(mat),'tdc / mat',200,-1.,4.)
  N=-1
  if Nev < 0 : Nev = eventTree.GetEntries()
  for event in eventTree:
@@ -845,6 +845,16 @@ def makeIndividualPlots(run=options.runNumber):
                  tc.Print('run'+str(run)+'/'+pname+'.root')
    #os.system("convert -delay 120 -loop 0 run"+str(run)+"/corUS*.png corUS-"+str(run)+".gif")
 
+def makeQDCcorHTML(run=options.runNumber):
+   F = ROOT.TFile.Open('QDCcorrelations-run'+str(run)+'.root','recreate')
+   for l in range(5):
+       for side in ['L','R']:
+           key = side+str(l)
+           f=ROOT.TFile('QDCcor'+key+'-run'+str(run)+'.root')
+           tcanv = f.Get('cor'+key).Clone()
+           F.mkdir(key)
+           F.cd(key)
+           tc.Write()
 def makeLogVersion(run):
    for l in range(5):
       for side in ['L','R']:
@@ -1204,8 +1214,8 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,NbinsRes=1
         for proj in ['X','Y']:
           xmin = -X*NbinsRes/100. * scale
           xmax = -xmin
-          ut.bookHist(h,'res'+proj+'_'+sdict[s]+side+str(s*10+l),'residual  '+proj+str(s*10+l),NbinsRes,xmin,xmax,40,-20.,100.)
-          ut.bookHist(h,'gres'+proj+'_'+sdict[s]+side+str(s*10+l),'residual  '+proj+str(s*10+l),NbinsRes,xmin,xmax,40,-20.,100.)
+          ut.bookHist(h,'res'+proj+'_'+sdict[s]+side+str(s*10+l),'residual  '+proj+str(s*10+l),NbinsRes,xmin,xmax,100,-100.,100.)
+          ut.bookHist(h,'gres'+proj+'_'+sdict[s]+side+str(s*10+l),'residual  '+proj+str(s*10+l),NbinsRes,xmin,xmax,100,-100.,100.)
           if side=='S': continue
           if side=='':
              if s==1: ut.bookHist(h,'resBar'+proj+'_'+sdict[s]+str(s*10+l),'residual '+proj+str(s*10+l),NbinsRes,xmin,xmax,7,-0.5,6.5)
