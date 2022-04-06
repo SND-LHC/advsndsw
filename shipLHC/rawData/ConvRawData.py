@@ -342,6 +342,8 @@ class ConvRawDataPY(ROOT.FairTask):
       else:
           for eventNumber in range(self.options.nStart,self.nEvents):
              self.executeEvent(eventNumber)
+          # fill TTree
+             self.sTree.Fill()
    def executeEvent(self,eventNumber):
      if self.options.FairTask_convRaw:
           self.run.Run(self.options.nStart, self.nEvents)
@@ -521,8 +523,6 @@ class ConvRawDataPY(ROOT.FairTask):
           self.fiN.Close()
           self.outfile.Close()
       else:
-  # fill TTree
-         self.sTree.Fill()
          if self.options.debug:
              print('number of events processed',self.sTree.GetEntries(),self.fiN.event.GetEntries())
          self.sTree.Write()
