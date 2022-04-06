@@ -174,11 +174,6 @@ void ConvRawData::Exec(Option_t* /*opt*/)
   //TStopwatch timer;
       
   // Manually change event number as input file is not set for this task
-  if (eventNumber > fnEvents)
-  {
-    cout<<"Check nEvents settings!"<< endl;
-    exit(0);
-  }
   eventNumber++;
   
   tE = high_resolution_clock::now();

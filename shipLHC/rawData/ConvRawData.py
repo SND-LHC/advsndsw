@@ -53,7 +53,7 @@ class ConvRawDataPY(ROOT.FairTask):
       ioman.RegisterInputObject('debug', ROOT.TObjString(str(options.debug)))
       ioman.RegisterInputObject('stop', ROOT.TObjString(str(options.stop)))
       ioman.RegisterInputObject('heartBeat', ROOT.TObjString(str(options.heartBeat)))
-      ioman.RegisterInputObject('withGeoFile', ROOT.TObjString(str(options.withGeoFile)))
+      ioman.RegisterInputObject('withGeoFile', ROOT.TObjString(str(int(options.withGeoFile))))
       self.options = options
   # Pass raw data file as input object
       ioman.RegisterInputObject("rawData", self.fiN)
@@ -71,7 +71,7 @@ class ConvRawDataPY(ROOT.FairTask):
 # Fair convRawData task
       if options.FairTask_convRaw:
           self.run.AddTask(ROOT.ConvRawData())
-          self.run.Init()
+          self.fSink = ROOT.FairRootFileSink(self.outFile)
 
 #-------end of init for cpp ------------------------------------
       else:
@@ -320,11 +320,16 @@ class ConvRawDataPY(ROOT.FairTask):
 
    def Run(self):
       if self.options.FairTask_convRaw:
-          self.run.Run(self.options.nStart, self.nEvents)
+          self.run.Run(self.options.nStart, self.nEvents)          
       else:
           for eventNumber in range(self.options.nStart,self.nEvents):
              self.executeEvent(eventNumber)
    def executeEvent(self,eventNumber):
+     if self.options.FairTask_convRaw:
+          self.run.Run(self.options.nStart, self.nEvents)
+          Fout = self.outfile.GetRootFile()
+          self.sTree = Fout.Get('cbmsim')
+          return   
      if eventNumber%self.options.heartBeat==0 or self.debug:
                print('run ',self.options.runNumber, ' event',eventNumber," ",time.ctime())
      event = self.fiN.event
