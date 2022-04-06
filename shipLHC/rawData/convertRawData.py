@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import ROOT,os,sys,getopt
+ROOT.gSystem.Load("libXrdCl")
 import ConvRawData
 
 import rootUtils as ut
