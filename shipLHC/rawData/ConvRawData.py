@@ -36,7 +36,8 @@ class ConvRawDataPY(ROOT.FairTask):
          self.outFile = ROOT.TMemFile('monitorRawData', 'recreate')
 
       self.run     = ROOT.FairRunAna()
-      ioman = ROOT.FairRootManager.Instance()
+      self.ioman = ROOT.FairRootManager.Instance()
+      ioman = self.ioman
 # open input file
       self.fiN=ROOT.TFile.Open(server+path+inFile)
       self.nEvents = 1
@@ -198,7 +199,7 @@ class ConvRawDataPY(ROOT.FairTask):
           if name.find('board')!=0: continue
           self.boards[name]=self.fiN.Get(name)
 
-       self.fSink  = ROOT.FairRootFileSink(self.outFile)
+       self.fSink  = self.outfile
        self.sTree = ROOT.TTree('rawConv','raw data converted')
        ROOT.gDirectory.pwd()
        self.header  = ROOT.FairEventHeader()
@@ -213,6 +214,9 @@ class ConvRawDataPY(ROOT.FairTask):
            self.clusScifi   = ROOT.TClonesArray("sndCluster")
            self.clusScifiBranch    = self.sTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
            self.scifiDet = ROOT.gROOT.GetListOfGlobals().FindObject('Scifi')
+       if self.options.online:
+           self.kalman_tracks = ROOT.TObjArray(10)
+           self.MuonTracksBranch    = self.sTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,1)
 
        B = ROOT.TList()
        B.SetName('BranchList')
@@ -220,6 +224,8 @@ class ConvRawDataPY(ROOT.FairTask):
        B.Add(ROOT.TObjString('MuFilterHit'))
        B.Add(ROOT.TObjString('FairEventHeader'))
        self.fSink.WriteObject(B,"BranchList", ROOT.TObject.kSingleKey)
+       self.fSink.SetRunId(options.runNumber)
+       self.fSink.SetOutTree(self.sTree)
 
 #-------end of init for py ------------------------------------
 
@@ -448,36 +454,40 @@ class ConvRawDataPY(ROOT.FairTask):
           d = self.digiSciFi[k]
           if not d.isValid(): continue 
           hitDict[d.GetDetectorID()] = k
-          hitList = list(hitDict.keys())
-          if len(hitList)>0:
-                hitList.sort()
-                tmp = [ hitList[0] ]
-                cprev = hitList[0]
-                ncl = 0
-                last = len(hitList)-1
-                hitlist = ROOT.std.vector("sndScifiHit*")()
-                for i in range(len(hitList)):
-                     if i==0 and len(hitList)>1: continue
-                     c=hitList[i]
-                     if (c-cprev)==1: 
-                          tmp.append(c)
-                     if (c-cprev)!=1 or c==hitList[last]:
-                          first = tmp[0]
-                          N = len(tmp)
-                          hitlist.clear()
-                          for aHit in tmp: 
-                                  hitlist.push_back( self.digiSciFi[hitDict[aHit]])
-                                  if self.options.debug: print(aHit,hitDict[aHit],self.digiSciFi[hitDict[aHit]].GetDetectorID())
-                          if self.options.debug: print(hitlist.size())
-                          aCluster = ROOT.sndCluster(first,N,hitlist,self.scifiDet,False)
-                          if self.options.debug: print("cluster created")
-                          if  self.clusScifi.GetSize() == index: self.clusScifi.Expand(index+10)
-                          self.clusScifi[index]=aCluster
-                          index+=1
-                          if c!=hitList[last]:
-                               ncl+=1
-                               tmp = [c]
-                     cprev = c
+      hitList = list(hitDict.keys())
+      if len(hitList)>0:
+          hitList.sort()
+          tmp = [ hitList[0] ]
+          cprev = hitList[0]
+          ncl = 0
+          last = len(hitList)-1
+          hitlist = ROOT.std.vector("sndScifiHit*")()
+          for i in range(len(hitList)):
+               if i==0 and len(hitList)>1: continue
+               c=hitList[i]
+               neighbour = False
+               if (c-cprev)==1:    # does not account for neighbours across sipms
+                     neighbour = True
+                     tmp.append(c)
+               if not neighbour  or c==hitList[last]:
+                    first = tmp[0]
+                    N = len(tmp)
+                    hitlist.clear()
+                    for aHit in tmp: hitlist.push_back( self.digiSciFi[hitDict[aHit]])
+                    aCluster = ROOT.sndCluster(first,N,hitlist,self.scifiDet,False)
+                    if  self.clusScifi.GetSize() == index: self.clusScifi.Expand(index+10)
+                    self.clusScifi[index]=aCluster
+                    index+=1
+                    if c!=hitList[last]:
+                         ncl+=1
+                         tmp = [c]
+                    elif not neighbour :   # save last channel
+                         hitlist.clear()
+                         hitlist.push_back( self.digiSciFi[hitDict[c]])
+                         aCluster = ROOT.sndCluster(c,1,hitlist,self.scifiDet,False)
+                         self.clusScifi[index]=aCluster
+                         index+=1
+               cprev = c
    def Finalize(self):
       if self.options.FairTask_convRaw:
   # overwrite cbmsim 

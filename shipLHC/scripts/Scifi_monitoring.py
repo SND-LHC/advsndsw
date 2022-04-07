@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 import ROOT,os,sys
 import rootUtils as ut
+import shipunit as u
 import ctypes
 
 A,B  = ROOT.TVector3(),ROOT.TVector3()
+parallelToZ = ROOT.TVector3(0., 0., 1.)
 
 class Scifi_hitMaps(ROOT.FairTask):
    " produce hitmaps for Scifi"
@@ -56,12 +58,13 @@ class Scifi_hitMaps(ROOT.FairTask):
            self.M.h['posY_'+str(2*s)].Draw()
            tc = self.M.h['positions'].cd(s+6)
            self.M.h['posX_'+str(2*s+1)].Draw()
+
            tc = self.M.h['mult'].cd(s+1)
            tc.SetLogy(1)
            self.M.h['mult_'+str(2*s)].Draw()
            tc = self.M.h['mult'].cd(s+6)
-       tc.SetLogy(1)
-       self.M.h['mult_'+str(2*s+1)].Draw()
+           tc.SetLogy(1)
+           self.M.h['mult_'+str(2*s+1)].Draw()
 
        for canvas in ['hitmaps','signal','mult']:
            self.M.h[canvas].Update()
@@ -79,8 +82,8 @@ class Scifi_residuals(ROOT.FairTask):
        self.projs = {1:'V',0:'H'}
        self.parallelToZ = ROOT.TVector3(0., 0., 1.)
        run = ROOT.FairRunAna.Instance()
-       self.trackTask = run.GetTask('simpleTracking')
-       self.T = ROOT.FairRootManager.Instance().GetObject("Reco_MuonTracks")
+       self.trackTask = self.M.FairTasks['simpleTracking']
+       if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
 
        for s in range(1,6):
           for o in range(2):
@@ -134,7 +137,7 @@ class Scifi_residuals(ROOT.FairTask):
 # test plane 
             for o in range(2):
                 testPlane = s*10+o
-                z = zPos['Scifi'][testPlane]
+                z = self.M.zPos['Scifi'][testPlane]
                 rep     = ROOT.genfit.RKTrackRep(13)
                 state  = ROOT.genfit.StateOnPlane(rep)
 # find closest track state
@@ -172,8 +175,13 @@ class Scifi_residuals(ROOT.FairTask):
        h = self.M.h
        P = {'':'','X':'colz','Y':'colz','C':'colz'}
        Par = {'mean':1,'sigma':2}
-       h['globalPos'] = {'meanH':ROOT.TGraphErrors(),'sigmaH':ROOT.TGraphErrors(),'meanV':ROOT.TGraphErrors(),'sigmaV':ROOT.TGraphErrors()}
+       h['globalPos']   = {'meanH':ROOT.TGraphErrors(),'sigmaH':ROOT.TGraphErrors(),'meanV':ROOT.TGraphErrors(),'sigmaV':ROOT.TGraphErrors()}
        h['globalPosM'] = {'meanH':ROOT.TGraphErrors(),'sigmaH':ROOT.TGraphErrors(),'meanV':ROOT.TGraphErrors(),'sigmaV':ROOT.TGraphErrors()}
+       for x in h['globalPosM']:
+            h['globalPos'][x].SetMarkerStyle(21)
+            h['globalPos'][x].SetMarkerColor(ROOT.kBlue)
+            h['globalPosM'][x].SetMarkerStyle(21)
+            h['globalPosM'][x].SetMarkerColor(ROOT.kBlue)
        globalPos = h['globalPos']
        for proj in P:
            ut.bookCanvas(h,'scifiRes'+proj,'',1600,1900,2,5)
@@ -193,23 +201,20 @@ class Scifi_residuals(ROOT.FairTask):
                      for p in Par:
                           globalPos[p+self.projs[o]].SetPoint(s-1,s,fitResult.Parameter(Par[p]))
                           globalPos[p+self.projs[o]].SetPointError(s-1,0.5,fitResult.ParError(1))
-                          globalPos[p+self.projs[o]].SetMarkerStyle(21)
-                          globalPos[p+self.projs[o]].SetMarkerColor(ROOT.kBlue)
-                     if proj == 'C':
-                         for m in range(3):
+                  if proj == 'C':
+                       for m in range(3):
                              h[hname+str(m)] = h[hname].ProjectionX(hname+str(m),m*512,m*512+512)
                              rc = h[hname+str(m)].Fit('gaus','SQ0')
                              fitResult = rc.Get()
                              for p in Par:
                                  h['globalPosM'][p+self.projs[o]].SetPoint(j[o], s*10+m,   fitResult.Parameter(Par[p]))
                                  h['globalPosM'][p+self.projs[o]].SetPointError(j[o],0.5,fitResult.ParError(1))
-                                 j[o]+=1
-                                 h['globalPosM'][p+self.projs[o]].SetMarkerStyle(21)
-                                 h['globalPosM'][p+self.projs[o]].SetMarkerColor(ROOT.kBlue)
+                             j[o]+=1
        
        S  = ctypes.c_double()
        M = ctypes.c_double()
-       alignPar = {}
+       h['alignPar'] = {}
+       alignPar = h['alignPar']
        for p in globalPos:
            ut.bookCanvas(h,p,p,750,750,1,1)
            tc = h[p].cd()
@@ -223,11 +228,16 @@ class Scifi_residuals(ROOT.FairTask):
                   if p[4:5] == "V": s+=1
                   alignPar["Scifi/LocD"+str(s)] = M.value
 
+       ut.bookCanvas(h,'mean&sigma',"mean and sigma",1200,1200,2,2)
+       k=1
        for p in h['globalPosM']:
            ut.bookCanvas(h,p+'M',p,750,750,1,1)
            tc = h[p+'M'].cd()
            h['globalPosM'][p].SetTitle(p+';mat ; offset [#mum]')
            h['globalPosM'][p].Draw("ALP")
+           tc = h['mean&sigma'].cd(k)
+           h['globalPosM'][p].Draw("ALP")
+           k+=1
            if p.find('mean')==0:
               for n in range(h['globalPosM'][p].GetN()):
                  rc = h['globalPosM'][p].GetPoint(n,S,M)
@@ -235,7 +245,10 @@ class Scifi_residuals(ROOT.FairTask):
                  s = int(S.value*10)
                  if p[4:5] == "V": s+=1
                  alignPar["Scifi/LocM"+str(s)] = M.value
-       return alignPar
+       T = ['mean&sigma']
+       for proj in P: T.append('scifiRes'+proj)
+       for canvas in T:
+           self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas,subdir='scifi')
        
    def Scifi_track(self,event,nPlanes = 8, nClusters = 11):
 # check for low occupancy and enough hits in Scifi
@@ -243,6 +256,7 @@ class Scifi_residuals(ROOT.FairTask):
                clusters = event.Cluster_Scifi
         else:
                clusters = self.trackTask.scifiCluster()
+               event.ScifiClusters = clusters
         stations = {}
         for s in range(1,6):
            for o in range(2):
@@ -264,8 +278,6 @@ class Scifi_residuals(ROOT.FairTask):
         for k in range(len(clusters)):
            hitlist[k] = clusters[k]
         theTrack = self.trackTask.fitTrack(hitlist)
-        print('debug',theTrack)
-        eventTree.ScifiClusters = clusters
         return theTrack
 
 

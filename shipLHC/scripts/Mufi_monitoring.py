@@ -18,7 +18,7 @@ class Mufi_hitMaps(ROOT.FairTask):
        h = self.M.h
        run = ROOT.FairRunAna.Instance()
        self.trackTask = run.GetTask('simpleTracking')
-       self.T = ROOT.FairRootManager.Instance().GetObject("Reco_MuonTracks")
+       if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
 
        for s in monitor.systemAndPlanes:
             ut.bookHist(h,sdict[s]+'Mult','QDCs vs nr hits; #hits; QDC [a.u.]',200,0.,800.,200,0.,300.)
@@ -118,7 +118,7 @@ class Mufi_hitMaps(ROOT.FairTask):
       self.trackTask.ExecuteTask()
       Xbar = -10
       Ybar = -10
-      for  aTrack in self.T:
+      for  aTrack in self.M.eventTree.Reco_MuonTracks:
          state = aTrack.getFittedState()
          pos    = state.getPos()
          rc = h['bs'].Fill(pos.x(),pos.y())
@@ -297,3 +297,113 @@ class Mufi_hitMaps(ROOT.FairTask):
                   self.M.myPrint(h[canvas+str(s)],canvas+sdict[s],subdir='mufilter')
 
 
+class Mufi_largeVSsmall(ROOT.FairTask):
+   """
+    make correlation plots of small and large sipms for US and Veto"
+   """
+   def Init(self,options,monitor):
+       self.M = monitor
+       sdict = self.M.sdict
+       h = self.M.h
+       run = ROOT.FairRunAna.Instance()
+       for S in [1,2]:
+           for l in range(monitor.systemAndPlanes[S]):
+              ut.bookHist(h,'SVSl_'+str(l),'QDC large vs small sum',200,0.,200.,200,0.,200.)
+              ut.bookHist(h,'sVSl_'+str(l),'QDC large vs small average',200,0.,200.,200,0.,200.)
+              for side in ['L','R']:
+                   for i1 in range(7):
+                      for i2 in range(i1+1,8):
+                         tag=''
+                         if S==2 and monitor.smallSiPMchannel(i1): tag = 's'+str(i1)
+                         else:                              tag = 'l'+str(i1)
+                         if S==2 and monitor.smallSiPMchannel(i2): tag += 's'+str(i2)
+                         else:                              tag += 'l'+str(i2)
+                         ut.bookHist(h,sdict[S]+'cor'+tag+'_'+side+str(l),'QDC channel i vs channel j',200,0.,200.,200,0.,200.)
+                         for bar in range(monitor.systemAndBars[S]):
+                              ut.bookHist(h,sdict[S]+'cor'+tag+'_'+side+str(l)+str(bar),'QDC channel i vs channel j',200,0.,200.,200,0.,200.)
+
+   def ExecuteEvent(self,event):
+      M = self.M
+      for aHit in event.Digi_MuFilterHits:
+          if not aHit.isValid(): continue
+          detID = aHit.GetDetectorID()
+          s = detID//10000
+          bar = (detID%1000)
+          if s>2: continue
+          l  = (detID%10000)//1000  # plane number
+          sumL,sumS,SumL,SumS = 0,0,0,0
+          allChannels = M.map2Dict(aHit,'GetAllSignals',mask=False)
+          nS = 0
+          nL = 0
+          for c in allChannels:
+              if s==2 and self.M.smallSiPMchannel(c) : 
+                  sumS+= allChannels[c]
+                  nS += 1
+              else:                                              
+                  sumL+= allChannels[c]
+                  nL+=1
+          if nL>0: SumL=sumL/nL
+          if nS>0: SumS=sumS/nS
+          rc = h['sVSl_'+str(l)].Fill(SumS,SumL)
+          rc = h['SVSl_'+str(l)].Fill(sumS/4.,sumL/12.)
+#
+          for side in ['L','R']:
+            offset = 0
+            if side=='R': offset = 8
+            for i1 in range(offset,offset+7):
+               if not i1 in allChannels: continue
+               qdc1 = allChannels[i1]
+               for i2 in range(i1+1,offset+8):
+                 if not (i2) in allChannels: continue
+                 if s==2 and self.M.smallSiPMchannel(i1): tag = 's'+str(i1-offset)
+                 else: tag = 'l'+str(i1-offset)
+                 if s==2 and self.M.smallSiPMchannel(i2): tag += 's'+str(i2-offset)
+                 else: tag += 'l'+str(i2-offset)
+                 qdc2 = allChannels[i2]
+                 rc = h[sdict[S]+'cor'+tag+'_'+side+str(l)].Fill(qdc1,qdc2)
+                 rc = h[sdict[S]+'cor'+tag+'_'+side+str(l)+str(bar)].Fill(qdc1,qdc2)
+          allChannels.clear()
+
+   def Plot(self):
+       h = self.M.h
+       sdict = self.M.sdict
+       systemAndPlanes = self.M.systemAndPlanes
+       ut.bookCanvas(h,'TSL','',1800,1400,3,2)
+       ut.bookCanvas(h,'STSL','',1800,1400,3,2)
+       S=2
+       for l in range(systemAndPlanes[S]):
+          tc = h['TSL'].cd(l+1)
+          tc.SetLogz(1)
+          aHist = h['sVSl_'+str(l)]
+          aHist.SetTitle(';small SiPM QCD av:large SiPM QCD av')
+          nmax = aHist.GetBinContent(aHist.GetMaximumBin())
+          aHist.SetMaximum( 0.1*nmax )
+          tc = h['sVSl_'+str(l)].Draw('colz')
+          self.M.myPrint(h['TSL'],"largeSiPMvsSmallSiPM",subdir='mufilter')
+       for l in range(systemAndPlanes[S]):
+          tc = h['STSL'].cd(l+1)
+          tc.SetLogz(1)
+          aHist = h['SVSl_'+str(l)]
+          aHist.SetTitle(';small SiPM QCD sum/2:large SiPM QCD sum/6')
+          nmax = aHist.GetBinContent(aHist.GetMaximumBin())
+          aHist.SetMaximum( 0.1*nmax )
+          tc = h['SVSl_'+str(l)].Draw('colz')
+          self.M.myPrint(h['STSL'],"SumlargeSiPMvsSmallSiPM",subdir='mufilter')
+
+       for l in range(systemAndPlanes[S]):
+          for side in ['L','R']:
+             ut.bookCanvas(h,sdict[S]+'cor'+side+str(l),'',1800,1400,7,4)
+             k=1
+             for i1 in range(7):
+                for i2 in range(i1+1,8):
+                  tag=''
+                  if S==2 and self.M.smallSiPMchannel(i1): tag = 's'+str(i1)
+                  else:                              tag = 'l'+str(i1)
+                  if S==2 and self.M.smallSiPMchannel(i2): tag += 's'+str(i2)
+                  else:                              tag += 'l'+str(i2)
+                  tc = h[sdict[S]+'cor'+side+str(l)].cd(k)
+                  for bar in range(self.M.systemAndBars[S]):
+                      if bar == 0: h[sdict[S]+'cor'+tag+'_'+side+str(l)+str(bar)].Draw('colz')
+                      else: h[sdict[S]+'cor'+tag+'_'+side+str(l)+str(bar)].Draw('colzsame')
+                  k+=1
+             self.M.myPrint(h[sdict[S]+'cor'+side+str(l)],'QDCcor'+side+str(l),subdir='mufilter')

@@ -8,6 +8,7 @@ import rootUtils as ut
 import shipunit as u
 import SndlhcGeo
 
+A,B=ROOT.TVector3(),ROOT.TVector3()
 ROOT.gInterpreter.Declare("""
 #include "MuFilterHit.h"
 #include "AbsMeasurement.h"
@@ -82,7 +83,19 @@ class Monitoring():
         else:                                         self.snd_geo = SndlhcGeo.GeoInterface(options.geoFile[3:])
         self.MuFilter = self.snd_geo.modules['MuFilter']
         self.Scifi       = self.snd_geo.modules['Scifi']
+        self.zPos = self.getAverageZpositions()
+
         self.h = {}   # histogram storage
+
+        self.runNr   = str(options.runNumber).zfill(6)
+# presenter file
+        self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','recreate')
+        self.presenterFile.mkdir('scifi')
+        self.presenterFile.mkdir('mufilter')
+        self.presenterFile.mkdir('eventdisplay')
+        self.FairTasks = {}
+        for x in FairTasks:   #  keeps extended methods if from python class
+                 self.FairTasks[x.GetName()] = x
 
 # setup input
         if options.online:
@@ -94,14 +107,14 @@ class Monitoring():
             self.converter = ConvRawData.ConvRawDataPY()
             self.converter.Init(options)
             self.options.online = self.converter
+            self.eventTree = options.online.fSink.GetOutTree()
             for T in FairTasks:
                self.converter.run.AddTask(T)
-               self.converter.run.Init()
-               self.run = self.converter.run
-               self.eventTree = options.online.fSink.GetOutTree
+               T.Init()
+            # self.converter.run.Init()
+            self.run = self.converter.run
             return
         else:
-            self.runNr   = str(options.runNumber).zfill(6)
             partitions = 0
             if path.find('eos')>0:
                 dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path,shell=True) )
@@ -164,11 +177,52 @@ class Monitoring():
             self.run.Init()
             if partitions>0:  self.eventTree = ioman.GetInChain()
             else:                 self.eventTree = ioman.GetInTree()
+# add scifi cluster
+            self.clusScifi   = ROOT.TClonesArray("sndCluster")
+            self.clusScifiBranch    = self.eventTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
 
-            self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','update')
-            self.presenterFile.mkdir('scifi')
-            self.presenterFile.mkdir('mufilter')
-            self.presenterFile.mkdir('eventdisplay')
+   def makeScifiCluster(self):
+      self.clusScifi.Delete()
+      index = 0
+      hitDict = {}
+      for k in range(self.eventTree.Digi_ScifiHits.GetEntries()):
+          d = self.eventTree.Digi_ScifiHits[k]
+          if not d.isValid(): continue 
+          hitDict[d.GetDetectorID()] = k
+      hitList = list(hitDict.keys())
+      if len(hitList)>0:
+          hitList.sort()
+          tmp = [ hitList[0] ]
+          cprev = hitList[0]
+          ncl = 0
+          last = len(hitList)-1
+          hitlist = ROOT.std.vector("sndScifiHit*")()
+          for i in range(len(hitList)):
+               if i==0 and len(hitList)>1: continue
+               c=hitList[i]
+               neighbour = False
+               if (c-cprev)==1:    # does not account for neighbours across sipms
+                     neighbour = True
+                     tmp.append(c)
+               if not neighbour  or c==hitList[last]:
+                    first = tmp[0]
+                    N = len(tmp)
+                    hitlist.clear()
+                    for aHit in tmp: hitlist.push_back( self.eventTree.Digi_ScifiHits[hitDict[aHit]])
+                    aCluster = ROOT.sndCluster(first,N,hitlist,self.Scifi,False)
+                    if  self.clusScifi.GetSize() == index: self.clusScifi.Expand(index+10)
+                    self.clusScifi[index]=aCluster
+                    index+=1
+                    if c!=hitList[last]:
+                         ncl+=1
+                         tmp = [c]
+                    elif not neighbour :   # save last channel
+                         hitlist.clear()
+                         hitlist.push_back( self.eventTree.Digi_ScifiHits[hitDict[c]])
+                         aCluster = ROOT.sndCluster(c,1,hitlist,self.Scifi,False)
+                         self.clusScifi[index]=aCluster
+                         index+=1
+               cprev = c
 
    def GetEvent(self,n):
       if self.options.online:
@@ -176,6 +230,7 @@ class Monitoring():
             self.eventTree = self.options.online.sTree
       else: 
             self.eventTree.GetEvent(n)
+            self.makeScifiCluster()
       self.EventNumber = n
       return self.eventTree
 
@@ -186,8 +241,8 @@ class Monitoring():
 
    def getAverageZpositions(self):
       zPos={'MuFilter':{},'Scifi':{}}
-      for s in systemAndPlanes:
-          for plane in range(systemAndPlanes[s]):
+      for s in self.systemAndPlanes:
+          for plane in range(self.systemAndPlanes[s]):
              bar = 4
              p = plane
              if s==3 and (plane%2==0 or plane==7): 

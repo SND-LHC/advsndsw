@@ -4,6 +4,8 @@ import Monitor
 import Scifi_monitoring
 import Mufi_monitoring
 import EventDisplay_Task
+import SndlhcMuonReco
+ROOT.gROOT.SetBatch(True)
 
 def pyExit():
     if options.online:
@@ -40,6 +42,8 @@ parser.add_argument("--goodEvents", dest="goodEvents", action='store_true',defau
 parser.add_argument("--withTrack", dest="withTrack", action='store_true',default=False)
 parser.add_argument("--nTracks", dest="nTracks",default=0,type=int)
 parser.add_argument("--save", dest="save", action='store_true',default=False)
+parser.add_argument("--interactive", dest="interactive", action='store_true',default=False)
+
 options = parser.parse_args()
 
 options.dashboard = "currently_processed_file.txt"
@@ -53,7 +57,8 @@ def currentRun():
       for l in Lcrun:
             if not l.find('FINISHED')<0:
                print("DAQ not running. Don't know which file to open, stop.")
-               quit()
+               print(Lcrun)
+               os._exit(1)
             if not l.find('/home/snd/snd/') < 0:
                  tmp = l.split('/')
                  curRun = tmp[len(tmp)-2]
@@ -73,7 +78,7 @@ if options.auto:
 else:
    if options.runNumber < 0:
        print("run number required for non-auto mode")
-       quit()
+       os._exit(1)
 
 # prepare tasks:
 FairTasks = []
@@ -96,8 +101,9 @@ if options.nEvents < 0 :
 monitorTasks = {}
 monitorTasks['Scifi_hitMaps']   = Scifi_monitoring.Scifi_hitMaps()
 monitorTasks['Mufi_hitMaps']   = Mufi_monitoring.Mufi_hitMaps()
+monitorTasks['Mufi_QDCcorellations']   = Mufi_monitoring.Mufi_largeVSsmall()
 monitorTasks['Scifi_residuals'] = Scifi_monitoring.Scifi_residuals()   # time consuming
-monitorTasks['EventDisplay']   = EventDisplay_Task.twod()
+if options.auto:  monitorTasks['EventDisplay']   = EventDisplay_Task.twod()
 
 for m in monitorTasks:
     monitorTasks[m].Init(options,M)
@@ -105,7 +111,6 @@ for m in monitorTasks:
 if not options.auto:   # default online/offline mode
    for n in range(options.nStart,options.nEvents):
      event = M.GetEvent(n)
-     trackTask.event = event    #  this needs to be fixed, not a good solution
      for m in monitorTasks:
         monitorTasks[m].ExecuteEvent(M.eventTree)
 
@@ -136,7 +141,7 @@ else:
       for n in range(nStart,nLast):
         event = M.GetEvent(n)
         N0+=1
-        trackTask.event = event
+        # trackTask.event = event
         for m in monitorTasks:
            monitorTasks[m].ExecuteEvent(M.eventTree)
 # update plots
