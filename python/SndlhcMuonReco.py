@@ -128,20 +128,27 @@ class MuonReco(ROOT.FairTask) :
         self.ioman = ROOT.FairRootManager.Instance()
 
         # Pass input data through to output.
-        self.Passthrough()
+        # self.Passthrough()
 
-        # Fetch digi hit collections.
-        # Try the FairRoot way first
-        self.MuFilterHits = self.ioman.GetObject("Digi_MuFilterHits")
-        self.ScifiHits = self.ioman.GetObject("Digi_ScifiHits")
+        # Fetch digi hit collections from online if exist
+        sink = self.ioman.GetSink()
+        eventTree = None
+        if sink:   eventTree = sink.GetOutTree()
+        if eventTree:
+            self.MuFilterHits = eventTree.Digi_MuFilterHits
+            self.ScifiHits       = eventTree.Digi_ScifiHits
+        else:
+        # Try the FairRoot way 
+            self.MuFilterHits = self.ioman.GetObject("Digi_MuFilterHits")
+            self.ScifiHits = self.ioman.GetObject("Digi_ScifiHits")
 
         # If that doesn't work, try using standard ROOT
-        if self.MuFilterHits == None :
-            warnings.warn("Digi_MuFilterHits not in branch list")
-            self.MuFilterHits = self.ioman.GetInTree().Digi_MuFilterHits
-        if self.ScifiHits == None :
-            warnings.warn("Digi_ScigiHits not in branch list")
-            self.ScifiHits = self.ioman.GetInTree().Digi_ScifiHits
+            if self.MuFilterHits == None :
+               warnings.warn("Digi_MuFilterHits not in branch list")
+               self.MuFilterHits = self.ioman.GetInTree().Digi_MuFilterHits
+            if self.ScifiHits == None :
+               warnings.warn("Digi_ScigiHits not in branch list")
+               self.ScifiHits = self.ioman.GetInTree().Digi_ScifiHits
         
         if self.MuFilterHits == None :
             raise RuntimeException("Digi_MuFilterHits not found in input file.")
@@ -194,9 +201,15 @@ class MuonReco(ROOT.FairTask) :
         self.a = ROOT.TVector3()
         self.b = ROOT.TVector3()
 
+        # check if track container exists
+        sink = self.ioman.GetSink()
+        self.event = sink.GetOutTree()
+        if self.event:
+            self.kalman_tracks = sink.GetOutTree().Reco_MuonTracks 
+        else:
         # Now initialize output
-        self.kalman_tracks = ROOT.TObjArray(self.max_reco_muons);
-        self.ioman.Register("Reco_MuonTracks", self.ioman.GetFolderName(), self.kalman_tracks, ROOT.kTRUE);
+           self.kalman_tracks = ROOT.TObjArray(self.max_reco_muons);
+           self.ioman.Register("Reco_MuonTracks", self.ioman.GetFolderName(), self.kalman_tracks, ROOT.kTRUE);
 
         # Kalman filter stuff
 
