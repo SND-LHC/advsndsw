@@ -247,7 +247,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
          tofpet_id = bt->GetLeaf("tofpetId")->GetValue(n);
          tofpet_channel = bt->GetLeaf("tofpetChannel")->GetValue(n);
          tac = bt->GetLeaf("tac")->GetValue(n);
-         /* Since run 29 calibration is done online and 
+         /* Since run 39 calibration is done online and 
          calib data stored in root raw data file */
          if (makeCalibration)
            tie(TDC,QDC,Chi2ndof,satur) = comb_calibration(board_id, tofpet_id, tofpet_channel, tac,
@@ -260,10 +260,12 @@ void ConvRawData::Exec(Option_t* /*opt*/)
          {
            TDC = bt->GetLeaf("timestamp")->GetValue(n);
            QDC = bt->GetLeaf("value")->GetValue(n);
-           Chi2ndof = max(bt->GetLeaf("timestampCalChi2")->GetValue(n)/bt->GetLeaf("timestampCalDof")->GetValue(n),
-                          bt->GetLeaf("valueCalChi2")->GetValue(n)/bt->GetLeaf("valueCalDof")->GetValue(n));
+           Chi2ndof = 1;
+           satur = 0.;
+           //Chi2ndof = max(bt->GetLeaf("timestampCalChi2")->GetValue(n)/bt->GetLeaf("timestampCalDof")->GetValue(n),
+           //               bt->GetLeaf("valueCalChi2")->GetValue(n)/bt->GetLeaf("valueCalDof")->GetValue(n));
            // FIXME, valueCalDof is a boolean that is true if v_fine/par[d] is above saturationLimit              
-           satur = (bt->GetLeaf("valueCalDof")->GetValue(n) == 1) ? 1.1*saturationLimit : 0.9*saturationLimit;    
+           //satur = (bt->GetLeaf("valueCalDof")->GetValue(n) == 1) ? 1.1*saturationLimit : 0.9*saturationLimit;    
          }
          
          // Print a warning if TDC or QDC is nan.        
