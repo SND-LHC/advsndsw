@@ -3595,10 +3595,10 @@ def plotsForCollabMeeting():
    myPrint(h['TUS'],'dTvsX_US')
    myPrint(h['TDS'],'dTvsX_DS')
 #
-def testReversChannelMapping():
+def testReversChannelMapping(p=None):
   import reverseMapping
   R = reverseMapping.reversChannelMapping()
-  p = options.path.replace("convertedData","raw_data")+"/data/run_"+runNr
+  if not p: p = options.path.replace("convertedData","raw_data")+"/data/run_"+runNr
   R.Init(p)
   for event in eventTree:
      for aHit in eventTree.Digi_MuFilterHits:
