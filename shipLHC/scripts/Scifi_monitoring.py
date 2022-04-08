@@ -206,6 +206,7 @@ class Scifi_residuals(ROOT.FairTask):
                              h[hname+str(m)] = h[hname].ProjectionX(hname+str(m),m*512,m*512+512)
                              rc = h[hname+str(m)].Fit('gaus','SQ0')
                              fitResult = rc.Get()
+                             if not fitResult: continue
                              for p in Par:
                                  h['globalPosM'][p+self.projs[o]].SetPoint(j[o], s*10+m,   fitResult.Parameter(Par[p]))
                                  h['globalPosM'][p+self.projs[o]].SetPointError(j[o],0.5,fitResult.ParError(1))
