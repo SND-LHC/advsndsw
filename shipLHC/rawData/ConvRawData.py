@@ -56,7 +56,8 @@ class ConvRawDataPY(ROOT.FairTask):
       ioman.RegisterInputObject('withGeoFile', ROOT.TObjString(str(int(options.withGeoFile))))
       ioman.RegisterInputObject('makeCalibration', ROOT.TObjString(str(int(options.makeCalibration))))
       ioman.RegisterInputObject('chi2Max', ROOT.TObjString(str(options.chi2Max)))
-      ioman.RegisterInputObject('saturationLimit', ROOT.TObjString(str(options.saturationLimit))) 
+      ioman.RegisterInputObject('saturationLimit', ROOT.TObjString(str(options.saturationLimit)))
+      ioman.RegisterInputObject('online', ROOT.TObjString(str(int(options.online)))) 
       self.options = options
       
   # Initialize logger: set severity and verbosity
@@ -88,8 +89,7 @@ class ConvRawDataPY(ROOT.FairTask):
       if options.FairTask_convRaw:
           self.run.AddTask(ROOT.ConvRawData())
           self.fSink = ROOT.FairRootFileSink(self.outFile)
-          if not self.monitoring:
-             self.run.Init()
+          self.run.Init()
 
 #-------end of init for cpp ------------------------------------
       else:

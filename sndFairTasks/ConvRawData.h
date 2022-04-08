@@ -82,7 +82,7 @@ class ConvRawData : public FairTask
       int frunNumber;
       int fnStart, fnEvents;
       int fheartBeat;
-      int withGeoFile, debug, stop, makeCalibration;
+      int withGeoFile, debug, stop, makeCalibration, online;
       string fpath; 
       int eventNumber;
       double chi2Max, saturationLimit;
@@ -92,6 +92,7 @@ class ConvRawData : public FairTask
       TClonesArray* fDigiSciFi;
       TClonesArray* fDigiMuFilter;
       TClonesArray* fClusScifi;
+      TClonesArray* fKalmanTracks;
     
       ConvRawData(const ConvRawData&);
       ConvRawData& operator=(const ConvRawData&);

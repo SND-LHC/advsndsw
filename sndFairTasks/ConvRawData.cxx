@@ -77,7 +77,8 @@ InitStatus ConvRawData::Init()
     TObjString* withGeoFile_obj = dynamic_cast<TObjString*>(ioman->GetObject("withGeoFile"));
     TObjString* makeCalibration_obj = dynamic_cast<TObjString*>(ioman->GetObject("makeCalibration"));
     TObjString* chi2Max_obj = dynamic_cast<TObjString*>(ioman->GetObject("chi2Max"));
-    TObjString* saturationLimit_obj = dynamic_cast<TObjString*>(ioman->GetObject("saturationLimit"));    
+    TObjString* saturationLimit_obj = dynamic_cast<TObjString*>(ioman->GetObject("saturationLimit"));
+    TObjString* online_obj = dynamic_cast<TObjString*>(ioman->GetObject("online"));
     // Input raw data file is read from the FairRootManager
     // This allows to have it in custom format, e.g. have arbitary names of TTrees
     TFile* f0 = dynamic_cast<TFile*>(ioman->GetObject("rawData"));
@@ -93,6 +94,7 @@ InitStatus ConvRawData::Init()
     std::istringstream(makeCalibration_obj->GetString().Data()) >> makeCalibration;
     std::istringstream(chi2Max_obj->GetString().Data()) >> chi2Max;
     std::istringstream(saturationLimit_obj->GetString().Data()) >> saturationLimit;
+    std::istringstream(online_obj->GetString().Data()) >> online;
     
     fEventTree = (TTree*)f0->Get("event"); 
     // Get board_x data
@@ -119,6 +121,12 @@ InitStatus ConvRawData::Init()
     if (withGeoFile)
     {    
       ioman->Register("Cluster_Scifi", "ScifiCluster_det", fClusScifi, kTRUE);
+    }
+    //Muon tracks
+    fKalmanTracks = new TClonesArray("TObjArray");
+    if (online)
+    {
+      ioman->Register("Reco_MuonTracks", "", fKalmanTracks, kTRUE);
     }
     
     local = false; 
