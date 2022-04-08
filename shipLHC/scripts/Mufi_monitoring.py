@@ -324,6 +324,8 @@ class Mufi_largeVSsmall(ROOT.FairTask):
 
    def ExecuteEvent(self,event):
       M = self.M
+      h = self.M.h
+      sdict = self.M.sdict
       for aHit in event.Digi_MuFilterHits:
           if not aHit.isValid(): continue
           detID = aHit.GetDetectorID()
@@ -360,8 +362,8 @@ class Mufi_largeVSsmall(ROOT.FairTask):
                  if s==2 and self.M.smallSiPMchannel(i2): tag += 's'+str(i2-offset)
                  else: tag += 'l'+str(i2-offset)
                  qdc2 = allChannels[i2]
-                 rc = h[sdict[S]+'cor'+tag+'_'+side+str(l)].Fill(qdc1,qdc2)
-                 rc = h[sdict[S]+'cor'+tag+'_'+side+str(l)+str(bar)].Fill(qdc1,qdc2)
+                 rc = h[sdict[s]+'cor'+tag+'_'+side+str(l)].Fill(qdc1,qdc2)
+                 rc = h[sdict[s]+'cor'+tag+'_'+side+str(l)+str(bar)].Fill(qdc1,qdc2)
           allChannels.clear()
 
    def Plot(self):
