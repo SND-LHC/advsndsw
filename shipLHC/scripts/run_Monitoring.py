@@ -5,7 +5,6 @@ import Scifi_monitoring
 import Mufi_monitoring
 import EventDisplay_Task
 import SndlhcMuonReco
-ROOT.gROOT.SetBatch(True)
 
 def pyExit():
     if options.online:
@@ -47,6 +46,7 @@ parser.add_argument("--interactive", dest="interactive", action='store_true',def
 options = parser.parse_args()
 
 options.dashboard = "currently_processed_file.txt"
+if options.auto: ROOT.gROOT.SetBatch(True)
 
 def currentRun():
       with client.File() as f:
@@ -103,7 +103,7 @@ monitorTasks['Scifi_hitMaps']   = Scifi_monitoring.Scifi_hitMaps()
 monitorTasks['Mufi_hitMaps']   = Mufi_monitoring.Mufi_hitMaps()
 monitorTasks['Mufi_QDCcorellations']   = Mufi_monitoring.Mufi_largeVSsmall()
 monitorTasks['Scifi_residuals'] = Scifi_monitoring.Scifi_residuals()   # time consuming
-if options.auto:  monitorTasks['EventDisplay']   = EventDisplay_Task.twod()
+if options.interactive:  monitorTasks['EventDisplay']   = EventDisplay_Task.twod()
 
 for m in monitorTasks:
     monitorTasks[m].Init(options,M)
