@@ -21,11 +21,15 @@ class Tracking(ROOT.FairTask):
    self.sigmaMufiUS_spatial = 2.*u.cm
    self.sigmaMufiDS_spatial = 0.3*u.cm
    self.Debug = False
-   self.kalman_tracks = ROOT.TObjArray(10);
    self.ioman = ROOT.FairRootManager.Instance()
-   self.event = self.ioman.GetInChain()
-
-   self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE);
+   sink = self.ioman.GetSink()
+   self.event = sink.GetOutTree()
+   if not self.event:
+         self.event = self.ioman.GetInChain()
+         self.kalman_tracks = ROOT.TObjArray(10);
+         self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE);
+   else:
+         self.kalman_tracks = sink.GetOutTree().Reco_MuonTracks 
 
    self.systemAndPlanes  = {1:2,2:5,3:7}
    self.nPlanes = 8
