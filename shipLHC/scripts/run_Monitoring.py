@@ -16,7 +16,7 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser()
 parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode online monitoring",default=False,action='store_true')
-parser.add_argument("--Nupdate", dest="Nupdate", help="frequence of updating online plots",default=10000,type=int)
+parser.add_argument("--Nupdate", dest="Nupdate", help="frequence of updating online plots",default=100,type=int)
 parser.add_argument("--Nlast",      dest="Nlast", help="last N events to analyze on file",default=10,type=int)
 
 parser.add_argument("-M", "--online", dest="online", help="online mode",default=False,action='store_true')
@@ -137,6 +137,7 @@ else:
    lastPart = tmp[len(tmp)-1]
    nLast = options.nEvents
    nStart = nLast-options.Nlast
+   M.updateHtml()
    while 1>0:
       for n in range(nStart,nLast):
         event = M.GetEvent(n)
@@ -170,7 +171,7 @@ else:
             M.converter.fiN = ROOT.TFile.Open(lastFile)
          else:
             time.sleep(30) # sleep 30 seconds and check for new events
-            print('DAQ inactive for 30sec. Last event = ',nLast,M.converter.fiN.event.GetEntries())
+            print('DAQ inactive for 30sec. Last event = ',M.converter.fiN.event.GetEntries(), curRun,curPart,N0)
             nStart = nLast
 
 
