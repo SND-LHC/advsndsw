@@ -234,6 +234,34 @@ class Monitoring():
       self.EventNumber = n
       return self.eventTree
 
+   def publishRootFile(self):
+   # try to copy root file with TCanvas to EOS
+       self.presenterFile.Close()
+       try:
+            rc = os.system("xrdcp "+self.presenterFile.GetName()+"  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online")
+       except:
+            print("copy of root file failed. Token expired?")
+       self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','update')
+
+   def updateHtml(self):
+      old = open("online.html")
+      oldL = old.readlines()
+      old.close()
+      tmp = open("tmp.html",'w')
+      found = False
+      for L in oldL:
+           if L.find("https://snd-lhc-monitoring.web.cern.ch/online")>0 and not found:
+              r = str(options.runNumber)
+              Lnew = ' <li> <a href="https://snd-lhc-monitoring.web.cern.ch/online/run.html?file=run'+r+'.root">run '+r+'</a>'
+              tmp.write(Lnew)
+           tmp.write(L)
+      tmp.close()
+      os.system('cp tmp.html online.html')
+      try:
+            rc = os.system("xrdcp online.html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
+      except:
+            print("copy of html failed. Token expired?")
+
    def systemAndOrientation(self,s,plane):
       if s==1 or s==2: return "horizontal"
       if plane%2==1 or plane == 6: return "vertical"

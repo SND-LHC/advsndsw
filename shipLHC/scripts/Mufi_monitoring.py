@@ -114,6 +114,7 @@ class Mufi_hitMaps(ROOT.FairTask):
        if withX and maxOneBar:  self.beamSpot(event)
     
    def beamSpot(self,event):
+      if not self.trackTask: return
       h = self.M.h
       self.trackTask.ExecuteTask()
       Xbar = -10
@@ -159,7 +160,7 @@ class Mufi_hitMaps(ROOT.FairTask):
            ut.bookCanvas(h,'hitmaps' +str(s),'hitmaps' +str(s),S[s][0],S[s][1],S[s][2],S[s][3])
            ut.bookCanvas(h,'barmaps'+str(s),'barmaps'+str(s),S[s][0],S[s][1],S[s][2],S[s][3])
            ut.bookCanvas(h,'signal'    +str(s),'QDC'    +str(s),S[s][0],S[s][1],S[s][2],S[s][3])
-           ut.bookCanvas(h,'Tsignal'   +str(s),'TDC'    +str(s),S[s][0],S[s][1],S[s][2],S[s][3])
+           ut.bookCanvas(h,'Tsignal'   +str(s),'QDC for hit on track'    +str(s),S[s][0],S[s][1],S[s][2],S[s][3])
 
            for l in range(systemAndPlanes[s]):
               n = l+1

@@ -16,6 +16,9 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser()
 parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode online monitoring",default=False,action='store_true')
+parser.add_argument("--Nupdate", dest="Nupdate", help="frequence of updating online plots",default=10000,type=int)
+parser.add_argument("--Nlast",      dest="Nlast", help="last N events to analyze on file",default=10,type=int)
+
 parser.add_argument("-M", "--online", dest="online", help="online mode",default=False,action='store_true')
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,default=-1)
@@ -127,16 +130,13 @@ else:
          check every 5 seconds: if no new file re-open again
          if new file, finish run, publish histograms, and restart with new file
    """
-
-   dN = 10
-   Nupdate = 10000
    N0 = 0
    lastFile = M.converter.fiN.GetName()
    tmp = lastFile.split('/')
    lastRun  = tmp[len(tmp)-2]
    lastPart = tmp[len(tmp)-1]
    nLast = options.nEvents
-   nStart = nLast-dN
+   nStart = nLast-options.Nlast
    while 1>0:
       for n in range(nStart,nLast):
         event = M.GetEvent(n)
@@ -145,31 +145,32 @@ else:
         for m in monitorTasks:
            monitorTasks[m].ExecuteEvent(M.eventTree)
 # update plots
-        if N0%Nupdate==0:
+        if N0%options.Nupdate==0:
            for m in monitorTasks:
                monitorTasks[m].Plot()
+           M.publishRootFile()
 
       M.converter.fiN = ROOT.TFile.Open(lastFile)
       newEntries = M.converter.fiN.event.GetEntries()
       if newEntries>nLast:
-         nStart = max(nLast,newEntries-dN)
+         nStart = max(nLast,newEntries-options.Nlast)
          nLast = newEntries
          continue
       else:  
       # check if file has changed
-         currentRun,currentPart =  currentRun()
-         if not currentRun == lastRun:
+         curRun,curPart =  currentRun()
+         if not curRun == lastRun:
             for m in monitorTasks:
                monitorTasks[m].Plot()
             print("run ",lastRun," has finished.")
             quit()  # reinitialize everything with new run number
-         if not currentPart == lastPart:
-            lastPart = currentPart
+         if not curPart == lastPart:
+            lastPart = curPart
             lastFile = options.server+ l
             M.converter.fiN = ROOT.TFile.Open(lastFile)
          else:
             time.sleep(30) # sleep 30 seconds and check for new events
-            print('DAQ inactive for 30sec')
+            print('DAQ inactive for 30sec. Last event = ',nLast,M.converter.fiN.event.GetEntries())
             nStart = nLast
 
 
