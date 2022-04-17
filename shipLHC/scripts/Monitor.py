@@ -238,7 +238,7 @@ class Monitoring():
    # try to copy root file with TCanvas to EOS
        self.presenterFile.Close()
        try:
-            rc = os.system("xrdcp "+self.presenterFile.GetName()+"  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online")
+            rc = os.system("xrdcp -f "+self.presenterFile.GetName()+"  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online")
        except:
             print("copy of root file failed. Token expired?")
        self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','update')
