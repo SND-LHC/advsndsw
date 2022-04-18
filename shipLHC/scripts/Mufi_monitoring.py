@@ -165,12 +165,12 @@ class Mufi_hitMaps(ROOT.FairTask):
            for l in range(systemAndPlanes[s]):
               n = l+1
               if s==3 and n==7: n=8
-              tc = h['hitmaps'+sdict[s])].cd(n)
+              tc = h['hitmaps'+sdict[s]].cd(n)
               tag = str(s)+str(l)
               h['hit_'+tag].Draw()
               tc = h['barmaps'+sdict[s]].cd(n)
               h['bar_'+tag].Draw()
-              tc = h['signal'+str(s)].cd(n)
+              tc = h['signal'+sdict[s]].cd(n)
               h['sig_'+tag].Draw()
               tc = h['Tsignal'+sdict[s]].cd(n)
               h['Tsig_'+tag].Draw()
