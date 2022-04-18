@@ -120,7 +120,7 @@ if not options.auto:   # default online/offline mode
    if options.nEvents>0:
        for m in monitorTasks:
           monitorTasks[m].Plot()
-
+   M.publishRootFile()
 else: 
    """ auto mode
        check for open data file on the online machine
