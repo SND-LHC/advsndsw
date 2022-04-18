@@ -382,7 +382,7 @@ class Mufi_largeVSsmall(ROOT.FairTask):
           nmax = aHist.GetBinContent(aHist.GetMaximumBin())
           aHist.SetMaximum( 0.1*nmax )
           tc = h['sVSl_'+str(l)].Draw('colz')
-          self.M.myPrint(h['TSL'],"largeSiPMvsSmallSiPM",subdir='mufilter')
+       self.M.myPrint(h['TSL'],"largeSiPMvsSmallSiPM",subdir='mufilter')
        for l in range(systemAndPlanes[S]):
           tc = h['STSL'].cd(l+1)
           tc.SetLogz(1)
@@ -391,7 +391,7 @@ class Mufi_largeVSsmall(ROOT.FairTask):
           nmax = aHist.GetBinContent(aHist.GetMaximumBin())
           aHist.SetMaximum( 0.1*nmax )
           tc = h['SVSl_'+str(l)].Draw('colz')
-          self.M.myPrint(h['STSL'],"SumlargeSiPMvsSmallSiPM",subdir='mufilter')
+       self.M.myPrint(h['STSL'],"SumlargeSiPMvsSmallSiPM",subdir='mufilter')
 
        for l in range(systemAndPlanes[S]):
           for side in ['L','R']:
