@@ -157,22 +157,22 @@ class Mufi_hitMaps(ROOT.FairTask):
        systemAndPlanes =self.M.systemAndPlanes
        S = {1:[1800,800,2,1],2:[1800,1500,2,3],3:[1800,1800,2,4]}
        for s in S:
-           ut.bookCanvas(h,'hitmaps' +str(s),'hitmaps' +str(s),S[s][0],S[s][1],S[s][2],S[s][3])
-           ut.bookCanvas(h,'barmaps'+str(s),'barmaps'+str(s),S[s][0],S[s][1],S[s][2],S[s][3])
-           ut.bookCanvas(h,'signal'    +str(s),'QDC'    +str(s),S[s][0],S[s][1],S[s][2],S[s][3])
-           ut.bookCanvas(h,'Tsignal'   +str(s),'QDC for hit on track'    +str(s),S[s][0],S[s][1],S[s][2],S[s][3])
+           ut.bookCanvas(h,'hitmaps' +sdict[s],'hitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
+           ut.bookCanvas(h,'barmaps'+sdict[s],'barmaps'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
+           ut.bookCanvas(h,'signal'    +sdict[s],'QDC'    +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
+           ut.bookCanvas(h,'Tsignal'   +sdict[s],'QDC for hit on track'    +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
 
            for l in range(systemAndPlanes[s]):
               n = l+1
               if s==3 and n==7: n=8
-              tc = h['hitmaps'+str(s)].cd(n)
+              tc = h['hitmaps'+sdict[s])].cd(n)
               tag = str(s)+str(l)
               h['hit_'+tag].Draw()
-              tc = h['barmaps'+str(s)].cd(n)
+              tc = h['barmaps'+sdict[s]].cd(n)
               h['bar_'+tag].Draw()
               tc = h['signal'+str(s)].cd(n)
               h['sig_'+tag].Draw()
-              tc = h['Tsignal'+str(s)].cd(n)
+              tc = h['Tsignal'+sdict[s]].cd(n)
               h['Tsig_'+tag].Draw()
 
        ut.bookCanvas(h,'hitmult','hit multiplicities per plane',2000,1600,4,3)
@@ -222,7 +222,7 @@ class Mufi_hitMaps(ROOT.FairTask):
        h['hit_30'].Draw()
        for i in range(1,7):
            h['hit_3'+str(i)].Draw('same')
-           h['lbar3']=ROOT.TLegend(0.6,0.6,0.99,0.99)
+       h['lbar3']=ROOT.TLegend(0.6,0.6,0.99,0.99)
        for i in range(7): 
            h['lbar3'].AddEntry(h['hit_3'+str(i)],'plane '+str(i+1),"f")
            h['lbar3'].Draw()
@@ -265,34 +265,34 @@ class Mufi_hitMaps(ROOT.FairTask):
            h['lLRinEff'+str(s)].AddEntry(h[name+'1Y'],'right all',"f")
            h['lLRinEff'+str(s)].Draw()
 
-           ut.bookCanvas(h,'signalUSVeto',' ',1200,1600,3,7)
-           s = 1
-           l = 1
-           for plane in range(2):
+       ut.bookCanvas(h,'signalUSVeto',' ',1200,1600,3,7)
+       s = 1
+       l = 1
+       for plane in range(2):
+                for side in ['L','R','S']:
+                   tc = h['signalUSVeto'].cd(l)
+                   l+=1 
+                   if side=='S': continue
+                   h['sig'+side+'_'+str( s*10+plane)].Draw()
+       s=2
+       for plane in range(5):
                 for side in ['L','R','S']:
                    tc = h['signalUSVeto'].cd(l)
                    l+=1
-                   if side=='S': continue
                    h['sig'+side+'_'+str( s*10+plane)].Draw()
-           s=2
-           for plane in range(5):
-               for side in ['L','R','S']:
-                   tc = h['signalUSVeto'].cd(l)
-                   l+=1
-                   h['sig'+side+'_'+str( s*10+plane)].Draw()
-           ut.bookCanvas(h,'signalDS',' ',900,1600,2,7)
-           s = 3
-           l = 1
-           for plane in range(7):
+       ut.bookCanvas(h,'signalDS',' ',900,1600,2,7)
+       s = 3
+       l = 1
+       for plane in range(7):
                for side in ['L','R']:
                   tc = h['signalDS'].cd(l)
                   l+=1
                   h['sig'+side+'_'+str( s*10+plane)].Draw()
 
-           for canvas in ['signalUSVeto','LR','USBars']:
+       for canvas in ['signalUSVeto','LR','USBars']:
               h[canvas].Update()
               self.M.myPrint(h[canvas],canvas,subdir='mufilter')
-           for canvas in ['hitmaps','barmaps','signal','Tsignal']:
+       for canvas in ['hitmaps','barmaps','signal','Tsignal']:
               for s in range(1,4):
                   h[canvas+str(s)].Update()
                   self.M.myPrint(h[canvas+str(s)],canvas+sdict[s],subdir='mufilter')
