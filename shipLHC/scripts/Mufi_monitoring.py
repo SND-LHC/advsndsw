@@ -3,7 +3,7 @@ import ROOT,os,sys
 import rootUtils as ut
 
 A,B  = ROOT.TVector3(),ROOT.TVector3()
-
+detector = "mufi-"
 class Mufi_hitMaps(ROOT.FairTask):
    " produce hitmaps for MuFilter, Veto/US/DS"
    """
@@ -23,33 +23,33 @@ class Mufi_hitMaps(ROOT.FairTask):
        for s in monitor.systemAndPlanes:
             ut.bookHist(h,sdict[s]+'Mult','QDCs vs nr hits; #hits; QDC [a.u.]',200,0.,800.,200,0.,300.)
             for l in range(monitor.systemAndPlanes[s]):
-                  ut.bookHist(h,'hitmult_'+str(s*10+l),'hit mult / plane '+str(s*10+l)+'; #hits',61,-0.5,60.5)
-                  ut.bookHist(h,'hit_'+str(s*10+l),'channel map / plane '+str(s*10+l)+'; #channel',160,-0.5,159.5)
-                  if s==3:  ut.bookHist(h,'bar_'+str(s*10+l),'bar map / plane '+str(s*10+l)+'; #bar',60,-0.5,59.5)
-                  else:       ut.bookHist(h,'bar_'+str(s*10+l),'bar map / plane '+str(s*10+l)+'; #bar',10,-0.5,9.5)
-                  ut.bookHist(h,'sig_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
-                  if s==2:    ut.bookHist(h,'sigS_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
-                  ut.bookHist(h,'sigL_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
-                  ut.bookHist(h,'sigR_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
-                  ut.bookHist(h,'Tsig_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
+                  ut.bookHist(h,detector+'hitmult_'+str(s*10+l),'hit mult / plane '+str(s*10+l)+'; #hits',61,-0.5,60.5)
+                  ut.bookHist(h,detector+'hit_'+str(s*10+l),'channel map / plane '+str(s*10+l)+'; #channel',160,-0.5,159.5)
+                  if s==3:  ut.bookHist(h,detector+'bar_'+str(s*10+l),'bar map / plane '+str(s*10+l)+'; #bar',60,-0.5,59.5)
+                  else:       ut.bookHist(h,detector+'bar_'+str(s*10+l),'bar map / plane '+str(s*10+l)+'; #bar',10,-0.5,9.5)
+                  ut.bookHist(h,detector+'sig_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
+                  if s==2:    ut.bookHist(h,detector+'sigS_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
+                  ut.bookHist(h,detector+'sigL_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
+                  ut.bookHist(h,detector+'sigR_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
+                  ut.bookHist(h,detector+'Tsig_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
                   # not used currently?
-                  ut.bookHist(h,'occ_'+str(s*10+l),'channel occupancy '+str(s*10+l),100,0.0,200.)
-                  ut.bookHist(h,'occTag_'+str(s*10+l),'channel occupancy '+str(s*10+l),100,0.0,200.)
+                  ut.bookHist(h,detector+'occ_'+str(s*10+l),'channel occupancy '+str(s*10+l),100,0.0,200.)
+                  ut.bookHist(h,detector+'occTag_'+str(s*10+l),'channel occupancy '+str(s*10+l),100,0.0,200.)
 
-                  ut.bookHist(h,'leftvsright_1','Veto hits in left / right; Left: # hits; Right: # hits',10,-0.5,9.5,10,-0.5,9.5)
-                  ut.bookHist(h,'leftvsright_2','US hits in left / right; L: # hits; R: # hits',10,-0.5,9.5,10,-0.5,9.5)
-                  ut.bookHist(h,'leftvsright_3','DS hits in left / right; L: # hits; R: # hits',2,-0.5,1.5,2,-0.5,1.5)
-                  ut.bookHist(h,'leftvsright_signal_1','Veto signal in left / right; Left: QDC [a.u.]; Right: QDC [a.u.]',100,-0.5,200.,100,-0.5,200.)
-                  ut.bookHist(h,'leftvsright_signal_2','US signal in left / right; L: QDC [a.u.]; R: QDC [a.u.]',100,-0.5,200.,100,-0.5,200.)
-                  ut.bookHist(h,'leftvsright_signal_3','DS signal in left / right; L: QDC [a.u.]; R: QDC [a.u.]',100,-0.5,200.,100,-0.5,200.)
+                  ut.bookHist(h,detector+'leftvsright_1','Veto hits in left / right; Left: # hits; Right: # hits',10,-0.5,9.5,10,-0.5,9.5)
+                  ut.bookHist(h,detector+'leftvsright_2','US hits in left / right; L: # hits; R: # hits',10,-0.5,9.5,10,-0.5,9.5)
+                  ut.bookHist(h,detector+'leftvsright_3','DS hits in left / right; L: # hits; R: # hits',2,-0.5,1.5,2,-0.5,1.5)
+                  ut.bookHist(h,detector+'leftvsright_signal_1','Veto signal in left / right; Left: QDC [a.u.]; Right: QDC [a.u.]',100,-0.5,200.,100,-0.5,200.)
+                  ut.bookHist(h,detector+'leftvsright_signal_2','US signal in left / right; L: QDC [a.u.]; R: QDC [a.u.]',100,-0.5,200.,100,-0.5,200.)
+                  ut.bookHist(h,detector+'leftvsright_signal_3','DS signal in left / right; L: QDC [a.u.]; R: QDC [a.u.]',100,-0.5,200.,100,-0.5,200.)
 
-                  ut.bookHist(h,'dtime','delta event time; dt [ns]',100,0.0,1000.)
-                  ut.bookHist(h,'dtimeu','delta event time; dt [us]',100,0.0,1000.)
-                  ut.bookHist(h,'dtimem','delta event time; dt [ms]',100,0.0,1000.)
+                  ut.bookHist(h,detector+'dtime','delta event time; dt [ns]',100,0.0,1000.)
+                  ut.bookHist(h,detector+'dtimeu','delta event time; dt [us]',100,0.0,1000.)
+                  ut.bookHist(h,detector+'dtimem','delta event time; dt [ms]',100,0.0,1000.)
 
-                  ut.bookHist(h,'bs','beam spot; x[cm]; y[cm]',100,-100.,10.,100,0.,80.)
-                  ut.bookHist(h,'bsDS','beam spot, #bar X, #bar Y',60,-0.5,59.5,60,-0.5,59.5)
-                  ut.bookHist(h,'slopes','track slopes; slope X [rad]; slope Y [rad]',100,-0.1,0.1,100,-0.1,0.1)
+                  ut.bookHist(h,detector+'bs','beam spot; x[cm]; y[cm]',100,-100.,10.,100,0.,80.)
+                  ut.bookHist(h,detector+'bsDS','beam spot, #bar X, #bar Y',60,-0.5,59.5,60,-0.5,59.5)
+                  ut.bookHist(h,detector+'slopes','track slopes; slope X [rad]; slope Y [rad]',100,-0.1,0.1,100,-0.1,0.1)
 
        self.listOfHits = {1:[],2:[],3:[]}
    def ExecuteEvent(self,event):
@@ -86,17 +86,17 @@ class Mufi_hitMaps(ROOT.FairTask):
               else:
                     Nright+=1
                     Sright+=allChannels[c]
-           rc = h['leftvsright_'+str(s)].Fill(Nleft,Nright)
-           rc = h['leftvsright_signal_'+str(s)].Fill(Sleft,Sright)
+           rc = h[detector+'leftvsright_'+str(s)].Fill(Nleft,Nright)
+           rc = h[detector+'leftvsright_signal_'+str(s)].Fill(Sleft,Sright)
 #
            for c in allChannels:
                channel = bar*nSiPMs*nSides + c
-               rc = h['hit_'+str(s)+str(l)].Fill( int(channel))
-               rc = h['bar_'+str(s)+str(l)].Fill(bar)
-               if s==2 and self.M.smallSiPMchannel(c) : rc  = h['sigS_'+str(s)+str(l)].Fill(allChannels[c])
-               elif c<nSiPMs: rc  = h['sigL_'+str(s)+str(l)].Fill(allChannels[c])
-               else             :             rc  = h['sigR_'+str(s)+str(l)].Fill(allChannels[c])
-               rc  = h['sig_'+str(s)+str(l)].Fill(allChannels[c])
+               rc = h[detector+'hit_'+str(s)+str(l)].Fill( int(channel))
+               rc = h[detector+'bar_'+str(s)+str(l)].Fill(bar)
+               if s==2 and self.M.smallSiPMchannel(c) : rc  = h[detector+'sigS_'+str(s)+str(l)].Fill(allChannels[c])
+               elif c<nSiPMs: rc  = h[detector+'sigL_'+str(s)+str(l)].Fill(allChannels[c])
+               else             :             rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c])
+               rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c])
            allChannels.clear()
 #
        for s in self.listOfHits:
@@ -106,7 +106,7 @@ class Mufi_hitMaps(ROOT.FairTask):
                rc = h[sdict[s]+'Mult'].Fill(nhits, self.listOfHits[s][i])
        for s in systemAndPlanes:
           for l in range(systemAndPlanes[s]):   
-             rc = h['hitmult_'+str(s*10+l)].Fill(mult[s*10+l])
+             rc = h[detector+'hitmult_'+str(s*10+l)].Fill(mult[s*10+l])
 
        maxOneBar = True
        for key in planes:
@@ -122,7 +122,7 @@ class Mufi_hitMaps(ROOT.FairTask):
       for  aTrack in self.M.eventTree.Reco_MuonTracks:
          state = aTrack.getFittedState()
          pos    = state.getPos()
-         rc = h['bs'].Fill(pos.x(),pos.y())
+         rc = h[detector+'bs'].Fill(pos.x(),pos.y())
          points = aTrack.getPoints()
          keys     = ROOT.std.vector('int')()
          detIDs = ROOT.std.vector('int')()
@@ -144,12 +144,12 @@ class Mufi_hitMaps(ROOT.FairTask):
                  for i in range(nSiPMs):
                       signal = aHit.GetSignal(i+p*nSiPMs)
                       if signal > 0:
-                           rc  = h['Tsig_'+str(s)+str(l)].Fill(signal)
+                           rc  = h[detector+'Tsig_'+str(s)+str(l)].Fill(signal)
          mom = state.getMom()
          slopeY= mom.X()/mom.Z()
          slopeX= mom.Y()/mom.Z()
-         h['slopes'].Fill(slopeX,slopeY)
-         if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h['bsDS'].Fill(Xbar,Ybar)
+         h[detector+'slopes'].Fill(slopeX,slopeY)
+         if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h[detector+'bsDS'].Fill(Xbar,Ybar)
 
    def Plot(self):
        h = self.M.h
@@ -157,37 +157,37 @@ class Mufi_hitMaps(ROOT.FairTask):
        systemAndPlanes =self.M.systemAndPlanes
        S = {1:[1800,800,2,1],2:[1800,1500,2,3],3:[1800,1800,2,4]}
        for s in S:
-           ut.bookCanvas(h,'hitmaps' +sdict[s],'hitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
-           ut.bookCanvas(h,'barmaps'+sdict[s],'barmaps'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
-           ut.bookCanvas(h,'signal'    +sdict[s],'QDC'    +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
-           ut.bookCanvas(h,'Tsignal'   +sdict[s],'QDC for hit on track'    +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
+           ut.bookCanvas(h,detector+'hitmaps' +sdict[s],'hitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
+           ut.bookCanvas(h,detector+'barmaps'+sdict[s],'barmaps'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
+           ut.bookCanvas(h,detector+'signal'    +sdict[s],'QDC'    +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
+           ut.bookCanvas(h,detector+'Tsignal'   +sdict[s],'QDC for hit on track'    +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
 
            for l in range(systemAndPlanes[s]):
               n = l+1
               if s==3 and n==7: n=8
-              tc = h['hitmaps'+sdict[s]].cd(n)
+              tc = h[detector+'hitmaps'+sdict[s]].cd(n)
               tag = str(s)+str(l)
-              h['hit_'+tag].Draw()
-              tc = h['barmaps'+sdict[s]].cd(n)
-              h['bar_'+tag].Draw()
-              tc = h['signal'+sdict[s]].cd(n)
-              h['sig_'+tag].Draw()
-              tc = h['Tsignal'+sdict[s]].cd(n)
-              h['Tsig_'+tag].Draw()
+              h[detector+'hit_'+tag].Draw()
+              tc = h[detector+'barmaps'+sdict[s]].cd(n)
+              h[detector+'bar_'+tag].Draw()
+              tc = h[detector+'signal'+sdict[s]].cd(n)
+              h[detector+'sig_'+tag].Draw()
+              tc = h[detector+'Tsignal'+sdict[s]].cd(n)
+              h[detector+'Tsig_'+tag].Draw()
 
-       ut.bookCanvas(h,'hitmult','hit multiplicities per plane',2000,1600,4,3)
+       ut.bookCanvas(h,detector+'hitmult','hit multiplicities per plane',2000,1600,4,3)
        k=1
        for s in systemAndPlanes:
            for l in range(systemAndPlanes[s]):
-              tc = h['hitmult'].cd(k)
+              tc = h[detector+'hitmult'].cd(k)
               tc.SetLogy(1)
               k+=1
-              rc = h['hitmult_'+str(s*10+l)].Draw()
+              rc = h[detector+'hitmult_'+str(s*10+l)].Draw()
 
        ut.bookCanvas(h,'VETO',' ',1200,1800,1,2)
        for l in range(2):
           tc = h['VETO'].cd(l+1)
-          hname = 'hit_'+str(1)+str(l)
+          hname = detector+'hit_'+str(1)+str(l)
           h[hname].SetStats(0)
           h[hname].Draw()
           for n in range(7):
@@ -203,47 +203,47 @@ class Mufi_hitMaps(ROOT.FairTask):
        colours = {0:ROOT.kOrange,1:ROOT.kRed,2:ROOT.kGreen,3:ROOT.kBlue,4:ROOT.kMagenta,5:ROOT.kCyan,
                   6:ROOT.kAzure,7:ROOT.kPink,8:ROOT.kSpring}
        for i in range(5): 
-           h['bar_2'+str(i)].SetLineColor(colours[i])
-           h['bar_2'+str(i)].SetLineWidth(2)
-           h['bar_2'+str(i)].SetStats(0)
-       h['bar_20'].Draw()
-       h['bar_21'].Draw('same')
-       h['bar_22'].Draw('same')
-       h['bar_23'].Draw('same')
-       h['bar_24'].Draw('same')
-       h['lbar2']=ROOT.TLegend(0.6,0.6,0.99,0.99)
+           h[detector+'bar_2'+str(i)].SetLineColor(colours[i])
+           h[detector+'bar_2'+str(i)].SetLineWidth(2)
+           h[detector+'bar_2'+str(i)].SetStats(0)
+       h[detector+'bar_20'].Draw()
+       h[detector+'bar_21'].Draw('same')
+       h[detector+'bar_22'].Draw('same')
+       h[detector+'bar_23'].Draw('same')
+       h[detector+'bar_24'].Draw('same')
+       h[detector+'lbar2']=ROOT.TLegend(0.6,0.6,0.99,0.99)
        for i in range(5): 
-            h['lbar2'].AddEntry(h['bar_2'+str(i)],'plane '+str(i+1),"f")
-            h['lbar2'].Draw()
+            h[detector+'lbar2'].AddEntry(h[detector+'bar_2'+str(i)],'plane '+str(i+1),"f")
+            h[detector+'lbar2'].Draw()
        for i in range(7): 
-            h['hit_3'+str(i)].SetLineColor(colours[i])
-            h['hit_3'+str(i)].SetLineWidth(2)
-            h['hit_3'+str(i)].SetStats(0)
-       h['hit_30'].Draw()
+            h[detector+'hit_3'+str(i)].SetLineColor(colours[i])
+            h[detector+'hit_3'+str(i)].SetLineWidth(2)
+            h[detector+'hit_3'+str(i)].SetStats(0)
+       h[detector+'hit_30'].Draw()
        for i in range(1,7):
-           h['hit_3'+str(i)].Draw('same')
-       h['lbar3']=ROOT.TLegend(0.6,0.6,0.99,0.99)
+           h[detector+'hit_3'+str(i)].Draw('same')
+       h[detector+'lbar3']=ROOT.TLegend(0.6,0.6,0.99,0.99)
        for i in range(7): 
-           h['lbar3'].AddEntry(h['hit_3'+str(i)],'plane '+str(i+1),"f")
-           h['lbar3'].Draw()
+           h[detector+'lbar3'].AddEntry(h[detector+'hit_3'+str(i)],'plane '+str(i+1),"f")
+           h[detector+'lbar3'].Draw()
 
-       ut.bookCanvas(h,'LR',' ',1800,900,3,2)
+       ut.bookCanvas(h,detector+'LR',' ',1800,900,3,2)
        for i in range(1,4):
-          h['LR'].cd(i)
-          h['leftvsright_'+str(i)].Draw('textBox')
-          h['LR'].cd(i+3)
-          h['leftvsright_signal_'+str(i)].SetMaximum(h['leftvsright_signal_'+str(i)].GetBinContent(10,10))
-          h['leftvsright_signal_'+str(i)].Draw('colz')
+          h[detector+'LR'].cd(i)
+          h[detector+'leftvsright_'+str(i)].Draw('textBox')
+          h[detector+'LR'].cd(i+3)
+          h[detector+'leftvsright_signal_'+str(i)].SetMaximum(h[detector+'leftvsright_signal_'+str(i)].GetBinContent(10,10))
+          h[detector+'leftvsright_signal_'+str(i)].Draw('colz')
 
-       ut.bookCanvas(h,'LRinEff',' ',1800,450,3,1)
+       ut.bookCanvas(h,detector+'LRinEff',' ',1800,450,3,1)
        for s in range(1,4):
-           h['lLRinEff'+str(s)]=ROOT.TLegend(0.6,0.54,0.99,0.93)
-           name = 'leftvsright_signal_'+str(s)
+           h[detector+'lLRinEff'+str(s)]=ROOT.TLegend(0.6,0.54,0.99,0.93)
+           name = detector+'leftvsright_signal_'+str(s)
            h[name+'0Y'] = h[name].ProjectionY(name+'0Y',1,1)
            h[name+'0X'] = h[name].ProjectionX(name+'0X',1,1)
            h[name+'1X'] = h[name].ProjectionY(name+'1Y')
            h[name+'1Y'] = h[name].ProjectionX(name+'1X')
-           tc = h['LRinEff'].cd(s)
+           tc = h[detector+'LRinEff'].cd(s)
            tc.SetLogy()
            h[name+'0X'].SetStats(0)
            h[name+'0Y'].SetStats(0)
@@ -259,11 +259,11 @@ class Mufi_hitMaps(ROOT.FairTask):
            h[name+'1X'].Draw('same')
            h[name+'1Y'].Draw('same')
    # Fill(Sleft,Sright)
-           h['lLRinEff'+str(s)].AddEntry(h[name+'0X'],'left with no signal right',"f")
-           h['lLRinEff'+str(s)].AddEntry(h[name+'0Y'],'right with no signal left',"f")
-           h['lLRinEff'+str(s)].AddEntry(h[name+'1X'],'left all',"f")
-           h['lLRinEff'+str(s)].AddEntry(h[name+'1Y'],'right all',"f")
-           h['lLRinEff'+str(s)].Draw()
+           h[detector+'lLRinEff'+str(s)].AddEntry(h[name+'0X'],'left with no signal right',"f")
+           h[detector+'lLRinEff'+str(s)].AddEntry(h[name+'0Y'],'right with no signal left',"f")
+           h[detector+'lLRinEff'+str(s)].AddEntry(h[name+'1X'],'left all',"f")
+           h[detector+'lLRinEff'+str(s)].AddEntry(h[name+'1Y'],'right all',"f")
+           h[detector+'lLRinEff'+str(s)].Draw()
 
        ut.bookCanvas(h,'signalUSVeto',' ',1200,1600,3,7)
        s = 1
@@ -273,26 +273,26 @@ class Mufi_hitMaps(ROOT.FairTask):
                    tc = h['signalUSVeto'].cd(l)
                    l+=1 
                    if side=='S': continue
-                   h['sig'+side+'_'+str( s*10+plane)].Draw()
+                   h[detector+'sig'+side+'_'+str( s*10+plane)].Draw()
        s=2
        for plane in range(5):
                 for side in ['L','R','S']:
                    tc = h['signalUSVeto'].cd(l)
                    l+=1
-                   h['sig'+side+'_'+str( s*10+plane)].Draw()
+                   h[detector+'sig'+side+'_'+str( s*10+plane)].Draw()
        ut.bookCanvas(h,'signalDS',' ',900,1600,2,7)
        s = 3
        l = 1
        for plane in range(7):
                for side in ['L','R']:
-                  tc = h['signalDS'].cd(l)
+                  tc = h[detector+'signalDS'].cd(l)
                   l+=1
-                  h['sig'+side+'_'+str( s*10+plane)].Draw()
+                  h[detector+'sig'+side+'_'+str( s*10+plane)].Draw()
 
-       for canvas in ['signalUSVeto','LR','USBars']:
+       for canvas in ['signalUSVeto',detector+'LR','USBars']:
               h[canvas].Update()
               self.M.myPrint(h[canvas],canvas,subdir='mufilter')
-       for canvas in ['hitmaps','barmaps','signal','Tsignal']:
+       for canvas in [detector+'hitmaps',detector+'barmaps',detector+'signal',detector+'Tsignal']:
               for s in range(1,4):
                   h[canvas+sdict[s]].Update()
                   self.M.myPrint(h[canvas+sdict[s]],canvas+sdict[s],subdir='mufilter')

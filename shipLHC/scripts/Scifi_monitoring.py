@@ -6,67 +6,68 @@ import ctypes
 
 A,B  = ROOT.TVector3(),ROOT.TVector3()
 parallelToZ = ROOT.TVector3(0., 0., 1.)
-
+detector = "scifi-"
 class Scifi_hitMaps(ROOT.FairTask):
    " produce hitmaps for Scifi"
    def Init(self,options,monitor):
        self.M = monitor
        h = self.M.h
+       
        for s in range(10):
-          ut.bookHist(h,'posX_'+str(s),'x; x [cm]',2000,-100.,100.)
-          ut.bookHist(h,'posY_'+str(s),'y; y[cm]',2000,-100.,100.)
-          if s%2==1: ut.bookHist(h,'mult_'+str(s),'mult vertical station '+str(s//2+1)+'; #hits',100,-0.5,99.5)
-          else: ut.bookHist(h,'mult_'+str(s),'mult horizontal station '+str(s//2+1)+'; #hits',100,-0.5,99.5)
+          ut.bookHist(h,detector+'posX_'+str(s),'x; x [cm]',2000,-100.,100.)
+          ut.bookHist(h,detector+'posY_'+str(s),'y; y[cm]',2000,-100.,100.)
+          if s%2==1: ut.bookHist(h,detector+'mult_'+str(s),'mult vertical station '+str(s//2+1)+'; #hits',100,-0.5,99.5)
+          else: ut.bookHist(h,detector+'mult_'+str(s),'mult horizontal station '+str(s//2+1)+'; #hits',100,-0.5,99.5)
        for mat in range(30):
-          ut.bookHist(h,'mat_'+str(mat),'hit map / mat; mat',512,-0.5,511.5)
-          ut.bookHist(h,'sig_'+str(mat),'signal / mat; QDC [a.u.]',200,-50.0,150.)
-          ut.bookHist(h,'tdc_'+str(mat),'tdc / mat; timestamp [LHC clock cycles]',200,-1.,4.)
+          ut.bookHist(h,detector+'mat_'+str(mat),'hit map / mat; mat',512,-0.5,511.5)
+          ut.bookHist(h,detector+'sig_'+str(mat),'signal / mat; QDC [a.u.]',200,-50.0,150.)
+          ut.bookHist(h,detector+'tdc_'+str(mat),'tdc / mat; timestamp [LHC clock cycles]',200,-1.,4.)
    def ExecuteEvent(self,event):
        h = self.M.h
        mult = [0]*10
        for aHit in event.Digi_ScifiHits:
           if not aHit.isValid(): continue
           X =  self.M.Scifi_xPos(aHit.GetDetectorID())
-          rc = h['mat_'+str(X[0]*3+X[1])].Fill(X[2])
-          rc = h['sig_'+str(X[0]*3+X[1])].Fill(aHit.GetSignal(0))
-          rc = h['tdc_'+str(X[0]*3+X[1])].Fill(aHit.GetTime(0))
+          rc = h[detector+'mat_'+str(X[0]*3+X[1])].Fill(X[2])
+          rc = h[detector+'sig_'+str(X[0]*3+X[1])].Fill(aHit.GetSignal(0))
+          rc = h[detector+'tdc_'+str(X[0]*3+X[1])].Fill(aHit.GetTime(0))
           self.M.Scifi.GetSiPMPosition(aHit.GetDetectorID(),A,B)
-          if aHit.isVertical(): rc = h['posX_'+str(X[0])].Fill(A[0])
-          else:                     rc = h['posY_'+str(X[0])].Fill(A[1])
+          if aHit.isVertical(): rc = h[detector+'posX_'+str(X[0])].Fill(A[0])
+          else:                     rc = h[detector+'posY_'+str(X[0])].Fill(A[1])
           mult[X[0]]+=1
        for s in range(10):
-          rc = h['mult_'+str(s)].Fill(mult[s])
+          rc = h[detector+'mult_'+str(s)].Fill(mult[s])
    def Plot(self):
        h = self.M.h
-       ut.bookCanvas(h,'hitmaps',' ',1024,768,6,5)
-       ut.bookCanvas(h,'signal',' ',1024,768,6,5)
-       ut.bookCanvas(h,'tdc',' ',1024,768,6,5)
+       ut.bookCanvas(h,detector+'hitmaps',' ',1024,768,6,5)
+       ut.bookCanvas(h,detector+'signal',' ',1024,768,6,5)
+       ut.bookCanvas(h,detector+'tdc',' ',1024,768,6,5)
        for mat in range(30):
-           tc = self.M.h['hitmaps'].cd(mat+1)
-           A = self.M.h['mat_'+str(mat)].GetSumOfWeights()/512.
-           if self.M.h['mat_'+str(mat)].GetMaximum()>10*A: self.M.h['mat_'+str(mat)].SetMaximum(10*A)
-           self.M.h['mat_'+str(mat)].Draw()
-           tc = self.M.h['signal'].cd(mat+1)
-           self.M.h['sig_'+str(mat)].Draw()
-           tc = self.M.h['tdc'].cd(mat+1)
-           self.M.h['tdc_'+str(mat)].Draw()
+           tc = self.M.h[detector+'hitmaps'].cd(mat+1)
+           A = self.M.h[detector+'mat_'+str(mat)].GetSumOfWeights()/512.
+           if self.M.h[detector+'mat_'+str(mat)].GetMaximum()>10*A: self.M.h['mat_'+str(mat)].SetMaximum(10*A)
+           self.M.h[detector+'mat_'+str(mat)].Draw()
+           tc = self.M.h[detector+'signal'].cd(mat+1)
+           self.M.h[detector+'sig_'+str(mat)].Draw()
+           tc = self.M.h[detector+'tdc'].cd(mat+1)
+           self.M.h[detector+'tdc_'+str(mat)].Draw()
 
-       ut.bookCanvas(h,'positions',' ',2048,768,5,2)
-       ut.bookCanvas(h,'mult',' ',2048,768,5,2)
+       ut.bookCanvas(h,detector+'positions',' ',2048,768,5,2)
+       ut.bookCanvas(h,detector+'mult',' ',2048,768,5,2)
        for s in range(5):
-           tc = self.M.h['positions'].cd(s+1)
-           self.M.h['posY_'+str(2*s)].Draw()
-           tc = self.M.h['positions'].cd(s+6)
-           self.M.h['posX_'+str(2*s+1)].Draw()
+           tc = self.M.h[detector+'positions'].cd(s+1)
+           self.M.h[detector+'posY_'+str(2*s)].Draw()
+           tc = self.M.h[detector+'positions'].cd(s+6)
+           self.M.h[detector+'posX_'+str(2*s+1)].Draw()
 
-           tc = self.M.h['mult'].cd(s+1)
+           tc = self.M.h[detector+'mult'].cd(s+1)
            tc.SetLogy(1)
-           self.M.h['mult_'+str(2*s)].Draw()
-           tc = self.M.h['mult'].cd(s+6)
+           self.M.h[detector+'mult_'+str(2*s)].Draw()
+           tc = self.M.h[detector+'mult'].cd(s+6)
            tc.SetLogy(1)
-           self.M.h['mult_'+str(2*s+1)].Draw()
+           self.M.h[detector+'mult_'+str(2*s+1)].Draw()
 
-       for canvas in ['hitmaps','signal','mult']:
+       for canvas in [detector+'hitmaps',detector+'signal',detector+'mult']:
            self.M.h[canvas].Update()
            self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas,subdir='scifi')
 
@@ -95,8 +96,8 @@ class Scifi_residuals(ROOT.FairTask):
                ut.bookHist(h,'resY'+proj+'_Scifi'+str(s*10+o),'residual '+proj+str(s*10+o)+'; [#mum]',NbinsRes,xmin,xmax,100,10.,60.)
                ut.bookHist(h,'resC'+proj+'_Scifi'+str(s*10+o),'residual '+proj+str(s*10+o)+'; [#mum]',NbinsRes,xmin,xmax,128*4*3,-0.5,128*4*3-0.5)
                ut.bookHist(h,'track_Scifi'+str(s*10+o),'track x/y '+str(s*10+o)+'; x [cm]; y [cm]',80,-70.,10.,80,0.,80.)
-               ut.bookHist(h,'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
-               ut.bookHist(h,'trackSlopes','track slope; x [mrad]; y [mrad]',1000,-100,100,1000,-100,100)
+               ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
+               ut.bookHist(h,detector+'trackSlopes','track slope; x [mrad]; y [mrad]',1000,-100,100,1000,-100,100)
 
        if alignPar:
             for x in alignPar:
@@ -130,10 +131,10 @@ class Scifi_residuals(ROOT.FairTask):
             if not fitStatus.isFitConverged(): 
                  theTrack.Delete()
                  continue
-            rc = h['trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
+            rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
             fstate =  theTrack.getFittedState()
             mom = fstate.getMom()
-            rc = h['trackSlopes'].Fill(mom.X()/mom.Z()*1000,mom.Y()/mom.Z()*1000)
+            rc = h[detector+'trackSlopes'].Fill(mom.X()/mom.Z()*1000,mom.Y()/mom.Z()*1000)
 # test plane 
             for o in range(2):
                 testPlane = s*10+o

@@ -61,7 +61,8 @@ def currentRun():
             if not l.find('FINISHED')<0:
                print("DAQ not running. Don't know which file to open, stop.")
                print(Lcrun)
-               os._exit(1)
+               curRun,curPart = -1,-1
+               break
             if not l.find('/home/snd/snd/') < 0:
                  tmp = l.split('/')
                  curRun = tmp[len(tmp)-2]
@@ -75,7 +76,10 @@ if options.auto:
    from XRootD import client
 # search for current run
    if options.runNumber < 0:
-        curRun,curPart =  currentRun()
+        curRun = -1
+        while curRun < 0:
+               curRun,curPart =  currentRun()
+               if curRun < 0:  time.sleep(300)
         options.runNumber = int(curRun.split('_')[1])
         options.partition = int(curPart.split('_')[1].split('.')[0])
 else:
@@ -160,6 +164,9 @@ else:
       else:  
       # check if file has changed
          curRun,curPart =  currentRun()
+         while curRun < 0:
+               curRun,curPart =  currentRun()
+               if curRun < 0:  time.sleep(300)
          if not curRun == lastRun:
             for m in monitorTasks:
                monitorTasks[m].Plot()
