@@ -244,16 +244,19 @@ class Monitoring():
        self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','update')
 
    def updateHtml(self):
+      rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online.html  . ")
       old = open("online.html")
       oldL = old.readlines()
       old.close()
       tmp = open("tmp.html",'w')
       found = False
       for L in oldL:
+           if not L.find(self.runNr)<0: return
            if L.find("https://snd-lhc-monitoring.web.cern.ch/online")>0 and not found:
-              r = str(options.runNumber)
-              Lnew = ' <li> <a href="https://snd-lhc-monitoring.web.cern.ch/online/run.html?file=run'+r+'.root">run '+r+'</a>'
+              r = str(self.options.runNumber)
+              Lnew = '            <li> <a href="https://snd-lhc-monitoring.web.cern.ch/online/run.html?file=run'+self.runNr+'.root">run '+r+'</a> \n'
               tmp.write(Lnew)
+              found = True
            tmp.write(L)
       tmp.close()
       os.system('cp tmp.html online.html')
@@ -261,7 +264,6 @@ class Monitoring():
             rc = os.system("xrdcp online.html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
       except:
             print("copy of html failed. Token expired?")
-
    def systemAndOrientation(self,s,plane):
       if s==1 or s==2: return "horizontal"
       if plane%2==1 or plane == 6: return "vertical"

@@ -192,7 +192,7 @@ class Mufi_hitMaps(ROOT.FairTask):
           h[hname].Draw()
           for n in range(7):
                 x = (n+1)*16-0.5
-                y = h['hit_'+str(1)+str(l)].GetMaximum()
+                y = h[detector+'hit_'+str(1)+str(l)].GetMaximum()
                 lname = 'L'+str(n)+hname
                 h[lname] = ROOT.TLine(x,0,x,y)
                 h[lname].SetLineColor(ROOT.kRed)
