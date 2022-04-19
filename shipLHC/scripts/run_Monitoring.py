@@ -59,7 +59,7 @@ def currentRun():
             f.close()
       for l in Lcrun:
             if not l.find('FINISHED')<0:
-               print("DAQ not running. Don't know which file to open, stop.")
+               print("DAQ not running. Don't know which file to open.")
                print(Lcrun)
                curRun,curPart ="",""
                break
@@ -79,7 +79,9 @@ if options.auto:
         curRun = ""
         while curRun.find('run') < 0:
                curRun,curPart =  currentRun()
-               if curRun.find('run') < 0:  time.sleep(300)
+               if curRun.find('run') < 0:
+                   print("sleep 300sec.",time.ctime())
+                   time.sleep(300)
         options.runNumber = int(curRun.split('_')[1])
         options.partition = int(curPart.split('_')[1].split('.')[0])
 else:
@@ -166,7 +168,9 @@ else:
          curRun,curPart =  currentRun()
          while curRun.find('run') < 0:
                curRun,curPart =  currentRun()
-               if curRun.find('run') < 0:  time.sleep(300)
+               if curRun.find('run') < 0:  
+                   print("sleep 300sec.",time.ctime())
+                   time.sleep(300)
          if not curRun == lastRun:
             for m in monitorTasks:
                monitorTasks[m].Plot()
