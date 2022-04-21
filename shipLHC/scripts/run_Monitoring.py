@@ -157,12 +157,11 @@ else:
                monitorTasks[m].Plot()
            M.publishRootFile()
 
-      M.converter.fiN = ROOT.TFile.Open(lastFile)
+      M.updateSource(lastFile)
       newEntries = M.converter.fiN.event.GetEntries()
       if newEntries>nLast:
          nStart = max(nLast,newEntries-options.Nlast)
          nLast = newEntries
-         continue
       else:  
       # check if file has changed
          curRun,curPart =  currentRun()

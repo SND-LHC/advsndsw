@@ -180,6 +180,17 @@ class Monitoring():
 # add scifi cluster
             self.clusScifi   = ROOT.TClonesArray("sndCluster")
             self.clusScifiBranch    = self.eventTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
+   def updateSource(self,fname):
+   # only needed in auto mode
+      self.converter.fiN = ROOT.TFile.Open(fname)
+      newEntries = M.converter.fiN.event.GetEntries()
+      if newEntries>nLast:
+         nStart = max(nLast,newEntries-options.Nlast)
+         nLast = newEntries
+         for b in M.converter.fiN.GetListOfKeys():
+            name = b.GetName()
+            if name.find('board')!=0: continue
+            M.converter.boards[name]=M.converter.fiN.Get(name)
 
    def makeScifiCluster(self):
       self.clusScifi.Delete()
