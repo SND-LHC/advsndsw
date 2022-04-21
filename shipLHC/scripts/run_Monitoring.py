@@ -18,6 +18,7 @@ parser = ArgumentParser()
 parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode online monitoring",default=False,action='store_true')
 parser.add_argument("--Nupdate", dest="Nupdate", help="frequence of updating online plots",default=100,type=int)
 parser.add_argument("--Nlast",      dest="Nlast", help="last N events to analyze on file",default=10,type=int)
+parser.add_argument("--sudo", dest="sudo", help="update files on EOS",default=False,action='store_true')
 
 parser.add_argument("-M", "--online", dest="online", help="online mode",default=False,action='store_true')
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
@@ -126,7 +127,7 @@ if not options.auto:   # default online/offline mode
    if options.nEvents>0:
        for m in monitorTasks:
           monitorTasks[m].Plot()
-   M.publishRootFile()
+   if options.sudo: M.publishRootFile()
 else: 
    """ auto mode
        check for open data file on the online machine
@@ -155,7 +156,7 @@ else:
         if N0%options.Nupdate==0:
            for m in monitorTasks:
                monitorTasks[m].Plot()
-           M.publishRootFile()
+           if options.sudo: M.publishRootFile()
 
       M.updateSource(lastFile)
       newEntries = M.converter.fiN.event.GetEntries()
