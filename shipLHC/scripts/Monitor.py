@@ -182,11 +182,23 @@ class Monitoring():
             self.clusScifiBranch    = self.eventTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
    def updateSource(self,fname):
    # only needed in auto mode
+     notOK = True
+     nIter = 0
+     while notOK:
+      if nIter > 10:
+          print('too many attempts to read the file ',fname,' I am exiting.')
+          quit()
+      nIter+=1
       self.converter.fiN = ROOT.TFile.Open(fname)
+      notOK = False
       for b in self.converter.fiN.GetListOfKeys():
             name = b.GetName()
-            if name.find('board')!=0: continue
-            self.converter.boards[name]=self.converter.fiN.Get(name)
+            if not self.converter.fiN.Get(name): 
+               notOK = True
+               time.sleep(5)
+               break
+            if name.find('board')==0:
+                self.converter.boards[name]=self.converter.fiN.Get(name)
 
    def makeScifiCluster(self):
       self.clusScifi.Delete()

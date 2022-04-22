@@ -251,7 +251,11 @@ class Scifi_residuals(ROOT.FairTask):
        for proj in P: T.append('scifiRes'+proj)
        for canvas in T:
            self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas,subdir='scifi')
-       
+       ut.bookCanvas(h,detector+'trackDir',"track directions",900,900,1,1)
+       h[detector+'trackDir'].cd()
+       rc = h[detector+'trackSlopes'].Draw('colz')
+       self.M.myPrint(self.M.h[detector+'trackDir'],detector+'trackDir',subdir='scifi')
+
    def Scifi_track(self,event,nPlanes = 8, nClusters = 11):
 # check for low occupancy and enough hits in Scifi
         if hasattr(event,"Cluster_Scifi"):

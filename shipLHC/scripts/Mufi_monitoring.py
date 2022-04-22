@@ -159,8 +159,6 @@ class Mufi_hitMaps(ROOT.FairTask):
        for s in S:
            ut.bookCanvas(h,detector+'hitmaps' +sdict[s],'hitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
            ut.bookCanvas(h,detector+'barmaps'+sdict[s],'barmaps'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
-           ut.bookCanvas(h,detector+'signal'    +sdict[s],'QDC'    +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
-           ut.bookCanvas(h,detector+'Tsignal'   +sdict[s],'QDC for hit on track'    +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
 
            for l in range(systemAndPlanes[s]):
               n = l+1
@@ -170,10 +168,6 @@ class Mufi_hitMaps(ROOT.FairTask):
               h[detector+'hit_'+tag].Draw()
               tc = h[detector+'barmaps'+sdict[s]].cd(n)
               h[detector+'bar_'+tag].Draw()
-              tc = h[detector+'signal'+sdict[s]].cd(n)
-              h[detector+'sig_'+tag].Draw()
-              tc = h[detector+'Tsignal'+sdict[s]].cd(n)
-              h[detector+'Tsig_'+tag].Draw()
 
        ut.bookCanvas(h,detector+'hitmult','hit multiplicities per plane',2000,1600,4,3)
        k=1
@@ -285,14 +279,14 @@ class Mufi_hitMaps(ROOT.FairTask):
        l = 1
        for plane in range(7):
                for side in ['L','R']:
-                  tc = h[detector+'signalDS'].cd(l)
+                  tc = h['signalDS'].cd(l)
                   l+=1
                   h[detector+'sig'+side+'_'+str( s*10+plane)].Draw()
 
-       for canvas in ['signalUSVeto',detector+'LR','USBars']:
+       for canvas in ['signalUSVeto','signalDS',detector+'LR','USBars']:
               h[canvas].Update()
               self.M.myPrint(h[canvas],canvas,subdir='mufilter')
-       for canvas in [detector+'hitmaps',detector+'barmaps',detector+'signal',detector+'Tsignal']:
+       for canvas in [detector+'hitmaps',detector+'barmaps']:
               for s in range(1,4):
                   h[canvas+sdict[s]].Update()
                   self.M.myPrint(h[canvas+sdict[s]],canvas+sdict[s],subdir='mufilter')

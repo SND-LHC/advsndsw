@@ -21,6 +21,7 @@ parser.add_argument("--Nlast",      dest="Nlast", help="last N events to analyze
 parser.add_argument("--sudo", dest="sudo", help="update files on EOS",default=False,action='store_true')
 
 parser.add_argument("-M", "--online", dest="online", help="online mode",default=False,action='store_true')
+parser.add_argument("--batch", dest="batch", help="batch mode",default=False,action='store_true')
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,default=-1)
 parser.add_argument("-p", "--path", dest="path", help="run number",required=False,default="")
@@ -50,7 +51,7 @@ parser.add_argument("--interactive", dest="interactive", action='store_true',def
 options = parser.parse_args()
 
 options.dashboard = "currently_processed_file.txt"
-if options.auto: ROOT.gROOT.SetBatch(True)
+if options.auto or options.batch: ROOT.gROOT.SetBatch(True)
 
 def currentRun():
       with client.File() as f:
@@ -145,6 +146,7 @@ else:
    nLast = options.nEvents
    nStart = nLast-options.Nlast
    M.updateHtml()
+   M.updateSource(lastFile)
    while 1>0:
       for n in range(nStart,nLast):
         event = M.GetEvent(n)
