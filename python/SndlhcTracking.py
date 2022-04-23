@@ -21,17 +21,15 @@ class Tracking(ROOT.FairTask):
    self.sigmaMufiUS_spatial = 2.*u.cm
    self.sigmaMufiDS_spatial = 0.3*u.cm
    self.Debug = False
-   self.kalman_tracks = ROOT.TObjArray(10);
    self.ioman = ROOT.FairRootManager.Instance()
-   self.event = self.ioman.GetInChain()
-
-   if self.event.GetBranch('Digi_MuFilterHits'):
-         self.MuFilterHits = self.event.Digi_MuFilterHits
-   elif self.ioman.GetInTree().GetBranch('Digi_MuFilterHit'):
-         self.MuFilterHits =self.event.Digi_MuFilterHit
-   self.ScifiHits = self.event.Digi_ScifiHits
-
-   self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE);
+   sink = self.ioman.GetSink()
+   self.event = sink.GetOutTree()
+   if not self.event:
+         self.event = self.ioman.GetInChain()
+         self.kalman_tracks = ROOT.TObjArray(10);
+         self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE);
+   else:
+         self.kalman_tracks = sink.GetOutTree().Reco_MuonTracks 
 
    self.systemAndPlanes  = {1:2,2:5,3:7}
    self.nPlanes = 8
@@ -114,8 +112,8 @@ class Tracking(ROOT.FairTask):
  def scifiCluster(self):
        clusters = []
        hitDict = {}
-       for k in range(self.ScifiHits.GetEntries()):
-            d = self.ScifiHits[k]
+       for k in range(self.event.Digi_ScifiHits.GetEntries()):
+            d = self.event.Digi_ScifiHits[k]
             if not d.isValid(): continue 
             hitDict[d.GetDetectorID()] = k
        hitList = list(hitDict.keys())
@@ -137,16 +135,16 @@ class Tracking(ROOT.FairTask):
                         first = tmp[0]
                         N = len(tmp)
                         hitvector.clear()
-                        for aHit in tmp: hitvector.push_back( self.ScifiHits[hitDict[aHit]])
-                        aCluster = ROOT.sndCluster(first,N,hitvector,self.scifiDet)
+                        for aHit in tmp: hitvector.push_back( self.event.Digi_ScifiHits[hitDict[aHit]])
+                        aCluster = ROOT.sndCluster(first,N,hitvector,self.scifiDet,False)
                         clusters.append(aCluster)
                         if c!=hitList[last]:
                              ncl+=1
                              tmp = [c]
                         elif not neighbour :   # save last channel
                             hitvector.clear()
-                            hitvector.push_back( self.ScifiHits[hitDict[c]])
-                            aCluster = ROOT.sndCluster(c,1,hitvector,self.scifiDet)
+                            hitvector.push_back( self.event.Digi_ScifiHits[hitDict[c]])
+                            aCluster = ROOT.sndCluster(c,1,hitvector,self.scifiDet,False)
                             clusters.append(aCluster)
                    cprev = c
        return clusters
@@ -160,6 +158,11 @@ class Tracking(ROOT.FairTask):
            hitlist[k] = self.clusters[k]
            ScifiStations[hitlist[k].GetFirst()//1000000] = 1
 # take fired muonFilter bars if more than 2 SiPMs have fired
+# nasty hack because of some wrong name of older data
+    if self.event.GetBranch('Digi_MuFilterHits'):
+         self.MuFilterHits = self.event.Digi_MuFilterHits
+    elif self.ioman.GetInTree().GetBranch('Digi_MuFilterHit'):
+         self.MuFilterHits =self.event.Digi_MuFilterHit
     nMin = 1
     MuFiPlanes = {}
     for k in range(self.MuFilterHits.GetEntries()):
