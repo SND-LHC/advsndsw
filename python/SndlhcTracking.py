@@ -136,7 +136,7 @@ class Tracking(ROOT.FairTask):
                         first = tmp[0]
                         N = len(tmp)
                         hitvector.clear()
-                        for aHit in tmp: hitvector.push_back( self.event.Digi_ScifiHits[hitDict[aHit]]) #FIXME
+                        for aHit in tmp: hitvector.push_back( self.event.Digi_ScifiHits[hitDict[aHit]])
                         aCluster = ROOT.sndCluster(first,N,hitvector,self.scifiDet,False)
                         clusters.append(aCluster)
                         if c!=hitList[last]:
@@ -144,7 +144,7 @@ class Tracking(ROOT.FairTask):
                              tmp = [c]
                         elif not neighbour :   # save last channel
                             hitvector.clear()
-                            hitvector.push_back( self.event.Digi_ScifiHits[hitDict[c]]) #FIXME
+                            hitvector.push_back( self.event.Digi_ScifiHits[hitDict[c]])
                             aCluster = ROOT.sndCluster(c,1,hitvector,self.scifiDet,False)
                             clusters.append(aCluster)
                    cprev = c
