@@ -469,7 +469,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
               sndScifiHit* aHit = static_cast<sndScifiHit*>(fDigiSciFi->At(hitDict[tmpV[j]]));
               hitlist.push_back(aHit);
             }
-            new ((*fClusScifi)[index]) sndCluster(first, N, hitlist, ScifiDet);
+            new ((*fClusScifi)[index]) sndCluster(first, N, hitlist, ScifiDet, false);
             index++;
             if (c!=hitList[last])
             {
@@ -483,7 +483,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
               hitlist.clear();
               sndScifiHit* aHit = static_cast<sndScifiHit*>(fDigiSciFi->At(hitDict[tmpV.back()]));
               hitlist.push_back(aHit);
-              new ((*fClusScifi)[index]) sndCluster(c, 1, hitlist, ScifiDet);
+              new ((*fClusScifi)[index]) sndCluster(c, 1, hitlist, ScifiDet, false);
               index++;            
             }            
           }
