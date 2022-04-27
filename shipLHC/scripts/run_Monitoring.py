@@ -3,6 +3,7 @@ import ROOT,os,sys,getopt,subprocess,atexit,time
 import Monitor
 import Scifi_monitoring
 import Mufi_monitoring
+import DAQ_monitoring
 import EventDisplay_Task
 import SndlhcMuonReco
 
@@ -63,24 +64,25 @@ def currentRun():
             if not l.find('FINISHED')<0:
                print("DAQ not running. Don't know which file to open.")
                print(Lcrun)
-               curRun,curPart ="",""
+               curRun,curPart,start ="","",""
                break
             if not l.find('/home/snd/snd/') < 0:
                  tmp = l.split('/')
                  curRun = tmp[len(tmp)-2]
                  curPart = tmp[len(tmp)-1]
+                 start = Lcrun[1]
                  break
-      return curRun,curPart
-
+      return curRun,curPart,start
 
 if options.auto:
    options.online = True
    from XRootD import client
+   from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
 # search for current run
    if options.runNumber < 0:
         curRun = ""
         while curRun.find('run') < 0:
-               curRun,curPart =  currentRun()
+               curRun,curPart,options.startTime =  currentRun()
                if curRun.find('run') < 0:
                    print("sleep 300sec.",time.ctime())
                    time.sleep(300)
@@ -110,6 +112,7 @@ if options.nEvents < 0 :
     else:    options.nEvents = M.eventTree.GetEntries()
 
 monitorTasks = {}
+monitorTasks['daq']   = DAQ_monitoring.DAQ_boards()
 monitorTasks['Scifi_hitMaps']   = Scifi_monitoring.Scifi_hitMaps()
 monitorTasks['Mufi_hitMaps']   = Mufi_monitoring.Mufi_hitMaps()
 monitorTasks['Mufi_QDCcorellations']   = Mufi_monitoring.Mufi_largeVSsmall()
@@ -128,7 +131,7 @@ if not options.auto:   # default online/offline mode
    if options.nEvents>0:
        for m in monitorTasks:
           monitorTasks[m].Plot()
-   if options.sudo: M.publishRootFile()
+   M.publishRootFile()
 else: 
    """ auto mode
        check for open data file on the online machine
@@ -167,9 +170,9 @@ else:
          nLast = newEntries
       else:  
       # check if file has changed
-         curRun,curPart =  currentRun()
+         curRun,curPart,options.startTime  =  currentRun()
          while curRun.find('run') < 0:
-               curRun,curPart =  currentRun()
+               curRun,curPart,options.startTime  =  currentRun()
                if curRun.find('run') < 0:  
                    print("sleep 300sec.",time.ctime())
                    time.sleep(300)
