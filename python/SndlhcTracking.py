@@ -112,8 +112,9 @@ class Tracking(ROOT.FairTask):
  def scifiCluster(self):
        clusters = []
        hitDict = {}
-       for k in range(self.event.Digi_ScifiHits.GetEntries()):
-            d = self.event.Digi_ScifiHits[k]
+       k = -1
+       for d in self.event.Digi_ScifiHits:
+            k+=1
             if not d.isValid(): continue 
             hitDict[d.GetDetectorID()] = k
        hitList = list(hitDict.keys())
@@ -135,7 +136,7 @@ class Tracking(ROOT.FairTask):
                         first = tmp[0]
                         N = len(tmp)
                         hitvector.clear()
-                        for aHit in tmp: hitvector.push_back( self.event.Digi_ScifiHits[hitDict[aHit]])
+                        for aHit in tmp: hitvector.push_back( self.event.Digi_ScifiHits[hitDict[aHit]]) #FIXME
                         aCluster = ROOT.sndCluster(first,N,hitvector,self.scifiDet,False)
                         clusters.append(aCluster)
                         if c!=hitList[last]:
@@ -143,7 +144,7 @@ class Tracking(ROOT.FairTask):
                              tmp = [c]
                         elif not neighbour :   # save last channel
                             hitvector.clear()
-                            hitvector.push_back( self.event.Digi_ScifiHits[hitDict[c]])
+                            hitvector.push_back( self.event.Digi_ScifiHits[hitDict[c]]) #FIXME
                             aCluster = ROOT.sndCluster(c,1,hitvector,self.scifiDet,False)
                             clusters.append(aCluster)
                    cprev = c
@@ -165,8 +166,9 @@ class Tracking(ROOT.FairTask):
          self.MuFilterHits =self.event.Digi_MuFilterHit
     nMin = 1
     MuFiPlanes = {}
-    for k in range(self.MuFilterHits.GetEntries()):
-         aHit = self.MuFilterHits[k]
+    k = -1
+    for aHit in self.MuFilterHits :
+         k+=1
          if not aHit.isValid(): continue
          detID = aHit.GetDetectorID()
          sy    = detID//10000
@@ -178,7 +180,7 @@ class Tracking(ROOT.FairTask):
          for i in range(nSides*nSiPMs):
               if aHit.GetSignal(i) > 0: nFired+=1
          if nMin > nFired: continue
-         hitlist[k*1000] = self.MuFilterHits[k]
+         hitlist[k*1000] = aHit
          MuFiPlanes[sy*100+l] = 1
     if (len(ScifiStations) == 5 or len(MuFiPlanes)>4) and len(hitlist)<20:
            trackCandidates.append(hitlist)

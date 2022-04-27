@@ -53,6 +53,7 @@ ConvRawData::ConvRawData()
     , fDigiSciFi(nullptr)
     , fDigiMuFilter(nullptr)
     , fClusScifi(nullptr)
+    , fKalmanTracks(nullptr)
 {}
 
 ConvRawData::~ConvRawData() {}
@@ -430,6 +431,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
     map<int, int > hitDict{};
     vector<int> hitList{};
     vector<int> tmpV{};
+    bool neighbour;
     int index{}, ncl{}, cprev{}, c{}, last{}, first{}, N{};
     for (int k = 0, kEnd = fDigiSciFi->GetEntries(); k < kEnd; k++)
     {
@@ -450,8 +452,14 @@ void ConvRawData::Exec(Option_t* /*opt*/)
         {
           if (i==0 && hitList.size()>1) continue;
           c = hitList[i];
-          if (c-cprev ==1) tmpV.push_back(c);
-          if (c-cprev !=1 || c==hitList[last])
+          neighbour = false;
+          // does not account for neighbours across sipms
+          if (c-cprev ==1)
+          {
+             neighbour = true;
+             tmpV.push_back(c);
+          }
+          if (!neighbour || c==hitList[last])
           {
             first = tmpV[0];
             N = tmpV.size();
@@ -469,6 +477,15 @@ void ConvRawData::Exec(Option_t* /*opt*/)
               tmpV.clear();
               tmpV.push_back(c);
             }
+            // save last channel
+            else if (!neighbour)
+            {
+              hitlist.clear();
+              sndScifiHit* aHit = static_cast<sndScifiHit*>(fDigiSciFi->At(hitDict[tmpV.back()]));
+              hitlist.push_back(aHit);
+              new ((*fClusScifi)[index]) sndCluster(c, 1, hitlist, ScifiDet);
+              index++;            
+            }            
           }
           cprev = c;
         }
