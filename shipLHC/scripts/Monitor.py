@@ -7,6 +7,8 @@ from array import array
 import rootUtils as ut
 import shipunit as u
 import SndlhcGeo
+from XRootD import client
+from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
 
 A,B=ROOT.TVector3(),ROOT.TVector3()
 ROOT.gInterpreter.Declare("""
@@ -73,11 +75,12 @@ class Monitoring():
         self.TDC2ns = 1E9/self.freq
 
         path     = options.path
+        self.myclient = None
         if path.find('eos')>0:
              path  = options.server+options.path
         if options.online:
              path = path.replace("raw_data","convertedData").replace("data/","")
-
+             self.myclient = client.FileSystem(options.server)
 # setup geometry
         if (options.geoFile).find('../')<0: self.snd_geo = SndlhcGeo.GeoInterface(path+options.geoFile)
         else:                                         self.snd_geo = SndlhcGeo.GeoInterface(options.geoFile[3:])
@@ -92,6 +95,7 @@ class Monitoring():
         self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','recreate')
         self.presenterFile.mkdir('scifi')
         self.presenterFile.mkdir('mufilter')
+        self.presenterFile.mkdir('daq')
         self.presenterFile.mkdir('eventdisplay')
         self.FairTasks = {}
         for x in FairTasks:   #  keeps extended methods if from python class
@@ -180,16 +184,30 @@ class Monitoring():
 # add scifi cluster
             self.clusScifi   = ROOT.TClonesArray("sndCluster")
             self.clusScifiBranch    = self.eventTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
+   def modtime(self,fname):
+      dirname = fname[fname.rfind('//')+1:fname.rfind('/')]
+      status, listing = self.myclient.dirlist(dirname, DirListFlags.STAT)
+      fileName = fname[fname.rfind('/')+1:]
+      for entry in listing:
+        if entry.name==fileName: return entry.statinfo.modtimestr
+
    def updateSource(self,fname):
    # only needed in auto mode
      notOK = True
      nIter = 0
      while notOK:
-      if nIter > 10:
+      # self.converter.fiN.Close()
+      if nIter > 100:
           print('too many attempts to read the file ',fname,' I am exiting.')
           quit()
       nIter+=1
+      time1 = self.modtime(fname)
       self.converter.fiN = ROOT.TFile.Open(fname)
+      time.sleep(6) # sleep 6 seconds, and check if file is modified. Writing takes 5sec
+      time2 = self.modtime(fname)
+      if time1 != time2:
+          notOK = True
+          continue
       notOK = False
       for b in self.converter.fiN.GetListOfKeys():
             name = b.GetName()
@@ -256,11 +274,12 @@ class Monitoring():
    def publishRootFile(self):
    # try to copy root file with TCanvas to EOS
        self.presenterFile.Close()
-       try:
+       if self.options.sudo: 
+         try:
             rc = os.system("xrdcp -f "+self.presenterFile.GetName()+"  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online")
-       except:
+         except:
             print("copy of root file failed. Token expired?")
-       self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','update')
+         self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','update')
 
    def updateHtml(self):
       rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online.html  . ")
@@ -273,14 +292,15 @@ class Monitoring():
            if not L.find(self.runNr)<0: return
            if L.find("https://snd-lhc-monitoring.web.cern.ch/online")>0 and not found:
               r = str(self.options.runNumber)
-              Lnew = '            <li> <a href="https://snd-lhc-monitoring.web.cern.ch/online/run.html?file=run'+self.runNr+'.root&lastcycle">run '+r+'</a> \n'
+              Lnew = '            <li> <a href="https://snd-lhc-monitoring.web.cern.ch/online/run.html?file=run'
+              Lnew+= self.runNr+'.root&lastcycle">run '+r+'  '+self.options.startTime +' </a> \n'
               tmp.write(Lnew)
               found = True
            tmp.write(L)
       tmp.close()
       os.system('cp tmp.html online.html')
       try:
-            rc = os.system("xrdcp online.html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
+            rc = os.system("xrdcp -f online.html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
       except:
             print("copy of html failed. Token expired?")
    def systemAndOrientation(self,s,plane):
