@@ -98,6 +98,7 @@ class Scifi_residuals(ROOT.FairTask):
                ut.bookHist(h,'track_Scifi'+str(s*10+o),'track x/y '+str(s*10+o)+'; x [cm]; y [cm]',80,-70.,10.,80,0.,80.)
                ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
                ut.bookHist(h,detector+'trackSlopes','track slope; x [mrad]; y [mrad]',1000,-100,100,1000,-100,100)
+               ut.bookHist(h,detector+'trackSlopesXL','track slope; x [rad]; y [rad]',100,-3.2,3.2,100,-3.2,3.2)
 
        if alignPar:
             for x in alignPar:
@@ -135,6 +136,7 @@ class Scifi_residuals(ROOT.FairTask):
             fstate =  theTrack.getFittedState()
             mom = fstate.getMom()
             rc = h[detector+'trackSlopes'].Fill(mom.X()/mom.Z()*1000,mom.Y()/mom.Z()*1000)
+            rc = h[detector+'trackSlopesXL'].Fill(mom.X()/mom.Z(),mom.Y()/mom.Z())
 # test plane 
             for o in range(2):
                 testPlane = s*10+o
@@ -251,9 +253,11 @@ class Scifi_residuals(ROOT.FairTask):
        for proj in P: T.append('scifiRes'+proj)
        for canvas in T:
            self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas,subdir='scifi')
-       ut.bookCanvas(h,detector+'trackDir',"track directions",900,900,1,1)
-       h[detector+'trackDir'].cd()
+       ut.bookCanvas(h,detector+'trackDir',"track directions",900,1800,1,2)
+       h[detector+'trackDir'].cd(1)
        rc = h[detector+'trackSlopes'].Draw('colz')
+       h[detector+'trackDir'].cd(2)
+       rc = h[detector+'trackSlopesXL'].Draw('colz')
        self.M.myPrint(self.M.h[detector+'trackDir'],detector+'trackDir',subdir='scifi')
 
    def Scifi_track(self,event,nPlanes = 8, nClusters = 11):
