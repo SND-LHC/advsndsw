@@ -8,7 +8,6 @@ import EventDisplay_Task
 import SndlhcMuonReco
 
 def pyExit():
-    if options.online:
        print("Make suicide until solution found for freezing")
        os.system('kill '+str(os.getpid()))
 atexit.register(pyExit)
