@@ -77,7 +77,8 @@ class ConvRawDataPY(ROOT.FairTask):
 
   # Set output
       if self.monitoring:  self.outfile = ROOT.FairRootFileSink(self.outFile)
-      else:                     self.outfile = ROOT.FairRootFileSink(self.outFile.replace('.root','_CPP.root'))
+      elif options.FairTask_convRaw: self.outfile = ROOT.FairRootFileSink(self.outFile.replace('.root','_CPP.root'))
+      else:  self.outfile = ROOT.FairRootFileSink(self.outFile)
       self.run.SetSink(self.outfile)
 
   # Don't use FairRoot's default event header settings
