@@ -26,7 +26,6 @@ options = parser.parse_args()
 options.chi2Max = 2000.
 options.saturationLimit  = 0.95
 options.withGeoFile = False
-#options.makeCalibration = False
 
 converter = ConvRawData.ConvRawDataPY()
 converter.Init(options)
