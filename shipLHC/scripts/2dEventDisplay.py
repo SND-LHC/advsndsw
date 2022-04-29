@@ -3,7 +3,7 @@ import rootUtils as ut
 from array import array
 import shipunit as u
 import SndlhcMuonReco
-
+A,B = ROOT.TVector3(),ROOT.TVector3()
 h={}
 from argparse import ArgumentParser
 parser = ArgumentParser()
@@ -134,13 +134,15 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
     if goodEvents and not goodEvent(event): continue
     if withTrack:
        if options.houghTransform:
+          OT.Reco_MuonTracks.Delete()
           rc = source.GetInTree().GetEvent(N)
           muon_reco_task.Exec(0)
           ntracks = OT.Reco_MuonTracks.GetEntries()
           uniqueTracks = cleanTracks()
           if len(uniqueTracks)<nTracks: continue
        else:
-          if withTrack==2:  Scifi_track()
+          if withTrack==2:  trackTask.ExecuteTask("Scifi")
+          elif withTrack==3:  trackTask.ExecuteTask("DS")
           else:     trackTask.ExecuteTask()
           ntracks = len(OT.Reco_MuonTracks)
        if ntracks<nTracks: continue
@@ -275,33 +277,66 @@ def addTrack(scifi=False):
              h[ 'simpleDisplay'].Update()
       nTrack+=1
 
-def Scifi_track():
+def Scifi_track(event,nPlanes = 3, nClusters = 20,sigma=150*u.um):
 # check for low occupancy and enough hits in Scifi
-    clusters = trackTask.scifiCluster()
-    trackTask.kalman_tracks.Clear()
-    stations = {}
-    for s in range(1,6):
-       for o in range(2):
-          stations[s*10+o] = []
-    for cl in clusters:
-         detID = cl.GetFirst()
-         s  = detID//1000000
-         o = (detID//100000)%10
-         stations[s*10+o].append(detID)
-    nclusters = 0
-    check = {}
-    for s in range(1,6):
-       for o in range(2):
-            if len(stations[s*10+o]) > 0: check[s*10+o]=1
-            nclusters+=len(stations[s*10+o])
-    if len(check)<8 or nclusters > 12: return -1
+        if hasattr(event,"Cluster_Scifi"):
+               clusters = event.Cluster_Scifi
+        else:
+               clusters = trackTask.scifiCluster()
+               event.ScifiClusters = clusters
+        stations = {}
+        projClusters = {0:{},1:{}}
+        for s in range(1,6):
+           for o in range(2):
+              stations[s*10+o] = []
+        k=0      
+        for cl in clusters:
+            detID = cl.GetFirst()
+            s  = detID//1000000
+            o = (detID//100000)%10
+            stations[s*10+o].append(detID)
+            projClusters[o][detID] = [cl,k]
+            k+=1
+        nclusters = 0
+        check = {}
+        for o in range(2):
+            check[o]={}
+            for s in range(1,6):
+                if len(stations[s*10+o]) > 0: check[o][s]=1
+                nclusters+=len(stations[s*10+o])
+        if len(check[0])<nPlanes or len(check[1])<nPlanes or nclusters > nClusters: return -1
 # build trackCandidate
-    hitlist = {}
-    for k in range(len(clusters)):
-           hitlist[k] = clusters[k]
-    theTrack = trackTask.fitTrack(hitlist)
-    eventTree.ScifiClusters = clusters
-    trackTask.kalman_tracks.Add(theTrack)
+# PR logic, fit straight line in x/y projection, remove outliers. Ignore tilt.
+        hitlist = {}
+        sortedClusters = {}
+        masked = {}
+        check[0]=0
+        check[1]=0
+        for o in range(2): 
+           sortedClusters[o]=sorted(projClusters[o])
+           g = ROOT.TGraph()
+           n = 0
+           for detID in sortedClusters[o]:
+               projClusters[o][detID][0].GetPosition(A,B)
+               z = (A[2]+B[2])/2.
+               if o==0: y = (A[1]+B[1])/2.
+               else: y = (A[0]+B[0])/2.
+               g.SetPoint(n,z,y)
+               n+=1
+           rc = g.Fit('pol1','SQ')
+           fun = g.GetFunction('pol1')
+           masked[o] = []
+           for i in range(n):
+               z = g.GetPointX(i)
+               res = abs(g.GetPointY(i)-fun.Eval(z))/sigma
+               if res < 5:
+                 detID = sortedClusters[o][i]
+                 k = projClusters[o][detID][1]
+                 hitlist[k] = projClusters[o][detID][0]
+                 check[o]+=1
+        if check[0]<3 or check[1]<3:    return -1
+        theTrack = trackTask.fitTrack(hitlist)
+        trackTask.kalman_tracks.Add(theTrack)
 def dumpVeto():
     muHits = {10:[],11:[]}
     for aHit in eventTree.Digi_MuFilterHits:
@@ -344,3 +379,46 @@ def cleanTracks():
     if len(uniqueTracks)>1: 
          for n1 in range( len(listOfDetIDs) ): print(listOfDetIDs[n1])
     return uniqueTracks
+
+def mufiNoise():
+  for s in range(1,4): 
+    ut.bookHist(h,'mult'+str(s),'hit mult for system '+str(s),100,-0.5,99.5)
+    ut.bookHist(h,'multb'+str(s),'hit mult per bar for system '+str(s),20,-0.5,19.5)
+    ut.bookHist(h,'res'+str(s),'residual system '+str(s),20,-10.,10.)
+  OT = sink.GetOutTree()
+  N=0
+  for event in eventTree:
+       N+=1
+       if N%1000==0: print(N)
+       OT.Reco_MuonTracks.Delete()
+       rc = trackTask.ExecuteTask("Scifi")
+       for aTrack in OT.Reco_MuonTracks:
+           mom    = aTrack.getFittedState().getMom()
+           pos      = aTrack.getFittedState().getPos()
+           if not aTrack.getFitStatus().isFitConverged(): continue
+           mult = {1:0,2:0,3:0}
+           for aHit in eventTree.Digi_MuFilterHits:
+              if not aHit.isValid(): continue
+              s = aHit.GetDetectorID()//10000
+              S = aHit.GetAllSignals()
+              rc = h['multb'+str(s)].Fill(len(S))
+              mult[s]+=len(S)
+              if s==2 or s==1:
+                 geo.modules['MuFilter'].GetPosition(aHit.GetDetectorID(),A,B)
+                 y = (A[1]+B[1])/2.
+                 zEx = (A[2]+B[2])/2.
+                 lam      = (zEx-pos.z())/mom.z()
+                 Ey        = pos.y()+lam*mom.y()
+                 rc = h['res'+str(s)].Fill(Ey-y)
+           for s in mult: rc = h['mult'+str(s)].Fill(mult[s])
+  ut.bookCanvas(h,'noise','',1200,1200,2,3)
+  for s in range(1,4):
+   tc = h['noise'].cd(s*2-1)
+   tc.SetLogy(1)
+   h['mult'+str(s)].Draw()
+   h['noise'].cd(s*2)
+   h['multb'+str(s)].Draw()
+  ut.bookCanvas(h,'res','',600,1200,1,3)
+  for s in range(1,4):
+   tc = h['res'].cd(s)
+   h['res'+str(s)].Draw()   
