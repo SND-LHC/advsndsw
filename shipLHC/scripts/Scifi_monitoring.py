@@ -12,6 +12,8 @@ class Scifi_hitMaps(ROOT.FairTask):
    def Init(self,options,monitor):
        self.M = monitor
        h = self.M.h
+       ioman = ROOT.FairRootManager.Instance()
+       self.OT = ioman.GetSink().GetOutTree()
        
        for s in range(10):
           ut.bookHist(h,detector+'posX_'+str(s),'x; x [cm]',2000,-100.,100.)
@@ -105,16 +107,19 @@ class Scifi_residuals(ROOT.FairTask):
                self.M.Scifi.SetConfPar(x,alignPar[x])
 
    def ExecuteEvent(self,event):
-       h = self.M.h
-# select events with clusters in each plane
-       theTrack = self.trackTask.ExecuteTask("Scifi")
-       if not hasattr(theTrack,"getFittedState"): return
-       theTrack.Delete()
+        if not hasattr(event,"Cluster_Scifi"):
+               trackTask.scifiCluster()
+               clusters = self.OT.Cluster_Scifi
+        else:
+               clusters = event.Cluster_Scifi
+
        sortedClusters={}
-       for aCl in event.Cluster_Scifi:
+       for aCl in clusters:
            so = aCl.GetFirst()//100000
            if not so in sortedClusters: sortedClusters[so]=[]
            sortedClusters[so].append(aCl)
+# select events with clusters in each plane
+       if len(sortedClusters)<10: continue
 
        for s in range(1,6):
 # build trackCandidate

@@ -277,66 +277,6 @@ def addTrack(scifi=False):
              h[ 'simpleDisplay'].Update()
       nTrack+=1
 
-def Scifi_track(event,nPlanes = 3, nClusters = 20,sigma=150*u.um):
-# check for low occupancy and enough hits in Scifi
-        if hasattr(event,"Cluster_Scifi"):
-               clusters = event.Cluster_Scifi
-        else:
-               clusters = trackTask.scifiCluster()
-               event.ScifiClusters = clusters
-        stations = {}
-        projClusters = {0:{},1:{}}
-        for s in range(1,6):
-           for o in range(2):
-              stations[s*10+o] = []
-        k=0      
-        for cl in clusters:
-            detID = cl.GetFirst()
-            s  = detID//1000000
-            o = (detID//100000)%10
-            stations[s*10+o].append(detID)
-            projClusters[o][detID] = [cl,k]
-            k+=1
-        nclusters = 0
-        check = {}
-        for o in range(2):
-            check[o]={}
-            for s in range(1,6):
-                if len(stations[s*10+o]) > 0: check[o][s]=1
-                nclusters+=len(stations[s*10+o])
-        if len(check[0])<nPlanes or len(check[1])<nPlanes or nclusters > nClusters: return -1
-# build trackCandidate
-# PR logic, fit straight line in x/y projection, remove outliers. Ignore tilt.
-        hitlist = {}
-        sortedClusters = {}
-        masked = {}
-        check[0]=0
-        check[1]=0
-        for o in range(2): 
-           sortedClusters[o]=sorted(projClusters[o])
-           g = ROOT.TGraph()
-           n = 0
-           for detID in sortedClusters[o]:
-               projClusters[o][detID][0].GetPosition(A,B)
-               z = (A[2]+B[2])/2.
-               if o==0: y = (A[1]+B[1])/2.
-               else: y = (A[0]+B[0])/2.
-               g.SetPoint(n,z,y)
-               n+=1
-           rc = g.Fit('pol1','SQ')
-           fun = g.GetFunction('pol1')
-           masked[o] = []
-           for i in range(n):
-               z = g.GetPointX(i)
-               res = abs(g.GetPointY(i)-fun.Eval(z))/sigma
-               if res < 5:
-                 detID = sortedClusters[o][i]
-                 k = projClusters[o][detID][1]
-                 hitlist[k] = projClusters[o][detID][0]
-                 check[o]+=1
-        if check[0]<3 or check[1]<3:    return -1
-        theTrack = trackTask.fitTrack(hitlist)
-        trackTask.kalman_tracks.Add(theTrack)
 def dumpVeto():
     muHits = {10:[],11:[]}
     for aHit in eventTree.Digi_MuFilterHits:
@@ -356,10 +296,10 @@ def dumpVeto():
           print(plane, (aHit.GetDetectorID()%1000)%60, txt)
 
 def cleanTracks():
-    T = sink.GetOutTree()
+    OT = sink.GetOutTree()
     listOfDetIDs = {}
     n = 0
-    for aTrack in T.Reco_MuonTracks:
+    for aTrack in OT.Reco_MuonTracks:
         listOfDetIDs[n] = []
         for i in range(aTrack.getNumPointsWithMeasurement()):
            M =  aTrack.getPointWithMeasurement(i)

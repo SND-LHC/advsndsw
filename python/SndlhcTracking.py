@@ -37,6 +37,13 @@ class Tracking(ROOT.FairTask):
    else:
          self.kalman_tracks = self.sink.GetOutTree().Reco_MuonTracks
 
+# nasty hack because of some wrong name of older data
+   if self.event.GetBranch('Digi_MuFilterHits'):
+         self.MuFilterHits = self.event.Digi_MuFilterHits
+   elif self.ioman.GetInTree().GetBranch('Digi_MuFilterHit'):
+         self.MuFilterHits =self.event.Digi_MuFilterHit
+
+
    self.systemAndPlanes  = {1:2,2:5,3:7}
    self.nPlanes = 8
    self.nClusters = 11
@@ -206,11 +213,6 @@ class Tracking(ROOT.FairTask):
            hitlist[k] = self.event.Cluster_Scifi[k]
            ScifiStations[hitlist[k].GetFirst()//1000000] = 1
 # take fired muonFilter bars if more than 2 SiPMs have fired
-# nasty hack because of some wrong name of older data
-    if self.event.GetBranch('Digi_MuFilterHits'):
-         self.MuFilterHits = self.event.Digi_MuFilterHits
-    elif self.ioman.GetInTree().GetBranch('Digi_MuFilterHit'):
-         self.MuFilterHits =self.event.Digi_MuFilterHit
     nMin = 1
     MuFiPlanes = {}
     for k in range(self.MuFilterHits.GetEntries()):

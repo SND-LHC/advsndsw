@@ -1214,9 +1214,9 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,NbinsRes=1
     rc = eventTree.GetEvent(N)
     N+=1
     if N>Nev: break
-    if optionTrack=='DS': rc = self.trackTask.ExecuteTask("DS")
-    else                         : rc = self.trackTask.ExecuteTask("Scifi")
-    if OT.Reco_MuonTracks.GetEntries()==1: continue
+    if optionTrack=='DS': rc = trackTask.ExecuteTask("DS")
+    else                         : rc = trackTask.ExecuteTask("Scifi")
+    if not OT.Reco_MuonTracks.GetEntries()==1: continue
     theTrack = OT.Reco_MuonTracks[0]
     if not theTrack.getFitStatus().isFitConverged() and optionTrack!='DS':   # for H8 where only two planes / proj were avaiable
                  continue
