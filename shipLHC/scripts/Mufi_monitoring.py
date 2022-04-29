@@ -408,8 +408,8 @@ class Mufi_largeVSsmall(ROOT.FairTask):
           aHist.SetMaximum( 0.1*nmax )
           tc = h['SVSl_'+str(l)].Draw('colz')
        self.M.myPrint(h['STSL'],"SumlargeSiPMvsSmallSiPM",subdir='mufilter')
-
-       for l in range(systemAndPlanes[S]):
+       for S in [1,2]:
+        for l in range(systemAndPlanes[S]):
           for side in ['L','R']:
              ut.bookCanvas(h,sdict[S]+'cor'+side+str(l),'',1800,1400,7,4)
              k=1
