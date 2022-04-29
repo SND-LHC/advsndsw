@@ -19,22 +19,23 @@ class Mufi_hitMaps(ROOT.FairTask):
        run = ROOT.FairRunAna.Instance()
        self.trackTask = run.GetTask('simpleTracking')
        if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
-
+       ioman = ROOT.FairRootManager.Instance()
+       self.OT = ioman.GetSink().GetOutTree()
        for s in monitor.systemAndPlanes:
             ut.bookHist(h,sdict[s]+'Mult','QDCs vs nr hits; #hits; QDC [a.u.]',200,0.,800.,200,0.,300.)
             for l in range(monitor.systemAndPlanes[s]):
-                  ut.bookHist(h,detector+'hitmult_'+str(s*10+l),'hit mult / plane '+str(s*10+l)+'; #hits',61,-0.5,60.5)
-                  ut.bookHist(h,detector+'hit_'+str(s*10+l),'channel map / plane '+str(s*10+l)+'; #channel',160,-0.5,159.5)
-                  if s==3:  ut.bookHist(h,detector+'bar_'+str(s*10+l),'bar map / plane '+str(s*10+l)+'; #bar',60,-0.5,59.5)
-                  else:       ut.bookHist(h,detector+'bar_'+str(s*10+l),'bar map / plane '+str(s*10+l)+'; #bar',10,-0.5,9.5)
-                  ut.bookHist(h,detector+'sig_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
-                  if s==2:    ut.bookHist(h,detector+'sigS_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
-                  ut.bookHist(h,detector+'sigL_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
-                  ut.bookHist(h,detector+'sigR_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
-                  ut.bookHist(h,detector+'Tsig_'+str(s*10+l),'signal / plane '+str(s*10+l)+'; QDC [a.u.]',200,0.0,200.)
+                  ut.bookHist(h,detector+'hitmult_'+str(s*10+l),'hit mult / plane '+sdict[s]+str(l)+'; #hits',61,-0.5,60.5)
+                  ut.bookHist(h,detector+'hit_'+str(s*10+l),'channel map / plane '+sdict[s]+str(l)+'; #channel',160,-0.5,159.5)
+                  if s==3:  ut.bookHist(h,detector+'bar_'+str(s*10+l),'bar map / plane '+sdict[s]+str(l)+'; #bar',60,-0.5,59.5)
+                  else:       ut.bookHist(h,detector+'bar_'+str(s*10+l),'bar map / plane '+sdict[s]+str(l)+'; #bar',10,-0.5,9.5)
+                  ut.bookHist(h,detector+'sig_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
+                  if s==2:    ut.bookHist(h,detector+'sigS_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
+                  ut.bookHist(h,detector+'sigL_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
+                  ut.bookHist(h,detector+'sigR_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
+                  ut.bookHist(h,detector+'Tsig_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
                   # not used currently?
-                  ut.bookHist(h,detector+'occ_'+str(s*10+l),'channel occupancy '+str(s*10+l),100,0.0,200.)
-                  ut.bookHist(h,detector+'occTag_'+str(s*10+l),'channel occupancy '+str(s*10+l),100,0.0,200.)
+                  ut.bookHist(h,detector+'occ_'+str(s*10+l),'channel occupancy '+sdict[s]+str(l),100,0.0,200.)
+                  ut.bookHist(h,detector+'occTag_'+str(s*10+l),'channel occupancy '+sdict[s]+str(l),100,0.0,200.)
 
                   ut.bookHist(h,detector+'leftvsright_1','Veto hits in left / right; Left: # hits; Right: # hits',10,-0.5,9.5,10,-0.5,9.5)
                   ut.bookHist(h,detector+'leftvsright_2','US hits in left / right; L: # hits; R: # hits',10,-0.5,9.5,10,-0.5,9.5)
@@ -50,6 +51,9 @@ class Mufi_hitMaps(ROOT.FairTask):
                   ut.bookHist(h,detector+'bs','beam spot; x[cm]; y[cm]',100,-100.,10.,100,0.,80.)
                   ut.bookHist(h,detector+'bsDS','beam spot, #bar X, #bar Y',60,-0.5,59.5,60,-0.5,59.5)
                   ut.bookHist(h,detector+'slopes','track slopes; slope X [rad]; slope Y [rad]',100,-0.1,0.1,100,-0.1,0.1)
+
+                  for bar in range(monitor.systemAndBars):
+                     ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)'; #channels',20,-0.5,19.5)
 
        self.listOfHits = {1:[],2:[],3:[]}
    def ExecuteEvent(self,event):
@@ -86,6 +90,7 @@ class Mufi_hitMaps(ROOT.FairTask):
               else:
                     Nright+=1
                     Sright+=allChannels[c]
+           rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(Nleft+Nright)
            rc = h[detector+'leftvsright_'+str(s)].Fill(Nleft,Nright)
            rc = h[detector+'leftvsright_signal_'+str(s)].Fill(Sleft,Sright)
 #
@@ -119,7 +124,7 @@ class Mufi_hitMaps(ROOT.FairTask):
       self.trackTask.ExecuteTask()
       Xbar = -10
       Ybar = -10
-      for  aTrack in self.M.eventTree.Reco_MuonTracks:
+      for aTrack in self.OT.Reco_MuonTracks:
          state = aTrack.getFittedState()
          pos    = state.getPos()
          rc = h[detector+'bs'].Fill(pos.x(),pos.y())
