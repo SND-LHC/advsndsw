@@ -287,16 +287,23 @@ class Mufi_hitMaps(ROOT.FairTask):
                   tc = h['signalDS'].cd(l)
                   l+=1
                   h[detector+'sig'+side+'_'+str( s*10+plane)].Draw()
-       ut.bookCanvas(h,detector+"chanbar",' ',1600,900,3,1)
+       ut.bookCanvas(h,detector+"chanbar",' ',1800,700,3,1)
        for s in self.M.systemAndPlanes:
             h[detector+"chanbar"].cd(s)
             opt = ""
             for l in range(self.M.systemAndPlanes[s]):
                if s==3 and (l==1 or l==3 or l==5 or l==6):continue
+               maxN = 0
                for bar in range(self.M.systemAndBars[s]):
-                     h[detector+'chanmult_'+str(s*1000+100*l+bar)].SetStats(0)
-                     h[detector+'chanmult_'+str(s*1000+100*l+bar)].Draw(opt)
-                     opt="same"
+                   hname = detector+'chanmult_'+str(s*1000+100*l+bar)
+                   nmax = h[hname].GetBinContent(h[hname].GetMaximumBin())
+                   if nmax > maxN : maxN = nmax
+               for bar in range(self.M.systemAndBars[s]):
+                   hname = detector+'chanmult_'+str(s*1000+100*l+bar)
+                   h[hname].SetStats(0)
+                   h[hname].SetMaximum(maxN*1.2)
+                   h[hname].Draw(opt)
+                   opt="same"
 
        for canvas in ['signalUSVeto','signalDS',detector+'LR','USBars',detector+"chanbar"]:                  
               h[canvas].Update()
