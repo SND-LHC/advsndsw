@@ -107,7 +107,7 @@ class Scifi_residuals(ROOT.FairTask):
    def ExecuteEvent(self,event):
        h = self.M.h
 # select events with clusters in each plane
-       theTrack = self.Scifi_track(event,nPlanes = 10, nClusters = 11)
+       theTrack = self.trackTask.ExecuteTask("Scifi")
        if not hasattr(theTrack,"getFittedState"): return
        theTrack.Delete()
        sortedClusters={}
@@ -259,35 +259,3 @@ class Scifi_residuals(ROOT.FairTask):
        h[detector+'trackDir'].cd(2)
        rc = h[detector+'trackSlopesXL'].Draw('colz')
        self.M.myPrint(self.M.h[detector+'trackDir'],detector+'trackDir',subdir='scifi')
-
-   def Scifi_track(self,event,nPlanes = 8, nClusters = 11):
-# check for low occupancy and enough hits in Scifi
-        if hasattr(event,"Cluster_Scifi"):
-               clusters = event.Cluster_Scifi
-        else:
-               clusters = self.trackTask.scifiCluster()
-               event.ScifiClusters = clusters
-        stations = {}
-        for s in range(1,6):
-           for o in range(2):
-              stations[s*10+o] = []
-        for cl in clusters:
-            detID = cl.GetFirst()
-            s  = detID//1000000
-            o = (detID//100000)%10
-            stations[s*10+o].append(detID)
-        nclusters = 0
-        check = {}
-        for s in range(1,6):
-            for o in range(2):
-                if len(stations[s*10+o]) > 0: check[s*10+o]=1
-                nclusters+=len(stations[s*10+o])
-        if len(check)<nPlanes or nclusters > nClusters: return -1
-# build trackCandidate
-        hitlist = {}
-        for k in range(len(clusters)):
-           hitlist[k] = clusters[k]
-        theTrack = self.trackTask.fitTrack(hitlist)
-        return theTrack
-
-
