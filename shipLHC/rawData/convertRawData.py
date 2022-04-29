@@ -20,12 +20,13 @@ parser.add_argument("-zM",dest="minMuHits", help="noise suppresion min MuFi hits
 parser.add_argument("-zS",dest="minScifiHits", help="noise suppresion min ScifFi hits", default=-1, type=int)
 parser.add_argument("-b", "--heartBeat", dest="heartBeat", help="heart beat", type=int,default=100000)
 parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_convRaw", help="convert raw data using ConvRawData FairTask", default=False)
+parser.add_argument( "--withCalibration", action='store_true', dest="makeCalibration", help="make QDC and TDC calibration, not taking from raw data", default=False)
 
 options = parser.parse_args()
 options.chi2Max = 2000.
 options.saturationLimit  = 0.95
 options.withGeoFile = False
-options.makeCalibration = False
+#options.makeCalibration = False
 
 converter = ConvRawData.ConvRawDataPY()
 converter.Init(options)
