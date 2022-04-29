@@ -14,7 +14,10 @@ class DAQ_boards(ROOT.FairTask):
        ut.bookHist(h,'mufiboard0','mufi hits per board, unbiased; n',100,-0.5,99.5,100,0.5,500.)
        self.R = reverseMapping.reversChannelMapping()
        runNr = str(options.runNumber).zfill(6)
-       self.R.Init(options.server+options.path+'run_'+ runNr+'/')
+       if options.online:
+          self.R.Init(options.server+options.path+'run_'+ runNr+'/')
+       else:
+          self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/data/run_"+runNr+'/')
    def ExecuteEvent(self,event):
        h = self.M.h
        mult = {'scifi': [0]*100,'mufi': [0]*100}
