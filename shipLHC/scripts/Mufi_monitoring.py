@@ -52,8 +52,8 @@ class Mufi_hitMaps(ROOT.FairTask):
                   ut.bookHist(h,detector+'bsDS','beam spot, #bar X, #bar Y',60,-0.5,59.5,60,-0.5,59.5)
                   ut.bookHist(h,detector+'slopes','track slopes; slope X [rad]; slope Y [rad]',100,-0.1,0.1,100,-0.1,0.1)
 
-                  for bar in range(monitor.systemAndBars):
-                     ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)'; #channels',20,-0.5,19.5)
+                  for bar in range(monitor.systemAndBars[s]):
+                     ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)+'; #channels',20,-0.5,19.5)
 
        self.listOfHits = {1:[],2:[],3:[]}
    def ExecuteEvent(self,event):
@@ -287,8 +287,18 @@ class Mufi_hitMaps(ROOT.FairTask):
                   tc = h['signalDS'].cd(l)
                   l+=1
                   h[detector+'sig'+side+'_'+str( s*10+plane)].Draw()
+       ut.bookCanvas(h,detector+"chanbar",' ',1600,900,3,1)
+       for s in self.M.systemAndPlanes:
+            h[detector+"chanbar"].cd(s)
+            opt = ""
+            for l in range(self.M.systemAndPlanes[s]):
+               if s==3 and (l==1 or l==3 or l==5 or l==6):continue
+               for bar in range(self.M.systemAndBars[s]):
+                     h[detector+'chanmult_'+str(s*1000+100*l+bar)].SetStats(0)
+                     h[detector+'chanmult_'+str(s*1000+100*l+bar)].Draw(opt)
+                     opt="same"
 
-       for canvas in ['signalUSVeto','signalDS',detector+'LR','USBars']:
+       for canvas in ['signalUSVeto','signalDS',detector+'LR','USBars',detector+"chanbar"]:                  
               h[canvas].Update()
               self.M.myPrint(h[canvas],canvas,subdir='mufilter')
        for canvas in [detector+'hitmaps',detector+'barmaps']:
