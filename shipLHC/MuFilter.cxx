@@ -132,9 +132,9 @@ void MuFilter::ConstructGeometry()
 	nSiPMs[0] = conf_ints["MuFilter/VetonSiPMs"];
 	nSiPMs[1] = conf_ints["MuFilter/UpstreamnSiPMs"];
 	nSiPMs[2] = conf_ints["MuFilter/DownstreamnSiPMs"];
-	nSides[0]  = conf_ints["MuFilter/nSides"];
-	nSides[1]  = conf_ints["MuFilter/nSides"];
-	nSides[2]  = conf_ints["MuFilter/nSides"];
+	nSides[0]  = conf_ints["MuFilter/VetonSides"];
+	nSides[1]  = conf_ints["MuFilter/DownstreamnSides"];
+	nSides[2]  = conf_ints["MuFilter/UpstreamnSides"];
 
 	Int_t fNUpstreamPlanes = conf_ints["MuFilter/NUpstreamPlanes"]; // Number of planes
 	Int_t fNUpstreamBars = conf_ints["MuFilter/NUpstreamBars"]; // Number of staggered bars
