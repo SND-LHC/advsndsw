@@ -107,10 +107,10 @@ class Scifi_residuals(ROOT.FairTask):
                self.M.Scifi.SetConfPar(x,alignPar[x])
 
    def ExecuteEvent(self,event):
-        if not hasattr(event,"Cluster_Scifi"):
+       if not hasattr(event,"Cluster_Scifi"):
                trackTask.scifiCluster()
                clusters = self.OT.Cluster_Scifi
-        else:
+       else:
                clusters = event.Cluster_Scifi
 
        sortedClusters={}
@@ -119,8 +119,8 @@ class Scifi_residuals(ROOT.FairTask):
            if not so in sortedClusters: sortedClusters[so]=[]
            sortedClusters[so].append(aCl)
 # select events with clusters in each plane
-       if len(sortedClusters)<10: continue
-
+       if len(sortedClusters)<10: return
+       h = self.M.h
        for s in range(1,6):
 # build trackCandidate
             hitlist = {}
