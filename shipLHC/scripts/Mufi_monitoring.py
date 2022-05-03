@@ -289,8 +289,13 @@ class Mufi_hitMaps(ROOT.FairTask):
                   h[detector+'sig'+side+'_'+str( s*10+plane)].Draw()
        ut.bookCanvas(h,detector+"chanbar",' ',1800,700,3,1)
        for s in self.M.systemAndPlanes:
-            h[detector+"chanbar"].cd(s)
             opt = ""
+            if s==3: 
+               ut.bookCanvas(h,sdict[s]+"chanbar",' ',1800,1800,12,15)
+            else:   
+               y = self.M.systemAndPlanes[s]
+               ut.bookCanvas(h,sdict[s]+"chanbar",' ',1800,700,y,self.M.systemAndBars[s])
+            h[sdict[s]+"chanbar"].cd(1)
             for l in range(self.M.systemAndPlanes[s]):
                if s==3 and (l==1 or l==3 or l==5 or l==6):continue
                maxN = 0
@@ -301,18 +306,27 @@ class Mufi_hitMaps(ROOT.FairTask):
                for bar in range(self.M.systemAndBars[s]):
                    hname = detector+'chanmult_'+str(s*1000+100*l+bar)
                    h[hname].SetStats(0)
-                   h[hname].SetMaximum(maxN*1.2)
-                   h[hname].Draw(opt)
+                   # h[hname].SetMaximum(maxN*1.2)
+                   h[detector+"chanbar"].cd(s)
+                   h[hname].DrawClone(opt)
                    opt="same"
-
-       for canvas in ['signalUSVeto','signalDS',detector+'LR','USBars',detector+"chanbar"]:                  
+                   i = l+1 + (self.M.systemAndBars[s]-bar-1)*self.M.systemAndPlanes[s]
+                   if s==3:
+                        ix = bar//15 + 1 + (l//2)*4
+                        iy = 15 - bar%15
+                        i = ix+(iy-1)*12
+                   h[sdict[s]+"chanbar"].cd(i)
+                   h[hname].SetMaximum(h[hname].GetBinContent(h[hname].GetMaximumBin())*1.2)
+                   h[hname].Draw()
+                   
+       for canvas in ['signalUSVeto','signalDS',detector+'LR','USBars',
+                     "Vetochanbar","USchanbar","DSchanbar"]:
               h[canvas].Update()
               self.M.myPrint(h[canvas],canvas,subdir='mufilter')
        for canvas in [detector+'hitmaps',detector+'barmaps']:
               for s in range(1,4):
                   h[canvas+sdict[s]].Update()
                   self.M.myPrint(h[canvas+sdict[s]],canvas+sdict[s],subdir='mufilter')
-
 
 class Mufi_largeVSsmall(ROOT.FairTask):
    """
@@ -409,7 +423,7 @@ class Mufi_largeVSsmall(ROOT.FairTask):
           tc = h['SVSl_'+str(l)].Draw('colz')
        self.M.myPrint(h['STSL'],"SumlargeSiPMvsSmallSiPM",subdir='mufilter')
        for S in [1,2]:
-        for l in range(systemAndPlanes[S]):
+         for l in range(systemAndPlanes[S]):
           for side in ['L','R']:
              ut.bookCanvas(h,sdict[S]+'cor'+side+str(l),'',1800,1400,7,4)
              k=1
