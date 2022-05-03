@@ -129,12 +129,12 @@ void MuFilter::ConstructGeometry()
 
 	Float_t nSiPMs[3];             //  number of SiPMs per side
 	Float_t nSides[3];             //  number of sides readout
-	nSiPMs[0] = conf_ints["MuFilter/nV"];
-	nSiPMs[1] = conf_ints["MuFilter/nU"];
-	nSiPMs[2] = conf_ints["MuFilter/nD"];
-	nSides[0]  = conf_ints["MuFilter/sV"];
-	nSides[1]  = conf_ints["MuFilter/sU"];
-	nSides[2]  = conf_ints["MuFilter/sD"];
+	nSiPMs[0] = conf_ints["MuFilter/VetonSiPMs"];
+	nSiPMs[1] = conf_ints["MuFilter/UpstreamnSiPMs"];
+	nSiPMs[2] = conf_ints["MuFilter/DownstreamnSiPMs"];
+	nSides[0]  = conf_ints["MuFilter/VetonSides"];
+	nSides[1]  = conf_ints["MuFilter/DownstreamnSides"];
+	nSides[2]  = conf_ints["MuFilter/UpstreamnSides"];
 
 	Int_t fNUpstreamPlanes = conf_ints["MuFilter/NUpstreamPlanes"]; // Number of planes
 	Int_t fNUpstreamBars = conf_ints["MuFilter/NUpstreamBars"]; // Number of staggered bars
@@ -557,15 +557,16 @@ void MuFilter::GetPosition(Int_t fDetectorID, TVector3& vLeft, TVector3& vRight)
 
    Int_t MuFilter::GetnSiPMs(Int_t detID){
        int subsystem     = floor(detID/10000)-1;
-       if (subsystem==0){return conf_ints["MuFilter/nV"];}
-       if (subsystem==1){return conf_ints["MuFilter/nU"];}
-       return conf_ints["MuFilter/nD"];
+       if (subsystem==0){return conf_ints["MuFilter/VetonSiPMs"];}
+       if (subsystem==1){return conf_ints["MuFilter/UpstreamnSiPMs"];}
+       return conf_ints["MuFilter/DownstreamnSiPMs"];
+
    }
    Int_t MuFilter::GetnSides(Int_t detID){
        int subsystem     = floor(detID/10000)-1;
-       if (subsystem==0){return conf_ints["MuFilter/sV"];}
-       if (subsystem==1){return conf_ints["MuFilter/sU"];}
-       return conf_ints["MuFilter/sD"];
+       if (subsystem==0){return conf_ints["MuFilter/VetonSides"];}
+       if (subsystem==1){return conf_ints["MuFilter/UpstreamnSides"];}
+       return conf_ints["MuFilter/DownstreamnSides"];
   }
 
 ClassImp(MuFilter)
