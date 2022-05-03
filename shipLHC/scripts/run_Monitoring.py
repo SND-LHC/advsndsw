@@ -122,7 +122,7 @@ for m in monitorTasks:
     monitorTasks[m].Init(options,M)
 
 if not options.auto:   # default online/offline mode
-   for n in range(options.nStart,options.nEvents):
+   for n in range(options.nStart,options.nStart+options.nEvents):
      event = M.GetEvent(n)
      for m in monitorTasks:
         monitorTasks[m].ExecuteEvent(M.eventTree)
