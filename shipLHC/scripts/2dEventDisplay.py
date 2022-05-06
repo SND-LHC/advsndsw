@@ -245,6 +245,8 @@ def addTrack(scifi=False):
    nTrack = 0
    OT = sink.GetOutTree()
    for   aTrack in OT.Reco_MuonTracks:
+      S = aTrack.getFitStatus()
+      if not S.isFitConverged() and scifi: continue
       for p in [0,1]:
           h['aLine'+str(nTrack*10+p)] = ROOT.TGraph()
 
