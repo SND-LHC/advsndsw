@@ -120,42 +120,32 @@ class Monitoring():
             return
         else:
             partitions = 0
-            if path.find('eos')>0:
-                dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path,shell=True) )
-# single file, before Feb'22
-                data = "sndsw_raw_"+self.runNr+".root"
-                if  dirlist.find(data)<0:
+            if options.partition < 0:
+               partitions = []
+               if path.find('eos')>0:
 # check for partitions
-                   dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
-                   while 1>0:
-                      data = "raw-"+ str(partitions).zfill(4)
-                      if dirlist.find(data)>0:
-                           partitions+=1
-                      else: break
+                  dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
+                  for x in dirlist.split('\\n'):
+                     ix = x.find('sndsw_raw-')
+                     if ix<0: continue
+                     partitions.append(x[ix:])
+               else:
+# check for partitions
+                 dirlist  = os.listdir(options.path+"run_"+self.runNr)
+                 for x in dirlist:
+                     data = "sndsw_raw-"+ str(partitions).zfill(4)
+                     if not x.find(data)<0:
+                          partitions.append(data)
             else:
-# check for partitions
-                 data = "sndsw_raw_"+self.runNr+".root"
-                 dirlist = os.listdir(options.path)
-                 if  not data in dirlist:
-                     dirlist  = os.listdir(options.path+"run_"+self.runNr)
-                     for x in dirlist:
-                         data = "raw-"+ str(partitions).zfill(4)
-                         if x.find(data)>0:
-                             partitions+=1
-
+                 partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)]
             if options.runNumber>0:
                 eventChain = ROOT.TChain('rawConv')
-                if partitions==0:
-                   eventChain.Add(path+'sndsw_raw_'+str(options.runNumber).zfill(6)+'.root')
-                else:
-                   for p in range(partitions):
-                       print(partitions,path+'run_'+self.runNr+'/sndsw_raw-'+str(p).zfill(4)+'.root')
-                       eventChain.Add(path+'run_'+self.runNr+'/sndsw_raw-'+str(p).zfill(4)+'.root')
+                for p in partitions:
+                       eventChain.Add(path+'run_'+self.runNr+'/'+p)
             else:
 # for MC data
                 f=ROOT.TFile.Open(options.fname)
                 eventChain = f.cbmsim
-
             rc = eventChain.GetEvent(0)
 # start FairRunAna
             self.run  = ROOT.FairRunAna()
@@ -181,9 +171,7 @@ class Monitoring():
             self.run.Init()
             if partitions>0:  self.eventTree = ioman.GetInChain()
             else:                 self.eventTree = ioman.GetInTree()
-# add scifi cluster
-            self.clusScifi   = ROOT.TClonesArray("sndCluster")
-            self.clusScifiBranch    = self.eventTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
+   
    def modtime(self,fname):
       dirname = fname[fname.rfind('//')+1:fname.rfind('/')]
       status, listing = self.myclient.dirlist(dirname, DirListFlags.STAT)
@@ -218,56 +206,12 @@ class Monitoring():
             if name.find('board')==0:
                 self.converter.boards[name]=self.converter.fiN.Get(name)
 
-   def makeScifiCluster(self):
-      self.clusScifi.Delete()
-      index = 0
-      hitDict = {}
-      for k in range(self.eventTree.Digi_ScifiHits.GetEntries()):
-          d = self.eventTree.Digi_ScifiHits[k]
-          if not d.isValid(): continue 
-          hitDict[d.GetDetectorID()] = k
-      hitList = list(hitDict.keys())
-      if len(hitList)>0:
-          hitList.sort()
-          tmp = [ hitList[0] ]
-          cprev = hitList[0]
-          ncl = 0
-          last = len(hitList)-1
-          hitlist = ROOT.std.vector("sndScifiHit*")()
-          for i in range(len(hitList)):
-               if i==0 and len(hitList)>1: continue
-               c=hitList[i]
-               neighbour = False
-               if (c-cprev)==1:    # does not account for neighbours across sipms
-                     neighbour = True
-                     tmp.append(c)
-               if not neighbour  or c==hitList[last]:
-                    first = tmp[0]
-                    N = len(tmp)
-                    hitlist.clear()
-                    for aHit in tmp: hitlist.push_back( self.eventTree.Digi_ScifiHits[hitDict[aHit]])
-                    aCluster = ROOT.sndCluster(first,N,hitlist,self.Scifi,False)
-                    if  self.clusScifi.GetSize() == index: self.clusScifi.Expand(index+10)
-                    self.clusScifi[index]=aCluster
-                    index+=1
-                    if c!=hitList[last]:
-                         ncl+=1
-                         tmp = [c]
-                    elif not neighbour :   # save last channel
-                         hitlist.clear()
-                         hitlist.push_back( self.eventTree.Digi_ScifiHits[hitDict[c]])
-                         aCluster = ROOT.sndCluster(c,1,hitlist,self.Scifi,False)
-                         self.clusScifi[index]=aCluster
-                         index+=1
-               cprev = c
-
    def GetEvent(self,n):
       if self.options.online:
             self.options.online.executeEvent(n)
             self.eventTree = self.options.online.sTree
       else: 
             self.eventTree.GetEvent(n)
-            self.makeScifiCluster()
       self.EventNumber = n
       return self.eventTree
 
@@ -460,3 +404,110 @@ class Monitoring():
          pname = srun+'/'+name+'-'+srun
          tc.Print(pname+'.png')
          tc.Print(pname+'.pdf')
+
+class TrackSelector():
+   " run reconstruction, select events with tracks"
+   def __init__(self,options):
+        self.options = options
+        self.EventNumber = -1
+
+        path     = options.path
+        if path.find('eos')>0:
+             path  = options.server+options.path
+# setup geometry
+        if (options.geoFile).find('../')<0: self.snd_geo = SndlhcGeo.GeoInterface(path+options.geoFile)
+        else:                                         self.snd_geo = SndlhcGeo.GeoInterface(options.geoFile[3:])
+        self.MuFilter = self.snd_geo.modules['MuFilter']
+        self.Scifi       = self.snd_geo.modules['Scifi']
+
+        self.runNr   = str(options.runNumber).zfill(6)
+        if options.partition < 0:
+            partitions = []
+            if path.find('eos')>0:
+# check for partitions
+               print("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr)
+               dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
+               for x in dirlist.split('\\n'):
+                  ix = x.find('sndsw_raw-')
+                  if ix<0: continue
+                  partitions.append(x[ix:])
+            else:
+# check for partitions
+                 dirlist  = os.listdir(options.path+"run_"+self.runNr)
+                 for x in dirlist:
+                     data = "sndsw_raw-"+ str(partitions).zfill(4)
+                     if not x.find(data)<0:
+                          partitions.append(data)
+        else:
+                 partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)]
+        if options.runNumber>0:
+                eventChain = ROOT.TChain('rawConv')
+                for p in partitions:
+                       eventChain.Add(path+'run_'+self.runNr+'/'+p)
+        else:
+# for MC data
+                f=ROOT.TFile.Open(options.fname)
+                eventChain = f.cbmsim
+        rc = eventChain.GetEvent(0)
+# start FairRunAna
+        self.run  = ROOT.FairRunAna()
+        ioman = ROOT.FairRootManager.Instance()
+        ioman.SetTreeName(eventChain.GetName())
+        source = ROOT.FairFileSource(eventChain.GetCurrentFile())
+        first = True
+        for p in partitions:
+           if first:
+                first = False
+                continue
+           source.AddFile(path+'run_'+self.runNr+'/'+p+'.root')
+           self.run.SetSource(source)
+
+#avoiding some error messages
+        xrdb = ROOT.FairRuntimeDb.instance()
+        xrdb.getContainer("FairBaseParSet").setStatic()
+        xrdb.getContainer("FairGeoParSet").setStatic()
+
+# prepare output tree, same branches as input plus track(s)
+        self.outFile = ROOT.TFile(options.oname,'RECREATE')
+        self.fSink    = ROOT.FairRootFileSink(self.outFile)
+        self.run.SetSink(self.fSink)
+
+        self.outTree = eventChain.CloneTree(0)
+        ROOT.gDirectory.pwd()
+        self.kalman_tracks = ROOT.TObjArray(10)
+        self.MuonTracksBranch    = self.outTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,1)
+        if not self.outTree.GetBranch("Cluster_Scifi"):
+           self.clusScifi   = ROOT.TClonesArray("sndCluster")
+           self.clusScifiBranch    = self.outTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
+
+        B = ROOT.TList()
+        B.SetName('BranchList')
+        B.Add(ROOT.TObjString('Reco_MuonTracks'))
+        B.Add(ROOT.TObjString('sndCluster'))
+        B.Add(ROOT.TObjString('sndScifiHit'))
+        B.Add(ROOT.TObjString('MuFilterHit'))
+        B.Add(ROOT.TObjString('FairEventHeader'))
+        self.fSink.WriteObject(B,"BranchList", ROOT.TObject.kSingleKey)
+        self.fSink.SetRunId(options.runNumber)
+        self.fSink.SetOutTree(self.outTree)
+
+        self.eventTree = eventChain
+
+        self.trackTask = options.FairTasks["simpleTracking"]
+        self.trackTask.Init()
+        self.OT = ioman.GetSink().GetOutTree()
+
+   def ExecuteEvent(self,event):
+           self.trackTask.ExecuteTask(option='Scifi')
+
+   def Execute(self):
+      for n in range(self.options.nStart,self.options.nStart+self.options.nEvents):
+          self.eventTree.GetEvent(n)
+          self.ExecuteEvent(self.eventTree)
+          if self.OT.Reco_MuonTracks.GetEntries()>0:
+              self.OT.EventHeader.SetMCEntryNumber(n)
+              self.fSink.Fill()
+
+   def Finalize(self):
+         self.fSink.Write()
+         self.outFile.Close()

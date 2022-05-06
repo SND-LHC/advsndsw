@@ -3,6 +3,13 @@ import pwd
 import ROOT
 ncpus = multiprocessing.cpu_count()
 
+""" input runlist
+     for each run in runlist. look for number of partitions
+     for each partition, start conversion job.
+     check consistency of output file
+     copy optional file to EOS
+     run as many jobs in parallel as cpus are available
+""" 
 
 # use cases: H6, TI18
 from argparse import ArgumentParser
@@ -12,7 +19,7 @@ parser.add_argument("-r", "--runNumbers", dest="runNumbers", help="list of run n
 parser.add_argument("-P", "--production", dest="prod",       help="H6 / epfl / TI18"   ,required=False,default="TI18")
 parser.add_argument("-c", "--command", dest="command",       help="command", default=None)
 parser.add_argument("-o", "--overwrite", dest="overwrite",   action='store_true', help="overwrite EOS", default=False)
-parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_convRaw", help="convert raw data using ConvRawData FairTask", default=True)
+parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_convRaw", help="convert raw data using ConvRawData FairTask", default=False)
 
 global options
 options = parser.parse_args()
@@ -49,7 +56,7 @@ def convert(runList,path,partitions={}):
     runNr   = str(r).zfill(6)
     # find partitions
     for p in partitions[r]:
-       os.system("python runProd.py -c  'runSinglePartition;"+path+";"+runNr+";"+str(p).zfill(4)+";EOScopy=True;check=True;'   &")
+       os.system("python $SNDSW_ROOT/shipLHC/rawData/runProd.py -c  'runSinglePartition;"+path+";"+runNr+";"+str(p).zfill(4)+";EOScopy=False;check=True;'   &")
        time.sleep(10)
        while count_python_processes('convertRawData')>ncpus:
           time.sleep(200)
@@ -67,7 +74,7 @@ def runSinglePartition(path,r,p,EOScopy=False,check=True):
      if options.FairTask_convRaw:
         os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -cpp -b 100000 -p "+path+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
      else: 
-        os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -b 100000 -p "+path+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
+        os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -b 1000 -p "+path+"  -r "+str(int(r))+ " -P "+str(int(p)) + " -g ../geofile_sndlhc_TI18.root >log_"+r+'-'+p)
      if check:
         rc = checkFile(path,r,p)
         if rc<0: 
@@ -132,17 +139,18 @@ def rawStats(runList):
      print(run,':',raw)
 
 def makeHistos(runList):
+  # use always DS tracks to survey US because of larger overlap
   for run in runList:
-    command = "$SNDSW_ROOT/shipLHC/scripts/Survey-MufiScifi.py -r "+str(run)+" -p "+pathConv+" -g geofile_sndlhc_H6.root -c Mufi_Efficiency -n -1 -t Scifi"
+    command = "$SNDSW_ROOT/shipLHC/scripts/Survey-MufiScifi.py -r "+str(run)+" -p "+pathConv+" -g geofile_sndlhc_H6.root -c Mufi_Efficiency -n -1 -t DS"
     os.system("python "+command+ " &")
-    while count_python_processes('Survey-MufiScifi')>ncpus: 
+    while count_python_processes('Survey-MufiScifi')>ncpus:
        time.sleep(200)
 
 def mips():
   for run in runs:
     command = "Survey-MufiScifi.py -r "+str(run)+" -p "+pathConv+" -g geofile_sndlhc_H6.root -c mips"
     os.system("python "+command+ " &")
-    while count_python_processes('Survey-MufiScifi')>multiprocessing.cpu_count()-2: 
+    while count_python_processes('Survey-MufiScifi')>multiprocessing.cpu_count()-2:
        time.sleep(200)
 
 runList = []

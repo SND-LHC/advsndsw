@@ -24,29 +24,31 @@ class Tracking(ROOT.FairTask):
    self.Debug = False
    self.ioman = ROOT.FairRootManager.Instance()
    self.sink = self.ioman.GetSink()
-   self.event = self.sink.GetOutTree()   # would be the case when running in online mode
+   # online mode:         raw data in, converted data in output, Reco_MuonTracks defined in ConvRawData
+   # offline read only:   converted data in, no output
+   # offline read/write:  converted data in, converted data out
+   offlineRO   = False
+   online        = False
+   offlineRW   = False
+   if not self.sink.GetOutTree():     offlineRO = True
+   if not self.ioman.GetInTree():     online = True
+   if not online and not offlineRO: offlineRW = True
+
    self.makeScifiClusters = False
-   if not self.event:
+   if offlineRO or offlineRW:
          self.event = self.ioman.GetInChain()     # should contain all digis, but not necessarily the tracks and scifi clusters
-         self.kalman_tracks = ROOT.TObjArray(10);
-         self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)
-         if not self.event.FindBranch("Cluster_Scifi"):   # no scifi clusters on inout file, create them
+         self.kalman_tracks = ROOT.TObjArray(10)
+         self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)  # user asks for tracking, independent if tracks exist in inputfile.
+         if not self.event.FindBranch("Cluster_Scifi"):   # no scifi clusters on input file, create them
              self.makeScifiClusters = True
-             self.clusScifi   = ROOT.TObjArray(10);
+             self.clusScifi   = ROOT.TObjArray(100);
              self.ioman.Register("Cluster_Scifi","",self.clusScifi,ROOT.kTRUE)
-   else:
+   if online:
+         self.event = self.sink.GetOutTree()
          self.kalman_tracks = self.sink.GetOutTree().Reco_MuonTracks
 
-# nasty hack because of some wrong name of older data
-   if self.event.GetBranch('Digi_MuFilterHits'):
-         self.MuFilterHits = self.event.Digi_MuFilterHits
-   elif self.ioman.GetInTree().GetBranch('Digi_MuFilterHit'):
-         self.MuFilterHits =self.event.Digi_MuFilterHit
-
-
    self.systemAndPlanes  = {1:2,2:5,3:7}
-   self.nPlanes = 8
-   self.nClusters = 11
+   self.MuFilterHits = self.event.Digi_MuFilterHits
    return 0
 
  def FinishEvent(self):
