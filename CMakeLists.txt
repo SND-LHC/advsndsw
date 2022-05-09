@@ -7,7 +7,7 @@
 
 # Check if cmake has the required version
 CMAKE_MINIMUM_REQUIRED(VERSION 3.9.4 FATAL_ERROR)
-
+include(CMakePrintHelpers)
 foreach(p
   CMP0028 # double colon for imported and alias targets
   CMP0074 # use _ROOT env variables
@@ -130,7 +130,17 @@ find_package2(PUBLIC GEANT4)
 find_package2(PUBLIC GEANT4DATA)
 find_package2(PUBLIC GEANT4VMC)
 find_package2(PUBLIC HEPMC)
+
+cmake_print_variables(ROOT_vmc_FOUND)
+if(ROOT_FOUND_VERSION GREATER 62599)
+  find_package2(PUBLIC VMC REQUIRED)
+  set(VMCLIB VMCLibrary)
+else()
+  set(VMCLIB ROOT::VMC)
+endif()
+
 find_package2(PUBLIC FairRoot REQUIRED)
+
 find_package2(PUBLIC FairLogger REQUIRED)
 
 IF(DEFINED ${BOOST_ROOT})
@@ -234,7 +244,8 @@ IF(NOT FairRoot_FOUND)
 Message("--- FairRoot not found ...")
 ENDIF (NOT FairRoot_FOUND)
 
-add_subdirectory (shipLHC)  #<--- new
+add_subdirectory (sndFairTasks)
+add_subdirectory (shipLHC)
 add_subdirectory (shipdata)
 add_subdirectory (passive)
 add_subdirectory (nutaudet)
@@ -253,7 +264,6 @@ add_subdirectory (genfit)
 add_subdirectory (preshower)
 add_subdirectory (pid)
 add_subdirectory (muonShieldOptimization)
-add_subdirectory (online)
 add_subdirectory (millepede)
 
 FIND_PATH(TEvePath NAMES TEveEventManager.h PATHS

@@ -8,7 +8,7 @@ ${CMAKE_SOURCE_DIR}/genfit/core/include
 ${CMAKE_SOURCE_DIR}/genfit/fitters/include
 )
 
-include_directories( ${INCLUDE_DIRECTORIES}  ${FAIRROOT_INCLUDE_DIR} ${FairLogger_INCDIR} ${FMT_INCLUDE_DIR}
+include_directories( ${INCLUDE_DIRECTORIES} ${VMC_INCLUDE_DIRS} ${FAIRROOT_INCLUDE_DIR} ${FairLogger_INCDIR} ${FMT_INCLUDE_DIR}
 )
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
@@ -23,6 +23,8 @@ link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
 ShipHit.cxx 
+SndlhcHit.cxx 
+Hit2MCPoints.cxx 
 ShipStack.cxx 
 ShipMCTrack.cxx
 ShipParticle.cxx
