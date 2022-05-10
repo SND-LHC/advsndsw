@@ -20,6 +20,8 @@ parser.add_argument("-P", "--production", dest="prod",       help="H6 / epfl / T
 parser.add_argument("-c", "--command", dest="command",       help="command", default=None)
 parser.add_argument("-o", "--overwrite", dest="overwrite",   action='store_true', help="overwrite EOS", default=False)
 parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_convRaw", help="convert raw data using ConvRawData FairTask", default=False)
+parser.add_argument("--latest", dest="latest", help="last fully converted run", default=0)
+parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode checking regularly for new files",default=False,action='store_true')
 
 global options
 options = parser.parse_args()
@@ -122,6 +124,46 @@ def check(path,partitions):
        if rc==0: success[r].append(x)
  return success      
  
+def getFileList(p,latest,minSize=10E6):
+    inventory = {}
+    dirList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+p,shell=True) )
+    for x in dirList.split('\\n'):
+          aDir = x[x.rfind('/')+1:]
+          if not aDir.find('run')==0:continue
+          runNr = int(aDir.split('_')[1])
+          if not runNr > latest: continue
+          fileList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls -l "+p+"/"+aDir,shell=True) )
+          for z in fileList.split('\\n'):
+               k = max(z.find('data_'),z.find('sndsw'))
+               if not k>0: continue
+               j = z.split(' /eos')[0].rfind(' ')
+               size = int(z.split(' /eos')[0][j+1:])
+               if size<minSize: continue
+               tmp = z.split(' ')
+               theDay = tmp[1] 
+               theTime = tmp[2]
+               fname = z[k:]
+               run = int(aDir.split('_')[1])
+               if run>900000: continue     # not a physical run
+               k = fname.find('.root')
+               partition = int(fname[k-4:k])
+               d = theDay.split('-')
+               t = theTime.split(':')
+               gmt = time.mktime( (int(d[0]), int(d[1]), int(d[2]),  int(t[0]), int(t[1]), int(t[2]), 0, 0, 0 ) )
+               inventory[run*10000+partition] = [aDir+"/"+fname,gmt]
+    return inventory
+
+def check4NewFiles(latest):
+      rawDataFiles = getFileList(path,latest,minSize=10E6)
+      convDataFiles = getFileList(pathConv,latest,minSize=10E6)
+      orderedRDF = list(rawDataFiles.keys())
+      orderedCDF = list(convDataFiles.keys())
+      orderedRDF.reverse(),orderedCDF.reverse()
+      for x in orderedRDF: 
+           if not x > orderedCDF[0]: continue
+               r = x//10000 
+               p = x%10000
+               runSinglePartition(path,r,p,EOScopy=True,check=True)
 
 def getConvStats(runList):
   for run in runList:
@@ -174,6 +216,12 @@ elif options.prod == "epfl":
 else:
       print("production not known. you are on your own",options.prod)
 
+
+if options.auto:
+    while 1 > 0:
+         check4NewFiles(options.latest)
+         time.wait(1800)
+    exit(0)
 
 if options.command == "convert":
 
