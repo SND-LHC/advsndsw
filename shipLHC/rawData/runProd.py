@@ -20,7 +20,7 @@ parser.add_argument("-P", "--production", dest="prod",       help="H6 / epfl / T
 parser.add_argument("-c", "--command", dest="command",       help="command", default=None)
 parser.add_argument("-o", "--overwrite", dest="overwrite",   action='store_true', help="overwrite EOS", default=False)
 parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_convRaw", help="convert raw data using ConvRawData FairTask", default=False)
-parser.add_argument("--latest", dest="latest", help="last fully converted run", default=0)
+parser.add_argument("--latest", dest="latest", help="last fully converted run", default=0,type=int)
 parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode checking regularly for new files",default=False,action='store_true')
 
 global options
@@ -161,9 +161,9 @@ def check4NewFiles(latest):
       orderedRDF.reverse(),orderedCDF.reverse()
       for x in orderedRDF: 
            if not x > orderedCDF[0]: continue
-               r = x//10000 
-               p = x%10000
-               runSinglePartition(path,r,p,EOScopy=True,check=True)
+           r = x//10000 
+           p = x%10000
+           runSinglePartition(path,r,p,EOScopy=True,check=True)
 
 def getConvStats(runList):
   for run in runList:
@@ -220,7 +220,7 @@ else:
 if options.auto:
     while 1 > 0:
          check4NewFiles(options.latest)
-         time.wait(1800)
+         time.sleep(1800)
     exit(0)
 
 if options.command == "convert":
