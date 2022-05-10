@@ -104,7 +104,7 @@ class Tracking(ROOT.FairTask):
       trackCandidates.append(hitlist)
     return trackCandidates
 
- def Scifi_track(self,nPlanes = 3, nClusters = 20,sigma=150*u.um,maxRes=10):
+ def Scifi_track(self,nPlanes = 3, nClusters = 20,sigma=150*u.um,maxRes=50):
 # check for low occupancy and enough hits in Scifi
         event = self.event
         trackCandidates = []
