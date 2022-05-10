@@ -176,9 +176,10 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
        dT = 0
        if Tprev >0: dT = T-Tprev
        Tprev = T
+    dTs = "%5.2Fns"%(dT/160*1000.)
     for p in proj:
        rc = h[ 'simpleDisplay'].cd(p)
-       if p==1: h[proj[p]].SetTitle('event '+str(N))
+       if p==1: h[proj[p]].SetTitle('event '+str(N)+"    dT="+dTs)
        h[proj[p]].Draw('b')
 
     for D in digis:
