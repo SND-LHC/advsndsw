@@ -60,3 +60,51 @@ class DAQ_boards(ROOT.FairTask):
        h['boardmaps'].cd(6)
        h['mufiboard0'].ProfileX().Draw()
        self.M.myPrint(h['boardmaps'],'boardmaps',subdir='daq')
+
+class Time_evolution(ROOT.FairTask):
+   " time evolution of run"
+   def Init(self,options,monitor):
+       self.M = monitor
+       self.gtime = ROOT.TGraph()
+       self.Nevent = -1
+   def ExecuteEvent(self,event):
+       h = self.M.h
+       self.Nevent +=1
+       T   = event.EventHeader.GetEventTime()
+       self.gtime.SetPoint(self.Nevent,self.Nevent,T/self.M.freq)
+
+   def Plot(self):
+       h = self.M.h
+       T0       = h['gtime'].GetPointY(0)
+       tmax   = h['gtime'].GetPointY(h['gtime'].GetEntries()-1) - T0
+       nbins  = int(tmax)
+       yunit = "events per s"
+       if 'time' in h: h.pop('time').Delete()
+       ut.bookHist(h,'time','elapsed time from start; t [s];'+yunit,nbins,0,tmax)
+       ut.bookHist(h,'Etime','delta event time; dt [s]',100,0.0,1.)
+       ut.bookHist(h,'EtimeZ','delta event time; dt [ns]',1000,0.0,10000.)
+       ut.bookCanvas(h,'T',' ',1024,3*768,1,3)
+       for n in range(1,self.gtime.GetEntries()):
+           dT = gtime.GetPointY(n)-gtime.GetPointY(n-1)
+           rc = h['Etime'].Fill( dT/self.M.freq )
+           rc = h['EtimeZ'].Fill( dT*1E9/self.M.freq)
+           rc = h['time'].Fill(gtime.GetPointY(n-1))
+       tc = h['T'].cd(1)
+       h['time'].SetStats(0)
+       h['time'].Draw()
+       tc = h['T'].cd(2)
+       tc.SetLogy(1)
+       h['EtimeZ'].Draw()
+       rc = h['EtimeZ'].Fit('expo','S','',0.,250.)
+       h['T'].Update()
+       stats = h['EtimeZ'].FindObject('stats')
+       stats.SetOptFit(1111111)
+       tc = h['T'].cd(3)
+       tc.SetLogy(1)
+       h['Etime'].Draw()
+       rc = h['Etime'].Fit('expo','S')
+       h['T'].Update()
+       stats = h['Etime'].FindObject('stats')
+       stats.SetOptFit(1111111)
+       h['T'].Update()
+       self.M.myPrint(h['T'],"Rates",subdir='DAQ')
