@@ -66,29 +66,86 @@ class Time_evolution(ROOT.FairTask):
    def Init(self,options,monitor):
        self.M = monitor
        self.gtime = ROOT.TGraph()
+       self.QDCtime = {0:ROOT.TGraph(),1:ROOT.TGraph(),2:ROOT.TGraph(),3:ROOT.TGraph()}
        self.Nevent = -1
    def ExecuteEvent(self,event):
        h = self.M.h
        self.Nevent +=1
        T   = event.EventHeader.GetEventTime()
        self.gtime.SetPoint(self.Nevent,self.Nevent,T/self.M.freq)
+       qdc = {0:0,1:0,2:0,3:0}
+       for aHit in event.Digi_MuFilterHits:
+          if not aHit.isValid(): continue
+          detID = aHit.GetDetectorID()
+          s = detID//10000
+          allChannels = self.M.map2Dict(aHit,'GetAllSignals')
+          for c in allChannels:
+             qdc[s]+= allChannels[c]
+       for aHit in event.Digi_ScifiHits:
+          if not aHit.isValid(): continue
+          qdc[0]+=1   
+       for s in range(4):
+          self.QDCtime[s].SetPoint(self.Nevent,self.Nevent,qdc[s])
 
    def Plot(self):
        h = self.M.h
-       T0       = h['gtime'].GetPointY(0)
-       tmax   = h['gtime'].GetPointY(h['gtime'].GetEntries()-1) - T0
+       gtime = self.gtime
+       T0       = gtime.GetPointY(0)
+       tmax   = gtime.GetPointY(gtime.GetN()-1) - T0
        nbins  = int(tmax)
        yunit = "events per s"
-       if 'time' in h: h.pop('time').Delete()
+       systems = {0:'Scifi',1:'Veto',2:'US',3:'DS'}
+       if 'time' in h: 
+          h.pop('time').Delete()
        ut.bookHist(h,'time','elapsed time from start; t [s];'+yunit,nbins,0,tmax)
        ut.bookHist(h,'Etime','delta event time; dt [s]',100,0.0,1.)
        ut.bookHist(h,'EtimeZ','delta event time; dt [ns]',1000,0.0,10000.)
-       ut.bookCanvas(h,'T',' ',1024,3*768,1,3)
-       for n in range(1,self.gtime.GetEntries()):
+       ut.bookCanvas(h,'T','rates',1024,3*768,1,3)
+       for n in range(1,gtime.GetN()):
            dT = gtime.GetPointY(n)-gtime.GetPointY(n-1)
-           rc = h['Etime'].Fill( dT/self.M.freq )
-           rc = h['EtimeZ'].Fill( dT*1E9/self.M.freq)
-           rc = h['time'].Fill(gtime.GetPointY(n-1))
+           rc = h['Etime'].Fill( dT )
+           rc = h['EtimeZ'].Fill( dT*1E9)
+           rc = h['time'].Fill(gtime.GetPointY(n-1)-T0)
+# analyse splash events
+       splashBins = []
+       av = h['time'].GetEntries()/nbins
+       for i in range(1,nbins+1):
+           B = h['time'].GetBinContent(i)
+           if B>5*av: 
+              tmin = h['time'].GetBinLowEdge(i)
+              tmax = tmin+h['time'].GetBinWidth(i)
+              if 'splash'+str(i) in h: h.pop('splash'+str(i)).Delete()
+              ut.bookHist(h,'splash'+str(i),'; t [1s];events per usec',1000000,0,(tmax-tmin)*1E6)
+              for sy in systems:
+                   if systems[sy]+'splash'+str(i) in h: h.pop(systems[sy]+'splash'+str(i)).Delete() 
+                   ut.bookHist(h,systems[sy]+'splash'+str(i),systems[sy]+' qdc; t [1s];sum qdc per usec',1000000,0,(tmax-tmin)*1E6)
+              splashBins.append( [i,tmin,tmax] )
+       for n in range(1,gtime.GetN()):
+           T = gtime.GetPointY(n-1)-T0
+           for s in splashBins:
+                if T>s[1] and T<s[2]: 
+                     rc = h['splash'+str(s[0])].Fill((T-s[1])*1E6)
+                     for sy in systems: 
+                           rc = h[systems[sy]+'splash'+str(s[0])].Fill((T-s[1])*1E6,self.QDCtime[sy].GetPointY(n-1))
+       N = len(splashBins)
+       if N>0:
+          iy = int(ROOT.TMath.Sqrt(N))
+          ix = N//iy
+          if N>ix*iy: ix+=1
+          ut.bookCanvas(h,'Tsplash','rates',1800,1200,ix,iy)
+          for sy in systems: ut.bookCanvas(h,systems[sy]+'splash','qdc sum',1800,1200,ix,iy)
+          n=1
+          for s in splashBins:
+            h['Tsplash'].cd(n)
+            h['splash'+str(s[0])].Draw('hist')
+            for sy in systems: 
+               tc = h[systems[sy]+'splash'].cd(n)
+               tc.SetLogy(1)
+               h[systems[sy]+'splash'+str(s[0])].Draw('hist')
+            n+=1
+          self.M.myPrint(h['Tsplash'],"Splashes",subdir='daq')   
+          for sy in systems: self.M.myPrint(h[systems[sy]+'splash'],systems[sy]+" qdc sum",subdir='daq')   
+
        tc = h['T'].cd(1)
        h['time'].SetStats(0)
        h['time'].Draw()
@@ -107,4 +164,4 @@ class Time_evolution(ROOT.FairTask):
        stats = h['Etime'].FindObject('stats')
        stats.SetOptFit(1111111)
        h['T'].Update()
-       self.M.myPrint(h['T'],"Rates",subdir='DAQ')
+       self.M.myPrint(h['T'],"Rates",subdir='daq')
