@@ -159,11 +159,13 @@ def check4NewFiles(latest):
       orderedRDF = list(rawDataFiles.keys())
       orderedCDF = list(convDataFiles.keys())
       orderedRDF.reverse(),orderedCDF.reverse()
+      lastCDF = -1
+      if len(orderedCDF)>0: orderedCDF[0]
       for x in orderedRDF: 
-           if not x > orderedCDF[0]: continue
+           if not x > lastCDF: continue
            r = x//10000 
            p = x%10000
-           runSinglePartition(path,r,p,EOScopy=True,check=True)
+           runSinglePartition(path,str(r).zfill(6),str(p).zfill(4),EOScopy=True,check=True)
 
 def getConvStats(runList):
   for run in runList:
