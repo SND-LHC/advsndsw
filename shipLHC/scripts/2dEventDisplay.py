@@ -106,7 +106,7 @@ def goodEvent(event):
            elif not onlyScifi  and totalN >  Nlimit: return True
            else: return False
 
-def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup='',verbose=0):
+def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSipmMult=1, Setup='',verbose=0):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
  h['simpleDisplay'].cd(1)
  zStart = 250. # TI18 coordinate system
@@ -177,6 +177,9 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
        if Tprev >0: dT = T-Tprev
        Tprev = T
     dTs = "%5.2Fns"%(dT/160*1000.)
+    # find detector which triggered
+    minT = firstTimeStamp(event)
+    dTs+= "    " + str(minT[1].GetDetectorID())
     for p in proj:
        rc = h[ 'simpleDisplay'].cd(p)
        if p==1: h[proj[p]].SetTitle('event '+str(N)+"    dT="+dTs)
@@ -185,9 +188,12 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
     for D in digis:
       for digi in D:
          detID = digi.GetDetectorID()
+         sipmMult = 1
          if digi.GetName()  == 'MuFilterHit':
             system = digi.GetSystem()
             geo.modules['MuFilter'].GetPosition(detID,A,B)
+            sipmMult = len(digi.GetAllSignals())
+            if sipmMult<minSipmMult and (system==1 or system==2): continue
             if trans2local:
                 curPath = nav.GetPath()
                 tmp = curPath.rfind('/')
@@ -364,4 +370,20 @@ def mufiNoise():
   ut.bookCanvas(h,'res','',600,1200,1,3)
   for s in range(1,4):
    tc = h['res'].cd(s)
-   h['res'+str(s)].Draw()   
+   h['res'+str(s)].Draw()
+
+def firstTimeStamp(event):
+        tmin = [1E9,'']
+        digis = [event.Digi_MuFilterHits,event.Digi_ScifiHits]
+        for digi in event.Digi_ScifiHits:
+               dt = digi.GetTime()
+               if dt<tmin[0]:
+                    tmin[0]=dt
+                    tmin[1]=digi
+        for digi in event.Digi_MuFilterHits:
+           for t in digi.GetAllTimes():
+               dt = t.second
+               if dt<tmin[0]:
+                    tmin[0]=dt
+                    tmin[1]=digi
+        return tmin
