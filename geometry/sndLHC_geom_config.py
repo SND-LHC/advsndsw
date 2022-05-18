@@ -260,3 +260,17 @@ with ConfigRegistry.register_config("basic") as c:
         c.Floor.DX = 1.0*u.cm 
         c.Floor.DY = -4.5*u.cm #  subtract 4.5cm to avoid overlaps 
         c.Floor.DZ = 0.
+
+        #COLDBOX configuration
+        c.Floor.Acrylic_width = 5.0*u.cm
+        c.Floor.BPoly_width = 4.0*u.cm
+        c.Floor.CBFrontWall_xdim = 219.*u.cm
+        c.Floor.CBFrontWall_ydim = 170.72*u.cm-c.Floor.Acrylic_width
+        c.Floor.CBLatWall_zdim = 176.0*u.cm
+        c.Floor.CBTiny_zdim = 17.0*u.cm
+        c.Floor.CBExtra_zdim = 41.0*u.cm
+        c.Floor.CBExtra_xdim = 67.5 *u.cm
+        c.Floor.SlopedWall_zproj = 110.0*u.cm
+        c.Floor.MFeBlockX = c.MuFilter.FeX
+        c.Floor.MFeBlockY = c.MuFilter.FeY
+        c.Floor.MFeBlockZ = c.MuFilter.FeZ

@@ -1,6 +1,7 @@
 #python -i MufiScifi.py -r 46 -p /eos/experiment/sndlhc/testbeam/MuFilter/TB_data_commissioning/sndsw/ -g geofile_sndlhc_H6.root
 
 import ROOT,os,subprocess
+import atexit
 import time
 import ctypes
 from array import array
@@ -49,7 +50,10 @@ void fixRoot(std::vector<genfit::TrackPoint*>& points, std::vector<int>& d,std::
     }
 }
 """)
-
+def pyExit():
+       print("Make suicide until solution found for freezing")
+       os.system('kill '+str(os.getpid()))
+atexit.register(pyExit)
 
 Tkey  = ROOT.std.vector('TString')()
 Ikey   = ROOT.std.vector('int')()
@@ -325,7 +329,7 @@ if houghTransform:
    run.AddTask(muon_reco_task)
 else:
    import SndlhcTracking
-   trackTask = SndlhcTracking.Tracking() 
+   trackTask = SndlhcTracking.Tracking()
    trackTask.SetName('simpleTracking')
    run.AddTask(trackTask)
 
@@ -340,6 +344,9 @@ else:                 eventTree = ioman.GetInTree()
 # backward compatbility for early converted events
 eventTree.GetEvent(0)
 if eventTree.GetBranch('Digi_MuFilterHit'): eventTree.Digi_MuFilterHits = eventTree.Digi_MuFilterHit
+
+ioman = ROOT.FairRootManager.Instance()
+OT = ioman.GetSink().GetOutTree()
 
 # wait for user action 
 
@@ -1055,63 +1062,6 @@ def beamSpot():
 
          aTrack.Delete()
 
-def DS_track():
-# check for low occupancy and enough hits in DS stations
-    stations = {}
-    for s in systemAndPlanes:
-       for plane in range(systemAndPlanes[s]): 
-          stations[s*10+plane] = {}
-    k=-1
-    for aHit in eventTree.Digi_MuFilterHits:
-         k+=1
-         if not aHit.isValid(): continue
-         s = aHit.GetDetectorID()//10000
-         p = (aHit.GetDetectorID()//1000)%10
-         bar = aHit.GetDetectorID()%1000
-         plane = s*10+p
-         if s==3:
-           if bar<60 or p==3: plane = s*10+2*p
-           else:  plane = s*10+2*p+1
-         stations[plane][k] = aHit
-    success = True
-    for p in range(30,34):
-         if len(stations[p])>2 or len(stations[p])<1: success = False
-    if not success: return -1
- # build trackCandidate
-    hitlist = {}
-    for p in range(30,34):
-         k = list(stations[p].keys())[0]
-         hitlist[k] = stations[p][k]
-    theTrack = trackTask.fitTrack(hitlist)
-    return theTrack
-
-def Scifi_track(nPlanes = 8, nClusters = 11):
-# check for low occupancy and enough hits in Scifi
-    clusters = trackTask.scifiCluster()
-    stations = {}
-    for s in range(1,6):
-       for o in range(2):
-          stations[s*10+o] = []
-    for cl in clusters:
-         detID = cl.GetFirst()
-         s  = detID//1000000
-         o = (detID//100000)%10
-         stations[s*10+o].append(detID)
-    nclusters = 0
-    check = {}
-    for s in range(1,6):
-       for o in range(2):
-            if len(stations[s*10+o]) > 0: check[s*10+o]=1
-            nclusters+=len(stations[s*10+o])
-    if len(check)<nPlanes or nclusters > nClusters: return -1
-# build trackCandidate
-    hitlist = {}
-    for k in range(len(clusters)):
-           hitlist[k] = clusters[k]
-    theTrack = trackTask.fitTrack(hitlist)
-    eventTree.ScifiClusters = clusters
-    return theTrack
-
 def USshower(Nev=options.nEvents):
     for x in ['','-small']:
        ut.bookHist(h,'shower'+x,'energy vs z',200,0.,10000.,20,-250.,-100.)
@@ -1264,11 +1214,11 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,NbinsRes=1
     rc = eventTree.GetEvent(N)
     N+=1
     if N>Nev: break
-    if optionTrack=='DS': theTrack = DS_track()
-    else                                   : theTrack = Scifi_track()
-    if not hasattr(theTrack,"getFittedState"): continue
+    if optionTrack=='DS': rc = trackTask.ExecuteTask("DS")
+    else                         : rc = trackTask.ExecuteTask("Scifi")
+    if not OT.Reco_MuonTracks.GetEntries()==1: continue
+    theTrack = OT.Reco_MuonTracks[0]
     if not theTrack.getFitStatus().isFitConverged() and optionTrack!='DS':   # for H8 where only two planes / proj were avaiable
-                 theTrack.Delete()
                  continue
 # now extrapolate to US and check for hits.
     state = theTrack.getFittedState(0)
@@ -1280,12 +1230,16 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,NbinsRes=1
     rc = h['NdofvsNMeas'].Fill(fitStatus.getNdf(),theTrack.getNumPointsWithMeasurement())
 # map clusters to hit keys
     DetID2Key={}
-    if eventTree.FindBranch("ScifiClusters") or hasattr(eventTree,'ScifiClusters'):
-     for aCluster in event.ScifiClusters:
+    if hasattr(event,"Cluster_Scifi"):
+               clusters = event.Cluster_Scifi
+    else:
+               clusters = OT.Cluster_Scifi
+
+    for aCluster in clusters:
         for nHit in range(event.Digi_ScifiHits.GetEntries()):
             if event.Digi_ScifiHits[nHit].GetDetectorID()==aCluster.GetFirst():
                DetID2Key[aCluster.GetFirst()] = nHit
-     for aCluster in event.ScifiClusters:
+    for aCluster in clusters:
          detID = aCluster.GetFirst()
          s = int(detID/1000000)
          p= int(detID/100000)%10
@@ -3143,16 +3097,22 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False)
              Scifi.SetConfPar(x,alignPar[x])
     for event in eventTree:
        N+=1
+       if N%100000==0: print('now at event ',N)
        if N>Nev: break
-# select events with clusters in each plane
-       theTrack = Scifi_track(nPlanes = 10, nClusters = 11)
-       if not hasattr(theTrack,"getFittedState"): continue
-       theTrack.Delete()
+
+       if not hasattr(event,"Cluster_Scifi"):
+               trackTask.scifiCluster()
+               clusters = OT.Cluster_Scifi
+       else:
+               clusters = event.Cluster_Scifi
+
        sortedClusters={}
-       for aCl in eventTree.ScifiClusters:
+       for aCl in clusters:
            so = aCl.GetFirst()//100000
            if not so in sortedClusters: sortedClusters[so]=[]
            sortedClusters[so].append(aCl)
+# select events with clusters in each plane
+       if len(sortedClusters)<10: continue
 
        for s in range(1,6):
 # build trackCandidate
@@ -3302,7 +3262,7 @@ def printScifi_residuals(tag='v0'):
     h['trackSlopes'].Draw('colz')
     myPrint(h['beamSpot'],tag+'-beamSpot')
 
-def minimizeAlignScifi(first=True,level=1,minuit=False):
+def minimizeAlignScifi(first=True,level=1,migrad=False):
     h['chisq'] = []
     npar = 30
     vstart  = array('d',[0]*npar)
@@ -3443,7 +3403,7 @@ def minimizeAlignScifi(first=True,level=1,minuit=False):
     strat = array('d',[0])
     gMinuit.mnexcm("SET STR",strat,1,ierflg) # 0 faster, 2 more reliable
     gMinuit.mnexcm("SIMPLEX",vstart,npar,ierflg)
-    if minuit: gMinuit.mnexcm("MIGRAD",vstart,npar,ierflg)
+    if migrad: gMinuit.mnexcm("MIGRAD",vstart,npar,ierflg)
 
     h['gChisq']=ROOT.TGraph()
     for n in range(len(h['chisq'])):
@@ -3621,8 +3581,6 @@ if options.command:
     print('executing ' + command + "for run ",options.runNumber)
     eval(command)
     print('finished ' + command + "for run ",options.runNumber)
-    print("make suicid")
-    os.system('kill '+str(os.getpid()))
 else:
     print ('waiting for command. Enter help() for more infomation')
 

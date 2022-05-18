@@ -12,6 +12,8 @@ class Scifi_hitMaps(ROOT.FairTask):
    def Init(self,options,monitor):
        self.M = monitor
        h = self.M.h
+       ioman = ROOT.FairRootManager.Instance()
+       self.OT = ioman.GetSink().GetOutTree()
        
        for s in range(10):
           ut.bookHist(h,detector+'posX_'+str(s),'x; x [cm]',2000,-100.,100.)
@@ -19,7 +21,7 @@ class Scifi_hitMaps(ROOT.FairTask):
           if s%2==1: ut.bookHist(h,detector+'mult_'+str(s),'mult vertical station '+str(s//2+1)+'; #hits',100,-0.5,99.5)
           else: ut.bookHist(h,detector+'mult_'+str(s),'mult horizontal station '+str(s//2+1)+'; #hits',100,-0.5,99.5)
        for mat in range(30):
-          ut.bookHist(h,detector+'mat_'+str(mat),'hit map / mat; mat',512,-0.5,511.5)
+          ut.bookHist(h,detector+'mat_'+str(mat),'hit map / mat; #channel',512,-0.5,511.5)
           ut.bookHist(h,detector+'sig_'+str(mat),'signal / mat; QDC [a.u.]',200,-50.0,150.)
           ut.bookHist(h,detector+'tdc_'+str(mat),'tdc / mat; timestamp [LHC clock cycles]',200,-1.,4.)
    def ExecuteEvent(self,event):
@@ -98,23 +100,27 @@ class Scifi_residuals(ROOT.FairTask):
                ut.bookHist(h,'track_Scifi'+str(s*10+o),'track x/y '+str(s*10+o)+'; x [cm]; y [cm]',80,-70.,10.,80,0.,80.)
                ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
                ut.bookHist(h,detector+'trackSlopes','track slope; x [mrad]; y [mrad]',1000,-100,100,1000,-100,100)
+               ut.bookHist(h,detector+'trackSlopesXL','track slope; x [rad]; y [rad]',100,-3.2,3.2,100,-3.2,3.2)
 
        if alignPar:
             for x in alignPar:
                self.M.Scifi.SetConfPar(x,alignPar[x])
 
    def ExecuteEvent(self,event):
-       h = self.M.h
-# select events with clusters in each plane
-       theTrack = self.Scifi_track(event,nPlanes = 10, nClusters = 11)
-       if not hasattr(theTrack,"getFittedState"): return
-       theTrack.Delete()
+       if not hasattr(event,"Cluster_Scifi"):
+               trackTask.scifiCluster()
+               clusters = self.OT.Cluster_Scifi
+       else:
+               clusters = event.Cluster_Scifi
+
        sortedClusters={}
-       for aCl in event.Cluster_Scifi:
+       for aCl in clusters:
            so = aCl.GetFirst()//100000
            if not so in sortedClusters: sortedClusters[so]=[]
            sortedClusters[so].append(aCl)
-
+# select events with clusters in each plane
+       if len(sortedClusters)<10: return
+       h = self.M.h
        for s in range(1,6):
 # build trackCandidate
             hitlist = {}
@@ -135,6 +141,7 @@ class Scifi_residuals(ROOT.FairTask):
             fstate =  theTrack.getFittedState()
             mom = fstate.getMom()
             rc = h[detector+'trackSlopes'].Fill(mom.X()/mom.Z()*1000,mom.Y()/mom.Z()*1000)
+            rc = h[detector+'trackSlopesXL'].Fill(mom.X()/mom.Z(),mom.Y()/mom.Z())
 # test plane 
             for o in range(2):
                 testPlane = s*10+o
@@ -251,39 +258,9 @@ class Scifi_residuals(ROOT.FairTask):
        for proj in P: T.append('scifiRes'+proj)
        for canvas in T:
            self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas,subdir='scifi')
-       ut.bookCanvas(h,detector+'trackDir',"track directions",900,900,1,1)
-       h[detector+'trackDir'].cd()
+       ut.bookCanvas(h,detector+'trackDir',"track directions",900,1800,1,2)
+       h[detector+'trackDir'].cd(1)
        rc = h[detector+'trackSlopes'].Draw('colz')
+       h[detector+'trackDir'].cd(2)
+       rc = h[detector+'trackSlopesXL'].Draw('colz')
        self.M.myPrint(self.M.h[detector+'trackDir'],detector+'trackDir',subdir='scifi')
-
-   def Scifi_track(self,event,nPlanes = 8, nClusters = 11):
-# check for low occupancy and enough hits in Scifi
-        if hasattr(event,"Cluster_Scifi"):
-               clusters = event.Cluster_Scifi
-        else:
-               clusters = self.trackTask.scifiCluster()
-               event.ScifiClusters = clusters
-        stations = {}
-        for s in range(1,6):
-           for o in range(2):
-              stations[s*10+o] = []
-        for cl in clusters:
-            detID = cl.GetFirst()
-            s  = detID//1000000
-            o = (detID//100000)%10
-            stations[s*10+o].append(detID)
-        nclusters = 0
-        check = {}
-        for s in range(1,6):
-            for o in range(2):
-                if len(stations[s*10+o]) > 0: check[s*10+o]=1
-                nclusters+=len(stations[s*10+o])
-        if len(check)<nPlanes or nclusters > nClusters: return -1
-# build trackCandidate
-        hitlist = {}
-        for k in range(len(clusters)):
-           hitlist[k] = clusters[k]
-        theTrack = self.trackTask.fitTrack(hitlist)
-        return theTrack
-
-

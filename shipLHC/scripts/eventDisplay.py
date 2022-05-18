@@ -33,6 +33,11 @@ parser.add_argument("-p", "--paramFile",    dest="ParFile",   help="FairRoot par
 parser.add_argument("--Debug",              dest="Debug", help="Switch on debugging", required=False, action="store_true")
 parser.add_argument("-o", "--outFile",      dest="OutputFile", help="Output file", required=False,default=None)
 
+parser.add_argument("-H", "--houghTransform", dest="houghTransform", help="do not use hough transform for track reco", action='store_false',default=True)
+parser.add_argument("-t", "--tolerance", dest="tolerance",  type=float, help="How far away from Hough line hits assigned to the muon can be. In cm.", default=0.)
+parser.add_argument("--hits_to_fit", dest = "hits_to_fit", type=str, help="Which detectors to use in the fit, in the format: vesfusds, where [ve] is veto, [sf] is Scifi, [us] is Upstream muon filter, and [ds] is downstream muon filter", default = "sfusds")
+parser.add_argument("--hits_for_triplet", dest = "hits_for_triplet", type=str, help="Which detectors to use for the triplet condition. In the same format as --hits_to_fit", default = "ds")
+
 options = parser.parse_args()
 
 def printMCTrack(n,MCTrack):
@@ -74,19 +79,26 @@ class DrawDigi(ROOT.FairTask):
      if digi.GetName()  == 'MuFilterHit':
          system = digi.GetSystem()
          modules['MuFilter'].GetPosition(detID,A,B)
+         color = ROOT.kGreen
          if system==1: vol = sGeo.GetVolume('volVetoBar')
          elif system==2: vol = sGeo.GetVolume('volMuUpstreamBar')
          elif system==3: 
-             if digi.isVertical: vol = sGeo.GetVolume('volMuDownstreamBar_ver')
-             else:                          vol = sGeo.GetVolume('volMuDownstreamBar_hor')
-         color = ROOT.kGreen
+             if digi.isVertical():
+                       color = ROOT.kMagenta
+                       vol = sGeo.GetVolume('volMuDownstreamBar_ver')
+             else:  
+                       color = ROOT.kBlue
+                       vol = sGeo.GetVolume('volMuDownstreamBar_hor')
          shape = vol.GetShape()
          dx,dy,dz = shape.GetDX(),shape.GetDY(),shape.GetDZ()
          origin = shape.GetOrigin()
+         mPoint = 0.5*(A+B)
+         master = array('d',[mPoint[0],mPoint[1],mPoint[2]])
+         o = array('d',[0,0,0])
+         nav.MasterToLocal(master,o)
+
      elif digi.GetName()  == 'sndScifiHit':
          modules['Scifi'].GetSiPMPosition(detID,A,B)
-         p = nav.GetPath()
-         nav.cd(p[:p.find('/Fi')])
          mPoint = 0.5*(A+B)
          master = array('d',[mPoint[0],mPoint[1],mPoint[2]])
          o = array('d',[0,0,0])
@@ -393,11 +405,9 @@ class EventLoop(ROOT.FairTask):
    camera = v.CurrentCamera()
    for i in range(2):  # don't know why this needs to be executed twice to update the screen
      camera.Reset()
-     center = array('d',[-9.,46.,28.])
+     center = array('d',[-19.,46.,400.])
      camera.Configure(1.6, 0, center, -1.57, 0)
      v.DoDraw()
-
-   trackTask.InitTask(sTree)
 
  def update(self):
    sc    = gEve.GetScenes()
@@ -593,31 +603,48 @@ def search(lvdict,tag):
 from basiclibs import *  
 # -----   Reconstruction run   -------------------------------------------
 fRun = ROOT.FairRunAna()
+ioman = ROOT.FairRootManager.Instance()
 
 if options.geoFile: 
  if options.geoFile[0:4] == "/eos": options.geoFile=ROOT.gSystem.Getenv("EOSSHIP")+options.geoFile
  fRun.SetGeomFile(options.geoFile)
 
 if options.InputFile[0:4] == "/eos": options.InputFile=ROOT.gSystem.Getenv("EOSSHIP")+options.InputFile
-inFile = ROOT.FairFileSource(options.InputFile)
+
+f=ROOT.TFile.Open(options.InputFile)
 
 isMC = True
-if inFile.GetInFile().FindKey('rawConv'):
-   inFile.Close()
-   print('set name rawConv')
-   isMC = False
-   configFolder = os.environ["VMCWORKDIR"]+"/config"
-   if not os.path.isdir(configFolder): rc = os.mkdir(configFolder)
-   tmp = open(os.environ["VMCWORKDIR"]+"/config/rootmanager.dat",'w')
-   tmp.write("treename=rawConv")
-   tmp.close()
-   inFile = ROOT.FairFileSource(options.InputFile,'rawConv')
-   # os.system("rm "+configFolder+"/rootmanager.dat")
-fRun.SetSource(inFile)
+if f.FindKey('rawConv'):
+        ioman.SetTreeName('rawConv')
+        isMC = False
 
-if options.OutputFile == None:
-  options.OutputFile = ROOT.TMemFile('event_display_output', 'recreate')
-fRun.SetOutputFile(options.OutputFile)
+outFile = ROOT.TMemFile('dummy','CREATE')
+source = ROOT.FairFileSource(f)
+fRun.SetSource(source)
+sink = ROOT.FairRootFileSink(outFile)
+fRun.SetSink(sink)
+
+if options.houghTransform:
+  import SndlhcMuonReco
+  muon_reco_task = SndlhcMuonReco.MuonReco()
+  fRun.AddTask(muon_reco_task)
+else:
+  import SndlhcTracking
+  trackTask = SndlhcTracking.Tracking() 
+  trackTask.SetName('simpleTracking')
+  fRun.AddTask(trackTask)
+
+#avoiding some error messages
+xrdb = ROOT.FairRuntimeDb.instance()
+xrdb.getContainer("FairBaseParSet").setStatic()
+xrdb.getContainer("FairGeoParSet").setStatic()
+
+import SndlhcGeo
+geo = SndlhcGeo.GeoInterface(options.geoFile)
+modules = geo.modules
+lsOfGlobals = ROOT.gROOT.GetListOfGlobals()
+lsOfGlobals.Add(modules['Scifi'])
+lsOfGlobals.Add(modules['MuFilter'])
 
 if options.ParFile:
  rtdb      = fRun.GetRuntimeDb()
@@ -630,13 +657,6 @@ fMan.SetMaxEnergy(5000.) # default is 25 GeV only !
 fMan.SetMinEnergy(0.1) #  100 MeV
 fMan.SetEvtMaxEnergy(5000.) # what is the difference between EvtMaxEnergy and MaxEnergy ?
 fMan.SetPriOnly(False)  # display everything
-
-upkl    = Unpickler( fRun.GetGeoFile() )
-ShipGeo = upkl.load('ShipGeo')
-
-# -----Create geometry----------------------------------------------
-import shipLHC_conf as sndDet_conf
-modules = sndDet_conf.configure(fRun,ShipGeo)
 
 if isMC:
    mcHits = {}
@@ -653,11 +673,12 @@ fMan.Init(1,4,10) # default Init(visopt=1, vislvl=3, maxvisnds=10000)
 # vislvl
 #
 fRman = ROOT.FairRootManager.Instance()
-sTree = fRman.GetInChain()
-lsOfGlobals = ROOT.gROOT.GetListOfGlobals()
+
+sTree = ioman.GetInTree()
 lsOfGlobals.Add(sTree)
-lsOfGlobals.Add(modules['Scifi'])
-lsOfGlobals.Add(modules['MuFilter'])
+# backward compatbility for early converted events
+sTree.GetEvent(0)
+if sTree.GetBranch('Digi_MuFilterHit'): sTree.Digi_MuFilterHits = sTree.Digi_MuFilterHit
 
 sGeo  = ROOT.gGeoManager 
 top   = sGeo.GetTopVolume()

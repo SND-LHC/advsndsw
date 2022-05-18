@@ -17,6 +17,7 @@
 #include "FairRunAna.h"         // for FairRunAna
 #include "FairRootManager.h"    // for FairRootManager
 #include "FairParamList.h"
+#include "FairLogger.h"
 #include "ConvRawData.h"
 #include "TClonesArray.h"
 #include "TObjString.h"
@@ -52,6 +53,7 @@ ConvRawData::ConvRawData()
     , fDigiSciFi(nullptr)
     , fDigiMuFilter(nullptr)
     , fClusScifi(nullptr)
+    , fKalmanTracks(nullptr)
 {}
 
 ConvRawData::~ConvRawData() {}
@@ -60,8 +62,8 @@ InitStatus ConvRawData::Init()
 {
     FairRootManager* ioman = FairRootManager::Instance();
     if (!ioman) {
-        cout << "-E- ConvRawData::Init: "
-                  << "RootManager not instantiated!" << endl;
+        LOG (error) << "-E- ConvRawData::Init: "
+                    << "RootManager not instantiated!";
         return kFATAL;
     }
         
@@ -74,6 +76,10 @@ InitStatus ConvRawData::Init()
     TObjString* stop_obj = dynamic_cast<TObjString*>(ioman->GetObject("stop"));
     TObjString* heartBeat_obj = dynamic_cast<TObjString*>(ioman->GetObject("heartBeat"));
     TObjString* withGeoFile_obj = dynamic_cast<TObjString*>(ioman->GetObject("withGeoFile"));
+    TObjString* makeCalibration_obj = dynamic_cast<TObjString*>(ioman->GetObject("makeCalibration"));
+    TObjString* chi2Max_obj = dynamic_cast<TObjString*>(ioman->GetObject("chi2Max"));
+    TObjString* saturationLimit_obj = dynamic_cast<TObjString*>(ioman->GetObject("saturationLimit"));
+    TObjString* online_obj = dynamic_cast<TObjString*>(ioman->GetObject("online"));
     // Input raw data file is read from the FairRootManager
     // This allows to have it in custom format, e.g. have arbitary names of TTrees
     TFile* f0 = dynamic_cast<TFile*>(ioman->GetObject("rawData"));
@@ -86,6 +92,10 @@ InitStatus ConvRawData::Init()
     std::istringstream(stop_obj->GetString().Data()) >> stop;
     std::istringstream(heartBeat_obj->GetString().Data()) >> fheartBeat;
     std::istringstream(withGeoFile_obj->GetString().Data()) >> withGeoFile;
+    std::istringstream(makeCalibration_obj->GetString().Data()) >> makeCalibration;
+    std::istringstream(chi2Max_obj->GetString().Data()) >> chi2Max;
+    std::istringstream(saturationLimit_obj->GetString().Data()) >> saturationLimit;
+    std::istringstream(online_obj->GetString().Data()) >> online;
     
     fEventTree = (TTree*)f0->Get("event"); 
     // Get board_x data
@@ -113,6 +123,12 @@ InitStatus ConvRawData::Init()
     {    
       ioman->Register("Cluster_Scifi", "ScifiCluster_det", fClusScifi, kTRUE);
     }
+    //Muon tracks
+    fKalmanTracks = new TClonesArray("TObjArray");
+    if (online)
+    {
+      ioman->Register("Reco_MuonTracks", "", fKalmanTracks, kTRUE);
+    }
     
     local = false; 
     
@@ -123,28 +139,31 @@ InitStatus ConvRawData::Init()
     {
       local = true;
       set_path = fpath; 
-      cout<<"path to use: "<< set_path<<endl;
+      LOG (info) <<"path to use: "<< set_path;
     }
     else
     {
       TString server = gSystem->Getenv("EOSSHIP");
       set_path = server.Data()+fpath; 
-      cout<<"path to use: "<< set_path<<endl;
+      LOG (info) <<"path to use: "<< set_path;
     }
  
     TStopwatch timerCSV;
     timerCSV.Start();
     read_csv(set_path);
     timerCSV.Stop();
-    cout<<"Time to read CSV "<<timerCSV.RealTime()<<endl;
+    LOG (info) << "Time to read CSV " << timerCSV.RealTime();
     //calibrationReport();
     TStopwatch timerBMap;
     timerBMap.Start();
     DetMapping(set_path);
     timerBMap.Stop();
-    cout<<"Time to set the board mapping "<<timerBMap.RealTime()<<endl;
+    LOG (info) << "Time to set the board mapping " << timerBMap.RealTime();
     
-    eventNumber = fnStart-1;
+    // Get the FairLogger
+    FairLogger *logger = FairLogger::GetLogger();
+    
+    eventNumber = fnStart;
     
     return kSUCCESS;
 }
@@ -171,15 +190,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
   int nSiPMs{}, nSides{}, direction{}, detID{}, sipm_number{}, chan{}, orientation{}, sipmLocal{};
   int sipmID{};
   double test{};
-  //TStopwatch timer;
-      
-  // Manually change event number as input file is not set for this task
-  if (eventNumber > fnEvents)
-  {
-    cout<<"Check nEvents settings!"<< endl;
-    exit(0);
-  }
-  eventNumber++;
+  //TStopwatch timer;     
   
   tE = high_resolution_clock::now();
   //timer.Start();
@@ -188,17 +199,15 @@ void ConvRawData::Exec(Option_t* /*opt*/)
   {
      tt = high_resolution_clock::now();
      time_t ttp = high_resolution_clock::to_time_t(tt);
-     cout << "run " << frunNumber << " event " << eventNumber
-          << " local time " << ctime(&ttp) << endl;
+     LOG (info) << "run " << frunNumber << " event " << eventNumber
+                << " local time " << ctime(&ttp);
   }
      
   fEventHeader->SetRunId(frunNumber);
   fEventHeader->SetEventTime(fEventTree->GetLeaf("evtTimestamp")->GetValue());
-  if (debug) cout << "event: " << eventNumber << " timestamp: "
-                  << fEventTree->GetLeaf("evtTimestamp")->GetValue() << endl;
+  LOG (info) << "event: " << eventNumber << " timestamp: "
+              << fEventTree->GetLeaf("evtTimestamp")->GetValue();
   // Delete pointer map elements
-  TStopwatch timerDel;
-  timerDel.Start();
   for (auto it : digiSciFiStore)
   {
       delete it.second;
@@ -209,8 +218,6 @@ void ConvRawData::Exec(Option_t* /*opt*/)
       delete it.second;
   }
   digiMuFilterStore.clear();
-  timerDel.Stop();
-  //cout<<timerDel.RealTime()<< " CPU "<< timerDel.CpuTime()<<endl;
      
   // Loop over boards
   for ( auto board : boards )// loop over TTrees
@@ -228,7 +235,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
        else if (boardMaps["MuFilter"].count(board.first)!=0) scifi = false;
        else
        {
-         cout<<board.first<<" not known. Serious error, stop!"<<endl;
+         LOG (error) << board.first << " not known. Serious error, stop!";
          break;
        }
        bt = boards[board.first];
@@ -237,23 +244,43 @@ void ConvRawData::Exec(Option_t* /*opt*/)
        for ( int n = 0; n <  bt->GetLeaf("nHits")->GetValue(); n++ )
        {
          mask = false;
-         if (debug) cout<< scifi << " " << board_id << " " << bt->GetLeaf("tofpetId")->GetValue(n)
-                        << " " << bt->GetLeaf("tofpetChannel")->GetValue(n)
-                        << " " << bt->GetLeaf("tac")->GetValue(n)
-                        << " " << bt->GetLeaf("tCoarse")->GetValue(n)
-                        << " " << bt->GetLeaf("tFine")->GetValue(n)
-                        << " " << bt->GetLeaf("vCoarse")->GetValue(n)
-                        << " " << bt->GetLeaf("vFine")->GetValue(n)<< endl;
+         LOG (info) << "In scifi? " << scifi 
+                    << " " << board_id << " " << bt->GetLeaf("tofpetId")->GetValue(n)
+                    << " " << bt->GetLeaf("tofpetChannel")->GetValue(n)
+                    << " " << bt->GetLeaf("tac")->GetValue(n)
+                    << " " << bt->GetLeaf("tCoarse")->GetValue(n)
+                    << " " << bt->GetLeaf("tFine")->GetValue(n)
+                    << " " << bt->GetLeaf("vCoarse")->GetValue(n)
+                    << " " << bt->GetLeaf("vFine")->GetValue(n);
          t0 = high_resolution_clock::now();
          tofpet_id = bt->GetLeaf("tofpetId")->GetValue(n);
          tofpet_channel = bt->GetLeaf("tofpetChannel")->GetValue(n);
          tac = bt->GetLeaf("tac")->GetValue(n);
-         tie(TDC,QDC,Chi2ndof,satur) = comb_calibration(board_id, tofpet_id, tofpet_channel, tac,
-                                                   bt->GetLeaf("vCoarse")->GetValue(n),
-                                                   bt->GetLeaf("vFine")->GetValue(n),
-                                                   bt->GetLeaf("tCoarse")->GetValue(n),
-                                                   bt->GetLeaf("tFine")->GetValue(n),
-                                                   1.0, 0);
+         /* Since run 39 calibration is done online and 
+         calib data stored in root raw data file */
+         if (makeCalibration)
+           tie(TDC,QDC,Chi2ndof,satur) = comb_calibration(board_id, tofpet_id, tofpet_channel, tac,
+                                                     bt->GetLeaf("vCoarse")->GetValue(n),
+                                                     bt->GetLeaf("vFine")->GetValue(n),
+                                                     bt->GetLeaf("tCoarse")->GetValue(n),
+                                                     bt->GetLeaf("tFine")->GetValue(n),
+                                                     1.0, 0);
+         else
+         {
+           TDC = bt->GetLeaf("timestamp")->GetValue(n);
+           QDC = bt->GetLeaf("value")->GetValue(n);
+           Chi2ndof = 1;
+           satur = 0.;
+           //Chi2ndof = max(bt->GetLeaf("timestampCalChi2")->GetValue(n)/bt->GetLeaf("timestampCalDof")->GetValue(n),
+           //               bt->GetLeaf("valueCalChi2")->GetValue(n)/bt->GetLeaf("valueCalDof")->GetValue(n));
+           // FIXME, valueCalDof is a boolean that is true if v_fine/par[d] is above saturationLimit              
+           //satur = (bt->GetLeaf("valueCalDof")->GetValue(n) == 1) ? 1.1*saturationLimit : 0.9*saturationLimit;    
+         }
+         
+         // Print a warning if TDC or QDC is nan.        
+         if ( TDC != TDC ) LOG(warning) << "NAN TDC detected! Check board maps!";
+         if ( QDC != QDC ) LOG(warning) << "NAN QDC detected! Check board maps!";
+         
          t1 = high_resolution_clock::now();
          if ( Chi2ndof > chi2Max )
          {
@@ -265,22 +292,22 @@ void ConvRawData::Exec(Option_t* /*opt*/)
          else if (satur > saturationLimit || QDC>1E20 || QDC != QDC)
          {
            if (QDC>1E20) QDC = 987.; // checking for inf
-           if (debug) cout << "inf " << board_id << " " << bt->GetLeaf("tofpetId")->GetValue(n)    
-                           << " " << bt->GetLeaf("tofpetChannel")->GetValue(n)
-                           << " " << bt->GetLeaf("tac")->GetValue(n) 
-                           << " " << bt->GetLeaf("vCoarse")->GetValue(n)
-                           << " " << bt->GetLeaf("vFine")->GetValue(n)
-                           << " " << TDC-bt->GetLeaf("tCoarse")->GetValue(n) 
-                           << " " << eventNumber << " " << Chi2ndof << endl;
+           LOG (info) << "inf " << board_id << " " << bt->GetLeaf("tofpetId")->GetValue(n)    
+                      << " " << bt->GetLeaf("tofpetChannel")->GetValue(n)
+                      << " " << bt->GetLeaf("tac")->GetValue(n) 
+                      << " " << bt->GetLeaf("vCoarse")->GetValue(n)
+                      << " " << bt->GetLeaf("vFine")->GetValue(n)
+                      << " " << TDC-bt->GetLeaf("tCoarse")->GetValue(n) 
+                      << " " << eventNumber << " " << Chi2ndof;
            if (QDC != QDC) QDC = 988.; // checking for nan
-           if (debug) cout << "nan " << board_id << " " << bt->GetLeaf("tofpetId")->GetValue(n)
-                           << " " << bt->GetLeaf("tofpetChannel")->GetValue(n)
-                           << " " << bt->GetLeaf("tac")->GetValue(n)
-                           << " " << bt->GetLeaf("vCoarse")->GetValue(n)
-                           << " " << bt->GetLeaf("vFine")->GetValue(n)
-                           << " " << TDC-bt->GetLeaf("tCoarse")->GetValue(n)
-                           << " " << TDC << " " << bt->GetLeaf("tCoarse")->GetValue(n)
-                           << " " << eventNumber << " " << Chi2ndof << endl;
+           LOG (info) << "nan " << board_id << " " << bt->GetLeaf("tofpetId")->GetValue(n)
+                       << " " << bt->GetLeaf("tofpetChannel")->GetValue(n)
+                       << " " << bt->GetLeaf("tac")->GetValue(n)
+                       << " " << bt->GetLeaf("vCoarse")->GetValue(n)
+                       << " " << bt->GetLeaf("vFine")->GetValue(n)
+                       << " " << TDC-bt->GetLeaf("tCoarse")->GetValue(n)
+                       << " " << TDC << " " << bt->GetLeaf("tCoarse")->GetValue(n)
+                       << " " << eventNumber << " " << Chi2ndof;
            A = int(min(QDC,double(1000.)));
            B = min(satur,double(999.))/1000.;
            QDC = A+B;
@@ -291,7 +318,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
             if (QDC>0) QDC = -QDC;
             mask = true;
          }         
-         if (debug) cout << "calibrated: tdc = " << TDC << ", qdc = " << QDC << endl;//TDC clock cycle = 160 MHz or 6.25ns
+         LOG (info) << "calibrated: tdc = " << TDC << ", qdc = " << QDC;//TDC clock cycle = 160 MHz or 6.25ns
          t4 = high_resolution_clock::now();
          // Set the unit of the execution time measurement to ns
          counters["qdc"]+= duration_cast<nanoseconds>(t1 - t0).count();
@@ -305,8 +332,8 @@ void ConvRawData::Exec(Option_t* /*opt*/)
            tmp = boardMapsMu["MuFilter"][board.first][slots[tofpet_id]];
            if (debug || !tmp.find("not") == string::npos )
            {
-             cout << system << " " << key << " " << board.first << " " << tofpet_id
-                            << " " << tofpet_id%2 << " " << tofpet_channel << endl;
+             LOG (info) << system << " " << key << " " << board.first << " " << tofpet_id
+                         << " " << tofpet_id%2 << " " << tofpet_channel;
            }
            sipmChannel = 99;
            if ( TofpetMap[system].count(key) == 0)
@@ -336,14 +363,12 @@ void ConvRawData::Exec(Option_t* /*opt*/)
            digiMuFilterStore[detID]->SetDigi(QDC,TDC,sipm_number);
            if (mask) digiMuFilterStore[detID]->SetMasked(sipm_number);
            
-           if (debug)
-           {
-                    cout << "create mu hit: " << detID << " " << tmp << " " << system
-                         << " " << tofpet_id << " " << offMap[tmp][0] << " " << offMap[tmp][1]
-                         << " " << offMap[tmp][2] << " " << sipmChannel << " " << nSiPMs
-                         << " " << nSides << " " << test << endl;
-                    cout << "  " << detID << " " << sipm_number << " " << QDC << " " << TDC <<endl;
-           }
+           LOG (info) << "create mu hit: " << detID << " " << tmp << " " << system
+                       << " " << tofpet_id << " " << offMap[tmp][0] << " " << offMap[tmp][1]
+                       << " " << offMap[tmp][2] << " " << sipmChannel << " " << nSiPMs
+                       << " " << nSides << " " << test << endl
+                       << detID << " " << sipm_number << " " << QDC << " " << TDC;
+                       
            if (test>0 || detID%1000>200 || sipm_number>15)
            {
              cout << "what goes wrong? " << detID << " SiPM " << sipm_number << " system " << system
@@ -368,15 +393,12 @@ void ConvRawData::Exec(Option_t* /*opt*/)
            }
            digiSciFiStore[sipmID]->SetDigi(QDC,TDC);
            if (mask) digiSciFiStore[sipmID]->setInvalid();
-           if (debug)
-           {
-              cout << "create scifi hit: tdc = " << board.first << " " << sipmID
-                   << " " << QDC << " " << TDC <<endl;
-              cout << "tofpet:" << " " << tofpet_id << " " << tofpet_channel << " " << mat
-                   << " " << chan << endl
-                   << station[1] << " " << station[2] << " " << mat << " " << chan
-                   << " " << int(chan/128)%4 << " " << chan%128 << endl;
-           }
+           LOG (info) << "create scifi hit: tdc = " << board.first << " " << sipmID
+                       << " " << QDC << " " << TDC <<endl
+                       << "tofpet:" << " " << tofpet_id << " " << tofpet_channel << " " << mat
+                       << " " << chan << endl
+                       << station[1] << " " << station[2] << " " << mat << " " << chan
+                       << " " << int(chan/128)%4 << " " << chan%128;
            t5 = high_resolution_clock::now();
            counters["createScifi"]+= duration_cast<nanoseconds>(t5 - t4).count();
          } // end Scifi encoding
@@ -409,6 +431,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
     map<int, int > hitDict{};
     vector<int> hitList{};
     vector<int> tmpV{};
+    bool neighbour;
     int index{}, ncl{}, cprev{}, c{}, last{}, first{}, N{};
     for (int k = 0, kEnd = fDigiSciFi->GetEntries(); k < kEnd; k++)
     {
@@ -429,8 +452,14 @@ void ConvRawData::Exec(Option_t* /*opt*/)
         {
           if (i==0 && hitList.size()>1) continue;
           c = hitList[i];
-          if (c-cprev ==1) tmpV.push_back(c);
-          if (c-cprev !=1 || c==hitList[last])
+          neighbour = false;
+          // does not account for neighbours across sipms
+          if (c-cprev ==1)
+          {
+             neighbour = true;
+             tmpV.push_back(c);
+          }
+          if (!neighbour || c==hitList[last])
           {
             first = tmpV[0];
             N = tmpV.size();
@@ -440,7 +469,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
               sndScifiHit* aHit = static_cast<sndScifiHit*>(fDigiSciFi->At(hitDict[tmpV[j]]));
               hitlist.push_back(aHit);
             }
-            new ((*fClusScifi)[index]) sndCluster(first, N, hitlist, ScifiDet);
+            new ((*fClusScifi)[index]) sndCluster(first, N, hitlist, ScifiDet, false);
             index++;
             if (c!=hitList[last])
             {
@@ -448,16 +477,22 @@ void ConvRawData::Exec(Option_t* /*opt*/)
               tmpV.clear();
               tmpV.push_back(c);
             }
+            // save last channel
+            else if (!neighbour)
+            {
+              hitlist.clear();
+              sndScifiHit* aHit = static_cast<sndScifiHit*>(fDigiSciFi->At(hitDict[tmpV.back()]));
+              hitlist.push_back(aHit);
+              new ((*fClusScifi)[index]) sndCluster(c, 1, hitlist, ScifiDet, false);
+              index++;            
+            }            
           }
           cprev = c;
         }
     }
   } // end if (withGeoFile)
-  if (debug)
-  {
-    cout << "number of events processed " << fnEvents << " "
-         << fEventTree->GetEntries()<< endl;
-  }
+  LOG (info) << fnEvents-fnStart << " events processed out of "
+             << fEventTree->GetEntries() << " number of events in file.";
   /*
   cout << "Monitor computing time:" << endl;
   for (auto it: counters)
@@ -473,6 +508,9 @@ void ConvRawData::Exec(Option_t* /*opt*/)
      }
   }
   */
+  
+  // Manually change event number as input file is not set for this task
+  eventNumber++;
 
 }
   
@@ -506,7 +544,7 @@ void ConvRawData::DetMapping(string Path)
     status = file.Open(Form("%s/board_mapping.json", Path.c_str()), OpenFlags::Read);
     if( !status.IsOK() )
     {
-      cout << "Error opening file\n";
+      LOG (error) << "Error opening file";
       exit(0);
     }
     file.Stat(false, info);
@@ -658,7 +696,6 @@ void ConvRawData::read_csv(string Path)
   uint64_t offset = 0;
   uint32_t size;
   uint32_t bytesRead = 0;
-  
   string line, element;
   double chi2_Ndof{};
   // counter of number of elements
@@ -676,7 +713,7 @@ void ConvRawData::read_csv(string Path)
     status = file.Open(Form("%s/qdc_cal.csv", Path.c_str()), OpenFlags::Read);
     if( !status.IsOK() )
     {
-      cout << "Error opening file\n";
+      LOG (error) << "Error opening file";
       exit(0);
     }
     file.Stat(false, info);
@@ -688,10 +725,10 @@ void ConvRawData::read_csv(string Path)
     delete info;
     delete [] buff;  
   }
-  cout<<"Read_csv "<<Path.c_str()<<endl;
+  LOG (info) << "Read_csv "<<Path.c_str();
   // Skip 1st line
   getline(X, line);
-  cout << "In QDC cal file: " << line << endl;
+  LOG (info) << "In QDC cal file: " << line;
   vector<double> qdcData{};
   // Read all other lines
   while (getline(X, line))
@@ -725,7 +762,7 @@ void ConvRawData::read_csv(string Path)
     status = file.Open(Form("%s/tdc_cal.csv", Path.c_str()), OpenFlags::Read);
     if( !status.IsOK() )
     {
-      cout << "Error opening file\n";
+      LOG (error) << "Error opening file";
       exit(0);
     }
     file.Stat(false, info);
@@ -739,7 +776,7 @@ void ConvRawData::read_csv(string Path)
   }
   // Skip 1st line
   getline(X, line);
-  cout << "In TDC cal file: " << line << endl;
+  LOG (info) << "In TDC cal file: " << line;
   vector<double> tdcData{};
   // Read all other lines
   while (getline(X, line))
@@ -774,7 +811,7 @@ void ConvRawData::read_csv(string Path)
   string path_SiPMmap = Form("%s/geometry", sndswPath.c_str());
   if (stat(path_SiPMmap.c_str(), &buffer) != 0)
   {
-    cout << "Path "<< path_SiPMmap.c_str() << " does not exist!\n";
+    LOG (error) << "Path "<< path_SiPMmap.c_str() << " does not exist!";
     exit (0); 
   }
   for (auto sys : key)
@@ -785,7 +822,7 @@ void ConvRawData::read_csv(string Path)
           
     // Skip 1st line
     getline(X,line);
-    cout << "In " << sys.first << " SiPM map file: " << line << endl;
+    LOG (info) << "In " << sys.first << " SiPM map file: " << line;
     // Read all other lines
     while (getline(X,line))
     {

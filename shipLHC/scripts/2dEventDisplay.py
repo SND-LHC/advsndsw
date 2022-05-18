@@ -3,7 +3,7 @@ import rootUtils as ut
 from array import array
 import shipunit as u
 import SndlhcMuonReco
-
+A,B = ROOT.TVector3(),ROOT.TVector3()
 h={}
 from argparse import ArgumentParser
 parser = ArgumentParser()
@@ -106,7 +106,7 @@ def goodEvent(event):
            elif not onlyScifi  and totalN >  Nlimit: return True
            else: return False
 
-def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup='',verbose=0):
+def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSipmMult=1, Setup='',verbose=0):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
  h['simpleDisplay'].cd(1)
  zStart = 250. # TI18 coordinate system
@@ -134,13 +134,15 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
     if goodEvents and not goodEvent(event): continue
     if withTrack:
        if options.houghTransform:
+          OT.Reco_MuonTracks.Delete()
           rc = source.GetInTree().GetEvent(N)
           muon_reco_task.Exec(0)
           ntracks = OT.Reco_MuonTracks.GetEntries()
           uniqueTracks = cleanTracks()
           if len(uniqueTracks)<nTracks: continue
        else:
-          if withTrack==2:  Scifi_track()
+          if withTrack==2:  trackTask.ExecuteTask("Scifi")
+          elif withTrack==3:  trackTask.ExecuteTask("DS")
           else:     trackTask.ExecuteTask()
           ntracks = len(OT.Reco_MuonTracks)
        if ntracks<nTracks: continue
@@ -174,17 +176,24 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
        dT = 0
        if Tprev >0: dT = T-Tprev
        Tprev = T
+    dTs = "%5.2Fns"%(dT/160*1000.)
+    # find detector which triggered
+    minT = firstTimeStamp(event)
+    dTs+= "    " + str(minT[1].GetDetectorID())
     for p in proj:
        rc = h[ 'simpleDisplay'].cd(p)
-       if p==1: h[proj[p]].SetTitle('event '+str(N))
+       if p==1: h[proj[p]].SetTitle('event '+str(N)+"    dT="+dTs)
        h[proj[p]].Draw('b')
 
     for D in digis:
       for digi in D:
          detID = digi.GetDetectorID()
+         sipmMult = 1
          if digi.GetName()  == 'MuFilterHit':
             system = digi.GetSystem()
             geo.modules['MuFilter'].GetPosition(detID,A,B)
+            sipmMult = len(digi.GetAllSignals())
+            if sipmMult<minSipmMult and (system==1 or system==2): continue
             if trans2local:
                 curPath = nav.GetPath()
                 tmp = curPath.rfind('/')
@@ -243,6 +252,8 @@ def addTrack(scifi=False):
    nTrack = 0
    OT = sink.GetOutTree()
    for   aTrack in OT.Reco_MuonTracks:
+      S = aTrack.getFitStatus()
+      if not S.isFitConverged() and scifi: continue
       for p in [0,1]:
           h['aLine'+str(nTrack*10+p)] = ROOT.TGraph()
 
@@ -275,33 +286,6 @@ def addTrack(scifi=False):
              h[ 'simpleDisplay'].Update()
       nTrack+=1
 
-def Scifi_track():
-# check for low occupancy and enough hits in Scifi
-    clusters = trackTask.scifiCluster()
-    trackTask.kalman_tracks.Clear()
-    stations = {}
-    for s in range(1,6):
-       for o in range(2):
-          stations[s*10+o] = []
-    for cl in clusters:
-         detID = cl.GetFirst()
-         s  = detID//1000000
-         o = (detID//100000)%10
-         stations[s*10+o].append(detID)
-    nclusters = 0
-    check = {}
-    for s in range(1,6):
-       for o in range(2):
-            if len(stations[s*10+o]) > 0: check[s*10+o]=1
-            nclusters+=len(stations[s*10+o])
-    if len(check)<8 or nclusters > 12: return -1
-# build trackCandidate
-    hitlist = {}
-    for k in range(len(clusters)):
-           hitlist[k] = clusters[k]
-    theTrack = trackTask.fitTrack(hitlist)
-    eventTree.ScifiClusters = clusters
-    trackTask.kalman_tracks.Add(theTrack)
 def dumpVeto():
     muHits = {10:[],11:[]}
     for aHit in eventTree.Digi_MuFilterHits:
@@ -321,10 +305,10 @@ def dumpVeto():
           print(plane, (aHit.GetDetectorID()%1000)%60, txt)
 
 def cleanTracks():
-    T = sink.GetOutTree()
+    OT = sink.GetOutTree()
     listOfDetIDs = {}
     n = 0
-    for aTrack in T.Reco_MuonTracks:
+    for aTrack in OT.Reco_MuonTracks:
         listOfDetIDs[n] = []
         for i in range(aTrack.getNumPointsWithMeasurement()):
            M =  aTrack.getPointWithMeasurement(i)
@@ -344,3 +328,62 @@ def cleanTracks():
     if len(uniqueTracks)>1: 
          for n1 in range( len(listOfDetIDs) ): print(listOfDetIDs[n1])
     return uniqueTracks
+
+def mufiNoise():
+  for s in range(1,4): 
+    ut.bookHist(h,'mult'+str(s),'hit mult for system '+str(s),100,-0.5,99.5)
+    ut.bookHist(h,'multb'+str(s),'hit mult per bar for system '+str(s),20,-0.5,19.5)
+    ut.bookHist(h,'res'+str(s),'residual system '+str(s),20,-10.,10.)
+  OT = sink.GetOutTree()
+  N=0
+  for event in eventTree:
+       N+=1
+       if N%1000==0: print(N)
+       OT.Reco_MuonTracks.Delete()
+       rc = trackTask.ExecuteTask("Scifi")
+       for aTrack in OT.Reco_MuonTracks:
+           mom    = aTrack.getFittedState().getMom()
+           pos      = aTrack.getFittedState().getPos()
+           if not aTrack.getFitStatus().isFitConverged(): continue
+           mult = {1:0,2:0,3:0}
+           for aHit in eventTree.Digi_MuFilterHits:
+              if not aHit.isValid(): continue
+              s = aHit.GetDetectorID()//10000
+              S = aHit.GetAllSignals()
+              rc = h['multb'+str(s)].Fill(len(S))
+              mult[s]+=len(S)
+              if s==2 or s==1:
+                 geo.modules['MuFilter'].GetPosition(aHit.GetDetectorID(),A,B)
+                 y = (A[1]+B[1])/2.
+                 zEx = (A[2]+B[2])/2.
+                 lam      = (zEx-pos.z())/mom.z()
+                 Ey        = pos.y()+lam*mom.y()
+                 rc = h['res'+str(s)].Fill(Ey-y)
+           for s in mult: rc = h['mult'+str(s)].Fill(mult[s])
+  ut.bookCanvas(h,'noise','',1200,1200,2,3)
+  for s in range(1,4):
+   tc = h['noise'].cd(s*2-1)
+   tc.SetLogy(1)
+   h['mult'+str(s)].Draw()
+   h['noise'].cd(s*2)
+   h['multb'+str(s)].Draw()
+  ut.bookCanvas(h,'res','',600,1200,1,3)
+  for s in range(1,4):
+   tc = h['res'].cd(s)
+   h['res'+str(s)].Draw()
+
+def firstTimeStamp(event):
+        tmin = [1E9,'']
+        digis = [event.Digi_MuFilterHits,event.Digi_ScifiHits]
+        for digi in event.Digi_ScifiHits:
+               dt = digi.GetTime()
+               if dt<tmin[0]:
+                    tmin[0]=dt
+                    tmin[1]=digi
+        for digi in event.Digi_MuFilterHits:
+           for t in digi.GetAllTimes():
+               dt = t.second
+               if dt<tmin[0]:
+                    tmin[0]=dt
+                    tmin[1]=digi
+        return tmin

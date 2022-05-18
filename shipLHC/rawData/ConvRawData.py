@@ -53,14 +53,32 @@ class ConvRawDataPY(ROOT.FairTask):
       ioman.RegisterInputObject('debug', ROOT.TObjString(str(options.debug)))
       ioman.RegisterInputObject('stop', ROOT.TObjString(str(options.stop)))
       ioman.RegisterInputObject('heartBeat', ROOT.TObjString(str(options.heartBeat)))
-      ioman.RegisterInputObject('withGeoFile', ROOT.TObjString(str(options.withGeoFile)))
+      ioman.RegisterInputObject('withGeoFile', ROOT.TObjString(str(int(options.withGeoFile))))
+      ioman.RegisterInputObject('makeCalibration', ROOT.TObjString(str(int(options.makeCalibration))))
+      ioman.RegisterInputObject('chi2Max', ROOT.TObjString(str(options.chi2Max)))
+      ioman.RegisterInputObject('saturationLimit', ROOT.TObjString(str(options.saturationLimit)))
+      ioman.RegisterInputObject('online', ROOT.TObjString(str(int(options.online)))) 
       self.options = options
+      
+  # Initialize logger: set severity and verbosity
+      logger = ROOT.FairLogger.GetLogger()
+      logger.SetColoredLog(True)
+      logger.SetLogVerbosityLevel('low')
+      logger.SetLogScreenLevel('warn')
+      logger.SetLogToScreen(True)
+      if options.debug:
+         logger.SetLogToFile(True)
+         logger.SetLogFileName('run_'+str(options.runNumber)+'-'+part+'_CPP.log')
+         logger.SetLogFileLevel('info')   
+         logger.SetLogScreenLevel('info')
+      
   # Pass raw data file as input object
       ioman.RegisterInputObject("rawData", self.fiN)
 
   # Set output
       if self.monitoring:  self.outfile = ROOT.FairRootFileSink(self.outFile)
-      else:                     self.outfile = ROOT.FairRootFileSink(self.outFile.replace('.root','_CPP.root'))
+      elif options.FairTask_convRaw: self.outfile = ROOT.FairRootFileSink(self.outFile.replace('.root','_CPP.root'))
+      else:  self.outfile = ROOT.FairRootFileSink(self.outFile)
       self.run.SetSink(self.outfile)
 
   # Don't use FairRoot's default event header settings
@@ -71,6 +89,7 @@ class ConvRawDataPY(ROOT.FairTask):
 # Fair convRawData task
       if options.FairTask_convRaw:
           self.run.AddTask(ROOT.ConvRawData())
+          self.fSink = ROOT.FairRootFileSink(self.outFile)
           self.run.Init()
 
 #-------end of init for cpp ------------------------------------
@@ -324,7 +343,14 @@ class ConvRawDataPY(ROOT.FairTask):
       else:
           for eventNumber in range(self.options.nStart,self.nEvents):
              self.executeEvent(eventNumber)
+          # fill TTree
+             self.sTree.Fill()
    def executeEvent(self,eventNumber):
+     if self.options.FairTask_convRaw:
+          self.run.Run(self.options.nStart, self.nEvents)
+          Fout = self.outfile.GetRootFile()
+          self.sTree = Fout.Get('cbmsim')
+          return   
      if eventNumber%self.options.heartBeat==0 or self.debug:
                print('run ',self.options.runNumber, ' event',eventNumber," ",time.ctime())
      event = self.fiN.event
@@ -498,8 +524,6 @@ class ConvRawDataPY(ROOT.FairTask):
           self.fiN.Close()
           self.outfile.Close()
       else:
-  # fill TTree
-         self.sTree.Fill()
          if self.options.debug:
              print('number of events processed',self.sTree.GetEntries(),self.fiN.event.GetEntries())
          self.sTree.Write()
