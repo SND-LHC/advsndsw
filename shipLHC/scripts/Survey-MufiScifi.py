@@ -141,7 +141,7 @@ def systemAndOrientation(s,plane):
 systemAndChannels     = {1:[8,0],2:[6,2],3:[1,0]}
 sdict                     = {1:'Veto',2:'US',3:'DS'}
 
-freq      = 160.E6
+freq      = 160.316E6
 TDC2ns = 1E9/freq
 
 # some helper functions

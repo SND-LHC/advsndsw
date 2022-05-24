@@ -210,7 +210,7 @@ def hitMaps(Nev=-1):
     h['sig_'+str(mat)].Draw()
 def eventTime():
  Tprev = -1
- freq = 160.E6
+ freq = 160.316E6
  ut.bookHist(h,'Etime','delta event time; dt [s]',100,0.0,1.)
  ut.bookCanvas(h,'E',' ',1024,2*768,1,2)
  eventTree.GetEvent(0)

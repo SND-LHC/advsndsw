@@ -24,7 +24,7 @@ zPos={}
 systemAndPlanes = {1:2,2:5,3:7}
 systemAndBars      = {1:7,2:10,3:60}
 
-freq = 160.E6
+freq = 160.316E6
 
 for s in systemAndPlanes:
        for plane in range(systemAndPlanes[s]):
@@ -305,7 +305,7 @@ def eventTime(Nev=-1):
     if Tprev >0: dT = T-Tprev
     Tprev = T
     rc = h['Etime'].Fill(dT/freq)
-    rc = h['EtimeZ'].Fill(dT*1E9/160.E6)
+    rc = h['EtimeZ'].Fill(dT*1E9/160.316E6)
     rc = h['time'].Fill( (T/freq-t0))
  tc = h['T'].cd(1)
  tc.SetLogy(1)
