@@ -160,7 +160,7 @@ def check4NewFiles(latest):
       orderedCDF = list(convDataFiles.keys())
       orderedRDF.reverse(),orderedCDF.reverse()
       lastCDF = -1
-      if len(orderedCDF)>0: orderedCDF[0]
+      if len(orderedCDF)>0: lastCDF = orderedCDF[0]
       for x in orderedRDF: 
            if not x > lastCDF: continue
            r = x//10000 
