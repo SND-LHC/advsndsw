@@ -47,7 +47,7 @@ class MuFilterHit : public SndlhcHit
     Float_t flag;   ///< flag
     Float_t fMasked[16];  /// masked signal
 
-    ClassDef(MuFilterHit,4);
+    ClassDef(MuFilterHit,5);
     
 
 };

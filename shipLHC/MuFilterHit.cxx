@@ -27,7 +27,12 @@ MuFilterHit::MuFilterHit(Int_t detID,Int_t nP,Int_t nS)
   : SndlhcHit(detID,nP,nS)
 {
  flag = true;
- for (Int_t i=0;i<16;i++){fMasked[i]=kFALSE;}
+ for (Int_t i=0;i<16;i++){
+      fMasked[i]=kFALSE;
+      signals[i]  = -999;
+      times[i]    = -999;
+      fDaqID[i]  = -1;
+   }
 }
 
 
