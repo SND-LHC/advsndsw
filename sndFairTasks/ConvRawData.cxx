@@ -278,8 +278,16 @@ void ConvRawData::Exec(Option_t* /*opt*/)
          }
          
          // Print a warning if TDC or QDC is nan.        
-         if ( TDC != TDC ) LOG(warning) << "NAN TDC detected! Check board maps!";
-         if ( QDC != QDC ) LOG(warning) << "NAN QDC detected! Check board maps!";
+         if ( TDC != TDC || QDC!=QDC) {
+         LOG (warning) << "NAN tdc/qdc detected! Check maps!"
+                       << " " << board_id << " " << bt->GetLeaf("tofpetId")->GetValue(n)
+                       << " " << bt->GetLeaf("tofpetChannel")->GetValue(n)
+                       << " " << bt->GetLeaf("tac")->GetValue(n)
+                       << " " << bt->GetLeaf("tCoarse")->GetValue(n)
+                       << " " << bt->GetLeaf("tFine")->GetValue(n)
+                       << " " << bt->GetLeaf("vCoarse")->GetValue(n)
+                       << " " << bt->GetLeaf("vFine")->GetValue(n);
+         }
          
          t1 = high_resolution_clock::now();
          if ( Chi2ndof > chi2Max )
@@ -469,7 +477,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
               sndScifiHit* aHit = static_cast<sndScifiHit*>(fDigiSciFi->At(hitDict[tmpV[j]]));
               hitlist.push_back(aHit);
             }
-            new ((*fClusScifi)[index]) sndCluster(first, N, hitlist, ScifiDet, false);
+            (*fClusScifi)[index] = new sndCluster(first, N, hitlist, ScifiDet, false);
             index++;
             if (c!=hitList[last])
             {
@@ -481,9 +489,9 @@ void ConvRawData::Exec(Option_t* /*opt*/)
             else if (!neighbour)
             {
               hitlist.clear();
-              sndScifiHit* aHit = static_cast<sndScifiHit*>(fDigiSciFi->At(hitDict[tmpV.back()]));
+              sndScifiHit* aHit = static_cast<sndScifiHit*>(fDigiSciFi->At(hitDict[c]));
               hitlist.push_back(aHit);
-              new ((*fClusScifi)[index]) sndCluster(c, 1, hitlist, ScifiDet, false);
+              (*fClusScifi)[index] = new sndCluster(c, 1, hitlist, ScifiDet, false);
               index++;            
             }            
           }
@@ -491,7 +499,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
         }
     }
   } // end if (withGeoFile)
-  LOG (info) << fnEvents-fnStart << " events processed out of "
+  LOG (info) << fnStart+1 << " events processed out of "
              << fEventTree->GetEntries() << " number of events in file.";
   /*
   cout << "Monitor computing time:" << endl;
