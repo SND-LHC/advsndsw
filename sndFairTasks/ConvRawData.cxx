@@ -369,6 +369,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
            }
            test = digiMuFilterStore[detID]->GetSignal(sipm_number);
            digiMuFilterStore[detID]->SetDigi(QDC,TDC,sipm_number);
+           digiMuFilterStore[detID]->SetDaqID(sipm_number, board_id, tofpet_id, tofpet_channel);
            if (mask) digiMuFilterStore[detID]->SetMasked(sipm_number);
            
            LOG (info) << "create mu hit: " << detID << " " << tmp << " " << system
@@ -400,6 +401,7 @@ void ConvRawData::Exec(Option_t* /*opt*/)
              digiSciFiStore[sipmID] =  new sndScifiHit(sipmID);             
            }
            digiSciFiStore[sipmID]->SetDigi(QDC,TDC);
+           digiSciFiStore[sipmID]->SetDaqID(0, board_id, tofpet_id, tofpet_channel);
            if (mask) digiSciFiStore[sipmID]->setInvalid();
            LOG (info) << "create scifi hit: tdc = " << board.first << " " << sipmID
                        << " " << QDC << " " << TDC <<endl
