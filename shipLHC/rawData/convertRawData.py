@@ -31,7 +31,7 @@ options.saturationLimit  = 0.95
 # setup geometry
 if (options.geoFile):
     options.withGeoFile = True
-    if (options.geoFile).find('../')<0: snd_geo = SndlhcGeo.GeoInterface(options.path+options.geoFile)
+    if (options.geoFile).find('../')<0: snd_geo = SndlhcGeo.GeoInterface(options.geoFile)
     else:                                               snd_geo = SndlhcGeo.GeoInterface(options.geoFile[3:])
 else : options.withGeoFile = False
 
