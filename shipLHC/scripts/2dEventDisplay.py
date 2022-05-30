@@ -4,6 +4,8 @@ from array import array
 import shipunit as u
 import SndlhcMuonReco
 A,B = ROOT.TVector3(),ROOT.TVector3()
+freq      =  160.316E6
+
 h={}
 from argparse import ArgumentParser
 parser = ArgumentParser()
@@ -116,7 +118,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
         h.pop('xz').Delete()
         h.pop('yz').Delete()
  ut.bookHist(h,'xz','; z [cm]; x [cm]',500,zStart,zStart+320.,100,-100.,10.)
- ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+320.,100,0.,80.)
+ ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+320.,100,-10.,80.)
 
  proj = {1:'xz',2:'yz'}
  h['xz'].SetStats(0)
@@ -153,7 +155,12 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
              pos      = aTrack.getFittedState().getPos()
              mom.Print()
              pos.Print()
-    print( "event ->",N )
+    T,dT = 0,0
+    if event.FindBranch("EventHeader"):
+       T = event.EventHeader.GetEventTime()
+       if Tprev >0: dT = T-Tprev
+       Tprev = T
+    print( "event -> %i   %8.4Fs"%(N,T/freq))
 
     digis = []
     if event.FindBranch("Digi_ScifiHits"): digis.append(event.Digi_ScifiHits)
@@ -171,12 +178,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
           rc=h[collection][c][1].SetName(c)
           rc=h[collection][c][1].Set(0)
 
-    if event.FindBranch("EventHeader"):
-       T = event.EventHeader.GetEventTime()
-       dT = 0
-       if Tprev >0: dT = T-Tprev
-       Tprev = T
-    dTs = "%5.2Fns"%(dT/160*1000.)
+    dTs = "%5.2Fns"%(dT/freq*1E9)
     # find detector which triggered
     minT = firstTimeStamp(event)
     dTs+= "    " + str(minT[1].GetDetectorID())
@@ -285,6 +287,44 @@ def addTrack(scifi=False):
              tc.Update()
              h[ 'simpleDisplay'].Update()
       nTrack+=1
+
+def drawDetectors():
+    nodes = {'volVeto_1':ROOT.kRed,'volMuFilter_1':ROOT.kGreen,'volTarget_1':ROOT.kBlue}
+    proj = {'X':0,'Y':1}
+    for node in nodes:
+        n = '/Detector_0/'+node
+        nav.cd(n)
+        N = nav.GetCurrentNode()
+        S = N.GetVolume().GetShape()
+        dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
+        ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
+        for p in proj:
+           P = {}
+           M = {}
+           if p=='X':
+              P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
+              P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
+              P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
+              P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+           else:
+              P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+              P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
+              P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+              P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+           for C in P:
+                 M[C] = array('d',[0,0,0])
+                 nav.LocalToMaster(P[C],M[C])
+           h[node+p] = ROOT.TGraph()
+           X = h[node+p]
+           c = proj[p]
+           X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+           X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+           X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+           X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+           X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+           X.SetLineColor(nodes[node])
+           h[ 'simpleDisplay'].cd(c+1)
+           X.Draw()
 
 def dumpVeto():
     muHits = {10:[],11:[]}

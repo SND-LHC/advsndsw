@@ -90,6 +90,8 @@ class ConvRawDataPY(ROOT.FairTask):
       if options.FairTask_convRaw:
           self.run.AddTask(ROOT.ConvRawData())
           self.fSink = ROOT.FairRootFileSink(self.outFile)
+          #X = fSink.GetRootFile()
+          #X.SetCompressionLevel(ROOT.CompressionSettings(ROOT.kLZMA, 5)) # it seems it has no effect
           self.run.Init()
 
 #-------end of init for cpp ------------------------------------
@@ -439,6 +441,7 @@ class ConvRawDataPY(ROOT.FairTask):
                           digiMuFilterStore[detID] =  ROOT.MuFilterHit(detID,nSiPMs,nSides)
                   test = digiMuFilterStore[detID].GetSignal(sipm_number)
                   digiMuFilterStore[detID].SetDigi(QDC,TDC,sipm_number)
+                  digiMuFilterStore[detID].SetDaqID(sipm_number, board_id, tofpet_id, tofpet_channel)
                   if mask: digiMuFilterStore[detID].SetMasked(sipm_number)
 
                   if self.options.debug:
@@ -454,8 +457,10 @@ class ConvRawDataPY(ROOT.FairTask):
                   if station[2]=="Y": orientation = 0
                   sipmLocal = (chan - mat*512)
                   sipmID = 1000000*int(station[1]) + 100000*orientation + 10000*mat + 1000*(sipmLocal//128) + chan%128
-                  if not sipmID in digiSciFiStore: digiSciFiStore[sipmID] =  ROOT.sndScifiHit(sipmID)
+                  if not sipmID in digiSciFiStore: 
+                       digiSciFiStore[sipmID] =  ROOT.sndScifiHit(sipmID)
                   digiSciFiStore[sipmID].SetDigi(QDC,TDC)
+                  digiSciFiStore[sipmID].SetDaqID(0, board_id, tofpet_id, tofpet_channel)
                   if mask: digiSciFiStore[sipmID].setInvalid()
                   if self.options.debug:
                       print('create scifi hit: tdc = ',board,sipmID,QDC,TDC)

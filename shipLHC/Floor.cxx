@@ -572,46 +572,46 @@ tunnel->AddNode(exitPlane,1, new TGeoTranslation(0,0,1000.));
 
    Double_t tanbeta = (176.74 - 170.72) / 219.0;
    Double_t FrontCover1_averts[8][2];
-   FrontCover1_averts[0][0] = (fCBFrontWallXDim - 2 * fAcrylicWidth) / 2.;
+   FrontCover1_averts[0][0] = (fCBFrontWallXDim-2*fAcrylicWidth)/2.;
    FrontCover1_averts[0][1] = 0.;
-   FrontCover1_averts[1][0] = -(fCBFrontWallXDim - 2 * fAcrylicWidth) / 2.;
-   FrontCover1_averts[1][1] = 0;
-   FrontCover1_averts[2][0] = -(fCBFrontWallXDim - 2 * fAcrylicWidth) / 2.;
-   FrontCover1_averts[2][1] = -(fCBFrontWallXDim - fAcrylicWidth) * tanbeta;
-   FrontCover1_averts[3][0] = (fCBFrontWallXDim - 2 * fAcrylicWidth) / 2.;
-   FrontCover1_averts[3][1] = -(fAcrylicWidth)*tanbeta;
+   FrontCover1_averts[1][0] = (fCBFrontWallXDim-2*fAcrylicWidth)/2.; 
+   FrontCover1_averts[1][1] = -(fAcrylicWidth)*tanbeta;
+   FrontCover1_averts[2][0] = -(fCBFrontWallXDim-2*fAcrylicWidth)/2.; 
+   FrontCover1_averts[2][1] = -(fCBFrontWallXDim-fAcrylicWidth)*tanbeta;
+   FrontCover1_averts[3][0] = -(fCBFrontWallXDim-2*fAcrylicWidth)/2.; 
+   FrontCover1_averts[3][1] = 0;
 
-   FrontCover1_averts[4][0] = (fCBFrontWallXDim - 2 * fAcrylicWidth) / 2.;
+   FrontCover1_averts[4][0] = (fCBFrontWallXDim-2*fAcrylicWidth)/2.; 
    FrontCover1_averts[4][1] = 0;
-   FrontCover1_averts[5][0] = -(fCBFrontWallXDim - 2 * fAcrylicWidth) / 2.;
-   FrontCover1_averts[5][1] = 0;
-   FrontCover1_averts[6][0] = -(fCBFrontWallXDim - 2 * fAcrylicWidth) / 2.;
-   FrontCover1_averts[6][1] = -(fCBFrontWallXDim - fAcrylicWidth) * tanbeta;
-   FrontCover1_averts[7][0] = (fCBFrontWallXDim - 2 * fAcrylicWidth) / 2.;
-   FrontCover1_averts[7][1] = -(fAcrylicWidth)*tanbeta;
+   FrontCover1_averts[5][0] = (fCBFrontWallXDim-2*fAcrylicWidth)/2.; 
+   FrontCover1_averts[5][1] = -(fAcrylicWidth)*tanbeta;
+   FrontCover1_averts[6][0] = -(fCBFrontWallXDim-2*fAcrylicWidth)/2.; 
+   FrontCover1_averts[6][1] =  -(fCBFrontWallXDim-fAcrylicWidth)*tanbeta;
+   FrontCover1_averts[7][0] = -(fCBFrontWallXDim-2*fAcrylicWidth)/2.; 
+   FrontCover1_averts[7][1] = 0;
    TGeoArb8 *FrontCov1_a = new TGeoArb8("FrontCov1_a", fAcrylicWidth / 2., (Double_t *)FrontCover1_averts);
 
    Double_t tangamma = (187.03 - 183.26) / (fCBRearWallXDim - fAcrylicWidth + fCBExtraXDim);
    Double_t xdim_projected = (187.03 - 170.72) / tangamma;
    Double_t extra = xdim_projected - (fCBRearWallXDim - fAcrylicWidth + fCBExtraXDim);
    Double_t RearCover_11_averts[8][2];
-   RearCover_11_averts[0][0] = (fCBRearWallXDim - 2 * fAcrylicWidth) / 2.;
+   RearCover_11_averts[0][0] = (fCBRearWallXDim-2*fAcrylicWidth)/2.; 
    RearCover_11_averts[0][1] = 0.;
-   RearCover_11_averts[1][0] = -(fCBRearWallXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_11_averts[1][1] = 0;
-   RearCover_11_averts[2][0] = -(fCBRearWallXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_11_averts[2][1] = -(fCBRearWallXDim - fAcrylicWidth + extra) * tangamma;
-   RearCover_11_averts[3][0] = (fCBRearWallXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_11_averts[3][1] = -(183.26 - 170.72); // approx
+   RearCover_11_averts[1][0] = (fCBRearWallXDim-2*fAcrylicWidth)/2.; 
+   RearCover_11_averts[1][1] =  -(183.26-170.72); // approx
+   RearCover_11_averts[2][0] = -(fCBRearWallXDim-2*fAcrylicWidth)/2.; 
+   RearCover_11_averts[2][1] = -(fCBRearWallXDim-fAcrylicWidth+extra)*tangamma;
+   RearCover_11_averts[3][0] = -(fCBRearWallXDim-2*fAcrylicWidth)/2.; 
+   RearCover_11_averts[3][1] = 0;
 
-   RearCover_11_averts[4][0] = (fCBRearWallXDim - 2 * fAcrylicWidth) / 2.;
+   RearCover_11_averts[4][0] = (fCBRearWallXDim-2*fAcrylicWidth)/2.; 
    RearCover_11_averts[4][1] = 0;
-   RearCover_11_averts[5][0] = -(fCBRearWallXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_11_averts[5][1] = 0;
-   RearCover_11_averts[6][0] = -(fCBRearWallXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_11_averts[6][1] = -(fCBRearWallXDim - fAcrylicWidth + extra) * tangamma;
-   RearCover_11_averts[7][0] = (fCBRearWallXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_11_averts[7][1] = -(183.26 - 170.72); // approx
+   RearCover_11_averts[5][0] = (fCBRearWallXDim-2*fAcrylicWidth)/2.; 
+   RearCover_11_averts[5][1] = -(183.26-170.72); // approx
+   RearCover_11_averts[6][0] = -(fCBRearWallXDim-2*fAcrylicWidth)/2.; 
+   RearCover_11_averts[6][1] =  -(fCBRearWallXDim-fAcrylicWidth+extra)*tangamma;
+   RearCover_11_averts[7][0] = -(fCBRearWallXDim-2*fAcrylicWidth)/2.; 
+   RearCover_11_averts[7][1] = 0;
    TGeoArb8 *RearCov11_atot = new TGeoArb8("RearCov11_atot", fAcrylicWidth / 2., (Double_t *)RearCover_11_averts);
    TGeoTranslation *CBWallpos2 =
       new TGeoTranslation("CBWallpos2", (fCBRearWallXDim - fFeBlockX) / 2. - 28.5, 0, -fAcrylicWidth / 2.);
@@ -619,43 +619,43 @@ tunnel->AddNode(exitPlane,1, new TGeoTranslation(0,0,1000.));
    TGeoCompositeShape *RearCov11_a = new TGeoCompositeShape("RearCov11_a", "RearCov11_atot-(FeBlock_cb:CBWallpos2)");
 
    Double_t RearCover_12_averts[8][2];
-   RearCover_12_averts[0][0] = fAcrylicWidth / 2.;
+   RearCover_12_averts[0][0] = fAcrylicWidth/2.; 
    RearCover_12_averts[0][1] = 0.;
-   RearCover_12_averts[1][0] = -fAcrylicWidth / 2.;
-   RearCover_12_averts[1][1] = 0;
-   RearCover_12_averts[2][0] = -fAcrylicWidth / 2.;
-   RearCover_12_averts[2][1] = -(fCBRearWallXDim + extra) * tangamma;
-   RearCover_12_averts[3][0] = fAcrylicWidth / 2.;
-   RearCover_12_averts[3][1] = -(fCBRearWallXDim - fAcrylicWidth + extra) * tangamma;
+   RearCover_12_averts[1][0] = fAcrylicWidth/2.; 
+   RearCover_12_averts[1][1] =  -(fCBRearWallXDim-fAcrylicWidth+extra)*tangamma;
+   RearCover_12_averts[2][0] = -fAcrylicWidth/2.; 
+   RearCover_12_averts[2][1] = -(fCBRearWallXDim+extra)*tangamma;
+   RearCover_12_averts[3][0] = -fAcrylicWidth/2.; 
+   RearCover_12_averts[3][1] = 0;
 
-   RearCover_12_averts[4][0] = fAcrylicWidth / 2.;
+   RearCover_12_averts[4][0] = fAcrylicWidth/2.; 
    RearCover_12_averts[4][1] = 0;
-   RearCover_12_averts[5][0] = -fAcrylicWidth / 2.;
-   RearCover_12_averts[5][1] = 0;
-   RearCover_12_averts[6][0] = -fAcrylicWidth / 2.;
-   RearCover_12_averts[6][1] = -(fCBRearWallXDim + extra) * tangamma;
-   RearCover_12_averts[7][0] = fAcrylicWidth / 2.;
-   RearCover_12_averts[7][1] = -(fCBRearWallXDim - fAcrylicWidth + extra) * tangamma;
+   RearCover_12_averts[5][0] = fAcrylicWidth/2.; 
+   RearCover_12_averts[5][1] = -(fCBRearWallXDim-fAcrylicWidth+extra)*tangamma;
+   RearCover_12_averts[6][0] = -fAcrylicWidth/2.; 
+   RearCover_12_averts[6][1] = -(fCBRearWallXDim+extra)*tangamma; 
+   RearCover_12_averts[7][0] = -fAcrylicWidth/2.; 
+   RearCover_12_averts[7][1] = 0;
    TGeoArb8 *RearCov12_a = new TGeoArb8("RearCov12_a", fCBExtraZDim / 2., (Double_t *)RearCover_12_averts);
 
    Double_t RearCover_13_averts[8][2];
-   RearCover_13_averts[0][0] = (fCBExtraXDim - 2 * fAcrylicWidth) / 2.;
+   RearCover_13_averts[0][0] = (fCBExtraXDim-2*fAcrylicWidth)/2.; 
    RearCover_13_averts[0][1] = 0.;
-   RearCover_13_averts[1][0] = -(fCBExtraXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_13_averts[1][1] = 0;
-   RearCover_13_averts[2][0] = -(fCBExtraXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_13_averts[2][1] = -(187.03 - 170.72);
-   RearCover_13_averts[3][0] = (fCBExtraXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_13_averts[3][1] = -(fCBRearWallXDim + extra) * tangamma;
+   RearCover_13_averts[1][0] = (fCBExtraXDim-2*fAcrylicWidth)/2.; 
+   RearCover_13_averts[1][1] = -(fCBRearWallXDim+extra)*tangamma;
+   RearCover_13_averts[2][0] = -(fCBExtraXDim-2*fAcrylicWidth)/2.; 
+   RearCover_13_averts[2][1] =  -(187.03-170.72);
+   RearCover_13_averts[3][0] = -(fCBExtraXDim-2*fAcrylicWidth)/2.; 
+   RearCover_13_averts[3][1] = 0;
 
-   RearCover_13_averts[4][0] = (fCBExtraXDim - 2 * fAcrylicWidth) / 2.;
+   RearCover_13_averts[4][0] = (fCBExtraXDim-2*fAcrylicWidth)/2.; 
    RearCover_13_averts[4][1] = 0;
-   RearCover_13_averts[5][0] = -(fCBExtraXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_13_averts[5][1] = 0;
-   RearCover_13_averts[6][0] = -(fCBExtraXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_13_averts[6][1] = -(187.03 - 170.72);
-   RearCover_13_averts[7][0] = (fCBExtraXDim - 2 * fAcrylicWidth) / 2.;
-   RearCover_13_averts[7][1] = -(fCBRearWallXDim + extra) * tangamma;
+   RearCover_13_averts[5][0] = (fCBExtraXDim-2*fAcrylicWidth)/2.; 
+   RearCover_13_averts[5][1] = -(fCBRearWallXDim+extra)*tangamma;
+   RearCover_13_averts[6][0] = -(fCBExtraXDim-2*fAcrylicWidth)/2.; 
+   RearCover_13_averts[6][1] =  -(187.03-170.72); 
+   RearCover_13_averts[7][0] = -(fCBExtraXDim-2*fAcrylicWidth)/2.; 
+   RearCover_13_averts[7][1] = 0;
    TGeoArb8 *RearCov13_a = new TGeoArb8("RearCov13_a", fAcrylicWidth / 2., (Double_t *)RearCover_13_averts);
 
    // Acrylic mother shape definition
@@ -843,84 +843,84 @@ tunnel->AddNode(exitPlane,1, new TGeoTranslation(0,0,1000.));
       new TGeoArb8("LatCov23_b", (fCBTinyZDim - fBPolyWidth - fAcrylicWidth) / 2., (Double_t *)LatCover23_bverts);
 
    Double_t FrontCover1_bverts[8][2];
-   FrontCover1_bverts[0][0] = (fCBFrontWallXDim_b - 2 * fBPolyWidth) / 2.;
+   FrontCover1_bverts[0][0] = (fCBFrontWallXDim_b-2*fBPolyWidth)/2.; 
    FrontCover1_bverts[0][1] = 0.;
-   FrontCover1_bverts[1][0] = -(fCBFrontWallXDim_b - 2 * fBPolyWidth) / 2.;
-   FrontCover1_bverts[1][1] = 0;
-   FrontCover1_bverts[2][0] = -(fCBFrontWallXDim_b - 2 * fBPolyWidth) / 2.;
-   FrontCover1_bverts[2][1] = -(176.71 - 170.72) - fAcrylicWidth * tanomega;
-   FrontCover1_bverts[3][0] = (fCBFrontWallXDim_b - 2 * fBPolyWidth) / 2.;
-   FrontCover1_bverts[3][1] = -(fBPolyWidth)*tanbeta;
+   FrontCover1_bverts[1][0] = (fCBFrontWallXDim_b-2*fBPolyWidth)/2.; 
+   FrontCover1_bverts[1][1] = -(fBPolyWidth)*tanbeta;
+   FrontCover1_bverts[2][0] = -(fCBFrontWallXDim_b-2*fBPolyWidth)/2.; 
+   FrontCover1_bverts[2][1] =  -(176.71-170.72)-fAcrylicWidth*tanomega;
+   FrontCover1_bverts[3][0] = -(fCBFrontWallXDim_b-2*fBPolyWidth)/2.; 
+   FrontCover1_bverts[3][1] = 0;
 
-   FrontCover1_bverts[4][0] = (fCBFrontWallXDim_b - 2 * fBPolyWidth) / 2.;
+   FrontCover1_bverts[4][0] = (fCBFrontWallXDim_b-2*fBPolyWidth)/2.; 
    FrontCover1_bverts[4][1] = 0;
-   FrontCover1_bverts[5][0] = -(fCBFrontWallXDim_b - 2 * fBPolyWidth) / 2.;
-   FrontCover1_bverts[5][1] = 0;
-   FrontCover1_bverts[6][0] = -(fCBFrontWallXDim_b - 2 * fBPolyWidth) / 2.;
-   FrontCover1_bverts[6][1] = -(176.71 - 170.72) - fAcrylicWidth * tanomega;
-   FrontCover1_bverts[7][0] = (fCBFrontWallXDim_b - 2 * fBPolyWidth) / 2.;
-   FrontCover1_bverts[7][1] = -(fBPolyWidth)*tanbeta;
+   FrontCover1_bverts[5][0] = (fCBFrontWallXDim_b-2*fBPolyWidth)/2.; 
+   FrontCover1_bverts[5][1] = -(fBPolyWidth)*tanbeta;
+   FrontCover1_bverts[6][0] = -(fCBFrontWallXDim_b-2*fBPolyWidth)/2.; 
+   FrontCover1_bverts[6][1] = -(176.71-170.72)-fAcrylicWidth*tanomega;
+   FrontCover1_bverts[7][0] = -(fCBFrontWallXDim_b-2*fBPolyWidth)/2.; 
+   FrontCover1_bverts[7][1] = 0;
    TGeoArb8 *FrontCov1_b = new TGeoArb8("FrontCov1_b", fBPolyWidth / 2., (Double_t *)FrontCover1_bverts);
 
    Double_t RearCover_11_bverts[8][2];
-   RearCover_11_bverts[0][0] = (fCBRearWallXDim_b - 2 * fBPolyWidth) / 2. + fBPolyWidth / 2.;
+   RearCover_11_bverts[0][0] = (fCBRearWallXDim_b-2*fBPolyWidth)/2.+fBPolyWidth/2.; 
    RearCover_11_bverts[0][1] = 0.;
-   RearCover_11_bverts[1][0] = -(fCBRearWallXDim_b - 2 * fBPolyWidth) / 2. - fBPolyWidth / 2.;
-   RearCover_11_bverts[1][1] = 0;
-   RearCover_11_bverts[2][0] = -(fCBRearWallXDim_b - 2 * fBPolyWidth) / 2. - fBPolyWidth / 2.;
-   RearCover_11_bverts[2][1] = -(fCBRearWallXDim_b - fBPolyWidth + extra) * tangamma;
-   RearCover_11_bverts[3][0] = (fCBRearWallXDim_b - 2 * fBPolyWidth) / 2. + fBPolyWidth / 2.;
-   RearCover_11_bverts[3][1] = -(183.26 - 170.72) + fAcrylicWidth * tanalpha; // approx
+   RearCover_11_bverts[1][0] = (fCBRearWallXDim_b-2*fBPolyWidth)/2.+fBPolyWidth/2.; 
+   RearCover_11_bverts[1][1] =  -(183.26-170.72)+fAcrylicWidth*tanalpha; // approx
+   RearCover_11_bverts[2][0] = -(fCBRearWallXDim_b-2*fBPolyWidth)/2.-fBPolyWidth/2.; 
+   RearCover_11_bverts[2][1] = -(fCBRearWallXDim_b-fBPolyWidth+extra)*tangamma;
+   RearCover_11_bverts[3][0] = -(fCBRearWallXDim_b-2*fBPolyWidth)/2.-fBPolyWidth/2.; 
+   RearCover_11_bverts[3][1] = 0;
 
-   RearCover_11_bverts[4][0] = (fCBRearWallXDim_b - 2 * fBPolyWidth) / 2. + fBPolyWidth / 2.;
+   RearCover_11_bverts[4][0] = (fCBRearWallXDim_b-2*fBPolyWidth)/2.+fBPolyWidth/2.; 
    RearCover_11_bverts[4][1] = 0;
-   RearCover_11_bverts[5][0] = -(fCBRearWallXDim_b - 2 * fBPolyWidth) / 2. - fBPolyWidth / 2.;
-   RearCover_11_bverts[5][1] = 0;
-   RearCover_11_bverts[6][0] = -(fCBRearWallXDim_b - 2 * fBPolyWidth) / 2. - fBPolyWidth / 2.;
-   RearCover_11_bverts[6][1] = -(fCBRearWallXDim_b - fBPolyWidth + extra) * tangamma;
-   RearCover_11_bverts[7][0] = (fCBRearWallXDim_b - 2 * fBPolyWidth) / 2. + fBPolyWidth / 2.;
-   RearCover_11_bverts[7][1] = -(183.26 - 170.72) + fAcrylicWidth * tanalpha; // approx
+   RearCover_11_bverts[5][0] = (fCBRearWallXDim_b-2*fBPolyWidth)/2.+fBPolyWidth/2.; 
+   RearCover_11_bverts[5][1] = -(183.26-170.72)+fAcrylicWidth*tanalpha; // approx
+   RearCover_11_bverts[6][0] = -(fCBRearWallXDim_b-2*fBPolyWidth)/2.-fBPolyWidth/2.; 
+   RearCover_11_bverts[6][1] =  -(fCBRearWallXDim_b-fBPolyWidth+extra)*tangamma;
+   RearCover_11_bverts[7][0] = -(fCBRearWallXDim_b-2*fBPolyWidth)/2.-fBPolyWidth/2.; 
+   RearCover_11_bverts[7][1] = 0;
    TGeoArb8 *RearCov11_b = new TGeoArb8("RearCov11_b", fBPolyWidth / 2., (Double_t *)RearCover_11_bverts);
 
    Double_t RearCover_12_bverts[8][2];
-   RearCover_12_bverts[0][0] = fBPolyWidth / 2.;
-   RearCover_12_bverts[0][1] = 0.;
-   RearCover_12_bverts[1][0] = -fBPolyWidth / 2.;
-   RearCover_12_bverts[1][1] = 0;
-   RearCover_12_bverts[2][0] = -fBPolyWidth / 2.;
-   RearCover_12_bverts[2][1] = -(fCBRearWallXDim_b + extra) * tangamma;
-   RearCover_12_bverts[3][0] = fBPolyWidth / 2.;
-   RearCover_12_bverts[3][1] = -(fCBRearWallXDim_b - fBPolyWidth + extra) * tangamma;
-
-   RearCover_12_bverts[4][0] = fBPolyWidth / 2.;
-   RearCover_12_bverts[4][1] = 0;
-   RearCover_12_bverts[5][0] = -fBPolyWidth / 2.;
-   RearCover_12_bverts[5][1] = 0;
-   RearCover_12_bverts[6][0] = -fBPolyWidth / 2.;
-   RearCover_12_bverts[6][1] = -(fCBRearWallXDim_b + extra) * tangamma;
-   RearCover_12_bverts[7][0] = fBPolyWidth / 2.;
-   RearCover_12_bverts[7][1] = -(fCBRearWallXDim_b - fAcrylicWidth + extra) * tangamma;
+	 RearCover_12_bverts[0][0] = fBPolyWidth/2.; 
+	 RearCover_12_bverts[0][1] = 0.;
+	 RearCover_12_bverts[1][0] = fBPolyWidth/2.; 
+	 RearCover_12_bverts[1][1] =  -(fCBRearWallXDim_b-fBPolyWidth+extra)*tangamma;
+	 RearCover_12_bverts[2][0] = -fBPolyWidth/2.; 
+	 RearCover_12_bverts[2][1] = -(fCBRearWallXDim_b+extra)*tangamma;
+	 RearCover_12_bverts[3][0] = -fBPolyWidth/2.; 
+	 RearCover_12_bverts[3][1] = 0;
+	 
+	 RearCover_12_bverts[4][0] = fBPolyWidth/2.; 
+	 RearCover_12_bverts[4][1] = 0;
+	 RearCover_12_bverts[5][0] = fBPolyWidth/2.; 
+	 RearCover_12_bverts[5][1] = -(fCBRearWallXDim_b-fAcrylicWidth+extra)*tangamma;
+	 RearCover_12_bverts[6][0] = -fBPolyWidth/2.; 
+	 RearCover_12_bverts[6][1] = -(fCBRearWallXDim_b+extra)*tangamma; 
+	 RearCover_12_bverts[7][0] = -fBPolyWidth/2.; 
+	 RearCover_12_bverts[7][1] = 0;
    TGeoArb8 *RearCov12_b =
       new TGeoArb8("RearCov12_b", (fCBExtraZDim - fAcrylicWidth + fBPolyWidth) / 2., (Double_t *)RearCover_12_bverts);
 
    Double_t RearCover_13_bverts[8][2];
-   RearCover_13_bverts[0][0] = (fCBExtraXDim_b - 2 * fBPolyWidth) / 2.;
-   RearCover_13_bverts[0][1] = 0.;
-   RearCover_13_bverts[1][0] = -(fCBExtraXDim_b - 2 * fBPolyWidth) / 2.;
-   RearCover_13_bverts[1][1] = 0;
-   RearCover_13_bverts[2][0] = -(fCBExtraXDim_b - 2 * fBPolyWidth) / 2.;
-   RearCover_13_bverts[2][1] = -(187.03 - 170.72) + fAcrylicWidth * tanomega;
-   RearCover_13_bverts[3][0] = (fCBExtraXDim_b - 2 * fBPolyWidth) / 2.;
-   RearCover_13_bverts[3][1] = -(fCBRearWallXDim_b + extra) * tangamma;
+	 RearCover_13_bverts[0][0] = (fCBExtraXDim_b-2*fBPolyWidth)/2.; 
+	 RearCover_13_bverts[0][1] = 0.;
+	 RearCover_13_bverts[1][0] = (fCBExtraXDim_b-2*fBPolyWidth)/2.; 
+	 RearCover_13_bverts[1][1] = -(fCBRearWallXDim_b+extra)*tangamma;
+	 RearCover_13_bverts[2][0] = -(fCBExtraXDim_b-2*fBPolyWidth)/2.; 
+	 RearCover_13_bverts[2][1] = -(187.03-170.72)+fAcrylicWidth*tanomega;
+	 RearCover_13_bverts[3][0] = -(fCBExtraXDim_b-2*fBPolyWidth)/2.; 
+	 RearCover_13_bverts[3][1] = 0;
 
-   RearCover_13_bverts[4][0] = (fCBExtraXDim_b - 2 * fBPolyWidth) / 2.;
-   RearCover_13_bverts[4][1] = 0;
-   RearCover_13_bverts[5][0] = -(fCBExtraXDim_b - 2 * fBPolyWidth) / 2.;
-   RearCover_13_bverts[5][1] = 0;
-   RearCover_13_bverts[6][0] = -(fCBExtraXDim_b - 2 * fBPolyWidth) / 2.;
-   RearCover_13_bverts[6][1] = -(187.03 - 170.72) + fAcrylicWidth * tanomega;
-   RearCover_13_bverts[7][0] = (fCBExtraXDim_b - 2 * fBPolyWidth) / 2.;
-   RearCover_13_bverts[7][1] = -(fCBRearWallXDim_b + extra) * tangamma;
+	 RearCover_13_bverts[4][0] = (fCBExtraXDim_b-2*fBPolyWidth)/2.; 
+	 RearCover_13_bverts[4][1] = 0;
+	 RearCover_13_bverts[5][0] = (fCBExtraXDim_b-2*fBPolyWidth)/2.; 
+	 RearCover_13_bverts[5][1] = -(fCBRearWallXDim_b+extra)*tangamma;
+	 RearCover_13_bverts[6][0] = -(fCBExtraXDim_b-2*fBPolyWidth)/2.; 
+	 RearCover_13_bverts[6][1] = -(187.03-170.72)+fAcrylicWidth*tanomega; 
+	 RearCover_13_bverts[7][0] = -(fCBExtraXDim_b-2*fBPolyWidth)/2.; 
+	 RearCover_13_bverts[7][1] = 0;
    TGeoArb8 *RearCov13_b = new TGeoArb8("RearCov13_b", fBPolyWidth / 2., (Double_t *)RearCover_13_bverts);
 
    // Borated Polyethylene mother shape definition

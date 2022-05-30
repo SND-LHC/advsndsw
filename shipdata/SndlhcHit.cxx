@@ -17,8 +17,13 @@ SndlhcHit::SndlhcHit(Int_t detID,Int_t nP,Int_t nS)
    fDetectorID(detID),
    nSiPMs(nP),
    nSides(nS)
-{
-}
+  {
+     for (unsigned int j=0; j<16; ++j){
+        signals[j]  = -1;
+        times[j]    =-1;
+        fDaqID[j]  =-1;
+     }
+  }
 
 Float_t SndlhcHit::GetSignal(Int_t nChannel)
 {

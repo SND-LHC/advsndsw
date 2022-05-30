@@ -71,7 +71,7 @@ class Monitoring():
         self.systemAndChannels     = {1:[8,0],2:[6,2],3:[1,0]}
         self.sdict                     = {0:'Scifi',1:'Veto',2:'US',3:'DS'}
 
-        self.freq      = 160.E6
+        self.freq      =  160.316E6
         self.TDC2ns = 1E9/self.freq
 
         path     = options.path
@@ -247,6 +247,28 @@ class Monitoring():
             rc = os.system("xrdcp -f online.html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
       except:
             print("copy of html failed. Token expired?")
+   def cleanUpHtml(self):
+      rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online.html  . ")
+      old = open("online.html")
+      oldL = old.readlines()
+      old.close()
+      tmp = open("tmp.html",'w')
+      dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls /eos/experiment/sndlhc/www/online/",shell=True) ) 
+      for L in oldL:
+           OK = True
+           if L.find("https://snd-lhc-monitoring.web.cern.ch/online")>0:
+              k = L.find("file=")+5
+              m =  L.find(".root")+5
+              R = L[k:m]
+              if not R in dirlist: OK = False  
+           if OK: tmp.write(L)
+      tmp.close()
+      os.system('cp tmp.html online.html')
+      try:
+            rc = os.system("xrdcp -f online.html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
+      except:
+            print("copy of html failed. Token expired?")
+
    def systemAndOrientation(self,s,plane):
       if s==1 or s==2: return "horizontal"
       if plane%2==1 or plane == 6: return "vertical"

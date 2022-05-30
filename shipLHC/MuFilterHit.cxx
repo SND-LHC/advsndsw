@@ -27,7 +27,12 @@ MuFilterHit::MuFilterHit(Int_t detID,Int_t nP,Int_t nS)
   : SndlhcHit(detID,nP,nS)
 {
  flag = true;
- for (Int_t i=0;i<16;i++){fMasked[i]=kFALSE;}
+ for (Int_t i=0;i<16;i++){
+      fMasked[i]=kFALSE;
+      signals[i]  = -999;
+      times[i]    = -999;
+      fDaqID[i]  = -1;
+   }
 }
 
 
@@ -136,13 +141,14 @@ bool MuFilterHit::isShort(Int_t i){
 }
 
 // -----   Public method Get List of signals   -------------------------------------------
-std::map<Int_t,Float_t> MuFilterHit::GetAllSignals(Bool_t mask)
+std::map<Int_t,Float_t> MuFilterHit::GetAllSignals(Bool_t mask,Bool_t positive)
 {
           std::map<Int_t,Float_t> allSignals;
           for (unsigned int s=0; s<nSides; ++s){
               for (unsigned int j=0; j<nSiPMs; ++j){
                unsigned int channel = j+s*nSiPMs;
-               if (signals[channel]> 0){
+               if (signals[channel]<-900){continue;}
+               if (signals[channel]> 0 || !positive){
                  if (!fMasked[channel] || !mask){
                     allSignals[channel] = signals[channel];
                     }

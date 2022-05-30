@@ -94,8 +94,9 @@ class Mufi_hitMaps(ROOT.FairTask):
                     Sright+=allChannels[c]
            rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(Nleft)
            rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(10+Nright)
-           rc = h[detector+'leftvsright_'+str(s)].Fill(Nleft,Nright)
-           rc = h[detector+'leftvsright_signal_'+str(s)].Fill(Sleft,Sright)
+           if not aHit.isVertical():  # vertical DS plane is read out only on one side
+              rc = h[detector+'leftvsright_'+str(s)].Fill(Nleft,Nright)
+              rc = h[detector+'leftvsright_signal_'+str(s)].Fill(Sleft,Sright)
 #
            for c in allChannels:
                channel = bar*nSiPMs*nSides + c
