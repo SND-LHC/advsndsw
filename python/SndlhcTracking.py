@@ -18,7 +18,7 @@ class Tracking(ROOT.FairTask):
 
    self.fitter = ROOT.genfit.KalmanFitter()
    self.fitter.setMaxIterations(50)
-   self.sigmaScifi_spatial = 150.*u.um
+   self.sigmaScifi_spatial = 2*150.*u.um
    self.sigmaMufiUS_spatial = 2.*u.cm
    self.sigmaMufiDS_spatial = 0.3*u.cm
    self.Debug = False
