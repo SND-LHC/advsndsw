@@ -192,6 +192,13 @@ int main(int argc, char** argv){
   meta_entry->seed = ran->GetSeed();
   meta_entry->metakey = metakey;
 
+  meta_entry->auxintname.push_back("FlukaRun");
+  meta_entry->auxintname.push_back("evtNumber");
+  meta_entry->auxintname.push_back("FlukaID");
+  meta_entry->auxintname.push_back("generationN");
+
+  meta_entry->auxdblname.push_back("age");
+
   metaOut->Fill();
   
   fOut->cd();
