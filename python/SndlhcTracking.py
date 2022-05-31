@@ -73,12 +73,11 @@ class Tracking(ROOT.FairTask):
            else:
                 self.kalman_tracks.Add(rc)
 
- def DStrack(self):
-# special for H8 testbeam, make track with 2 DS stations only for low occupancy events
+ def DStrack(self,nPlanes = 2, nHits = 2):
     trackCandidates = []
     stations = {}
-    for s in self.systemAndPlanes:
-       for plane in range(self.systemAndPlanes[s]): 
+    s = 3
+    for plane in range(self.systemAndPlanes[s]): 
           stations[s*10+plane] = {}
     k=-1
     for aHit in self.MuFilterHits:
@@ -91,16 +90,22 @@ class Tracking(ROOT.FairTask):
          if s==3:
            if bar<60 or p==3: plane = s*10+2*p
            else:  plane = s*10+2*p+1
-         stations[plane][k] = aHit
+           stations[plane][k] = aHit
     success = True
-    for p in range(30,34):
-         if len(stations[p])>2 or len(stations[p])<1: success = False
+    pXWithHits = 0
+    pYWithHits = 0
+    for p in range(30,30+self.systemAndPlanes[s]):
+         if len(stations[p])>nHits or len(stations[p])<1: continue
+         if p%2==0 and p<36: pYWithHits+=1
+         else: pXWithHits+=1
+    print(pXWithHits,pYWithHits)
+    if pXWithHits<nPlanes or pYWithHits<nPlanes: success = False
     if success:
  # build trackCandidate
       hitlist = {}
-      for p in range(30,34):
-         k = list(stations[p].keys())[0]
-         hitlist[k] = stations[p][k]
+      for p in stations:
+         for k in stations[p]:
+             hitlist[k] = stations[p][k]
       trackCandidates.append(hitlist)
     return trackCandidates
 

@@ -172,6 +172,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     if empty: continue
     h['hitCollectionX']= {'Scifi':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
     h['hitCollectionY']= {'Veto':[0,ROOT.TGraphErrors()],'Scifi':[0,ROOT.TGraphErrors()],'US':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
+    h['firedChannelsX']= {'Scifi':[0,0],'DS':[0,0]}
+    h['firedChannelsY']= {'Veto':[0,0],'Scifi':[0,0],'US':[0,0],'DS':[0,0]}
     systems = {1:'Veto',2:'US',3:'DS',0:'Scifi'}
     for collection in ['hitCollectionX','hitCollectionY']:
        for c in h[collection]:
@@ -221,7 +223,14 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
          c = h[collection][systems[system]]
          rc = c[1].SetPoint(c[0],Z,Y)
          rc = c[1].SetPointError(c[0],detSize[system][2],sY)
-         c[0]+=1 
+         c[0]+=1
+         if digi.isVertical():  F = 'firedChannelsX'
+         else:                     F = 'firedChannelsY'
+         for side in range(digi.GetnSides()):
+             for m in  range(digi.GetnSiPMs()):
+                   qdc = digi.GetSignal(m+side*digi.GetnSiPMs())
+                   if qdc < 0 and qdc > -900:  h[F][systems[system]][1]+=1
+                   elif not qdc<0:   h[F][systems[system]][0]+=1
     h['hitCollectionY']['Veto'][1].SetMarkerColor(ROOT.kRed)
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
@@ -233,14 +242,15 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
        h[ 'simpleDisplay'].cd(k)
        k+=1
        for c in h[collection]:
-          print(collection.split('ion')[1],c, h[collection][c][1].GetN())
+          F = collection.replace('hitCollection','firedChannels')
+          print(collection.split('ion')[1],c, h[collection][c][1].GetN(),h[F][c])
           if h[collection][c][1].GetN()<1: continue
           h[collection][c][1].SetMarkerStyle(20+k)
           h[collection][c][1].SetMarkerSize(1.5)
           rc=h[collection][c][1].Draw('sameP')
           h['display:'+c]=h[collection][c][1]
 
-    if withTrack == 1: addTrack()
+    if withTrack == 1 or withTrack == 3: addTrack()
     if withTrack == 2: addTrack(True)
 
     h[ 'simpleDisplay'].Update()
