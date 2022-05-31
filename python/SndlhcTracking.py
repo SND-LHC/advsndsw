@@ -98,7 +98,6 @@ class Tracking(ROOT.FairTask):
          if len(stations[p])>nHits or len(stations[p])<1: continue
          if p%2==0 and p<36: pYWithHits+=1
          else: pXWithHits+=1
-    print(pXWithHits,pYWithHits)
     if pXWithHits<nPlanes or pYWithHits<nPlanes: success = False
     if success:
  # build trackCandidate
