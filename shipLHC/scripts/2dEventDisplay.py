@@ -172,8 +172,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     if empty: continue
     h['hitCollectionX']= {'Scifi':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
     h['hitCollectionY']= {'Veto':[0,ROOT.TGraphErrors()],'Scifi':[0,ROOT.TGraphErrors()],'US':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
-    h['firedChannelsX']= {'Scifi':[0,0],'DS':[0,0]}
-    h['firedChannelsY']= {'Veto':[0,0],'Scifi':[0,0],'US':[0,0],'DS':[0,0]}
+    h['firedChannelsX']= {'Scifi':[0,0,0],'DS':[0,0,0]}
+    h['firedChannelsY']= {'Veto':[0,0,0,0],'Scifi':[0,0,0],'US':[0,0,0,0],'DS':[0,0,0,0]}
     systems = {1:'Veto',2:'US',3:'DS',0:'Scifi'}
     for collection in ['hitCollectionX','hitCollectionY']:
        for c in h[collection]:
@@ -188,7 +188,6 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
        rc = h[ 'simpleDisplay'].cd(p)
        if p==1: h[proj[p]].SetTitle('event '+str(N)+"    dT="+dTs)
        h[proj[p]].Draw('b')
-
     for D in digis:
       for digi in D:
          detID = digi.GetDetectorID()
@@ -230,7 +229,9 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
              for m in  range(digi.GetnSiPMs()):
                    qdc = digi.GetSignal(m+side*digi.GetnSiPMs())
                    if qdc < 0 and qdc > -900:  h[F][systems[system]][1]+=1
-                   elif not qdc<0:   h[F][systems[system]][0]+=1
+                   elif not qdc<0:   
+                       h[F][systems[system]][0]+=1
+                       h[F][systems[system]][2+side]+=qdc
     h['hitCollectionY']['Veto'][1].SetMarkerColor(ROOT.kRed)
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
@@ -243,7 +244,11 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
        k+=1
        for c in h[collection]:
           F = collection.replace('hitCollection','firedChannels')
-          print(collection.split('ion')[1],c, h[collection][c][1].GetN(),h[F][c])
+          pj = collection.split('ion')[1]
+          if pj =="X" or c=="Scifi":
+              print( "%1s %5s %3i  +:%i -:%i qdc:%3.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2]))
+          else:
+              print( "%1s %5s %3i  +:%i -:%i qdcL:%3.1F qdcR:%3.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2],h[F][c][3]))
           if h[collection][c][1].GetN()<1: continue
           h[collection][c][1].SetMarkerStyle(20+k)
           h[collection][c][1].SetMarkerSize(1.5)
