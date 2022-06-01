@@ -257,7 +257,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
 
     if withTrack == 1 or withTrack == 3: addTrack()
     if withTrack == 2: addTrack(True)
-
+    drawDetectors()
     h[ 'simpleDisplay'].Update()
     if save: h['simpleDisplay'].Print('event_'+"{:04d}".format(N)+'.png')
     rc = input("hit return for next event or q for quit: ")
@@ -304,9 +304,17 @@ def addTrack(scifi=False):
       nTrack+=1
 
 def drawDetectors():
-    nodes = {'volVeto_1':ROOT.kRed,'volMuFilter_1':ROOT.kGreen,'volTarget_1':ROOT.kBlue}
+    nodes = {'volVeto_1/volVetoPlane_0_0':ROOT.kRed,'volVeto_1/volVetoPlane_1_1':ROOT.kRed,
+                    'volMuFilter_1/volMuUpstreamDet_0_2':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_1_3':ROOT.kGreen,
+                    'volMuFilter_1/volMuUpstreamDet_2_4':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_3_5':ROOT.kGreen,
+                    'volMuFilter_1/volMuUpstreamDet_4_6':ROOT.kGreen,
+                    'volMuFilter_1/volMuDownstreamDet_0_7':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_1_8':ROOT.kCyan,
+                    'volMuFilter_1/volMuDownstreamDet_2_9':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_3_10':ROOT.kCyan,
+                    'volTarget_1/ScifiVolume1_1000000':ROOT.kBlue,'volTarget_1/ScifiVolume2_2000000':ROOT.kBlue,'volTarget_1/ScifiVolume3_3000000':ROOT.kBlue,
+                    'volTarget_1/ScifiVolume4_4000000':ROOT.kBlue,'volTarget_1/ScifiVolume5_5000000':ROOT.kBlue}
     proj = {'X':0,'Y':1}
     for node in nodes:
+      if not node+'X' in h:
         n = '/Detector_0/'+node
         nav.cd(n)
         N = nav.GetCurrentNode()
@@ -338,6 +346,12 @@ def drawDetectors():
            X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
            X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
            X.SetLineColor(nodes[node])
+           h[ 'simpleDisplay'].cd(c+1)
+           X.Draw()
+      else:
+        for p in proj:
+           X = h[node+p]
+           c = proj[p]
            h[ 'simpleDisplay'].cd(c+1)
            X.Draw()
 
