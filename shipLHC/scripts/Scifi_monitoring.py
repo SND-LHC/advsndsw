@@ -100,7 +100,7 @@ class Scifi_residuals(ROOT.FairTask):
                ut.bookHist(h,'track_Scifi'+str(s*10+o),'track x/y '+str(s*10+o)+'; x [cm]; y [cm]',80,-70.,10.,80,0.,80.)
                ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
                ut.bookHist(h,detector+'trackSlopes','track slope; x [mrad]; y [mrad]',1000,-100,100,1000,-100,100)
-               ut.bookHist(h,detector+'trackSlopesXL','track slope; x [rad]; y [rad]',100,-3.2,3.2,100,-3.2,3.2)
+               ut.bookHist(h,detector+'trackSlopesXL','track slope; x [rad]; y [rad]',120,-1.1,1.1,120,-1.1,1.1)
 
        if alignPar:
             for x in alignPar:
@@ -258,9 +258,17 @@ class Scifi_residuals(ROOT.FairTask):
        for proj in P: T.append('scifiRes'+proj)
        for canvas in T:
            self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas,subdir='scifi')
-       ut.bookCanvas(h,detector+'trackDir',"track directions",900,1800,1,2)
+       ut.bookCanvas(h,detector+'trackDir',"track directions",1600,1800,3,2)
        h[detector+'trackDir'].cd(1)
        rc = h[detector+'trackSlopes'].Draw('colz')
        h[detector+'trackDir'].cd(2)
+       rc = h[detector+'trackSlopes'].ProjectionX("slopeX").Draw()
+       h[detector+'trackDir'].cd(3)
+       rc = h[detector+'trackSlopes'].ProjectionY("slopeY").Draw()
+       h[detector+'trackDir'].cd(4)
        rc = h[detector+'trackSlopesXL'].Draw('colz')
+       h[detector+'trackDir'].cd(5)
+       rc = h[detector+'trackSlopesXL'].ProjectionX("slopeXL").Draw()
+       h[detector+'trackDir'].cd(6)
+       rc = h[detector+'trackSlopesXL'].ProjectionY("slopeYL").Draw()
        self.M.myPrint(self.M.h[detector+'trackDir'],detector+'trackDir',subdir='scifi')
