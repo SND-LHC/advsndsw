@@ -101,8 +101,8 @@ class Scifi_residuals(ROOT.FairTask):
                ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
                ut.bookHist(h,detector+'trackSlopes','track slope; x/z [mrad]; y/z [mrad]',1000,-100,100,1000,-100,100)
                ut.bookHist(h,detector+'trackSlopesXL','track slope; x/z [rad]; y/z [rad]',120,-1.1,1.1,120,-1.1,1.1)
-               ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-10,90.,80,0.,80.)
-               ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-10,90.,80,0.,80.)
+               ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+               ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
 
        if alignPar:
             for x in alignPar:

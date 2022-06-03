@@ -53,8 +53,8 @@ class Mufi_hitMaps(ROOT.FairTask):
                   ut.bookHist(h,detector+'bs','beam spot; x[cm]; y[cm]',100,-100.,10.,100,0.,80.)
                   ut.bookHist(h,detector+'bsDS','beam spot, #bar X, #bar Y',60,-0.5,59.5,60,-0.5,59.5)
                   ut.bookHist(h,detector+'slopes','track slopes; slope X [rad]; slope Y [rad]',150,-1.5,1.5,150,-1.5,1.5)
-                  ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-10,90.,80,0.,80.)
-                  ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-10,90.,80,0.,80.)
+                  ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+                  ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
                   for bar in range(monitor.systemAndBars[s]):
                      ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)+'; #channels',20,-0.5,19.5)
 
