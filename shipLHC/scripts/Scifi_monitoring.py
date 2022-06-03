@@ -102,6 +102,7 @@ class Scifi_residuals(ROOT.FairTask):
                ut.bookHist(h,detector+'trackSlopes','track slope; x/z [mrad]; y/z [mrad]',1000,-100,100,1000,-100,100)
                ut.bookHist(h,detector+'trackSlopesXL','track slope; x/z [rad]; y/z [rad]',120,-1.1,1.1,120,-1.1,1.1)
                ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-10,90.,80,0.,80.)
+               ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-10,90.,80,0.,80.)
 
        if alignPar:
             for x in alignPar:
@@ -141,10 +142,14 @@ class Scifi_residuals(ROOT.FairTask):
             rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
             fstate =  theTrack.getFittedState()
             mom = fstate.getMom()
+            slopeX= mom.X()/mom.Z()
+            slopeY= mom.Y()/mom.Z()
+
             pos = fstate.getPos()
-            rc = h[detector+'trackSlopes'].Fill(mom.X()/mom.Z()*1000,mom.Y()/mom.Z()*1000)
-            rc = h[detector+'trackSlopesXL'].Fill(mom.X()/mom.Z(),mom.Y()/mom.Z())
+            rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
+            rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
             rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+            if abs(slopeX)<0.1 and abs(slopeY)<0.1  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
 # test plane 
             for o in range(2):
                 testPlane = s*10+o
@@ -275,7 +280,9 @@ class Scifi_residuals(ROOT.FairTask):
        h[detector+'trackDir'].cd(6)
        rc = h[detector+'trackSlopesXL'].ProjectionY("slopeYL").Draw()
        self.M.myPrint(self.M.h[detector+'trackDir'],detector+'trackDir',subdir='scifi')
-       ut.bookCanvas(h,detector+'trackPos',"track position first state",900,600,1,1)
-       h[detector+'trackPos'].cd()
+       ut.bookCanvas(h,detector+'TtrackPos',"track position first state",1200,800,1,2)
+       h[detector+'TtrackPos'].cd(1)
+       rc = h[detector+'trackPosBeam'].Draw('colz')
+       h[detector+'TtrackPos'].cd(2)
        rc = h[detector+'trackPos'].Draw('colz')
-       self.M.myPrint(self.M.h[detector+'trackPos'],detector+'trackPos',subdir='scifi')
+       self.M.myPrint(self.M.h[detector+'TtrackPos'],detector+'trackPos',subdir='scifi')
