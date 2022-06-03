@@ -160,6 +160,7 @@ int main(int argc, char** argv){
 	aux_entry->auxint.push_back(generationN);
     
 	aux_entry->auxdbl.push_back(age);
+	aux_entry->auxdbl.push_back(weight);
 
 	// Accumulate metadata
 	pdglist.insert(gsimple_entry->pdg);
@@ -198,6 +199,7 @@ int main(int argc, char** argv){
   meta_entry->auxintname.push_back("generationN");
 
   meta_entry->auxdblname.push_back("age");
+  meta_entry->auxdblname.push_back("FLUKA_weight");
 
   metaOut->Fill();
   
