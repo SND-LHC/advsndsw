@@ -99,8 +99,9 @@ class Scifi_residuals(ROOT.FairTask):
                ut.bookHist(h,'resC'+proj+'_Scifi'+str(s*10+o),'residual '+proj+str(s*10+o)+'; [#mum]',NbinsRes,xmin,xmax,128*4*3,-0.5,128*4*3-0.5)
                ut.bookHist(h,'track_Scifi'+str(s*10+o),'track x/y '+str(s*10+o)+'; x [cm]; y [cm]',80,-70.,10.,80,0.,80.)
                ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
-               ut.bookHist(h,detector+'trackSlopes','track slope; x [mrad]; y [mrad]',1000,-100,100,1000,-100,100)
-               ut.bookHist(h,detector+'trackSlopesXL','track slope; x [rad]; y [rad]',120,-1.1,1.1,120,-1.1,1.1)
+               ut.bookHist(h,detector+'trackSlopes','track slope; x/z [mrad]; y/z [mrad]',1000,-100,100,1000,-100,100)
+               ut.bookHist(h,detector+'trackSlopesXL','track slope; x/z [rad]; y/z [rad]',120,-1.1,1.1,120,-1.1,1.1)
+               ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-10,90.,80,0.,80.)
 
        if alignPar:
             for x in alignPar:
@@ -140,8 +141,10 @@ class Scifi_residuals(ROOT.FairTask):
             rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
             fstate =  theTrack.getFittedState()
             mom = fstate.getMom()
+            pos = fstate.getPos()
             rc = h[detector+'trackSlopes'].Fill(mom.X()/mom.Z()*1000,mom.Y()/mom.Z()*1000)
             rc = h[detector+'trackSlopesXL'].Fill(mom.X()/mom.Z(),mom.Y()/mom.Z())
+            rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
 # test plane 
             for o in range(2):
                 testPlane = s*10+o
@@ -272,3 +275,7 @@ class Scifi_residuals(ROOT.FairTask):
        h[detector+'trackDir'].cd(6)
        rc = h[detector+'trackSlopesXL'].ProjectionY("slopeYL").Draw()
        self.M.myPrint(self.M.h[detector+'trackDir'],detector+'trackDir',subdir='scifi')
+       ut.bookCanvas(h,detector+'trackPos',"track position first state",900,600,1,1)
+       h[detector+'trackPos'].cd()
+       rc = h[detector+'trackPos'].Draw('colz')
+       self.M.myPrint(self.M.h[detector+'trackPos'],detector+'trackPos',subdir='scifi')

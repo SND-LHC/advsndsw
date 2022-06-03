@@ -53,7 +53,7 @@ class Mufi_hitMaps(ROOT.FairTask):
                   ut.bookHist(h,detector+'bs','beam spot; x[cm]; y[cm]',100,-100.,10.,100,0.,80.)
                   ut.bookHist(h,detector+'bsDS','beam spot, #bar X, #bar Y',60,-0.5,59.5,60,-0.5,59.5)
                   ut.bookHist(h,detector+'slopes','track slopes; slope X [rad]; slope Y [rad]',150,-1.5,1.5,150,-1.5,1.5)
-
+                  ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-10,90.,80,0.,80.)
                   for bar in range(monitor.systemAndBars[s]):
                      ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)+'; #channels',20,-0.5,19.5)
 
@@ -165,6 +165,8 @@ class Mufi_hitMaps(ROOT.FairTask):
          slopeY= mom.Y()/mom.Z()
          h[detector+'slopes'].Fill(slopeX,slopeY)
          if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h[detector+'bsDS'].Fill(Xbar,Ybar)
+         pos = state.getPos()
+         rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
 
    def Plot(self):
        h = self.M.h
@@ -351,6 +353,10 @@ class Mufi_hitMaps(ROOT.FairTask):
        tc = h["DSTracks"].cd(3)
        h[detector+'slopes'].ProjectionY("slopeY").Draw()
        self.M.myPrint(h["DSTracks"],"DSTracksDirection",subdir='mufilter')
+       ut.bookCanvas(h,detector+'trackPos',"track position first state",900,600,1,1)
+       h[detector+'trackPos'].cd()
+       rc = h[detector+'trackPos'].Draw('colz')
+       self.M.myPrint(self.M.h[detector+'trackPos'],detector+'trackPos',subdir='mufilter')
 
 class Mufi_largeVSsmall(ROOT.FairTask):
    """
