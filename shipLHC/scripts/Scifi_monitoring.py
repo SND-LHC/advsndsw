@@ -149,7 +149,7 @@ class Scifi_residuals(ROOT.FairTask):
             rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
             rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
             rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
-            if abs(slopeX)<0.1 and abs(slopeY)<0.1  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+            if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
 # test plane 
             for o in range(2):
                 testPlane = s*10+o
