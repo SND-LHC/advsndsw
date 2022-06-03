@@ -65,7 +65,7 @@ set(DEPENDENCIES Base ShipData EvtGen EvtGenExternal)
 GENERATE_LIBRARY()
 
 add_executable(sndlhcGSimpleNtpConverter sndlhcGSimpleNtpConverter.cxx)
-
-# g++ sndlhcGSimpleNtpConverter.cxx -o sndlhcGSimpleNtpConverter `genie-config --libs` `root-config --libs` -lGeom -lEGPythia6 -lMathMore -L${LIBXML2_ROOT}/lib -lxml2 -L${APFEL_ROOT}/lib -lAPFEL -L${LOG4CPP_ROOT}/lib -llog4cpp -L${LHAPDF_ROOT}/lib -lLHAPDF
-
 target_link_libraries(sndlhcGSimpleNtpConverter ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -lAPFEL -llog4cpp -lLHAPDF)
+
+add_executable(addAuxiliaryToGST addAuxiliaryToGST.cxx)
+target_link_libraries(addAuxiliaryToGST ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -lAPFEL -llog4cpp -lLHAPDF)

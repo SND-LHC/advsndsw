@@ -2,7 +2,6 @@
 #include <fstream>
 #include <set>
 
-#include "TChain.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TMath.h"
