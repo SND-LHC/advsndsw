@@ -52,8 +52,8 @@ class Mufi_hitMaps(ROOT.FairTask):
 
                   ut.bookHist(h,detector+'bs','beam spot; x[cm]; y[cm]',100,-100.,10.,100,0.,80.)
                   ut.bookHist(h,detector+'bsDS','beam spot, #bar X, #bar Y',60,-0.5,59.5,60,-0.5,59.5)
-                  ut.bookHist(h,detector+'slopes','track slopes; slope X [rad]; slope Y [rad]',150,-1.5,1.5,150,-1.5,1.5)
-                  ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+                  ut.bookHist(h,detector+'slopes','muon DS track slopes; slope X [rad]; slope Y [rad]',150,-1.5,1.5,150,-1.5,1.5)
+                  ut.bookHist(h,detector+'trackPos','muon DS track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
                   ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
                   for bar in range(monitor.systemAndBars[s]):
                      ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)+'; #channels',20,-0.5,19.5)
@@ -347,14 +347,14 @@ class Mufi_hitMaps(ROOT.FairTask):
                   self.M.myPrint(h[canvas+sdict[s]],canvas+sdict[s],subdir='mufilter')
 
 # tracking
-       ut.bookCanvas(h,"DSTracks",' ',1200,1200,3,1)
-       tc = h["DSTracks"].cd(1)
+       ut.bookCanvas(h,"muonDSTracks",' ',1200,1200,3,1)
+       tc = h["muonDSTracks"].cd(1)
        h[detector+'slopes'].Draw('colz')
-       tc = h["DSTracks"].cd(2)
+       tc = h["muonDSTracks"].cd(2)
        h[detector+'slopes'].ProjectionX("slopeX").Draw()
-       tc = h["DSTracks"].cd(3)
+       tc = h["muonDSTracks"].cd(3)
        h[detector+'slopes'].ProjectionY("slopeY").Draw()
-       self.M.myPrint(h["DSTracks"],"DSTracksDirection",subdir='mufilter')
+       self.M.myPrint(h["muonDSTracks"],"muonDSTrackdirection",subdir='mufilter')
        ut.bookCanvas(h,detector+'TtrackPos',"track position first state",1200,800,1,2)
        h[detector+'TtrackPos'].cd(1)
        rc = h[detector+'trackPosBeam'].Draw('colz')
