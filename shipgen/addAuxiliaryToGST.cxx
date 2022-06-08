@@ -1,6 +1,8 @@
 #include <vector>
 #include <string>
+#include <iostream>
 
+#include "TFile.h"
 #include "TTree.h"
 #include "TBranch.h"
 
@@ -9,7 +11,6 @@
 /*
   Copies auxiliary branches of GENIE default output to the GST ntuple. The gntpc app doesn't copy the auxiliary branches...
 */
-
 
 int main(int argc, char** argv){
 
@@ -33,30 +34,36 @@ int main(int argc, char** argv){
   ghep_meta->GetEntry(0);
 
   TTree * gst = (TTree*) f_gst->Get("gst");
-  
-  std::vector<TBranch*> aux_branches = new std::vector<TBranch*>();
 
-  for (int i_name = 0; i_name< meta_entry->auxintname.size(); i_name++){
-    aux_branches->push_back(f_gst->Branch(meta_entry->auxintname.at(i_name).c_str(), &(auxint[i_name]), (meta_entry->auxintname.at(i_name)+"/I")+.c_str()));
+  std::vector<TBranch*> * aux_branches = new std::vector<TBranch*>();
+
+  for (int i_aux_var = 0; i_aux_var< meta_entry->auxintname.size(); i_aux_var++){
+    aux_branches->push_back(gst->Branch(meta_entry->auxintname.at(i_aux_var).c_str(), &(this_auxint[i_aux_var]), (meta_entry->auxintname.at(i_aux_var)+"/I").c_str()));
+    std::cout << "Added branch " << meta_entry->auxintname.at(i_aux_var) << std::endl;
   }
 
-  for (int i_name = 0; i_name< meta_entry->auxdblname.size(); i_name++){
-    aux_branches->push_back(f_gst->Branch(meta_entry->auxdblname.at(i_name).c_str(), &(this_auxdbl[i_name]), (meta_entry->auxdblname.at(i_name)+"/D")+.c_str()));
+  for (int i_aux_var = 0; i_aux_var< meta_entry->auxdblname.size(); i_aux_var++){
+    aux_branches->push_back(gst->Branch(meta_entry->auxdblname.at(i_aux_var).c_str(), &(this_auxdbl[i_aux_var]), (meta_entry->auxdblname.at(i_aux_var)+"/D").c_str()));
+    std::cout << "Added branch " << meta_entry->auxdblname.at(i_aux_var) << std::endl;
   }
   
-  TTree * ghep_aux = (TTree*) f_ghep->Get("aux");
+  TTree * ghep_gtree = (TTree*) f_ghep->Get("gtree");
   genie::flux::GSimpleNtpAux*  aux_entry  = new genie::flux::GSimpleNtpAux; 
-  ghep_aux->SetBranchAddress("aux", &aux_entry);
+  ghep_gtree->SetBranchAddress("aux", &aux_entry);
 
-  for (int i_entry = 0; i_entry < f_ghep->GetEntries(); f_ghep++){
-    ghep_aux->GetEntry(i_entry);
+  for (int i_entry = 0; i_entry < ghep_gtree->GetEntries(); i_entry++){
+    aux_entry->Reset();
 
-    for (int i_auxint = 0; i_auxint < meta_entry->auxintname.size(); i_auxint++) this_auxint[i_auxint] = ghep_aux->auxint.at(i_auxint);
-    for (int i_auxdbl = 0; i_auxdbl < meta_entry->auxdblname.size(); i_auxdbl++) this_auxdbl[i_auxdbl] = ghep_aux->auxdbl.at(i_auxdbl);
+    ghep_gtree->GetEntry(i_entry);
+
+    for (int i_auxint = 0; i_auxint < meta_entry->auxintname.size(); i_auxint++) this_auxint[i_auxint] = aux_entry->auxint.at(i_auxint);
+    for (int i_auxdbl = 0; i_auxdbl < meta_entry->auxdblname.size(); i_auxdbl++) this_auxdbl[i_auxdbl] = aux_entry->auxdbl.at(i_auxdbl);
 
     for (int i_branch = 0; i_branch < aux_branches->size(); i_branch++) aux_branches->at(i_branch)->Fill();
     
   };
+
+  std::cout << "Done copying auxiliary variables. Closing files." << std::endl;
 
   f_gst->Write();
   f_gst->Close();
