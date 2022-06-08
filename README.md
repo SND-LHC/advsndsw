@@ -109,6 +109,13 @@ eval alienv load sndsw/latest
 
 If you modify `sndsw`, simply repeat step 4 from `sndsw`'s parent directory.
 
+Note for Ubuntu 20.04: currently there is a version (March 2022) of CVMFS built with Ubuntu 20.04. However, standard ubuntu 20.04 still have python2 has default, while we moved to python3.
+So, it is needed to do 
+```bash
+sudo apt-get install python-is-python3
+```
+
+Then, the above procedure works
 ## On systems without access to CVMFS
 
 Commands are similar to the previous case, but without access to CVMFS you need to build the required packages from source.
