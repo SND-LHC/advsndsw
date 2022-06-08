@@ -119,33 +119,36 @@ class Monitoring():
             self.run = self.converter.run
             return
         else:
-            partitions = 0
-            if options.partition < 0:
-               partitions = []
-               if path.find('eos')>0:
+            if options.fname:
+                f=ROOT.TFile.Open(options.fname)
+                eventChain = f.Get('rawConv')
+                if not eventChain:   eventChain = f.cbmsim
+                partitions = []
+            else:
+              partitions = 0
+              if options.partition < 0:
+                 partitions = []
+                 if path.find('eos')>0:
 # check for partitions
-                  dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
-                  for x in dirlist.split('\\n'):
-                     ix = x.find('sndsw_raw-')
-                     if ix<0: continue
-                     partitions.append(x[ix:])
-               else:
+                    dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
+                    for x in dirlist.split('\\n'):
+                       ix = x.find('sndsw_raw-')
+                       if ix<0: continue
+                       partitions.append(x[ix:])
+                 else:
 # check for partitions
-                 dirlist  = os.listdir(options.path+"run_"+self.runNr)
-                 for x in dirlist:
+                   dirlist  = os.listdir(options.path+"run_"+self.runNr)
+                   for x in dirlist:
                      data = "sndsw_raw-"+ str(partitions).zfill(4)
                      if not x.find(data)<0:
                           partitions.append(data)
-            else:
+              else:
                  partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)+".root"]
-            if options.runNumber>0:
+              if options.runNumber>0:
                 eventChain = ROOT.TChain('rawConv')
                 for p in partitions:
                        eventChain.Add(path+'run_'+self.runNr+'/'+p)
-            else:
-# for MC data
-                f=ROOT.TFile.Open(options.fname)
-                eventChain = f.cbmsim
+
             rc = eventChain.GetEvent(0)
 # start FairRunAna
             self.run  = ROOT.FairRunAna()
