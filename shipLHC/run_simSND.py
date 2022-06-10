@@ -327,17 +327,12 @@ if options.genie == 4 :
     f_input = ROOT.TFile(inputFile)
     gst = f_input.gst
 
-    selection_string = ""
-    
-    selection_string += "(Entry$ >= "+str(options.firstEvent)+")"
+    selection_string = "(Entry$ >= "+str(options.firstEvent)+")"
     if (options.firstEvent + options.nEvents) < gst.GetEntries() :
         selection_string += "&&(Entry$ < "+str(options.firstEvent + options.nEvents)+")"
     
     # Reopen output file
     f_output = ROOT.TFile(outFile, "UPDATE")
-
-
-    print(selection_string)
 
     # Copy only the events used in this run
     gst_copy = gst.CopyTree(selection_string)
