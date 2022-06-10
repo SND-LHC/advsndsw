@@ -1063,11 +1063,13 @@ def beamSpot():
          aTrack.Delete()
 
 def USshower(Nev=options.nEvents):
+    zUS0 = zPos['MuFilter'][20] -  10
+    zUS4 = zPos['MuFilter'][24] + 10
     for x in ['','-small']:
-       ut.bookHist(h,'shower'+x,'energy vs z',200,0.,10000.,20,-250.,-100.)
-       ut.bookHist(h,'showerX'+x,'energy vs z',200,0.,10000.,20,-250.,-100.)
+       ut.bookHist(h,'shower'+x,'energy vs z',200,0.,10000.,20,zUS0,zUS4)
+       ut.bookHist(h,'showerX'+x,'energy vs z',200,0.,10000.,20,zUS0,zUS4)
        ut.bookHist(h,'wshower'+x,'z weighted energy ',100,-300.,0.)
-       ut.bookHist(h,'zyshower'+x,'y vs z weighted energy ',20,-250.,-100.,11,-0.5,10.5)
+       ut.bookHist(h,'zyshower'+x,'y vs z weighted energy ',20,zUS0,zUS4,11,-0.5,10.5)
     for p in range(systemAndPlanes[2]):
        ut.bookHist(h,'SvsL'+str(p),'small vs large Sipms plane' +str(p)+';large   [QCD]; small   [QCD] ',100,0.1,250.,100,0.1,100.)
     if Nev < 0 : Nev = eventTree.GetEntries()

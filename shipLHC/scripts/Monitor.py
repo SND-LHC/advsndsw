@@ -119,33 +119,36 @@ class Monitoring():
             self.run = self.converter.run
             return
         else:
-            partitions = 0
-            if options.partition < 0:
-               partitions = []
-               if path.find('eos')>0:
+            if options.fname:
+                f=ROOT.TFile.Open(options.fname)
+                eventChain = f.Get('rawConv')
+                if not eventChain:   eventChain = f.cbmsim
+                partitions = []
+            else:
+              partitions = 0
+              if options.partition < 0:
+                 partitions = []
+                 if path.find('eos')>0:
 # check for partitions
-                  dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
-                  for x in dirlist.split('\\n'):
-                     ix = x.find('sndsw_raw-')
-                     if ix<0: continue
-                     partitions.append(x[ix:])
-               else:
+                    dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
+                    for x in dirlist.split('\\n'):
+                       ix = x.find('sndsw_raw-')
+                       if ix<0: continue
+                       partitions.append(x[ix:])
+                 else:
 # check for partitions
-                 dirlist  = os.listdir(options.path+"run_"+self.runNr)
-                 for x in dirlist:
+                   dirlist  = os.listdir(options.path+"run_"+self.runNr)
+                   for x in dirlist:
                      data = "sndsw_raw-"+ str(partitions).zfill(4)
                      if not x.find(data)<0:
                           partitions.append(data)
-            else:
-                 partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)]
-            if options.runNumber>0:
+              else:
+                 partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)+".root"]
+              if options.runNumber>0:
                 eventChain = ROOT.TChain('rawConv')
                 for p in partitions:
                        eventChain.Add(path+'run_'+self.runNr+'/'+p)
-            else:
-# for MC data
-                f=ROOT.TFile.Open(options.fname)
-                eventChain = f.cbmsim
+
             rc = eventChain.GetEvent(0)
 # start FairRunAna
             self.run  = ROOT.FairRunAna()
@@ -153,8 +156,8 @@ class Monitoring():
             ioman.SetTreeName(eventChain.GetName())
             outFile = ROOT.TMemFile('dummy','CREATE')
             source = ROOT.FairFileSource(eventChain.GetCurrentFile())
-            if partitions>0:
-                  for p in range(1,partitions):
+            if len(partitions)>0:
+                  for p in range(1,len(partitions)):
                        source.AddFile(path+'run_'+self.runNr+'/sndsw_raw-'+str(p).zfill(4)+'.root')
             self.run.SetSource(source)
             sink = ROOT.FairRootFileSink(outFile)
@@ -169,7 +172,7 @@ class Monitoring():
             xrdb.getContainer("FairGeoParSet").setStatic()
 
             self.run.Init()
-            if partitions>0:  self.eventTree = ioman.GetInChain()
+            if len(partitions)>0:  self.eventTree = ioman.GetInChain()
             else:                 self.eventTree = ioman.GetInTree()
    
    def modtime(self,fname):
@@ -253,7 +256,7 @@ class Monitoring():
       oldL = old.readlines()
       old.close()
       tmp = open("tmp.html",'w')
-      dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls /eos/experiment/sndlhc/www/online/",shell=True) ) 
+      dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/online/",shell=True) ) 
       for L in oldL:
            OK = True
            if L.find("https://snd-lhc-monitoring.web.cern.ch/online")>0:

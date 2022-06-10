@@ -52,8 +52,9 @@ class Mufi_hitMaps(ROOT.FairTask):
 
                   ut.bookHist(h,detector+'bs','beam spot; x[cm]; y[cm]',100,-100.,10.,100,0.,80.)
                   ut.bookHist(h,detector+'bsDS','beam spot, #bar X, #bar Y',60,-0.5,59.5,60,-0.5,59.5)
-                  ut.bookHist(h,detector+'slopes','track slopes; slope X [rad]; slope Y [rad]',100,-0.1,0.1,100,-0.1,0.1)
-
+                  ut.bookHist(h,detector+'slopes','muon DS track slopes; slope X [rad]; slope Y [rad]',150,-1.5,1.5,150,-1.5,1.5)
+                  ut.bookHist(h,detector+'trackPos','muon DS track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+                  ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
                   for bar in range(monitor.systemAndBars[s]):
                      ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)+'; #channels',20,-0.5,19.5)
 
@@ -122,15 +123,16 @@ class Mufi_hitMaps(ROOT.FairTask):
           for l in range(systemAndPlanes[s]):   
              rc = h[detector+'hitmult_'+str(s*10+l)].Fill(mult[s*10+l])
 
-       maxOneBar = True
+       max2Bar = True
        for key in planes:
-          if len(planes[key]) > 2: maxOneBar = False
-       if withX and maxOneBar:  self.beamSpot(event)
+          if key < 30: continue
+          if len(planes[key]) > 3: max2Bar = False
+       if withX and max2Bar:  self.beamSpot(event)
     
    def beamSpot(self,event):
       if not self.trackTask: return
       h = self.M.h
-      self.trackTask.ExecuteTask()
+      self.trackTask.ExecuteTask("DS")
       Xbar = -10
       Ybar = -10
       for aTrack in self.OT.Reco_MuonTracks:
@@ -160,10 +162,13 @@ class Mufi_hitMaps(ROOT.FairTask):
                       if signal > 0:
                            rc  = h[detector+'Tsig_'+str(s)+str(l)].Fill(signal)
          mom = state.getMom()
-         slopeY= mom.X()/mom.Z()
-         slopeX= mom.Y()/mom.Z()
+         slopeX= mom.X()/mom.Z()
+         slopeY= mom.Y()/mom.Z()
          h[detector+'slopes'].Fill(slopeX,slopeY)
          if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h[detector+'bsDS'].Fill(Xbar,Ybar)
+         pos = state.getPos()
+         rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+         if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
 
    def Plot(self):
        h = self.M.h
@@ -340,6 +345,22 @@ class Mufi_hitMaps(ROOT.FairTask):
               for s in range(1,4):
                   h[canvas+sdict[s]].Update()
                   self.M.myPrint(h[canvas+sdict[s]],canvas+sdict[s],subdir='mufilter')
+
+# tracking
+       ut.bookCanvas(h,"muonDSTracks",' ',1200,1200,3,1)
+       tc = h["muonDSTracks"].cd(1)
+       h[detector+'slopes'].Draw('colz')
+       tc = h["muonDSTracks"].cd(2)
+       h[detector+'slopes'].ProjectionX("slopeX").Draw()
+       tc = h["muonDSTracks"].cd(3)
+       h[detector+'slopes'].ProjectionY("slopeY").Draw()
+       self.M.myPrint(h["muonDSTracks"],"muonDSTrackdirection",subdir='mufilter')
+       ut.bookCanvas(h,detector+'TtrackPos',"track position first state",1200,800,1,2)
+       h[detector+'TtrackPos'].cd(1)
+       rc = h[detector+'trackPosBeam'].Draw('colz')
+       h[detector+'TtrackPos'].cd(2)
+       rc = h[detector+'trackPos'].Draw('colz')
+       self.M.myPrint(self.M.h[detector+'TtrackPos'],detector+'trackPos',subdir='mufilter')
 
 class Mufi_largeVSsmall(ROOT.FairTask):
    """

@@ -65,7 +65,7 @@ def currentRun():
                print(Lcrun)
                curRun,curPart,start ="","",""
                break
-            if not l.find('/home/snd/snd/') < 0:
+            if not l.find('.root') < 0:
                  tmp = l.split('/')
                  curRun = tmp[len(tmp)-2]
                  curPart = tmp[len(tmp)-1]

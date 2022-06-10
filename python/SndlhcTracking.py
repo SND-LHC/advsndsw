@@ -48,7 +48,6 @@ class Tracking(ROOT.FairTask):
          self.kalman_tracks = self.sink.GetOutTree().Reco_MuonTracks
 
    self.systemAndPlanes  = {1:2,2:5,3:7}
-   self.MuFilterHits = self.event.Digi_MuFilterHits
    return 0
 
  def FinishEvent(self):
@@ -73,15 +72,14 @@ class Tracking(ROOT.FairTask):
            else:
                 self.kalman_tracks.Add(rc)
 
- def DStrack(self):
-# special for H8 testbeam, make track with 2 DS stations only for low occupancy events
+ def DStrack(self,nPlanes = 2, nHits = 2):
     trackCandidates = []
     stations = {}
-    for s in self.systemAndPlanes:
-       for plane in range(self.systemAndPlanes[s]): 
+    s = 3
+    for plane in range(self.systemAndPlanes[s]): 
           stations[s*10+plane] = {}
     k=-1
-    for aHit in self.MuFilterHits:
+    for aHit in self.event.Digi_MuFilterHits:
          k+=1
          if not aHit.isValid(): continue
          s = aHit.GetDetectorID()//10000
@@ -91,16 +89,21 @@ class Tracking(ROOT.FairTask):
          if s==3:
            if bar<60 or p==3: plane = s*10+2*p
            else:  plane = s*10+2*p+1
-         stations[plane][k] = aHit
+           stations[plane][k] = aHit
     success = True
-    for p in range(30,34):
-         if len(stations[p])>2 or len(stations[p])<1: success = False
+    pXWithHits = 0
+    pYWithHits = 0
+    for p in range(30,30+self.systemAndPlanes[s]):
+         if len(stations[p])>nHits or len(stations[p])<1: continue
+         if p%2==0 and p<36: pYWithHits+=1
+         else: pXWithHits+=1
+    if pXWithHits<nPlanes or pYWithHits<nPlanes: success = False
     if success:
  # build trackCandidate
       hitlist = {}
-      for p in range(30,34):
-         k = list(stations[p].keys())[0]
-         hitlist[k] = stations[p][k]
+      for p in stations:
+         for k in stations[p]:
+             hitlist[k] = stations[p][k]
       trackCandidates.append(hitlist)
     return trackCandidates
 
@@ -217,8 +220,8 @@ class Tracking(ROOT.FairTask):
 # take fired muonFilter bars if more than 2 SiPMs have fired
     nMin = 1
     MuFiPlanes = {}
-    for k in range(self.MuFilterHits.GetEntries()):
-         aHit = self.MuFilterHits[k]
+    for k in range(self.event.Digi_MuFilterHits.GetEntries()):
+         aHit = self.event.Digi_MuFilterHits[k]
          if not aHit.isValid(): continue
          detID = aHit.GetDetectorID()
          sy    = detID//10000
@@ -230,7 +233,7 @@ class Tracking(ROOT.FairTask):
          for i in range(nSides*nSiPMs):
               if aHit.GetSignal(i) > 0: nFired+=1
          if nMin > nFired: continue
-         hitlist[k*1000] = self.MuFilterHits[k]
+         hitlist[k*1000] = self.event.Digi_MuFilterHits[k]
          MuFiPlanes[sy*100+l] = 1
     if (len(ScifiStations) == 5 or len(MuFiPlanes)>4) and len(hitlist)<20:
            trackCandidates.append(hitlist)

@@ -76,7 +76,7 @@ def runSinglePartition(path,r,p,EOScopy=False,check=True):
      if options.FairTask_convRaw:
         os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -cpp -b 100000 -p "+path+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
      else: 
-        os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -b 1000 -p "+path+"  -r "+str(int(r))+ " -P "+str(int(p)) + " -g ../geofile_sndlhc_TI18.root >log_"+r+'-'+p)
+        os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -b 1000 -p "+path+"  -r "+str(int(r))+ " -P "+str(int(p)) + " -g geofile_sndlhc_TI18.root >log_"+r+'-'+p)
      if check:
         rc = checkFile(path,r,p)
         if rc<0: 

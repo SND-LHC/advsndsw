@@ -172,6 +172,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     if empty: continue
     h['hitCollectionX']= {'Scifi':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
     h['hitCollectionY']= {'Veto':[0,ROOT.TGraphErrors()],'Scifi':[0,ROOT.TGraphErrors()],'US':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
+    h['firedChannelsX']= {'Scifi':[0,0,0],'DS':[0,0,0]}
+    h['firedChannelsY']= {'Veto':[0,0,0,0],'Scifi':[0,0,0],'US':[0,0,0,0],'DS':[0,0,0,0]}
     systems = {1:'Veto',2:'US',3:'DS',0:'Scifi'}
     for collection in ['hitCollectionX','hitCollectionY']:
        for c in h[collection]:
@@ -186,7 +188,6 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
        rc = h[ 'simpleDisplay'].cd(p)
        if p==1: h[proj[p]].SetTitle('event '+str(N)+"    dT="+dTs)
        h[proj[p]].Draw('b')
-
     for D in digis:
       for digi in D:
          detID = digi.GetDetectorID()
@@ -221,7 +222,16 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
          c = h[collection][systems[system]]
          rc = c[1].SetPoint(c[0],Z,Y)
          rc = c[1].SetPointError(c[0],detSize[system][2],sY)
-         c[0]+=1 
+         c[0]+=1
+         if digi.isVertical():  F = 'firedChannelsX'
+         else:                     F = 'firedChannelsY'
+         for side in range(digi.GetnSides()):
+             for m in  range(digi.GetnSiPMs()):
+                   qdc = digi.GetSignal(m+side*digi.GetnSiPMs())
+                   if qdc < 0 and qdc > -900:  h[F][systems[system]][1]+=1
+                   elif not qdc<0:   
+                       h[F][systems[system]][0]+=1
+                       h[F][systems[system]][2+side]+=qdc
     h['hitCollectionY']['Veto'][1].SetMarkerColor(ROOT.kRed)
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
@@ -233,16 +243,21 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
        h[ 'simpleDisplay'].cd(k)
        k+=1
        for c in h[collection]:
-          print(collection.split('ion')[1],c, h[collection][c][1].GetN())
+          F = collection.replace('hitCollection','firedChannels')
+          pj = collection.split('ion')[1]
+          if pj =="X" or c=="Scifi":
+              print( "%1s %5s %3i  +:%i -:%i qdc:%3.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2]))
+          else:
+              print( "%1s %5s %3i  +:%i -:%i qdcL:%3.1F qdcR:%3.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2],h[F][c][3]))
           if h[collection][c][1].GetN()<1: continue
           h[collection][c][1].SetMarkerStyle(20+k)
           h[collection][c][1].SetMarkerSize(1.5)
           rc=h[collection][c][1].Draw('sameP')
           h['display:'+c]=h[collection][c][1]
 
-    if withTrack == 1: addTrack()
+    if withTrack == 1 or withTrack == 3: addTrack()
     if withTrack == 2: addTrack(True)
-
+    drawDetectors()
     h[ 'simpleDisplay'].Update()
     if save: h['simpleDisplay'].Print('event_'+"{:04d}".format(N)+'.png')
     rc = input("hit return for next event or q for quit: ")
@@ -289,9 +304,17 @@ def addTrack(scifi=False):
       nTrack+=1
 
 def drawDetectors():
-    nodes = {'volVeto_1':ROOT.kRed,'volMuFilter_1':ROOT.kGreen,'volTarget_1':ROOT.kBlue}
+    nodes = {'volVeto_1/volVetoPlane_0_0':ROOT.kRed,'volVeto_1/volVetoPlane_1_1':ROOT.kRed,
+                    'volMuFilter_1/volMuUpstreamDet_0_2':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_1_3':ROOT.kGreen,
+                    'volMuFilter_1/volMuUpstreamDet_2_4':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_3_5':ROOT.kGreen,
+                    'volMuFilter_1/volMuUpstreamDet_4_6':ROOT.kGreen,
+                    'volMuFilter_1/volMuDownstreamDet_0_7':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_1_8':ROOT.kCyan,
+                    'volMuFilter_1/volMuDownstreamDet_2_9':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_3_10':ROOT.kCyan,
+                    'volTarget_1/ScifiVolume1_1000000':ROOT.kBlue,'volTarget_1/ScifiVolume2_2000000':ROOT.kBlue,'volTarget_1/ScifiVolume3_3000000':ROOT.kBlue,
+                    'volTarget_1/ScifiVolume4_4000000':ROOT.kBlue,'volTarget_1/ScifiVolume5_5000000':ROOT.kBlue}
     proj = {'X':0,'Y':1}
     for node in nodes:
+      if not node+'X' in h:
         n = '/Detector_0/'+node
         nav.cd(n)
         N = nav.GetCurrentNode()
@@ -323,6 +346,12 @@ def drawDetectors():
            X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
            X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
            X.SetLineColor(nodes[node])
+           h[ 'simpleDisplay'].cd(c+1)
+           X.Draw()
+      else:
+        for p in proj:
+           X = h[node+p]
+           c = proj[p]
            h[ 'simpleDisplay'].cd(c+1)
            X.Draw()
 

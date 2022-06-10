@@ -74,6 +74,7 @@ class Time_evolution(ROOT.FairTask):
        ut.bookHist(h,'ctime','delta event time per channel; dt [s]'  ,1000,0.0,10.,1700,-0.5,1699.5)
        ut.bookHist(h,'ctimeZ','delta event time per channel; dt [us]',10000,0.0,100.,1700,-0.5,1699.5)
        ut.bookHist(h,'ctimeM','delta event time per channel; dt [ms]',1000,0.0,10.,1700,-0.5,1699.5)
+       ut.bookHist(h,'btime','delta timestamp per channel; ',3564*4+200,-0.5,3564*4-0.5+200,1700,-0.5,1699.5)
 
        self.Nevent = -1
        self.Tprev = [-1]*1700
@@ -98,6 +99,7 @@ class Time_evolution(ROOT.FairTask):
                 dT = (T - self.Tprev[cNr])/self.M.freq
                 if dT<5E-9: print('something wrong',s,p,b,c,dT,T,self.Tprev[cNr])
                 rc = h['ctimeZ'].Fill(dT*1E6,cNr)
+                rc = h['btime'].Fill(T-self.Tprev[cNr],cNr)
                 rc = h['ctimeM'].Fill(dT*1E3,cNr)
                 rc = h['ctime'].Fill(dT,cNr)
              self.Tprev[cNr] = T
@@ -208,13 +210,15 @@ class Time_evolution(ROOT.FairTask):
        h['T'].Update()
        self.M.myPrint(h['T'],"Rates",subdir='daq')
 
-       ut.bookCanvas(h,'channels',' channel dt',1024,3*768,1,3)
+       ut.bookCanvas(h,'channels',' channel dt',1024,4*768,1,4)
        tc = h['channels'].cd(1)
        h['ctimeZ'].Draw('colz')
        tc = h['channels'].cd(2)
        h['ctimeM'].Draw('colz')
        tc = h['channels'].cd(3)
        h['ctime'].Draw('colz')
+       tc = h['channels'].cd(4)
+       h['btime'].Draw('colz')
        self.M.myPrint(h['channels'],"mufilter channel dT",subdir='daq')
 
 
