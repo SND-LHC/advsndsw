@@ -95,7 +95,8 @@ options = parser.parse_args()
 runNr   = str(options.runNumber).zfill(6)
 path     = options.path
 partitions = 0
-if path.find('eos')>0:
+if options.runNumber > 0: 
+ if path.find('eos')>0:
     path     = os.environ['EOSSHIP']+options.path
     dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+options.path,shell=True) )
 # single file, before Feb'22
@@ -108,7 +109,7 @@ if path.find('eos')>0:
         if dirlist.find(data)>0:
             partitions+=1
         else: break
-else:
+ else:
 # check for partitions
        data = "sndsw_raw_"+runNr+".root"
        dirlist = os.listdir(options.path)
@@ -305,9 +306,10 @@ if options.runNumber>0:
                        eventChain.Add(path+'run_'+runNr+'/sndsw_raw-'+str(p).zfill(4)+'.root')
 
 else:
-# for MC data
+# for MC data and other files
               f=ROOT.TFile.Open(options.fname)
-              eventChain = f.cbmsim
+              if f.Get('rawConv'):   eventChain = f.rawConv
+              else:                        eventChain = f.cbmsim
 eventChain.GetEvent(0)
 
 run      = ROOT.FairRunAna()
@@ -1145,7 +1147,7 @@ def USshower(Nev=options.nEvents):
         h['SvsL'+str(p)].Draw('colz')
     myPrint(h['CorLS'],'QCDsmallCSQCDlarge')
 
-def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,NbinsRes=100,X=10.):
+def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,withReco='True',NbinsRes=100,X=10.):
  
  projs = {1:'Y',0:'X'}
  for s in range(1,6):
@@ -1216,16 +1218,23 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,NbinsRes=1
     rc = eventTree.GetEvent(N)
     N+=1
     if N>Nev: break
-    if optionTrack=='DS': rc = trackTask.ExecuteTask("DS")
-    else                         : rc = trackTask.ExecuteTask("Scifi")
+    if withReco:
+       if optionTrack=='DS': rc = trackTask.ExecuteTask("DS")
+       else                         : rc = trackTask.ExecuteTask("Scifi")
     if not OT.Reco_MuonTracks.GetEntries()==1: continue
     theTrack = OT.Reco_MuonTracks[0]
     if not theTrack.getFitStatus().isFitConverged() and optionTrack!='DS':   # for H8 where only two planes / proj were avaiable
                  continue
-# now extrapolate to US and check for hits.
+# only take horizontal tracks
     state = theTrack.getFittedState(0)
     pos   = state.getPos()
     mom = state.getMom()
+    slopeX= mom.X()/mom.Z()
+    slopeY= mom.Y()/mom.Z()
+    if abs(mom.x()/mom.z())>0.25: continue   # 4cm distance, 250mrad = 1cm
+    if abs(mom.y()/mom.z())>0.1: continue
+
+# now extrapolate to US and check for hits.
     fitStatus = theTrack.getFitStatus()
     chi2Ndof = fitStatus.getChi2()/(fitStatus.getNdf()+1E-10)
     rc = h['tracksChi2Ndof'].Fill(chi2Ndof,fitStatus.getNdf())
@@ -1287,7 +1296,7 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,NbinsRes=1
          L0 = X.Mag()/v
          # need to correct for signal propagation along fibre
          clkey  = W.getHitId()
-         aCl = event.ScifiClusters[clkey]
+         aCl = event.Cluster_Scifi[clkey]
          T0track = aCl.GetTime() - L0
          TZero    = aCl.GetTime()
          Z0track = pos[2]
@@ -1299,7 +1308,7 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,NbinsRes=1
             W = M.getRawMeasurement()
             detID = W.getDetId()
             clkey = W.getHitId()
-            aCl = event.ScifiClusters[clkey]
+            aCl = event.Cluster_Scifi[clkey]
             aHit = event.Digi_ScifiHits[ DetID2Key[detID] ]
             geo.modules['Scifi'].GetSiPMPosition(detID,A,B)
             if aHit.isVertical(): X = B-posM
@@ -1326,6 +1335,12 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,NbinsRes=1
 
     muHits = {}
     for s in systemAndPlanes:
+       for p in range(systemAndPlanes[s]):
+          if s == 3:
+             muHits[s*10+2*p]=[]
+             muHits[s*10+2*p+1]=[]
+          else:
+             muHits[s*10+p]=[]
        for p in range(systemAndPlanes[s]): muHits[s*10+p]=[]
     for aHit in event.Digi_MuFilterHits:
          if not aHit.isValid(): continue
@@ -1335,7 +1350,7 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,NbinsRes=1
          plane = s*10+p
          if s==3:
            if aHit.isVertical(): plane = s*10+2*p+1
-           else:                         plane = s*10+2*p
+           else:                     plane = s*10+2*p
          muHits[plane].append(aHit)
 
 # get T0 from VETO
@@ -2722,7 +2737,7 @@ def TimeCalibrationNtuple(Nev=options.nEvents,nStart=0):
             M = theTrack.getPointWithMeasurement(nM)
             W = M.getRawMeasurement()
             clkey  = W.getHitId()
-            aCl = eventTree.ScifiClusters[clkey]
+            aCl = eventTree.Cluster_Scifi[clkey]
             fTime[0] = aCl.GetTime()
             for nh in range(aCl.GetN()):
                  detID = aCl.GetFirst() + nh
@@ -3046,11 +3061,33 @@ def Scifi_slopes(Nev=options.nEvents):
              for s2 in range(s1+1,5):
                 if len(proj[p][s2]) !=1: continue
 
-def mergeSignals(hstore):
+def mergeScifiSignals(hstore):
   ut.bookHist(hstore,'signalAll','signal all mat',150,0.0,150.)
   for mat in range(30):
     hstore['signalAll'].Add(hstore['sig_'+str(mat)])
   hstore['signalAll'].Scale(1./hstore['signalAll'].GetSumOfWeights())
+
+def mergeMuFilterSignals(hstore,tag='signalT',system='',fname=None):
+     if fname: F=ROOT.TFile(fname)
+     ROOT.gROOT.cd()
+     if system == '': s = [1,2,3]
+     else:                 s = [system]
+     for x in s:
+        for side in ['L','R']:
+          hname = tag+side+'_'+sdict[x]
+          xname = tag+side+'_'+sdict[x]+str(x*10)+'_'+'0'
+          if F: 
+               hstore[xname] = F.Get(xname).Clone(xname)
+          hstore[hname] = hstore[tag+side+'_'+sdict[x]+str(x*10)+'_'+'0'].Clone(hname)
+          hstore[hname].Reset()
+          hstore[hname].SetTitle('QDC '+sdict[x]+'; QDC [a.u.]; d [cm]')
+          for l in range(systemAndPlanes[x]):
+            for bar in range(systemAndBars[x]):
+               xname = tag+side+'_'+sdict[x]+str(x*10+l)+'_'+str(bar)
+               if F:
+                   hstore[xname] = F.Get(xname).Clone(xname)
+               hstore[hname].Add(hstore[xname])
+          print('summary histogram:',hname)
 
 def signalZoom(smax):
   for mat in range(30):
