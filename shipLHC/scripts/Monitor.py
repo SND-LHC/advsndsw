@@ -523,7 +523,7 @@ class TrackSelector():
         self.OT = ioman.GetSink().GetOutTree()
 
    def ExecuteEvent(self,event):
-           self.trackTask.ExecuteTask(option='Scifi')
+           self.trackTask.ExecuteTask(option='ScifiDS')
 
    def Execute(self):
       for n in range(self.options.nStart,self.options.nStart+self.options.nEvents):
