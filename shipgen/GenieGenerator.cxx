@@ -478,7 +478,7 @@ Bool_t GenieGenerator::ReadEvent(FairPrimaryGenerator* cpg)
     if (cc) outgoing_lepton_pdg = copysign(TMath::Abs(neu)-1,neu);
     if (nuel) outgoing_lepton_pdg = 11;
     
-    bool track_outgoing_lepton = cc ? true : false;
+    bool track_outgoing_lepton = (cc || nuel) ? true : false;
     cpg->AddTrack(outgoing_lepton_pdg,
 		  pxl, pyl, pzl,    
 		  vtxx, vtxy, vtxz, 
