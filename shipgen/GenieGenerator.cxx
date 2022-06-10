@@ -491,7 +491,7 @@ Bool_t GenieGenerator::ReadEvent(FairPrimaryGenerator* cpg)
 		    pxf[i_hadron], pyf[i_hadron], pzf[i_hadron],    
 		    vtxx, vtxy, vtxz, 
 		    0,               
-		    track_outgoing_lepton);
+		    true);
     }
     
     return kTRUE;
