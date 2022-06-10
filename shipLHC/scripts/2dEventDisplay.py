@@ -131,10 +131,11 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
  text = ROOT.TLatex()
  event = eventTree
  OT = sink.GetOutTree()
+ if withTrack==0: OT = eventTree
  for N in range(start, event.GetEntries()):
     rc = event.GetEvent(N)
     if goodEvents and not goodEvent(event): continue
-    if withTrack:
+    if not withTrack<-1:
        if options.houghTransform:
           OT.Reco_MuonTracks.Delete()
           rc = source.GetInTree().GetEvent(N)
@@ -145,8 +146,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
        else:
           if withTrack==2:  trackTask.ExecuteTask("Scifi")
           elif withTrack==3:  trackTask.ExecuteTask("DS")
-          else:     trackTask.ExecuteTask()
-          ntracks = len(OT.Reco_MuonTracks)
+       ntracks = len(OT.Reco_MuonTracks)
        if ntracks<nTracks: continue
 
        if verbose>0:
@@ -160,7 +160,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
        T = event.EventHeader.GetEventTime()
        if Tprev >0: dT = T-Tprev
        Tprev = T
-    print( "event -> %i   %8.4Fs"%(N,T/freq))
+    print( "event -> %i   %8.4Fs  %8.4Fns"%(N,T/freq,dT/freq*1E9))
 
     digis = []
     if event.FindBranch("Digi_ScifiHits"): digis.append(event.Digi_ScifiHits)
@@ -225,7 +225,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
          c[0]+=1
          if digi.isVertical():  F = 'firedChannelsX'
          else:                     F = 'firedChannelsY'
-         for side in range(digi.GetnSides()):
+         ns = max(1,digi.GetnSides())
+         for side in range(ns):
              for m in  range(digi.GetnSiPMs()):
                    qdc = digi.GetSignal(m+side*digi.GetnSiPMs())
                    if qdc < 0 and qdc > -900:  h[F][systems[system]][1]+=1
@@ -246,29 +247,32 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
           F = collection.replace('hitCollection','firedChannels')
           pj = collection.split('ion')[1]
           if pj =="X" or c=="Scifi":
-              print( "%1s %5s %3i  +:%i -:%i qdc:%3.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2]))
+              print( "%1s %5s %3i  +:%3i -:%3i qdc :%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2]))
           else:
-              print( "%1s %5s %3i  +:%i -:%i qdcL:%3.1F qdcR:%3.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2],h[F][c][3]))
+              print( "%1s %5s %3i  +:%3i -:%3i qdcL:%5.1F qdcR:%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2],h[F][c][3]))
           if h[collection][c][1].GetN()<1: continue
           h[collection][c][1].SetMarkerStyle(20+k)
           h[collection][c][1].SetMarkerSize(1.5)
           rc=h[collection][c][1].Draw('sameP')
           h['display:'+c]=h[collection][c][1]
 
-    if withTrack == 1 or withTrack == 3: addTrack()
-    if withTrack == 2: addTrack(True)
+    if withTrack == 2: addTrack(OT,True)
+    elif not withTrack<0:  addTrack(OT)
     drawDetectors()
     h[ 'simpleDisplay'].Update()
+    if verbose>0: dumpChannels()
     if save: h['simpleDisplay'].Print('event_'+"{:04d}".format(N)+'.png')
     rc = input("hit return for next event or q for quit: ")
     if rc=='q': break
  if save: os.system("convert -delay 60 -loop 0 event*.png animated.gif")
 
-def addTrack(scifi=False):
+def addTrack(OT,scifi=False):
    xax = h['xz'].GetXaxis()
    nTrack = 0
-   OT = sink.GetOutTree()
    for   aTrack in OT.Reco_MuonTracks:
+      trackColor = ROOT.kRed
+      if aTrack.GetUniqueID()==1: trackColor = ROOT.kBlack
+      if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlue
       S = aTrack.getFitStatus()
       if not S.isFitConverged() and scifi: continue
       for p in [0,1]:
@@ -296,7 +300,7 @@ def addTrack(scifi=False):
 
       for p in [0,1]:
              tc = h[ 'simpleDisplay'].cd(p+1)
-             h['aLine'+str(nTrack*10+p)].SetLineColor(ROOT.kRed)
+             h['aLine'+str(nTrack*10+p)].SetLineColor(trackColor)
              h['aLine'+str(nTrack*10+p)].SetLineWidth(2)
              h['aLine'+str(nTrack*10+p)].Draw('same')
              tc.Update()
@@ -347,13 +351,13 @@ def drawDetectors():
            X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
            X.SetLineColor(nodes[node])
            h[ 'simpleDisplay'].cd(c+1)
-           X.Draw()
+           X.Draw('same')
       else:
         for p in proj:
            X = h[node+p]
            c = proj[p]
            h[ 'simpleDisplay'].cd(c+1)
-           X.Draw()
+           X.Draw('same')
 
 def dumpVeto():
     muHits = {10:[],11:[]}
@@ -456,3 +460,23 @@ def firstTimeStamp(event):
                     tmin[0]=dt
                     tmin[1]=digi
         return tmin
+def dumpChannels(D='Digi_MuFilterHits'):
+     X = eval("eventTree."+D)
+     text = {}
+     for aHit in X:
+         side = 'L'
+         txt = "%8i"%(aHit.GetDetectorID())
+         for k in range(aHit.GetnSiPMs()*aHit.GetnSides()):
+              qdc = aHit.GetSignal(k)
+              if qdc < -900: continue
+              i = k
+              if not k<aHit.GetnSiPMs():
+                   i = k-aHit.GetnSiPMs()
+                   if side == 'L':
+                        txt += " | "
+                        side = 'R'
+              txt+= "  %2i:%4.1F  "%(i,qdc)
+         text[aHit.GetDetectorID()] = txt
+     keys = list(text.keys())
+     keys.sort()
+     for k in keys: print(text[k])

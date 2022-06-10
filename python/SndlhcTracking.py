@@ -59,17 +59,24 @@ class Tracking(ROOT.FairTask):
           self.clusScifi.Clear()
           self.scifiCluster()
           self.event.Cluster_Scifi = self.sink.GetOutTree().Cluster_Scifi
+    self.trackCandidates = {}
     if option=='DS':
-           self.trackCandidates = self.DStrack()
+           self.trackCandidates['DS'] = self.DStrack()
     elif option=='Scifi':
-           self.trackCandidates = self.Scifi_track()
+           self.trackCandidates['Scifi'] = self.Scifi_track()
+    elif option=='ScifiDS':
+           self.trackCandidates['DS'] = self.DStrack()
+           self.trackCandidates['Scifi'] = self.Scifi_track()
     else:
-           self.trackCandidates = self.patternReco()
-    for aTrack in self.trackCandidates:
+           self.trackCandidates['comb'] = self.patternReco()
+    for x in self.trackCandidates:
+      for aTrack in self.trackCandidates[x]:
            rc = self.fitTrack(aTrack)
            if type(rc)==type(1):
                 print('trackfit failed',rc,aTrack)
            else:
+                if x=='DS':   rc.SetUniqueID(3)
+                if x=='Scifi': rc.SetUniqueID(1)
                 self.kalman_tracks.Add(rc)
 
  def DStrack(self,nPlanes = 2, nHits = 2):
