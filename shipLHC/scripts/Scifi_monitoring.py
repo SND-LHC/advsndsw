@@ -85,6 +85,9 @@ class Scifi_residuals(ROOT.FairTask):
        self.projs = {1:'V',0:'H'}
        self.parallelToZ = ROOT.TVector3(0., 0., 1.)
        run = ROOT.FairRunAna.Instance()
+       ioman = ROOT.FairRootManager.Instance()
+       self.OT = ioman.GetSink().GetOutTree()
+
        self.trackTask = self.M.FairTasks['simpleTracking']
        if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
 
@@ -98,22 +101,40 @@ class Scifi_residuals(ROOT.FairTask):
                ut.bookHist(h,'resY'+proj+'_Scifi'+str(s*10+o),'residual '+proj+str(s*10+o)+'; [#mum]',NbinsRes,xmin,xmax,100,10.,60.)
                ut.bookHist(h,'resC'+proj+'_Scifi'+str(s*10+o),'residual '+proj+str(s*10+o)+'; [#mum]',NbinsRes,xmin,xmax,128*4*3,-0.5,128*4*3-0.5)
                ut.bookHist(h,'track_Scifi'+str(s*10+o),'track x/y '+str(s*10+o)+'; x [cm]; y [cm]',80,-70.,10.,80,0.,80.)
-               ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
-               ut.bookHist(h,detector+'trackSlopes','track slope; x/z [mrad]; y/z [mrad]',1000,-100,100,1000,-100,100)
-               ut.bookHist(h,detector+'trackSlopesXL','track slope; x/z [rad]; y/z [rad]',120,-1.1,1.1,120,-1.1,1.1)
-               ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
-               ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+       ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
+       ut.bookHist(h,detector+'trackSlopes','track slope; x/z [mrad]; y/z [mrad]',1000,-100,100,1000,-100,100)
+       ut.bookHist(h,detector+'trackSlopesXL','track slope; x/z [rad]; y/z [rad]',120,-1.1,1.1,120,-1.1,1.1)
+       ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+       ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
 
        if alignPar:
             for x in alignPar:
                self.M.Scifi.SetConfPar(x,alignPar[x])
 
    def ExecuteEvent(self,event):
+       h = self.M.h
        if not hasattr(event,"Cluster_Scifi"):
-               trackTask.scifiCluster()
+               self.trackTask.scifiCluster()
                clusters = self.OT.Cluster_Scifi
        else:
                clusters = event.Cluster_Scifi
+
+# overall tracking
+       self.trackTask.ExecuteTask("Scifi")
+       for aTrack in self.OT.Reco_MuonTracks:
+          if not aTrack.GetUniqueID()==1: continue
+          fitStatus = aTrack.getFitStatus()
+          if not fitStatus.isFitConverged(): continue
+          state = aTrack.getFittedState()
+          pos    = state.getPos()
+          mom = state.getMom()
+          slopeX = mom.X()/mom.Z()
+          slopeY = mom.Y()/mom.Z()
+          rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
+          rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
+          rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
+          rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+          if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
 
        sortedClusters={}
        for aCl in clusters:
@@ -122,7 +143,6 @@ class Scifi_residuals(ROOT.FairTask):
            sortedClusters[so].append(aCl)
 # select events with clusters in each plane
        if len(sortedClusters)<10: return
-       h = self.M.h
        for s in range(1,6):
 # build trackCandidate
             hitlist = {}
@@ -139,17 +159,6 @@ class Scifi_residuals(ROOT.FairTask):
             if not fitStatus.isFitConverged(): 
                  theTrack.Delete()
                  continue
-            rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
-            fstate =  theTrack.getFittedState()
-            mom = fstate.getMom()
-            slopeX= mom.X()/mom.Z()
-            slopeY= mom.Y()/mom.Z()
-
-            pos = fstate.getPos()
-            rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
-            rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
-            rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
-            if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
 # test plane 
             for o in range(2):
                 testPlane = s*10+o

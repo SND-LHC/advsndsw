@@ -136,6 +136,7 @@ class Mufi_hitMaps(ROOT.FairTask):
       Xbar = -10
       Ybar = -10
       for aTrack in self.OT.Reco_MuonTracks:
+         if not aTrack.GetUniqueID()==3: continue
          state = aTrack.getFittedState()
          pos    = state.getPos()
          rc = h[detector+'bs'].Fill(pos.x(),pos.y())
