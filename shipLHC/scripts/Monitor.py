@@ -527,7 +527,6 @@ class TrackSelector():
 
    def Execute(self):
       for n in range(self.options.nStart,self.options.nStart+self.options.nEvents):
-          for aTrack in self.OT.Reco_MuonTracks: aTrack.Delete()
           self.eventTree.GetEvent(n)
           self.ExecuteEvent(self.eventTree)
           if self.OT.Reco_MuonTracks.GetEntries()>0:
