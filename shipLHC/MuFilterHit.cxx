@@ -51,10 +51,10 @@ MuFilterHit::MuFilterHit(Int_t detID, std::vector<MuFilterPoint*> V)
      Float_t siPMcalibration=0;
      Float_t siPMcalibrationS=0;
      Float_t propspeed =0;
-     if (floor(detID/10000==3)) { 
+     if (floor(detID/10000)==3) { 
               if (nSides==2){attLength = MuFilterDet->GetConfParF("MuFilter/DsAttenuationLength");}
               else                    {attLength = MuFilterDet->GetConfParF("MuFilter/DsTAttenuationLength");}
-              siPMcalibration = MuFilterDet->GetConfParF("MuFilter/DsSiPMcalibrationS");
+              siPMcalibration = MuFilterDet->GetConfParF("MuFilter/DsSiPMcalibration");
               propspeed = MuFilterDet->GetConfParF("MuFilter/DsPropSpeed");
      }
      else { 
