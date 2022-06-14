@@ -111,8 +111,9 @@ if options.nEvents < 0 :
     else:    options.nEvents = M.eventTree.GetEntries()
 
 monitorTasks = {}
-monitorTasks['daq']   = DAQ_monitoring.DAQ_boards()
-monitorTasks['rates']   = DAQ_monitoring.Time_evolution()
+if not options.fname:
+   monitorTasks['daq']     = DAQ_monitoring.DAQ_boards()
+   monitorTasks['rates']   = DAQ_monitoring.Time_evolution()
 monitorTasks['Scifi_hitMaps']   = Scifi_monitoring.Scifi_hitMaps()
 monitorTasks['Mufi_hitMaps']   = Mufi_monitoring.Mufi_hitMaps()
 monitorTasks['Mufi_QDCcorellations']   = Mufi_monitoring.Mufi_largeVSsmall()
