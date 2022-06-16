@@ -23,6 +23,7 @@ parser.add_argument("-b", "--heartBeat", dest="heartBeat", help="heart beat", ty
 parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_convRaw", help="convert raw data using ConvRawData FairTask", default=False)
 parser.add_argument( "--withCalibration", action='store_true', dest="makeCalibration", help="make QDC and TDC calibration, not taking from raw data", default=False)
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile",default=None)
+parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 
 options = parser.parse_args()
 options.chi2Max = 2000.

@@ -12,10 +12,10 @@ class ConvRawDataPY(ROOT.FairTask):
       self.debug        = options.debug
       self.monitoring = options.online
       local = False
-      if (options.path.find('eos')<0 and not options.online) or os.path.isdir(options.path):    local = True
+      if (options.path.find('eos')<0 and options.server.find('root://')<0 and not options.online) or os.path.isdir(options.path):    local = True
       if local: server = ''
       else:
-           server = os.environ['EOSSHIP']
+           server = options.server
            from XRootD import client
            # https://xrootd.slac.stanford.edu/doc/python/xrootd-python-0.1.0/examples.html
       if options.runNumber>0: 

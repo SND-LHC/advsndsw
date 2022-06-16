@@ -22,6 +22,7 @@ parser.add_argument("-o", "--overwrite", dest="overwrite",   action='store_true'
 parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_convRaw", help="convert raw data using ConvRawData FairTask", default=False)
 parser.add_argument("--latest", dest="latest", help="last fully converted run", default=0,type=int)
 parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode checking regularly for new files",default=False,action='store_true')
+parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 
 global options
 options = parser.parse_args()
@@ -44,10 +45,11 @@ def getPartitions(runList,path):
  partitions = {}
  for r in runList:
    directory = path+"run_"+str(r).zfill(6)
-   dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+directory,shell=True) )
+   dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+directory,shell=True) )
    partitions[r] = []
    for x in dirlist.split('\\n'):
-        ix = x.find('data_')
+        if x.find('.root')<0: continue
+        ix = x.rfind('data_')
         if ix<0: continue
         partitions[r].append( int(x[ix+5:ix+9]) )
  return partitions
@@ -58,14 +60,14 @@ def convert(runList,path,partitions={}):
     runNr   = str(r).zfill(6)
     # find partitions
     for p in partitions[r]:
-       os.system("python $SNDSW_ROOT/shipLHC/rawData/runProd.py -c  'runSinglePartition;"+path+";"+runNr+";"+str(p).zfill(4)+";EOScopy=False;check=True;'   &")
+       os.system("python $SNDSW_ROOT/shipLHC/rawData/runProd.py -c  'runSinglePartition;"+options.server+path+";"+runNr+";"+str(p).zfill(4)+";EOScopy=False;check=True;'   &")
        time.sleep(10)
        while count_python_processes('convertRawData')>ncpus:
           time.sleep(200)
  return partitions         
 
 def runSinglePartition(path,r,p,EOScopy=False,check=True):
-     inFile = os.environ['EOSSHIP']+path+'run_'+ r+'/data_'+p+'.root'
+     inFile = path+'run_'+ r+'/data_'+p+'.root'
      fI = ROOT.TFile.Open(inFile)
      if not fI:
         print('file not found',path,r,p)
@@ -73,10 +75,15 @@ def runSinglePartition(path,r,p,EOScopy=False,check=True):
      if not fI.Get('event'):
         print('file corrupted',path,r,p)
         exit()
+     s = path[0:path.rfind('//')]+'/'
+     pathM = '/'+path.split('//')[2]
      if options.FairTask_convRaw:
-        os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -cpp -b 100000 -p "+path+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
+        os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -cpp -b 100000 -p "+pathM+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
      else: 
-        os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -b 1000 -p "+path+"  -r "+str(int(r))+ " -P "+str(int(p)) + " -g geofile_sndlhc_TI18.root >log_"+r+'-'+p)
+        command = "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -b 1000 -p "+pathM+" --server="+s
+        command += "  -r "+str(int(r))+ " -P "+str(int(p)) + " -g geofile_sndlhc_TI18.root >log_"+r+'-'+p
+        print("execute ",command)
+        os.system(command)
      if check:
         rc = checkFile(path,r,p)
         if rc<0: 
@@ -87,7 +94,8 @@ def runSinglePartition(path,r,p,EOScopy=False,check=True):
      if EOScopy:  copy2EOS(path,tmp)
 
 def checkFile(path,r,p):
-     inFile = os.environ['EOSSHIP']+path+'run_'+ r+'/data_'+p+'.root'
+     print('checkfile',path,r,p)
+     inFile = path+'run_'+ r+'/data_'+p+'.root'
      fI = ROOT.TFile.Open(inFile)
      Nraw = fI.event.GetEntries()
      outFile = 'sndsw_raw_'+r+'-'+p+Mext+'.root'
@@ -199,7 +207,10 @@ def mips():
 
 runList = []
 if options.prod == "TI18":
-      path = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/"
+      if options.server.find('eospublic')<0:
+         path = "/mnt/raid1/data_online/" 
+      else:
+         path = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/"
       pathConv = "/eos/experiment/sndlhc/convertedData/commissioning/TI18/"
       if options.runNumbers=="": 
           runList = [1,6,7,8,16,18,19,20,21,23,24,25,26,27]
