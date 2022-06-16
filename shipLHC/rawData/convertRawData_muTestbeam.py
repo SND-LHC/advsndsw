@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import ROOT,os,sys,getopt
+import ROOT,os,sys
 import global_variables
 import shipRoot_conf
 import rootUtils as ut

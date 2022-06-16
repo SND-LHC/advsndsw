@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import ROOT,os,sys,getopt,subprocess,atexit,time
+import ROOT,os,sys,subprocess,atexit,time
 import Monitor
 import vetoTimeCalibration
 
@@ -31,6 +31,7 @@ def mergeResiduals():
 
 def mergeTimeDiffs():
    s = 1
+   nbars = M.systemAndBars[s]
    for tag in ['','X']:
     for side in ['L','R']:
       M.h['dtBar_Veto'+side+tag] = M.h['dtBar_Veto4_4LX'].Clone('dtBar_Veto'+side+tag)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import ROOT,os,sys,getopt
+import ROOT,os,sys
 ROOT.gSystem.Load("libXrdCl")
 import ConvRawData
 import SndlhcGeo

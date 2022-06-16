@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import ROOT,os,sys,getopt,subprocess,atexit,time
+import ROOT,os,sys,subprocess,atexit,time
 import Monitor
 import SndlhcMuonReco
 import SndlhcTracking
