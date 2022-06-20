@@ -1,8 +1,10 @@
 import ROOT,os,sys
 import rootUtils as ut
+import shipunit as u
 import pickle
 import ctypes
 from array import array
+import statistics
 
 A,B = ROOT.TVector3(),ROOT.TVector3()
 refChannel = 0
@@ -66,6 +68,7 @@ class vetoTDCplaneCalibration(ROOT.FairTask):
           vetoHits[detID].append(aHit)
        if not(len(vetoHits[10])==1) and not(len(vetoHits[11])==1): return
        for aTrack in event.Reco_MuonTracks:
+          if not aTrack.GetUniqueID()==1: continue
           tdc = {10:{},11:{}}
           S = aTrack.getFitStatus()
           if S.isFitConverged():   continue
@@ -244,6 +247,7 @@ class vetoTDCchannelCalibration(ROOT.FairTask):
        if not(len(vetoHits[10])==1) and not(len(vetoHits[11])==1): return
 
        for aTrack in event.Reco_MuonTracks:
+          if not aTrack.GetUniqueID()==1: continue
           tdc = {10:{},11:{}}
           S = aTrack.getFitStatus()
           if S.isFitConverged(): continue
@@ -330,4 +334,136 @@ class vetoTDCchannelCalibration(ROOT.FairTask):
            ut.writeHists(h,'tdcCalib.root')
        else:
            ut.writeHists(h,'tdcCalibCor.root')
+
+class vetoTimeWalk(ROOT.FairTask):
+   "meausure time walk with scifi tracks"
+   def Init(self,options,monitor):
+       self.M     = monitor
+       self.zPos = monitor.zPos
+       self.options = options
+       h = monitor.h
+       s = 1
+       for l in range(self.M.systemAndPlanes[s]):
+          for bar in range(self.M.systemAndBars[s]):
+             for side in ['L','R']:
+                for k in range(8):
+                   key = self.M.sdict[s]+str(s*10+l)+'_'+str(bar)+side+str(k)
+                   ut.bookHist(h,'tvsQDC_'+key,'t '+key+";QDC [a.u.];t [ns]",60,0.,60.,120,-7.,5.)
+       ut.bookHist(h,'trms', "rms of scifi times;t [ns]",100,0.,1.)
+       with open('ScifiTimeAlignment_v2', 'rb') as fh:
+               self.tdcScifiStationCalib = pickle.load(fh)
+       self.V = 15 * u.cm/u.ns
+       self.C = 299792458 * u.m/u.s
+       self.Vveto = 13.5 * u.cm/u.ns
+
+
+   def ExecuteEvent(self,event):
+       h = self.M.h
+       s = 1
+       vetoHits = {10:[],11:[]}
+       for aHit in event.Digi_MuFilterHits:
+          if not aHit.isValid(): continue
+          detID = aHit.GetDetectorID()//1000
+          if not detID<20: continue
+          vetoHits[detID].append(aHit)
+       if not(len(vetoHits[10])==1) and not(len(vetoHits[11])==1): return
+
+       DetID2Key={}
+       for nHit in range(event.Digi_ScifiHits.GetEntries()):
+             DetID2Key[event.Digi_ScifiHits[nHit].GetDetectorID()] = nHit
+
+       Z0 = self.zPos['Scifi'][10]
+       times = []
+       for aTrack in event.Reco_MuonTracks:
+          if not aTrack.GetUniqueID()==1: continue
+          tdc = {10:{},11:{}}
+          S = aTrack.getFitStatus()
+          if not S.isFitConverged(): continue
+          mom    = aTrack.getFittedState().getMom()
+          pos      = aTrack.getFittedState().getPos()
+          slopeX = mom.X()/mom.Z()
+          slopeY = mom.Y()/mom.Z()
+# get time of track by averaging all times of the clusters correcting for track length
+          for nM in range(aTrack.getNumPointsWithMeasurement()):
+              state = aTrack.getFittedState(nM)
+              Meas = aTrack.getPointWithMeasurement(nM)
+              W      = Meas.getRawMeasurement()
+              clkey = W.getHitId()
+              aCl    = event.Cluster_Scifi[clkey]
+              aHit = event.Digi_ScifiHits[DetID2Key[aCl.GetFirst()]]
+              s = aCl.GetFirst()//1000000
+              aCl.GetPosition(A,B)
+              mat = (aCl.GetFirst()//10000)%10
+              if aHit.isVertical():
+                        proj = 'V'
+                        L = B[1]-state.getPos()[1]
+              else:  
+                        proj = 'H'
+                        L = A[0]-state.getPos()[0]
+              time =  aCl.GetTime()   # Get time in ns, use fastest TDC of cluster
+              time-=  self.tdcScifiStationCalib[s][1][proj][mat]  # correct as function of station / projection / mat
+              time-=  self.tdcScifiStationCalib[s][0]                  # internal station calibration
+              time-=  abs(L)/self.V                                           # signal along fibre
+#
+              dZ = (A[2]+B[2])/2. - Z0
+              dL = dZ * ROOT.TMath.Sqrt( slopeX**2+slopeY**2+1 )
+              if slopeY>0.1:  dL = -dL     # cosmics from the back
+              time-=  dL/self.C                # track length with respect to sation0
+#
+              times.append(time)
+
+          sTime = statistics.mean(times)
+          rms = statistics.stdev(times)
+          rc = h['trms'].Fill(rms)
+          s = 1
+          for l in range(2):
+             zEx = self.M.zPos['MuFilter'][1*10+l]
+             lam      = (zEx-pos.z())/mom.z()
+             yEx        = pos.y()+lam*mom.y()
+             xEx        = pos.x()+lam*mom.x()  # needed for correction of signal propagation
+             for aHit in vetoHits[10+l]:
+                detID = aHit.GetDetectorID()
+                self.M.MuFilter.GetPosition(detID,A,B)
+                D = (A[1]+B[1])/2. - yEx
+                if abs(D)<5:
+                   bar = (detID%1000)
+                   tdc[10+l][bar] = {'L':{},'R':{}}
+                   for k in range(16):
+                      qdc = aHit.GetSignal(k)
+                      if qdc <0: continue
+                      kx = k
+                      side = 'L'
+                      L = A[0]-xEx
+                      if not k < 8 : 
+                           kx = k - 8
+                           side = 'R'
+                           L = B[0]-xEx
+                      T = aHit.GetTime(k) * self.M.TDC2ns
+                      T-=  abs(L)/self.Vveto     # signal along bar
+
+                      dZ = (A[2]+B[2])/2. - Z0 
+                      dL = dZ * ROOT.TMath.Sqrt( slopeX**2+slopeY**2+1 )
+                      if slopeY>0.1:  dL = -dL     # cosmics from the back
+                      T-=  dL/self.C # track length with respect to sation0
+                      key = self.M.sdict[s]+str(s*10+l)+'_'+str(bar)+side+str(kx)
+                      # print(key,T,sTime)
+                      h['tvsQDC_'+key].Fill(qdc,T-sTime)
+
+   def Plot(self):
+       h = self.M.h
+       M=self.M
+       s = 1
+       for l in range(M.systemAndPlanes[s]):
+          for side in ['L','R']:
+             ut.bookCanvas(h,'plane'+str(l)+side,'',2400,1800,8,7)
+             for kx in range(8):
+                for bar in range(M.systemAndBars[s]):
+                   tc = h['plane'+str(l)+side].cd(kx+bar*8+1)
+                   key = M.sdict[s]+str(s*10+l)+'_'+str(bar)+side+str(kx)
+                   h['tvsQDC_'+key].Draw('colz')
+
+   def Finalize(self):
+       h = self.M.h
+       s = 1
+       ut.writeHists(h,'timeWalk_'+self.M.sdict[s]+'.root')
 
