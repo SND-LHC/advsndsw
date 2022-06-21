@@ -460,18 +460,19 @@ Bool_t GenieGenerator::ReadEvent(FairPrimaryGenerator* cpg)
 
     // Get event from GENIE TTree. If we reach the end of the file, return false.
     if (fTree->GetEntry(fn) == 0 ) return kFALSE;
-    fn++;
 
     if (fn%100==0) {
       cout << "Info GenieGenerator: neutrino event-nr "<< fn << endl;
     }
 
+    fn++;
+
     // Add the neutrino to the MCTrack stack:
-    cpg->AddTrack(neu,              // Neutrino PDG
-		  pxv, pyv, pzv,    // Neutrino momentum
-		  vtxx, vtxy, vtxz, // Event vertex
-		  -1,               // Parent
-		  false);           // Don't track this particle
+    cpg->AddTrack(neu,                          // Neutrino PDG
+		  pxv, pyv, pzv,                // Neutrino momentum
+		  vtxx*100, vtxy*100, vtxz*100, // Event vertex [in cm!]
+		  -1,                           // Parent
+		  false);                       // Don't track this particle
 
     // Add final state lepton to the MCTrack stack:
     int outgoing_lepton_pdg = neu;
@@ -481,7 +482,7 @@ Bool_t GenieGenerator::ReadEvent(FairPrimaryGenerator* cpg)
     bool track_outgoing_lepton = (cc || nuel) ? true : false;
     cpg->AddTrack(outgoing_lepton_pdg,
 		  pxl, pyl, pzl,    
-		  vtxx, vtxy, vtxz, 
+		  vtxx*100, vtxy*100, vtxz*100, 
 		  0,               
 		  track_outgoing_lepton);
     
@@ -489,7 +490,7 @@ Bool_t GenieGenerator::ReadEvent(FairPrimaryGenerator* cpg)
     for (int i_hadron = 0; i_hadron < nf; i_hadron++){
       cpg->AddTrack(pdgf[i_hadron],
 		    pxf[i_hadron], pyf[i_hadron], pzf[i_hadron],    
-		    vtxx, vtxy, vtxz, 
+		    vtxx*100, vtxy*100, vtxz*100, 
 		    0,               
 		    true);
     }
