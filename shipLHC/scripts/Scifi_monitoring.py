@@ -184,14 +184,35 @@ class Scifi_residuals(ROOT.FairTask):
                 rc = h['track_Scifi'+str(testPlane)].Fill(xEx,yEx)
                 for aCl in sortedClusters[testPlane]:
                    aCl.GetPosition(A,B)
-                   if o==1 :   D = (A[0]+B[0])/2. - xEx
-                   else:         D = (A[1]+B[1])/2. - yEx
+# apply rotation 
+# apply rotation 
+                   nav.cd('/cave_1/Detector_0')
+                   gA = array('d',[A[0],A[1],A[2]])
+                   gB = array('d',[B[0],B[1],B[2]])
+                   lA =  array('d',[0,0,0])
+                   lB =  array('d',[0,0,0])
+                   nav.MasterToLocal(gA,lA)
+                   nav.MasterToLocal(gB,lB)
+                   xCl = (lA[0]+lB[0])/2.
+                   yCl = (lA[1]+lB[1])/2.
+                   zCl = (lA[2]+lB[2])/2.
+                   gpos =  array('d',[pos[0],pos[1],pos[2]])
+                   gmom =  array('d',[mom[0],mom[1],mom[2]])
+                   lpos =  array('d',[0,0,0])
+                   lmom =  array('d',[0,0,0])
+                   nav.MasterToLocal(gpos,lpos)
+                   nav.MasterToLocal(gmom,lmom)
+                   lam = (zCl-lpos[2])/lmom[2]
+                   lxEx = lpos[0]+lam*lmom[0]
+                   lyEx = lpos[1]+lam*lmom[1]
+                   if o==1 :   D = xCl - lxEx
+                   else:       D = yCl - lyEx
                    detID = aCl.GetFirst()
                    channel = detID%1000 + ((detID%10000)//1000)*128 + (detID%100000//10000)*512
-                   rc = h['res'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um)
-                   rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,xEx)
-                   rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,yEx)
-                   rc = h['resC'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,channel)
+                   rc = h['res'+projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um)
+                   rc = h['resX'+projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lxEx)
+                   rc = h['resY'+projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lyEx)
+                   rc = h['resC'+projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,channel)
 
             theTrack.Delete()
 
