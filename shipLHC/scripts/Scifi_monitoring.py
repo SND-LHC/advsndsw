@@ -3,6 +3,7 @@ import ROOT,os,sys
 import rootUtils as ut
 import shipunit as u
 import ctypes
+from array import array
 
 A,B  = ROOT.TVector3(),ROOT.TVector3()
 parallelToZ = ROOT.TVector3(0., 0., 1.)
@@ -87,7 +88,7 @@ class Scifi_residuals(ROOT.FairTask):
        run = ROOT.FairRunAna.Instance()
        ioman = ROOT.FairRootManager.Instance()
        self.OT = ioman.GetSink().GetOutTree()
-
+       self.nav = ROOT.gGeoManager.GetCurrentNavigator()
        self.trackTask = self.M.FairTasks['simpleTracking']
        if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
 
@@ -113,6 +114,7 @@ class Scifi_residuals(ROOT.FairTask):
 
    def ExecuteEvent(self,event):
        h = self.M.h
+       nav = self.nav
        if not hasattr(event,"Cluster_Scifi"):
                self.trackTask.scifiCluster()
                clusters = self.OT.Cluster_Scifi
@@ -185,7 +187,6 @@ class Scifi_residuals(ROOT.FairTask):
                 for aCl in sortedClusters[testPlane]:
                    aCl.GetPosition(A,B)
 # apply rotation 
-# apply rotation 
                    nav.cd('/cave_1/Detector_0')
                    gA = array('d',[A[0],A[1],A[2]])
                    gB = array('d',[B[0],B[1],B[2]])
@@ -209,10 +210,10 @@ class Scifi_residuals(ROOT.FairTask):
                    else:       D = yCl - lyEx
                    detID = aCl.GetFirst()
                    channel = detID%1000 + ((detID%10000)//1000)*128 + (detID%100000//10000)*512
-                   rc = h['res'+projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um)
-                   rc = h['resX'+projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lxEx)
-                   rc = h['resY'+projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lyEx)
-                   rc = h['resC'+projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,channel)
+                   rc = h['res'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um)
+                   rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lxEx)
+                   rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lyEx)
+                   rc = h['resC'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,channel)
 
             theTrack.Delete()
 
