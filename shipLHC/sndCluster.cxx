@@ -24,7 +24,7 @@ sndCluster::sndCluster(Int_t first, Int_t N,std::vector<sndScifiHit*> hitlist,Sc
 		ScifiDet->GetSiPMPosition(k+fFirst, A, B);
 		Double_t w = 1.;
 		if (withQDC) {dynamic_cast<sndScifiHit*> (hitlist.at(k))->GetEnergy();}
-		Double_t t = 6.25 * dynamic_cast<sndScifiHit*> (hitlist.at(k))->GetTime();
+		Double_t t = 1000./160.316 * dynamic_cast<sndScifiHit*> (hitlist.at(k))->GetTime();
 		weight+=w;
 		fMeanPositionA+=w*TVector3(A);
 		fMeanPositionB+=w*TVector3(B);
