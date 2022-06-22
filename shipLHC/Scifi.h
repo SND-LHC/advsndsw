@@ -33,6 +33,7 @@ public:
     TVector3 GetLocalPos(Int_t id, TVector3* glob);
     /** mean position of fibre2 associated with SiPM channel **/
     void GetSiPMPosition(Int_t SiPMChan, TVector3& A, TVector3& B) ;
+    Double_t GetCorrectedTime(Int_t fDetectorID, Double_t rawTime, Double_t L);
     Double_t ycross(Double_t a,Double_t R,Double_t x);
     Double_t integralSqrt(Double_t ynorm);
     Double_t fraction(Double_t R,Double_t x,Double_t y);
@@ -93,7 +94,7 @@ public:
     Scifi(const Scifi&);
     Scifi& operator=(const Scifi&);
     
-    ClassDef(Scifi,2)
+    ClassDef(Scifi,3)
     
 private:
     

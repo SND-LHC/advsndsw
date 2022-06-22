@@ -443,6 +443,22 @@ Last three digits F: fiber number
 	return kTRUE;
 }
 
+Double_t Scifi::GetCorrectedTime(Int_t fDetectorID, Double_t rawTime, Double_t L){
+/* expect time in u.ns  and  path length to sipm u.cm */
+
+	TString sID;
+	sID.Form("%i",fDetectorID);
+	Double_t cor = conf_floats["Scifi/station"+TString(sID(0,1))+"t"];
+
+	if (sID(1,1)=="0"){
+		cor+=conf_floats["Scifi/station"+TString(sID(0,1))+"H"+TString(sID(2,1))+"t"];
+	}else{
+		cor+=conf_floats["Scifi/station"+TString(sID(0,1))+"V"+TString(sID(2,1))+"t"];
+	}
+	cor += L/conf_floats["Scifi/signalSpeed"];
+	return rawTime-cor;
+}
+
 void Scifi::GetPosition(Int_t fDetectorID, TVector3& A, TVector3& B) 
 {
 //	TGeoVolumeAssembly *SiPMmapVol = gGeoManager->FindVolumeFast("SiPMmapVol");

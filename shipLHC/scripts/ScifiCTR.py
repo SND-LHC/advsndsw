@@ -365,11 +365,9 @@ class Scifi_TimeOfTracks(ROOT.FairTask):
               if aHit.isVertical(): 
                         L = B[1]-state.getPos()[1]
                         sortedClusters[s]['V'].append( [clkey,L,B[0],state.getPos()[1],mat,(A[2]+B[2])/2.] )
-                        rc = h['res'+str(s)+'V'].Fill( (A[0]+B[0])/2.-state.getPos()[0])
               else:  
                         L = A[0]-state.getPos()[0]
                         sortedClusters[s]['H'].append( [clkey,L,A[1],state.getPos()[0],mat,(A[2]+B[2])/2.] )
-                        rc = h['res'+str(s)+'H'].Fill( (A[1]+B[1])/2.-state.getPos()[1])
           stationTimes = {}
           for s in range(1,6):
              if not (len(sortedClusters[s]['V']) * len(sortedClusters[s]['H']) ) ==1: continue
@@ -383,6 +381,11 @@ class Scifi_TimeOfTracks(ROOT.FairTask):
                 time-=  self.tdcScifiStationCalib[s][1][proj][mat]  # correct as function of station / projection / mat
                 time-=  self.tdcScifiStationCalib[s][0]                  # internal station calibration
                 time-=  abs(L)/self.V
+
+# cross check 
+               # corTime = self.M.Scifi.GetCorrectedTime(aCl.GetFirst(),aCl.GetTime(),abs(L) )
+               # print('test',aCl.GetTime(),time,corTime)
+
                 sTime += time
              stationTimes[s] = [sTime/2.,(sortedClusters[s]['H'][0][5] + sortedClusters[s]['V'][0][5])/2.]
           # require station 1 to be present which defines T0
@@ -416,11 +419,28 @@ class histStore():
      xCheck = ''
 
 if __name__ == '__main__':
-       # F = ROOT.TFile('RunWithTracks4004-4112.root')
-       F = ROOT.TFile('RunWithTracks4208.root')
-       eventTree = F.rawConv
+   import Monitor
+   from argparse import ArgumentParser
+   parser = ArgumentParser()
+   parser.add_argument("-f", "--inputFile", dest="fname", help="file name", type=str,default='RunWithTracks4208.root',required=False)
+   parser.add_argument("-g", "--geoFile", dest="geoFile", help="file name", type=str,default=None,required=False)
+   parser.add_argument("-c", "--command", dest="command", help="command",required=False,default="")
+   parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,default=0)
+   parser.add_argument("-p", "--path", dest="path", help="path to file",required=False,default="")
+   parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
+   parser.add_argument("-M", "--online", dest="online", help="online mode",default=False,action='store_true')
+   options = parser.parse_args()
+
+   if options.geoFile:
+        M = Monitor.Monitoring(options,{})
+   else:
+        M = histStore()
+
+   F =  ROOT.TFile(options.fname)
+   eventTree = F.rawConv
+
+   if options.command == "full":
        task = Scifi_CTR()
-       M = histStore()
        M.iteration = 'v0'
        task.Init(M)
        for event in eventTree:
@@ -447,6 +467,14 @@ if __name__ == '__main__':
        task.Plot()
        ut.writeHists(M.h,'ScifiTimeCalibration.root',plusCanvas=True)
 
+       for s in range(1,6):
+          C = taskT.tdcScifiStationCalib[s]
+          print ("station %1i  %5.2F  H: %5.2F  %5.2F  %5.2F   V:  %5.2F  %5.2F  %5.2F "%( s, C[0],C[1]['H'][0], C[1]['H'][1], C[1]['H'][2],C[1]['V'][0], C[1]['V'][1], C[1]['V'][2] ) )
+       for s in range(1,6):
+          C = taskT.tdcScifiStationCalib[s]
+          print ("station %1i  %5.3F*u.ns,  %5.3F*u.ns,  %5.3F*u.ns,  %5.3F*u.ns,   %5.3F*u.ns,  %5.3F*u.ns,  %5.3F*u.ns "%( s, C[0],C[1]['H'][0], C[1]['H'][1], C[1]['H'][2],C[1]['V'][0], C[1]['V'][1], C[1]['V'][2] ) )
+
+if options.command == "full" or options.command == "check":
 # final test
        taskT = Scifi_TimeOfTracks()
        taskT.Init(M)
@@ -454,9 +482,3 @@ if __name__ == '__main__':
             taskT.ExecuteEvent(event)
             event.Reco_MuonTracks.Delete()
        taskT.Plot()
-
-for s in range(1,6):
-     C = taskT.tdcScifiStationCalib[s]
-     print ("station %1i  %5.2F  H: %5.2F  %5.2F  %5.2F   V:  %5.2F  %5.2F  %5.2F "%( s, C[0],C[1]['H'][0], C[1]['H'][1], C[1]['H'][2],C[1]['V'][0], C[1]['V'][1], C[1]['V'][2] ) )
-
-
