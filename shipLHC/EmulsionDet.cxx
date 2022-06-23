@@ -384,9 +384,12 @@ Bool_t  EmulsionDet::ProcessHits(FairVolume* vol)
         fVolumeID = detID;
 	//found number of row, column and wall
         //if (NColumn > 2 || NRow > 2 || NWall > 5) cout<<"Debug test for detID "<<detID<<" is "<<NColumn<<" "<<NRow<<" "<<NWall<<" "<<NPlate<<endl;
-	if (fELoss == 0. ) { return kFALSE; }
         TParticle* p=gMC->GetStack()->GetCurrentTrack();
 	Int_t pdgCode = p->GetPdgCode();
+	TParticlePDG *particleinfo = p->GetPDG();
+	if(particleinfo){
+			if (particleinfo->Charge() == 0) {return kFALSE;}
+	} //if particle is recognized, check if it is charged
 	
         TLorentzVector Pos; 
         gMC->TrackPosition(Pos); 
