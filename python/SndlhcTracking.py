@@ -176,7 +176,7 @@ class Tracking(ROOT.FairTask):
         return trackCandidates
 
  def scifiCluster(self):
-       self.sink.GetOutTree().Cluster_Scifi.Delete()
+       if self.sink.GetOutTree().GetBranch("Cluster_Scifi"):  self.sink.GetOutTree().Cluster_Scifi.Delete()
        clusters = []
        hitDict = {}
        for k in range(self.event.Digi_ScifiHits.GetEntries()):
