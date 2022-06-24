@@ -317,6 +317,7 @@ ioman = ROOT.FairRootManager.Instance()
 ioman.SetTreeName(eventChain.GetName())
 outFile = ROOT.TMemFile('dummy','CREATE')
 source = ROOT.FairFileSource(eventChain.GetCurrentFile())
+
 if partitions>0:
     for p in range(1,partitions):
                        source.AddFile(path+'run_'+runNr+'/sndsw_raw-'+str(p).zfill(4)+'.root')
@@ -343,9 +344,6 @@ xrdb.getContainer("FairGeoParSet").setStatic()
 run.Init()
 if partitions>0:  eventTree = ioman.GetInChain()
 else:                 eventTree = ioman.GetInTree()
-# backward compatbility for early converted events
-eventTree.GetEvent(0)
-if eventTree.GetBranch('Digi_MuFilterHit'): eventTree.Digi_MuFilterHits = eventTree.Digi_MuFilterHit
 
 ioman = ROOT.FairRootManager.Instance()
 OT = ioman.GetSink().GetOutTree()
@@ -3127,21 +3125,22 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False)
     ut.bookHist(h,'trackChi2/ndof','track chi2/ndof vs ndof',100,0,100,20,0,20)
     ut.bookHist(h,'trackSlopes','track slope; x [mrad]; y [mrad]',1000,-100,100,1000,-100,100)
     parallelToZ = ROOT.TVector3(0., 0., 1.)
-
     if Nev < 0 : Nev = eventTree.GetEntries()
     N=0
 # set alignment parameters
     if alignPar:
        for x in alignPar:
              Scifi.SetConfPar(x,alignPar[x])
+
     for event in eventTree:
        N+=1
        if N%100000==0: print('now at event ',N)
        if N>Nev: break
 
-       if not hasattr(event,"Cluster_Scifi"):
+       if not hasattr(event,"Cluster_Scifi") or alignPar:
+               if hasattr(trackTask,"clusScifi"): trackTask.clusScifi.Clear()   
                trackTask.scifiCluster()
-               clusters = OT.Cluster_Scifi
+               clusters = trackTask.clusScifi
        else:
                clusters = event.Cluster_Scifi
 
@@ -3150,9 +3149,14 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False)
            so = aCl.GetFirst()//100000
            if not so in sortedClusters: sortedClusters[so]=[]
            sortedClusters[so].append(aCl)
+ 
 # select events with clusters in each plane
        if len(sortedClusters)<10: continue
-
+       goodEvent = True
+       for s in sortedClusters:
+          if len(sortedClusters[s])>1: goodEvent=False
+       if not goodEvent: continue
+       
        for s in range(1,6):
 # build trackCandidate
             hitlist = {}
@@ -3322,6 +3326,15 @@ def printScifi_residuals(tag='v0'):
     myPrint(h['beamSpot'],tag+'-beamSpot')
 
 def minimizeAlignScifi(first=True,level=1,migrad=False):
+    eventTree.SetBranchStatus("Cluster_Scifi",0)
+    eventTree.SetBranchStatus("Reco_MuonTracks",0)
+    global trackTask
+    trackTask = SndlhcTracking.Tracking()
+    trackTask.SetName('simpleTracking')
+    trackTask.Init()
+    trackTask.makeScifiClusters = True
+    trackTask.clusScifi   = ROOT.TObjArray(100);
+   
     h['chisq'] = []
     npar = 30
     vstart  = array('d',[0]*npar)
@@ -3330,57 +3343,58 @@ def minimizeAlignScifi(first=True,level=1,migrad=False):
        h['xmin'] =-5000.
        X = Scifi_residuals(Nev=10000,NbinsRes=100,xmin=h['xmin'])
        for m in range(3):
-          vstart[m]     = -X["Scifi/LocD10"]
+          vstart[m]   = -X["Scifi/LocD10"]
           vstart[3+m] = -X["Scifi/LocD11"]
-       errr = 1000.*u.um
+       err = 1000.*u.um
+       h['npar'] = 10
     else:
 # best guess from first round
        if level==1:
         for m in range(3):
-          vstart[m] = 0.0537
-          vstart[1*3+m] = 0.1190
-          vstart[2*3+m] = 0.0113
-          vstart[3*3+m] = 0.0810
-          vstart[4*3+m] = 0.0022
-          vstart[5*3+m] = -0.1572
-          vstart[6*3+m] = 0.0125
-          vstart[7*3+m] = 0.0326
-          vstart[8*3+m] = 0.0229
-          vstart[9*3+m] = 0.0075
-          err = 25.*u.um
+          vstart[0*3+m] = 0.0
+          vstart[1*3+m] = 0.0
+          vstart[2*3+m] = 0.0
+          vstart[3*3+m] = 0.0
+          vstart[4*3+m] = 0.0
+          vstart[5*3+m] = 0.0
+          vstart[6*3+m] = 0.0
+          vstart[7*3+m] = 0.0
+          vstart[8*3+m] = 0.0
+          vstart[9*3+m] = 0.0
+          err = 500.*u.um
           h['xmin'] =-2000.
-          h['npar'] = 10
+          h['npar'] = 30
        if level==2:
-          vstart[0] =  0.0537
-          vstart[1] =  0.0537     
-          vstart[2] =  0.0537     
-          vstart[3] =  0.1190     
-          vstart[4] =  0.1153     
-          vstart[5] =  0.1190     
-          vstart[6] =  0.0113     
-          vstart[7] =  0.0113     
-          vstart[8] =  0.0113     
-          vstart[9] =  0.0810     
-          vstart[10] = 0.0810     
-          vstart[11] = 0.0810     
-          vstart[12] = 0.0022     
-          vstart[13] = 0.0022     
-          vstart[14] = 0.0022     
-          vstart[15] = -0.1572    
-          vstart[16] = -0.1673    
-          vstart[17] = -0.1572    
-          vstart[18] = 0.0097     
-          vstart[19] = 0.0125     
-          vstart[20] = 0.0262     
-          vstart[21] = 0.0333     
-          vstart[22] = 0.0306     
-          vstart[23] = 0.0361     
-          vstart[24] = 0.0229     
-          vstart[25] = 0.0221     
-          vstart[26] = 0.0257     
-          vstart[27] = -0.0112
-          vstart[28] = 0.0405
-          vstart[29] = 0.0099
+          vstart[0] =  0.0
+          vstart[1] =  0.0    
+          vstart[2] =  0.0    
+          vstart[3] =  0.0  
+          vstart[4] =  0.0   
+          vstart[5] =  0.0   
+          vstart[6] =  0.0 
+          vstart[7] =  0.0  
+          vstart[8] =  0.0  
+          vstart[9] =  0.0     
+          vstart[10] = 0.0    
+          vstart[11] = 0.0     
+          vstart[12] = 0.0  
+          vstart[13] = 0.0   
+          vstart[14] = 0.0     
+          vstart[15] = 0.0  
+          vstart[16] = 0.0   
+          vstart[17] = 0.0     
+          vstart[18] = 0.0    
+          vstart[19] = 0.0  
+          vstart[20] = 0.0      
+          vstart[21] = 0.0      
+          vstart[22] = 0.0    
+          vstart[23] = 0.0       
+          vstart[24] = 0.0       
+          vstart[25] = 0.0     
+          vstart[26] = 0.0   
+          vstart[27] = 0.0  
+          vstart[28] = 0.0  
+          vstart[29] = 0.0  
           err = 25.*u.um
           h['xmin'] =-2000.
           h['npar'] = 30
@@ -3407,8 +3421,7 @@ def minimizeAlignScifi(first=True,level=1,migrad=False):
         for o in range(2):
              name = "Scifi/LocM"
              for m in range(3):
-                 if level==1: gMinuit.mnparm(p, name+str(s*10+o), vstart[p], err, 0.,0.,ierflg)
-                 if level==2 or level==3: gMinuit.mnparm(p, name+str(s*100+o*10+m), vstart[p], err, 0.,0.,ierflg)
+                 gMinuit.mnparm(p, name+str(s*100+o*10+m), vstart[p], err, 0.,0.,ierflg)
                  p+=1
     if level == 1:
         for m in range(3):
