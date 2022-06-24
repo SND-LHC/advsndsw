@@ -233,7 +233,7 @@ Float_t MuFilterHit::GetImpactT(Bool_t mask)
           else if (floor(fDetectorID/10000==2)) { 
              dL = MuFilterDet->GetConfParF("MuFilterDet/UpstreamBarX") / MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");}
           else { 
-             dL = MuFilterDet->GetConfParF("MuFilterDet/VeoBarX") / MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");}
+             dL = MuFilterDet->GetConfParF("MuFilterDet/VetoBarX") / MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");}
 
           for (unsigned int s=0; s<nSides; ++s){
               for (unsigned int j=0; j<nSiPMs; ++j){
