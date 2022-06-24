@@ -3130,7 +3130,7 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False)
 # set alignment parameters
     if alignPar:
        for x in alignPar:
-             Scifi.SetConfPar(x,alignPar[x])
+             Scifi.SetConfPar(x,alignPar[x]*u.um)
 
     for event in eventTree:
        N+=1
@@ -3138,7 +3138,8 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False)
        if N>Nev: break
 
        if not hasattr(event,"Cluster_Scifi") or alignPar:
-               if hasattr(trackTask,"clusScifi"): trackTask.clusScifi.Clear()   
+               if hasattr(trackTask,"clusScifi"): 
+                   trackTask.clusScifi.Clear()   
                trackTask.scifiCluster()
                clusters = trackTask.clusScifi
        else:
@@ -3338,7 +3339,7 @@ def minimizeAlignScifi(first=True,level=1,migrad=False):
     h['chisq'] = []
     npar = 30
     vstart  = array('d',[0]*npar)
-    h['Nevents'] = 10000
+    h['Nevents'] = 200000
     if first:
        h['xmin'] =-5000.
        X = Scifi_residuals(Nev=10000,NbinsRes=100,xmin=h['xmin'])
@@ -3350,20 +3351,17 @@ def minimizeAlignScifi(first=True,level=1,migrad=False):
     else:
 # best guess from first round
        if level==1:
-        for m in range(3):
-          vstart[0*3+m] = 0.0
-          vstart[1*3+m] = 0.0
-          vstart[2*3+m] = 0.0
-          vstart[3*3+m] = 0.0
-          vstart[4*3+m] = 0.0
-          vstart[5*3+m] = 0.0
-          vstart[6*3+m] = 0.0
-          vstart[7*3+m] = 0.0
-          vstart[8*3+m] = 0.0
-          vstart[9*3+m] = 0.0
-          err = 500.*u.um
-          h['xmin'] =-2000.
-          h['npar'] = 30
+        h['xmin'] =-2000.
+        h['npar'] = 30
+        X = Scifi_residuals(Nev=10000,NbinsRes=100,xmin=h['xmin'])
+        p=0
+        for s in range(1,6):
+           for o in range(2):
+             name = "Scifi/LocM"
+             for m in range(3):
+                 vstart[p] = -X[name+str(s*100+m*10+o)]
+                 p+=1
+        err = 500.*u.um
        if level==2:
           vstart[0] =  0.0
           vstart[1] =  0.0    
@@ -3421,14 +3419,16 @@ def minimizeAlignScifi(first=True,level=1,migrad=False):
         for o in range(2):
              name = "Scifi/LocM"
              for m in range(3):
-                 gMinuit.mnparm(p, name+str(s*100+o*10+m), vstart[p], err, 0.,0.,ierflg)
+                 gMinuit.mnparm(p, name+str(s*100+m*10+o), vstart[p], err, 0.,0.,ierflg)
                  p+=1
     if level == 1:
-        for m in range(3):
-          gMinuit.FixParameter(m)
-          gMinuit.FixParameter(1*3+m)
-          if m!=0: 
-            for s in range(1,10): gMinuit.FixParameter(s*3+m)
+      p=0
+      for s in range(1,6):
+        for o in range(2):
+             for m in range(3):
+                 if s==1 and m==0: gMinuit.FixParameter(p)
+                 p+=1
+
     if level == 2 or level == 3:
 # station 1 H
        gMinuit.FixParameter(0)
@@ -3504,6 +3504,7 @@ def FCN(npar, gin, f, par, iflag):
        print('minuit %s %6.4F'%(name,par[p]))
    X = Scifi_residuals(Nev=h['Nevents'],NbinsRes=100,xmin=h['xmin'],alignPar=alignPar)
    for name in X:
+       print('add chi2',name)
        chisq += abs(X[name])
    print('chisq=',chisq,iflag,h['iter'])
    f.value = int(chisq)
