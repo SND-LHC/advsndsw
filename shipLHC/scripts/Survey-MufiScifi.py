@@ -3504,7 +3504,6 @@ def FCN(npar, gin, f, par, iflag):
        print('minuit %s %6.4F'%(name,par[p]))
    X = Scifi_residuals(Nev=h['Nevents'],NbinsRes=100,xmin=h['xmin'],alignPar=alignPar)
    for name in X:
-       print('add chi2',name)
        chisq += abs(X[name])
    print('chisq=',chisq,iflag,h['iter'])
    f.value = int(chisq)
