@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<alg_conf>
+
+<!--
+Configuration sets for the LHAPDF6 PDFModelI
+
+Configurable Parameters:
+................................................................................................
+Name             Type     Optional   Comment                             Default
+................................................................................................
+SetName          string   No         LHAPDF PDF name
+MemberID         int      No         LHAPDF PDF number within set name
+-->
+
+<!-- default PDF-Q2min couple taken from MMHT2014lo68cl.info -->
+ <param_set name="MMHT2014lo"> 
+     <param type="double" name="PDF-Q2min"> 1.0 </param> 
+     <param type="string" name="SetName">  MMHT2014lo68cl </param>
+     <param type="int"    name="MemberID"> 0       </param>
+ </param_set>  
+
+</alg_conf>
+
