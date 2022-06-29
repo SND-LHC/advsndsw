@@ -43,7 +43,8 @@ MuFilterHit::MuFilterHit(Int_t detID, std::vector<MuFilterPoint*> V)
      MuFilter* MuFilterDet = dynamic_cast<MuFilter*> (gROOT->GetListOfGlobals()->FindObject("MuFilter"));
      // get parameters from the MuFilter detector for simulating the digitized information
      nSiPMs  = MuFilterDet->GetnSiPMs(detID);
-     nSides   = MuFilterDet->GetnSides(detID);
+     if (floor(detID/10000)==3&&detID%1000>59) nSides = MuFilterDet->GetnSides(detID) - 1;
+     else nSides = MuFilterDet->GetnSides(detID);
 
      Float_t timeResol = MuFilterDet->GetConfParF("MuFilter/timeResol");
 
@@ -89,7 +90,7 @@ MuFilterHit::MuFilterHit(Int_t detID, std::vector<MuFilterPoint*> V)
         signalRight+=signal*TMath::Exp(-distance_Right/attLength);
 
       // for the timing, find earliest particle and smear with time resolution
-        Double_t ptime    = (*p)->GetTime()*1E-9;
+        Double_t ptime    = (*p)->GetTime();
         Double_t t_Left    = ptime + distance_Left/propspeed;
         Double_t t_Right = ptime + distance_Right/propspeed;
         if ( t_Left <earliestToAL){earliestToAL = t_Left ;}
