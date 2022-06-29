@@ -308,83 +308,90 @@ def addTrack(OT,scifi=False):
       nTrack+=1
 
 def drawDetectors():
-    nodes = {'volVeto_1/volVetoPlane_0_0':ROOT.kRed,'volVeto_1/volVetoPlane_1_1':ROOT.kRed,
-                    'volMuFilter_1/volMuUpstreamDet_0_2':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_1_3':ROOT.kGreen,
-                    'volMuFilter_1/volMuUpstreamDet_2_4':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_3_5':ROOT.kGreen,
-                    'volMuFilter_1/volMuUpstreamDet_4_6':ROOT.kGreen,
-                    'volMuFilter_1/volMuDownstreamDet_0_7':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_1_8':ROOT.kCyan,
-                    'volMuFilter_1/volMuDownstreamDet_2_9':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_3_10':ROOT.kCyan,
-                    'volTarget_1/ScifiVolume1_1000000':ROOT.kBlue,'volTarget_1/ScifiVolume2_2000000':ROOT.kBlue,'volTarget_1/ScifiVolume3_3000000':ROOT.kBlue,
-                    'volTarget_1/ScifiVolume4_4000000':ROOT.kBlue,'volTarget_1/ScifiVolume5_5000000':ROOT.kBlue,
-		    'volVeto_1/subVetoBox_0':ROOT.kGray+1,'volVeto_1/subVetoBox_1':ROOT.kGray+1,
-		    'volTarget_1/volWallborder_0':ROOT.kGray, 'volTarget_1/volWallborder_1':ROOT.kGray, 'volTarget_1/volWallborder_2':ROOT.kGray,
-		    'volTarget_1/volWallborder_3':ROOT.kGray, 'volTarget_1/volWallborder_4':ROOT.kGray,
-		    'volMuFilter_1/volFeBlock_0':ROOT.kGray+2, 'volMuFilter_1/volFeBlock_1':ROOT.kGray+2, 'volMuFilter_1/volFeBlock_2':ROOT.kGray+2,
-		    'volMuFilter_1/volFeBlock_3':ROOT.kGray+2, 'volMuFilter_1/volFeBlock_4':ROOT.kGray+2, 'volMuFilter_1/volFeBlock_7':ROOT.kGray+2,
-		    'volMuFilter_1/volFeBlock_8':ROOT.kGray+2, 'volMuFilter_1/volFeBlock_9':ROOT.kGray+2, 'volMuFilter_1/volFeBlockEnd_1':ROOT.kGray+2,
-		    'volMuFilter_1/volBlockBot_1':ROOT.kGray+2}
-    passNodes = {'Block', 'Wall'}
-    endNodes = {'BlockEnd', 'BlockBot'} 
-    proj = {'X':0,'Y':1}
-    for node in nodes:
+   nodes = {'volMuFilter_1/volFeBlockEnd_1':ROOT.kGreen-3, 'volMuFilter_1/volBlockBot_1':ROOT.kGreen-3}
+   for i in range(2):
+      #nodes['volVeto_1/volVetoPlane_{}_{}'.format(i, i)]=ROOT.kRed
+      nodes['volVeto_1/subVetoBox_{}'.format(i)]=ROOT.kGray+1
+      for j in range(7):
+         nodes['volVeto_1/volVetoPlane_{}_{}/volVetoBar_1{}{:0>3d}'.format(i, i, i, j)]=ROOT.kRed
+   for i in range(3):
+      #nodes['volMuFilter_1/volMuDownstreamDet_{}_{}'.format(i, i+7)]=ROOT.kGreen
+      for j in range(60):
+         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_hor_3{}{:0>3d}'.format(i, i+7, i, j)]=ROOT.kAzure+1
+         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_ver_3{}{:0>3d}'.format(i, i+7, i, j+60)]=ROOT.kMagenta
+   for j in range(60):
+      nodes['volMuFilter_1/volMuDownstreamDet_3_10/volMuDownstreamBar_ver_33{:0>3d}'.format(j+60)]=ROOT.kMagenta
+   for i in range(4):
+      nodes['volMuFilter_1/subDSBox_{}'.format(i+7)]=ROOT.kGray
+   for i in range(5):
+      nodes['volTarget_1/ScifiVolume{}_{:0<7d}'.format(i+1, i+1)]=ROOT.kBlue
+      nodes['volTarget_1/volWallborder_{}'.format(i)]=ROOT.kGray+1
+      nodes['volMuFilter_1/subUSBox_{}'.format(i+2)]=ROOT.kGray
+      #nodes['volMuFilter_1/volMuUpstreamDet_{}_{}'.format(i, i+2)]=ROOT.kGreen
+      for j in range(10):
+         nodes['volMuFilter_1/volMuUpstreamDet_{}_{}/volMuUpstreamBar_2{}{:0>3d}'.format(i, i+2, i, j)]=ROOT.kBlue+2
+      nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-3
+   for i in range(7,10):
+      nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-3
+   for i in range(5):
+      print(i)
+
+   passNodes = {'Block', 'Wall'}
+   endNodes = {'BlockEnd', 'BlockBot'} 
+   proj = {'X':0,'Y':1}
+   
+   for node in nodes:
       if not node+'X' in h:
-        n = '/Detector_0/'+node
-        nav.cd(n)
-        N = nav.GetCurrentNode()
-        S = N.GetVolume().GetShape()
-        dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
-        ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
-        for p in proj:
-           P = {}
-           M = {}
-           if p=='X':
-              P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
-              P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
-              P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
-              P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
-           else:
-              P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
-              P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
-              P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
-              P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
-           for C in P:
-                 M[C] = array('d',[0,0,0])
-                 nav.LocalToMaster(P[C],M[C])
-           if any(passNode in node for passNode in passNodes):
-              h[node+p] = ROOT.TPolyLine()
-              X = h[node+p]
-              c = proj[p]
-              X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
-              X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
-              X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
-              X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
-              X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
-              X.SetLineColor(nodes[node])
-              if any(endNode in node for endNode in endNodes) and p=='X':
-                 X.SetFillColorAlpha(nodes[node], 0.2)
-              else:
-                 X.SetFillColorAlpha(nodes[node], 0.5)
-              h[ 'simpleDisplay'].cd(c+1)
-              X.Draw('f')
-           else:
-              h[node+p] = ROOT.TGraph()
-              X = h[node+p]
-              c = proj[p]
-              X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
-              X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
-              X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
-              X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
-              X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
-              X.SetLineColor(nodes[node])
-              X.SetFillColor(nodes[node])
-              h[ 'simpleDisplay'].cd(c+1)
-              X.Draw('same')
+         n = '/Detector_0/'+node
+         nav.cd(n)
+         N = nav.GetCurrentNode()
+         S = N.GetVolume().GetShape()
+         dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
+         ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
+         for p in proj:
+            P = {}
+            M = {}
+            if p=='X':
+               P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
+               P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
+               P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
+               P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+            else:
+               P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+               P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
+               P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+               P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+            for C in P:
+               M[C] = array('d',[0,0,0])
+               nav.LocalToMaster(P[C],M[C])
+            h[node+p] = ROOT.TPolyLine()
+            X = h[node+p]
+            c = proj[p]
+            X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+            X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+            X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+            X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+            X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+            X.SetLineColor(nodes[node])
+            h[ 'simpleDisplay'].cd(c+1)
+            if any(endNode in node for endNode in endNodes) and p=='X':
+               X.SetFillColorAlpha(nodes[node], 0.2)
+               X.Draw('f&&same')
+            elif any(passNode in node for passNode in passNodes):
+               X.SetFillColorAlpha(nodes[node], 0.5)
+               X.Draw('f&&same')
+            else:
+               X.Draw('same')
+
       else:
-        for p in proj:
-           X = h[node+p]
-           c = proj[p]
-           h[ 'simpleDisplay'].cd(c+1)
-           X.Draw('same')
+         for p in proj:
+            X = h[node+p]
+            c = proj[p]
+            h[ 'simpleDisplay'].cd(c+1)
+            if any(passNode in node for passNode in passNodes):
+               X.Draw('f&&same')  
+            else:
+               X.Draw('same')
 
 def dumpVeto():
     muHits = {10:[],11:[]}
