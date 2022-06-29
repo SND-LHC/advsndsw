@@ -64,8 +64,21 @@ set(DEPENDENCIES Base ShipData EvtGen EvtGenExternal)
 
 GENERATE_LIBRARY()
 
-add_executable(sndlhcGSimpleNtpConverter sndlhcGSimpleNtpConverter.cxx)
-target_link_libraries(sndlhcGSimpleNtpConverter ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -lAPFEL -llog4cpp -lLHAPDF)
+# Check if genie flux libraries exist
 
+string(FIND ${GENIE_LIBS} lGTlFlx GENIE_FLUX_EXISTS)
+
+# Compile genie tools only if flux libraries exist
+if (${GENIE_FLUX_EXISTS})
+add_executable(sndlhcGSimpleNtpConverter sndlhcGSimpleNtpConverter.cxx)
 add_executable(addAuxiliaryToGST addAuxiliaryToGST.cxx)
+
+if(DEFINED ENV{APFEL_ROOT})
+target_link_libraries(sndlhcGSimpleNtpConverter ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -lAPFEL -llog4cpp -lLHAPDF)
 target_link_libraries(addAuxiliaryToGST ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -lAPFEL -llog4cpp -lLHAPDF)
+else()
+target_link_libraries(sndlhcGSimpleNtpConverter ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -llog4cpp -lLHAPDF)
+target_link_libraries(addAuxiliaryToGST ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -llog4cpp -lLHAPDF)
+endif()
+endif()
+
