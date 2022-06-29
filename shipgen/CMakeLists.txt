@@ -2,9 +2,6 @@
 # the array .
 # The extension is already found.  Any number of sources could be listed here.
 
-execute_process(COMMAND genie-config --libs OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE GENIE_LIBS)
-execute_process(COMMAND genie-config --topsrcdir OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE GENIE_SRCDIR)
-
 set(INCLUDE_DIRECTORIES
 ${CMAKE_SOURCE_DIR}/shipgen
 ${CMAKE_SOURCE_DIR}/generators
@@ -19,7 +16,7 @@ ${PYTHIA8_INCLUDE_DIR}/..
 ${HEPMC_INCLUDE_DIR}
 ${EVTGEN_INCLUDE_DIR}
 ${EVTGEN_INCLUDE_DIR}/..
-${GENIE_SRCDIR}
+$ENV{GENIE_ROOT}/genie/src 
 )
 
 include_directories(${INCLUDE_DIRECTORIES} ${VMC_INCLUDE_DIRS} ${FAIRROOT_INCLUDE_DIR} ${FairLogger_INCDIR} ${FMT_INCLUDE_DIR})
@@ -31,10 +28,6 @@ ${FAIRROOT_LIBRARY_DIR}
 ${PYTHIA8_LIBRARY_DIR}
 ${EVTGEN_LIBRARY_DIR}
 ${SIMPATH}/lib
-$ENV{APFEL_ROOT}/lib
-$ENV{LOG4_ROOT}/lib
-$ENV{LHAPDF_ROOT}/lib
-$ENV{LIBXML2_ROOT}/lib
 )
 
 link_directories(${LINK_DIRECTORIES})
@@ -64,21 +57,8 @@ set(DEPENDENCIES Base ShipData EvtGen EvtGenExternal)
 
 GENERATE_LIBRARY()
 
-# Check if genie flux libraries exist
-
-string(FIND ${GENIE_LIBS} lGTlFlx GENIE_FLUX_EXISTS)
-
-# Compile genie tools only if flux libraries exist
-if (${GENIE_FLUX_EXISTS})
 add_executable(sndlhcGSimpleNtpConverter sndlhcGSimpleNtpConverter.cxx)
 add_executable(addAuxiliaryToGST addAuxiliaryToGST.cxx)
 
-if(DEFINED ENV{APFEL_ROOT})
-target_link_libraries(sndlhcGSimpleNtpConverter ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -lAPFEL -llog4cpp -lLHAPDF)
-target_link_libraries(addAuxiliaryToGST ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -lAPFEL -llog4cpp -lLHAPDF)
-else()
-target_link_libraries(sndlhcGSimpleNtpConverter ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -llog4cpp -lLHAPDF)
-target_link_libraries(addAuxiliaryToGST ${GENIE_LIBS} ${ROOT_LIBRARIES} -lGeom -lEGPythia6 -lMathMore -lxml2 -llog4cpp -lLHAPDF)
-endif()
-endif()
-
+target_link_libraries(sndlhcGSimpleNtpConverter -L$ENV{GENIE_ROOT}/lib/ -lGFwMsg -lGFwReg -lGFwAlg -lGFwInt -lGFwGHEP -lGFwNum -lGFwUtl -lGFwParDat -lGFwEG -lGFwNtp -lGTlFlx ${ROOT_LIBRARIES} -lEGPythia6 -L$ENV{LIBXML2_ROOT}/lib -lxml2 -L$ENV{LOG4_ROOT}/lib -llog4cpp -L$ENV{LHAPDF_ROOT}/lib -lLHAPDF)
+target_link_libraries(addAuxiliaryToGST -L$ENV{GENIE_ROOT}/lib/ -lGFwMsg -lGFwReg -lGFwAlg -lGFwInt -lGFwGHEP -lGFwNum -lGFwUtl -lGFwParDat -lGFwEG -lGFwNtp -lGTlFlx ${ROOT_LIBRARIES} -lEGPythia6 -L$ENV{LIBXML2_ROOT}/lib -lxml2 -L$ENV{LOG4_ROOT}/lib -llog4cpp -L$ENV{LHAPDF_ROOT}/lib -lLHAPDF)
