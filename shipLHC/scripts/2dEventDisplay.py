@@ -232,7 +232,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    if qdc < 0 and qdc > -900:  h[F][systems[system]][1]+=1
                    elif not qdc<0:   
                        h[F][systems[system]][0]+=1
-                       h[F][systems[system]][2+side]+=qdc
+                       #h[F][systems[system]][2+side]+=qdc
     h['hitCollectionY']['Veto'][1].SetMarkerColor(ROOT.kRed)
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
@@ -315,7 +315,16 @@ def drawDetectors():
                     'volMuFilter_1/volMuDownstreamDet_0_7':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_1_8':ROOT.kCyan,
                     'volMuFilter_1/volMuDownstreamDet_2_9':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_3_10':ROOT.kCyan,
                     'volTarget_1/ScifiVolume1_1000000':ROOT.kBlue,'volTarget_1/ScifiVolume2_2000000':ROOT.kBlue,'volTarget_1/ScifiVolume3_3000000':ROOT.kBlue,
-                    'volTarget_1/ScifiVolume4_4000000':ROOT.kBlue,'volTarget_1/ScifiVolume5_5000000':ROOT.kBlue}
+                    'volTarget_1/ScifiVolume4_4000000':ROOT.kBlue,'volTarget_1/ScifiVolume5_5000000':ROOT.kBlue,
+		    'volVeto_1/subVetoBox_0':ROOT.kGray+1,'volVeto_1/subVetoBox_1':ROOT.kGray+1,
+		    'volTarget_1/volWallborder_0':ROOT.kGray, 'volTarget_1/volWallborder_1':ROOT.kGray, 'volTarget_1/volWallborder_2':ROOT.kGray,
+		    'volTarget_1/volWallborder_3':ROOT.kGray, 'volTarget_1/volWallborder_4':ROOT.kGray,
+		    'volMuFilter_1/volFeBlock_0':ROOT.kGray+2, 'volMuFilter_1/volFeBlock_1':ROOT.kGray+2, 'volMuFilter_1/volFeBlock_2':ROOT.kGray+2,
+		    'volMuFilter_1/volFeBlock_3':ROOT.kGray+2, 'volMuFilter_1/volFeBlock_4':ROOT.kGray+2, 'volMuFilter_1/volFeBlock_7':ROOT.kGray+2,
+		    'volMuFilter_1/volFeBlock_8':ROOT.kGray+2, 'volMuFilter_1/volFeBlock_9':ROOT.kGray+2, 'volMuFilter_1/volFeBlockEnd_1':ROOT.kGray+2,
+		    'volMuFilter_1/volBlockBot_1':ROOT.kGray+2}
+    passNodes = {'Block', 'Wall'}
+    endNodes = {'BlockEnd', 'BlockBot'} 
     proj = {'X':0,'Y':1}
     for node in nodes:
       if not node+'X' in h:
@@ -341,17 +350,35 @@ def drawDetectors():
            for C in P:
                  M[C] = array('d',[0,0,0])
                  nav.LocalToMaster(P[C],M[C])
-           h[node+p] = ROOT.TGraph()
-           X = h[node+p]
-           c = proj[p]
-           X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
-           X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
-           X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
-           X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
-           X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
-           X.SetLineColor(nodes[node])
-           h[ 'simpleDisplay'].cd(c+1)
-           X.Draw('same')
+           if any(passNode in node for passNode in passNodes):
+              h[node+p] = ROOT.TPolyLine()
+              X = h[node+p]
+              c = proj[p]
+              X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+              X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+              X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+              X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+              X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+              X.SetLineColor(nodes[node])
+              if any(endNode in node for endNode in endNodes) and p=='X':
+                 X.SetFillColorAlpha(nodes[node], 0.2)
+              else:
+                 X.SetFillColorAlpha(nodes[node], 0.5)
+              h[ 'simpleDisplay'].cd(c+1)
+              X.Draw('f')
+           else:
+              h[node+p] = ROOT.TGraph()
+              X = h[node+p]
+              c = proj[p]
+              X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+              X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+              X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+              X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+              X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+              X.SetLineColor(nodes[node])
+              X.SetFillColor(nodes[node])
+              h[ 'simpleDisplay'].cd(c+1)
+              X.Draw('same')
       else:
         for p in proj:
            X = h[node+p]
