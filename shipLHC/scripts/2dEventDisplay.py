@@ -222,6 +222,10 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
          c = h[collection][systems[system]]
          rc = c[1].SetPoint(c[0],Z,Y)
          rc = c[1].SetPointError(c[0],detSize[system][2],sY)
+
+         ROOT.gGeoManager.FindNode(locA[0], locA[1], Z)
+         fillNode()
+
          c[0]+=1
          if digi.isVertical():  F = 'firedChannelsX'
          else:                     F = 'firedChannelsY'
@@ -308,12 +312,10 @@ def addTrack(OT,scifi=False):
       nTrack+=1
 
 def drawDetectors():
-   nodes = {'volMuFilter_1/volFeBlockEnd_1':ROOT.kGreen-3, 'volMuFilter_1/volBlockBot_1':ROOT.kGreen-3}
+   nodes = {'volMuFilter_1/volFeBlockEnd_1':ROOT.kGray+2, 'volMuFilter_1/volBlockBot_1':ROOT.kGray+2}
    for i in range(2):
-      #nodes['volVeto_1/volVetoPlane_{}_{}'.format(i, i)]=ROOT.kRed
+      nodes['volVeto_1/volVetoPlane_{}_{}'.format(i, i)]=ROOT.kRed
       nodes['volVeto_1/subVetoBox_{}'.format(i)]=ROOT.kGray+1
-      for j in range(7):
-         nodes['volVeto_1/volVetoPlane_{}_{}/volVetoBar_1{}{:0>3d}'.format(i, i, i, j)]=ROOT.kRed
    for i in range(3):
       #nodes['volMuFilter_1/volMuDownstreamDet_{}_{}'.format(i, i+7)]=ROOT.kGreen
       for j in range(60):
@@ -324,12 +326,12 @@ def drawDetectors():
    for i in range(4):
       nodes['volMuFilter_1/subDSBox_{}'.format(i+7)]=ROOT.kGray
    for i in range(5):
-      nodes['volTarget_1/ScifiVolume{}_{:0<7d}'.format(i+1, i+1)]=ROOT.kBlue
-      nodes['volTarget_1/volWallborder_{}'.format(i)]=ROOT.kGray+1
+      nodes['volTarget_1/ScifiVolume{}_{}000000'.format(i+1, i+1)]=ROOT.kBlue
+      nodes['volTarget_1/volWallborder_{}'.format(i)]=ROOT.kGray
       nodes['volMuFilter_1/subUSBox_{}'.format(i+2)]=ROOT.kGray
       #nodes['volMuFilter_1/volMuUpstreamDet_{}_{}'.format(i, i+2)]=ROOT.kGreen
       for j in range(10):
-         nodes['volMuFilter_1/volMuUpstreamDet_{}_{}/volMuUpstreamBar_2{}{:0>3d}'.format(i, i+2, i, j)]=ROOT.kBlue+2
+         nodes['volMuFilter_1/volMuUpstreamDet_{}_{}/volMuUpstreamBar_2{}00{}'.format(i, i+2, i, j)]=ROOT.kBlue+2
       nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-3
    for i in range(7,10):
       nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-3
@@ -381,6 +383,7 @@ def drawDetectors():
                X.SetFillColorAlpha(nodes[node], 0.5)
                X.Draw('f&&same')
             else:
+               X.SetLineWidth(0)
                X.Draw('same')
 
       else:
@@ -514,3 +517,41 @@ def dumpChannels(D='Digi_MuFilterHits'):
      keys = list(text.keys())
      keys.sort()
      for k in keys: print(text[k])
+
+def fillNode():
+   node = ROOT.gGeoManager.GetPath()
+   print(node)
+   nav.cd(node)
+   N = nav.GetCurrentNode()
+   S = N.GetVolume().GetShape()
+   dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
+   ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
+   proj = {'X':0,'Y':1}
+   for p in proj:
+      P = {}
+      M = {}
+      if p=='X':
+         P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
+         P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
+         P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
+         P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+      else:
+         P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+         P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
+         P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+         P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+      for C in P:
+         M[C] = array('d',[0,0,0])
+         nav.LocalToMaster(P[C],M[C])
+      h[node+p] = ROOT.TPolyLine()
+      X = h[node+p]
+      c = proj[p]
+      X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+      X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+      X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+      X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+      X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+      X.SetLineColor(ROOT.kRed)
+      h[ 'simpleDisplay'].cd(c+1)
+      X.SetFillColor(ROOT.kRed)
+      X.Draw('f&&same')
