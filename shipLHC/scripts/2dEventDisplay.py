@@ -117,8 +117,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
  if 'xz' in h: 
         h.pop('xz').Delete()
         h.pop('yz').Delete()
- ut.bookHist(h,'xz','; z [cm]; x [cm]',500,zStart,zStart+320.,100,-100.,10.)
- ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+320.,100,-10.,80.)
+ ut.bookHist(h,'xz','; z [cm]; x [cm]',500,zStart,zStart+350.,100,-100.,10.)
+ ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+350.,100,-10.,80.)
 
  proj = {1:'xz',2:'yz'}
  h['xz'].SetStats(0)
@@ -222,11 +222,11 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
          c = h[collection][systems[system]]
          rc = c[1].SetPoint(c[0],Z,Y)
          rc = c[1].SetPointError(c[0],detSize[system][2],sY)
+         c[0]+=1
 
          ROOT.gGeoManager.FindNode(locA[0], locA[1], Z)
-         fillNode()
+         fillNodes()
 
-         c[0]+=1
          if digi.isVertical():  F = 'firedChannelsX'
          else:                     F = 'firedChannelsY'
          ns = max(1,digi.GetnSides())
@@ -237,12 +237,12 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    elif not qdc<0:   
                        h[F][systems[system]][0]+=1
                        #h[F][systems[system]][2+side]+=qdc
-    h['hitCollectionY']['Veto'][1].SetMarkerColor(ROOT.kRed)
-    h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
-    h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
-    h['hitCollectionY']['US'][1].SetMarkerColor(ROOT.kGreen)
-    h['hitCollectionY']['DS'][1].SetMarkerColor(ROOT.kCyan)
-    h['hitCollectionX']['DS'][1].SetMarkerColor(ROOT.kCyan)
+    #h['hitCollectionY']['Veto'][1].SetMarkerColor(ROOT.kRed)
+    h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kRed)
+    h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kRed)
+    #h['hitCollectionY']['DS'][1].SetMarkerColor(ROOT.kCyan)
+    #h['hitCollectionX']['DS'][1].SetMarkerColor(ROOT.kCyan)
+    #h['hitCollectionY']['US'][1].SetMarkerColor(ROOT.kGreen)
     k = 1
     for collection in ['hitCollectionX','hitCollectionY']:
        h[ 'simpleDisplay'].cd(k)
@@ -255,10 +255,11 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
           else:
               print( "%1s %5s %3i  +:%3i -:%3i qdcL:%5.1F qdcR:%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2],h[F][c][3]))
           if h[collection][c][1].GetN()<1: continue
-          h[collection][c][1].SetMarkerStyle(20+k)
-          h[collection][c][1].SetMarkerSize(1.5)
-          rc=h[collection][c][1].Draw('sameP')
-          h['display:'+c]=h[collection][c][1]
+          if c=='Scifi':
+            h[collection][c][1].SetMarkerStyle(20)
+            h[collection][c][1].SetMarkerSize(1.5)
+            rc=h[collection][c][1].Draw('sameP')
+            h['display:'+c]=h[collection][c][1]
 
     if withTrack == 2: addTrack(OT,True)
     elif not withTrack<0:  addTrack(OT)
@@ -268,6 +269,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     if save: h['simpleDisplay'].Print('event_'+"{:04d}".format(N)+'.png')
     rc = input("hit return for next event or q for quit: ")
     if rc=='q': break
+    emptyNodes()
  if save: os.system("convert -delay 60 -loop 0 event*.png animated.gif")
 
 def addTrack(OT,scifi=False):
@@ -312,40 +314,39 @@ def addTrack(OT,scifi=False):
       nTrack+=1
 
 def drawDetectors():
-   nodes = {'volMuFilter_1/volFeBlockEnd_1':ROOT.kGray+2, 'volMuFilter_1/volBlockBot_1':ROOT.kGray+2}
+   nodes = {'volMuFilter_1/volFeBlockEnd_1':ROOT.kGreen-3}
    for i in range(2):
       nodes['volVeto_1/volVetoPlane_{}_{}'.format(i, i)]=ROOT.kRed
+      for j in range(7):
+         nodes['volVeto_1/volVetoPlane_{}_{}/volVetoBar_1{}{:0>3d}'.format(i, i, i, j)]=ROOT.kRed
       nodes['volVeto_1/subVetoBox_{}'.format(i)]=ROOT.kGray+1
-   for i in range(3):
-      #nodes['volMuFilter_1/volMuDownstreamDet_{}_{}'.format(i, i+7)]=ROOT.kGreen
+   for i in range(4):
+      nodes['volMuFilter_1/volMuDownstreamDet_{}_{}'.format(i, i+7)]=ROOT.kBlue+2
       for j in range(60):
-         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_hor_3{}{:0>3d}'.format(i, i+7, i, j)]=ROOT.kAzure+1
-         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_ver_3{}{:0>3d}'.format(i, i+7, i, j+60)]=ROOT.kMagenta
-   for j in range(60):
-      nodes['volMuFilter_1/volMuDownstreamDet_3_10/volMuDownstreamBar_ver_33{:0>3d}'.format(j+60)]=ROOT.kMagenta
+         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_ver_3{}{:0>3d}'.format(i, i+7, i, j+60)]=ROOT.kBlue+2
+         if i < 3:
+            nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_hor_3{}{:0>3d}'.format(i, i+7, i, j)]=ROOT.kBlue+2
    for i in range(4):
       nodes['volMuFilter_1/subDSBox_{}'.format(i+7)]=ROOT.kGray
    for i in range(5):
-      nodes['volTarget_1/ScifiVolume{}_{}000000'.format(i+1, i+1)]=ROOT.kBlue
+      nodes['volTarget_1/ScifiVolume{}_{}000000'.format(i+1, i+1)]=ROOT.kBlue+2
       nodes['volTarget_1/volWallborder_{}'.format(i)]=ROOT.kGray
       nodes['volMuFilter_1/subUSBox_{}'.format(i+2)]=ROOT.kGray
-      #nodes['volMuFilter_1/volMuUpstreamDet_{}_{}'.format(i, i+2)]=ROOT.kGreen
+      nodes['volMuFilter_1/volMuUpstreamDet_{}_{}'.format(i, i+2)]=ROOT.kBlue+2
       for j in range(10):
          nodes['volMuFilter_1/volMuUpstreamDet_{}_{}/volMuUpstreamBar_2{}00{}'.format(i, i+2, i, j)]=ROOT.kBlue+2
       nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-3
    for i in range(7,10):
       nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-3
-   for i in range(5):
-      print(i)
-
    passNodes = {'Block', 'Wall'}
-   endNodes = {'BlockEnd', 'BlockBot'} 
+   xNodes = {'UpstreamBar', 'VetoBar', 'hor'}
    proj = {'X':0,'Y':1}
-   
-   for node in nodes:
+   for node_ in nodes:
+      node = '/cave_1/Detector_0/'+node_
+      #if not any(xNode in node for xNode in xNodes):
+      #   print(node)
       if not node+'X' in h:
-         n = '/Detector_0/'+node
-         nav.cd(n)
+         nav.cd(node)
          N = nav.GetCurrentNode()
          S = N.GetVolume().GetShape()
          dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
@@ -354,15 +355,19 @@ def drawDetectors():
             P = {}
             M = {}
             if p=='X':
-               P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
-               P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
-               P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
-               P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+               if not any(xNode in node for xNode in xNodes):
+                  P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
+                  P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
+                  P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
+                  P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+               else: continue
             else:
-               P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
-               P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
-               P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
-               P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+               if 'ver' not in node:
+                  P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+                  P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
+                  P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+                  P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+               else: continue
             for C in P:
                M[C] = array('d',[0,0,0])
                nav.LocalToMaster(P[C],M[C])
@@ -374,27 +379,27 @@ def drawDetectors():
             X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
             X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
             X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
-            X.SetLineColor(nodes[node])
-            h[ 'simpleDisplay'].cd(c+1)
-            if any(endNode in node for endNode in endNodes) and p=='X':
-               X.SetFillColorAlpha(nodes[node], 0.2)
-               X.Draw('f&&same')
-            elif any(passNode in node for passNode in passNodes):
-               X.SetFillColorAlpha(nodes[node], 0.5)
-               X.Draw('f&&same')
-            else:
-               X.SetLineWidth(0)
-               X.Draw('same')
-
-      else:
-         for p in proj:
-            X = h[node+p]
-            c = proj[p]
+            X.SetLineColor(nodes[node_])
             h[ 'simpleDisplay'].cd(c+1)
             if any(passNode in node for passNode in passNodes):
-               X.Draw('f&&same')  
+               X.SetFillColorAlpha(nodes[node_], 0.5)
+               X.Draw('f&&same')
+               X.Draw('same')  
             else:
+               X.SetLineWidth(1)
                X.Draw('same')
+      else:
+         for p in proj:
+            if (p=='X' and not any(xNode in node for xNode in xNodes)) or (p=='Y' and 'ver' not in node):
+               X = h[node+p]
+               c = proj[p]
+               h[ 'simpleDisplay'].cd(c+1)
+               if any(passNode in node for passNode in passNodes):
+                  X.Draw('f&&same') 
+                  X.Draw('same') 
+               else:
+                  X.Draw('same')
+            else: continue
 
 def dumpVeto():
     muHits = {10:[],11:[]}
@@ -497,6 +502,7 @@ def firstTimeStamp(event):
                     tmin[0]=dt
                     tmin[1]=digi
         return tmin
+
 def dumpChannels(D='Digi_MuFilterHits'):
      X = eval("eventTree."+D)
      text = {}
@@ -518,40 +524,110 @@ def dumpChannels(D='Digi_MuFilterHits'):
      keys.sort()
      for k in keys: print(text[k])
 
-def fillNode():
+def fillNode(node, color, thick, adj=0):
+   xNodes = {'UpstreamBar', 'VetoBar', 'hor'}
+   proj = {'X':0,'Y':1}
+   if not node+'X' in h:
+      print('si')
+      nav.cd(node)
+      N = nav.GetCurrentNode()
+      S = N.GetVolume().GetShape()
+      dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
+      ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
+      for p in proj:
+         P = {}
+         M = {}
+         if p=='X':
+            #if not any(xNode in node for xNode in xNodes):
+            print('xnode')
+            P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
+            P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
+            P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
+            P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+            #else: continue
+         else:
+            #if 'ver' not in node:
+            print('ynode')
+            P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+            P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
+            P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+            P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+            #else: continue
+         for C in P:
+            M[C] = array('d',[0,0,0])
+            nav.LocalToMaster(P[C],M[C])
+         h[node+p] = ROOT.TPolyLine()
+         X = h[node+p]
+         c = proj[p]
+         X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+         X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+         X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+         X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+         X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+         h[ 'simpleDisplay'].cd(c+1)
+         X.SetFillColor(color)
+         X.SetLineColor(color)
+         X.SetLineWidth(thick)
+         X.Draw('f&&same')
+         X.Draw('same')
+   else:
+      for p in proj:
+         if p=='X' and any(xNode in node for xNode in xNodes): continue
+         else:
+            X = h[node+p]
+            if adj==0 or (adj==1 and X.GetFillColor()!=ROOT.kBlack):
+               c = proj[p]
+               h[ 'simpleDisplay'].cd(c+1)
+               X.SetFillColor(color)
+               X.SetLineColor(color)
+               X.SetLineWidth(thick)
+               X.Draw('f&&same')
+               X.Draw('same')
+               
+def fillNodes():
    node = ROOT.gGeoManager.GetPath()
    print(node)
-   nav.cd(node)
-   N = nav.GetCurrentNode()
-   S = N.GetVolume().GetShape()
-   dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
-   ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
+   fillNode(node, color=ROOT.kBlack, thick=4)
+   if 'DownstreamBar' in node:
+      nextBar = int(node[-3:])
+      prevBar = nextBar -1
+      nextBar+=1
+      nextNode = node[:-3]+'{:0>3d}'.format(nextBar)
+      prevNode = node[:-3]+'{:0>3d}'.format(prevBar)
+      #print(nextNode, '--next')
+      if ('hor' in node and nextBar < 60) or ('ver' in node and nextBar < 120):
+         fillNode(nextNode, color=ROOT.kRed, thick=3, adj=1)
+      #print(prevNode, '--prev')   
+      if ('hor' in node and prevBar > -1) or ('ver' in node and prevBar > 59):
+         fillNode(prevNode, color=ROOT.kRed, thick=3, adj=1)
+
+def emptyNodes():
+   nodes = {}
+   for i in range(2):
+      for j in range(7):
+         nodes['volVeto_1/volVetoPlane_{}_{}/volVetoBar_1{}{:0>3d}'.format(i, i, i, j)]=ROOT.kRed
+   for i in range(3):
+      for j in range(60):
+         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_hor_3{}{:0>3d}'.format(i, i+7, i, j)]=ROOT.kBlue+2
+         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_ver_3{}{:0>3d}'.format(i, i+7, i, j+60)]=ROOT.kBlue+2
+   for j in range(60):
+      nodes['volMuFilter_1/volMuDownstreamDet_3_10/volMuDownstreamBar_ver_33{:0>3d}'.format(j+60)]=ROOT.kBlue+2
+   for i in range(5):
+      for j in range(10):
+         nodes['volMuFilter_1/volMuUpstreamDet_{}_{}/volMuUpstreamBar_2{}00{}'.format(i, i+2, i, j)]=ROOT.kBlue+2
    proj = {'X':0,'Y':1}
-   for p in proj:
-      P = {}
-      M = {}
-      if p=='X':
-         P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
-         P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
-         P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
-         P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
-      else:
-         P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
-         P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
-         P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
-         P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
-      for C in P:
-         M[C] = array('d',[0,0,0])
-         nav.LocalToMaster(P[C],M[C])
-      h[node+p] = ROOT.TPolyLine()
-      X = h[node+p]
-      c = proj[p]
-      X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
-      X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
-      X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
-      X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
-      X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
-      X.SetLineColor(ROOT.kRed)
-      h[ 'simpleDisplay'].cd(c+1)
-      X.SetFillColor(ROOT.kRed)
-      X.Draw('f&&same')
+   for node_ in nodes:
+      node = '/cave_1/Detector_0/'+node_
+      for p in proj:
+         try:
+            X = h[node+p]
+            if X.GetFillColor()!=19:
+               c = proj[p]
+               h[ 'simpleDisplay'].cd(c+1)
+               X.SetFillColorAlpha(19, 0)
+               X.SetLineColor(nodes[node_])
+               X.SetLineWidth(1)
+               X.Draw('f&&same')
+               X.Draw('same')
+         except:
+            notaNode = 1
