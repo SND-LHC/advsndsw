@@ -60,5 +60,5 @@ GENERATE_LIBRARY()
 add_executable(sndlhcGSimpleNtpConverter sndlhcGSimpleNtpConverter.cxx)
 add_executable(addAuxiliaryToGST addAuxiliaryToGST.cxx)
 
-target_link_libraries(sndlhcGSimpleNtpConverter -L$ENV{GENIE_ROOT}/lib/ -lGFwMsg -lGFwReg -lGFwAlg -lGFwInt -lGFwGHEP -lGFwNum -lGFwUtl -lGFwParDat -lGFwEG -lGFwNtp -lGTlFlx ${ROOT_LIBRARIES} -lEGPythia6 -L$ENV{LIBXML2_ROOT}/lib -lxml2 -L$ENV{LOG4_ROOT}/lib -llog4cpp -L$ENV{LHAPDF_ROOT}/lib -lLHAPDF)
-target_link_libraries(addAuxiliaryToGST -L$ENV{GENIE_ROOT}/lib/ -lGFwMsg -lGFwReg -lGFwAlg -lGFwInt -lGFwGHEP -lGFwNum -lGFwUtl -lGFwParDat -lGFwEG -lGFwNtp -lGTlFlx ${ROOT_LIBRARIES} -lEGPythia6 -L$ENV{LIBXML2_ROOT}/lib -lxml2 -L$ENV{LOG4_ROOT}/lib -llog4cpp -L$ENV{LHAPDF_ROOT}/lib -lLHAPDF)
+target_link_libraries(sndlhcGSimpleNtpConverter -Wl,--allow-shlib-undefined -L$ENV{GENIE_ROOT}/lib/ -lGFwMsg -lGFwReg -lGFwAlg -lGFwInt -lGFwGHEP -lGFwNum -lGFwUtl -lGFwParDat -lGFwEG -lGFwNtp -lGTlFlx ${ROOT_LIBRARIES} -lEGPythia6 -L$ENV{LIBXML2_ROOT}/lib -lxml2 -L$ENV{LOG4_ROOT}/lib -llog4cpp -L$ENV{LHAPDF_ROOT}/lib -lLHAPDF)
+target_link_libraries(addAuxiliaryToGST -Wl,--allow-shlib-undefined -L$ENV{GENIE_ROOT}/lib/ -lGFwMsg -lGFwReg -lGFwAlg -lGFwInt -lGFwGHEP -lGFwNum -lGFwUtl -lGFwParDat -lGFwEG -lGFwNtp -lGTlFlx ${ROOT_LIBRARIES} -lEGPythia6 -L$ENV{LIBXML2_ROOT}/lib -lxml2 -L$ENV{LOG4_ROOT}/lib -llog4cpp -L$ENV{LHAPDF_ROOT}/lib -lLHAPDF)
