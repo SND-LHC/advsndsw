@@ -479,6 +479,7 @@ class TrackSelector():
         ioman = ROOT.FairRootManager.Instance()
         ioman.SetTreeName(eventChain.GetName())
         source = ROOT.FairFileSource(eventChain.GetCurrentFile())
+        ioman.SetInChain(eventChain)
         first = True
         for p in partitions:
            if first:
@@ -495,15 +496,14 @@ class TrackSelector():
 # prepare output tree, same branches as input plus track(s)
         self.outFile = ROOT.TFile(options.oname,'RECREATE')
         self.fSink    = ROOT.FairRootFileSink(self.outFile)
-        self.run.SetSink(self.fSink)
 
         self.outTree = eventChain.CloneTree(0)
         ROOT.gDirectory.pwd()
         self.kalman_tracks = ROOT.TObjArray(10)
-        self.MuonTracksBranch    = self.outTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,1)
-        if not self.outTree.GetBranch("Cluster_Scifi"):
+        self.MuonTracksBranch    = self.outTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,0)
+        if not eventChain.GetBranch("Cluster_Scifi"):
            self.clusScifi   = ROOT.TClonesArray("sndCluster")
-           self.clusScifiBranch    = self.outTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
+           self.clusScifiBranch    = self.outTree.Branch("Cluster_Scifi",self.clusScifi,32000,0)
 
         B = ROOT.TList()
         B.SetName('BranchList')
@@ -517,6 +517,7 @@ class TrackSelector():
         self.fSink.SetOutTree(self.outTree)
 
         self.eventTree = eventChain
+        self.run.SetSink(self.fSink)
 
         self.trackTask = options.FairTasks["simpleTracking"]
         self.trackTask.Init()
@@ -529,9 +530,19 @@ class TrackSelector():
       for n in range(self.options.nStart,self.options.nStart+self.options.nEvents):
           self.eventTree.GetEvent(n)
           self.ExecuteEvent(self.eventTree)
-          if self.OT.Reco_MuonTracks.GetEntries()>0:
-              self.OT.EventHeader.SetMCEntryNumber(n)
-              self.fSink.Fill()
+          if self.trackTask.kalman_tracks.GetEntries() == 0: continue
+          if not self.eventTree.GetBranch("Cluster_Scifi"):
+                self.clusScifi.Delete()
+                index = 0
+                for aCl in self.trackTask.clusScifi:
+                     if  self.clusScifi.GetSize() == index: self.clusScifi.Expand(index+10)
+                     self.clusScifi[index]=aCl
+                     index+=1
+          self.OT.Reco_MuonTracks.Delete()
+          for aTrack in self.trackTask.kalman_tracks:
+                self.OT.Reco_MuonTracks.Add(aTrack)
+          self.OT.EventHeader.SetMCEntryNumber(n)
+          self.fSink.Fill()
 
    def Finalize(self):
          self.fSink.Write()
