@@ -27,7 +27,12 @@ MuFilterHit::MuFilterHit(Int_t detID,Int_t nP,Int_t nS)
   : SndlhcHit(detID,nP,nS)
 {
  flag = true;
- for (Int_t i=0;i<16;i++){fMasked[i]=kFALSE;}
+ for (Int_t i=0;i<16;i++){
+      fMasked[i]=kFALSE;
+      signals[i]  = -999;
+      times[i]    = -999;
+      fDaqID[i]  = -1;
+   }
 }
 
 
@@ -38,7 +43,8 @@ MuFilterHit::MuFilterHit(Int_t detID, std::vector<MuFilterPoint*> V)
      MuFilter* MuFilterDet = dynamic_cast<MuFilter*> (gROOT->GetListOfGlobals()->FindObject("MuFilter"));
      // get parameters from the MuFilter detector for simulating the digitized information
      nSiPMs  = MuFilterDet->GetnSiPMs(detID);
-     nSides   = MuFilterDet->GetnSides(detID);
+     if (floor(detID/10000)==3&&detID%1000>59) nSides = MuFilterDet->GetnSides(detID) - 1;
+     else nSides = MuFilterDet->GetnSides(detID);
 
      Float_t timeResol = MuFilterDet->GetConfParF("MuFilter/timeResol");
 
@@ -46,10 +52,10 @@ MuFilterHit::MuFilterHit(Int_t detID, std::vector<MuFilterPoint*> V)
      Float_t siPMcalibration=0;
      Float_t siPMcalibrationS=0;
      Float_t propspeed =0;
-     if (floor(detID/10000==3)) { 
+     if (floor(detID/10000)==3) { 
               if (nSides==2){attLength = MuFilterDet->GetConfParF("MuFilter/DsAttenuationLength");}
               else                    {attLength = MuFilterDet->GetConfParF("MuFilter/DsTAttenuationLength");}
-              siPMcalibration = MuFilterDet->GetConfParF("MuFilter/DsSiPMcalibrationS");
+              siPMcalibration = MuFilterDet->GetConfParF("MuFilter/DsSiPMcalibration");
               propspeed = MuFilterDet->GetConfParF("MuFilter/DsPropSpeed");
      }
      else { 
@@ -84,7 +90,7 @@ MuFilterHit::MuFilterHit(Int_t detID, std::vector<MuFilterPoint*> V)
         signalRight+=signal*TMath::Exp(-distance_Right/attLength);
 
       // for the timing, find earliest particle and smear with time resolution
-        Double_t ptime    = (*p)->GetTime()*1E-9;
+        Double_t ptime    = (*p)->GetTime();
         Double_t t_Left    = ptime + distance_Left/propspeed;
         Double_t t_Right = ptime + distance_Right/propspeed;
         if ( t_Left <earliestToAL){earliestToAL = t_Left ;}
@@ -136,13 +142,14 @@ bool MuFilterHit::isShort(Int_t i){
 }
 
 // -----   Public method Get List of signals   -------------------------------------------
-std::map<Int_t,Float_t> MuFilterHit::GetAllSignals(Bool_t mask)
+std::map<Int_t,Float_t> MuFilterHit::GetAllSignals(Bool_t mask,Bool_t positive)
 {
           std::map<Int_t,Float_t> allSignals;
           for (unsigned int s=0; s<nSides; ++s){
               for (unsigned int j=0; j<nSiPMs; ++j){
                unsigned int channel = j+s*nSiPMs;
-               if (signals[channel]> 0){
+               if (signals[channel]<-900){continue;}
+               if (signals[channel]> 0 || !positive){
                  if (!fMasked[channel] || !mask){
                     allSignals[channel] = signals[channel];
                     }
@@ -227,7 +234,7 @@ Float_t MuFilterHit::GetImpactT(Bool_t mask)
           else if (floor(fDetectorID/10000==2)) { 
              dL = MuFilterDet->GetConfParF("MuFilterDet/UpstreamBarX") / MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");}
           else { 
-             dL = MuFilterDet->GetConfParF("MuFilterDet/VeoBarX") / MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");}
+             dL = MuFilterDet->GetConfParF("MuFilterDet/VetoBarX") / MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");}
 
           for (unsigned int s=0; s<nSides; ++s){
               for (unsigned int j=0; j<nSiPMs; ++j){

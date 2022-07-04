@@ -3,6 +3,7 @@ import ROOT,os,sys
 import rootUtils as ut
 import shipunit as u
 import ctypes
+from array import array
 
 A,B  = ROOT.TVector3(),ROOT.TVector3()
 parallelToZ = ROOT.TVector3(0., 0., 1.)
@@ -85,6 +86,9 @@ class Scifi_residuals(ROOT.FairTask):
        self.projs = {1:'V',0:'H'}
        self.parallelToZ = ROOT.TVector3(0., 0., 1.)
        run = ROOT.FairRunAna.Instance()
+       ioman = ROOT.FairRootManager.Instance()
+       self.OT = ioman.GetSink().GetOutTree()
+       self.nav = ROOT.gGeoManager.GetCurrentNavigator()
        self.trackTask = self.M.FairTasks['simpleTracking']
        if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
 
@@ -98,20 +102,41 @@ class Scifi_residuals(ROOT.FairTask):
                ut.bookHist(h,'resY'+proj+'_Scifi'+str(s*10+o),'residual '+proj+str(s*10+o)+'; [#mum]',NbinsRes,xmin,xmax,100,10.,60.)
                ut.bookHist(h,'resC'+proj+'_Scifi'+str(s*10+o),'residual '+proj+str(s*10+o)+'; [#mum]',NbinsRes,xmin,xmax,128*4*3,-0.5,128*4*3-0.5)
                ut.bookHist(h,'track_Scifi'+str(s*10+o),'track x/y '+str(s*10+o)+'; x [cm]; y [cm]',80,-70.,10.,80,0.,80.)
-               ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
-               ut.bookHist(h,detector+'trackSlopes','track slope; x [mrad]; y [mrad]',1000,-100,100,1000,-100,100)
-               ut.bookHist(h,detector+'trackSlopesXL','track slope; x [rad]; y [rad]',100,-3.2,3.2,100,-3.2,3.2)
+       ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
+       ut.bookHist(h,detector+'trackSlopes','track slope; x/z [mrad]; y/z [mrad]',1000,-100,100,1000,-100,100)
+       ut.bookHist(h,detector+'trackSlopesXL','track slope; x/z [rad]; y/z [rad]',120,-1.1,1.1,120,-1.1,1.1)
+       ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+       ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
 
        if alignPar:
             for x in alignPar:
                self.M.Scifi.SetConfPar(x,alignPar[x])
 
    def ExecuteEvent(self,event):
+       h = self.M.h
+       nav = self.nav
        if not hasattr(event,"Cluster_Scifi"):
-               trackTask.scifiCluster()
+               self.trackTask.scifiCluster()
                clusters = self.OT.Cluster_Scifi
        else:
                clusters = event.Cluster_Scifi
+
+# overall tracking
+       self.trackTask.ExecuteTask("Scifi")
+       for aTrack in self.OT.Reco_MuonTracks:
+          if not aTrack.GetUniqueID()==1: continue
+          fitStatus = aTrack.getFitStatus()
+          if not fitStatus.isFitConverged(): continue
+          state = aTrack.getFittedState()
+          pos    = state.getPos()
+          mom = state.getMom()
+          slopeX = mom.X()/mom.Z()
+          slopeY = mom.Y()/mom.Z()
+          rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
+          rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
+          rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
+          rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+          if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
 
        sortedClusters={}
        for aCl in clusters:
@@ -120,7 +145,6 @@ class Scifi_residuals(ROOT.FairTask):
            sortedClusters[so].append(aCl)
 # select events with clusters in each plane
        if len(sortedClusters)<10: return
-       h = self.M.h
        for s in range(1,6):
 # build trackCandidate
             hitlist = {}
@@ -137,11 +161,6 @@ class Scifi_residuals(ROOT.FairTask):
             if not fitStatus.isFitConverged(): 
                  theTrack.Delete()
                  continue
-            rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
-            fstate =  theTrack.getFittedState()
-            mom = fstate.getMom()
-            rc = h[detector+'trackSlopes'].Fill(mom.X()/mom.Z()*1000,mom.Y()/mom.Z()*1000)
-            rc = h[detector+'trackSlopesXL'].Fill(mom.X()/mom.Z(),mom.Y()/mom.Z())
 # test plane 
             for o in range(2):
                 testPlane = s*10+o
@@ -167,13 +186,33 @@ class Scifi_residuals(ROOT.FairTask):
                 rc = h['track_Scifi'+str(testPlane)].Fill(xEx,yEx)
                 for aCl in sortedClusters[testPlane]:
                    aCl.GetPosition(A,B)
-                   if o==1 :   D = (A[0]+B[0])/2. - xEx
-                   else:         D = (A[1]+B[1])/2. - yEx
+# apply rotation 
+                   nav.cd('/cave_1/Detector_0')
+                   gA = array('d',[A[0],A[1],A[2]])
+                   gB = array('d',[B[0],B[1],B[2]])
+                   lA =  array('d',[0,0,0])
+                   lB =  array('d',[0,0,0])
+                   nav.MasterToLocal(gA,lA)
+                   nav.MasterToLocal(gB,lB)
+                   xCl = (lA[0]+lB[0])/2.
+                   yCl = (lA[1]+lB[1])/2.
+                   zCl = (lA[2]+lB[2])/2.
+                   gpos =  array('d',[pos[0],pos[1],pos[2]])
+                   gmom =  array('d',[mom[0],mom[1],mom[2]])
+                   lpos =  array('d',[0,0,0])
+                   lmom =  array('d',[0,0,0])
+                   nav.MasterToLocal(gpos,lpos)
+                   nav.MasterToLocal(gmom,lmom)
+                   lam = (zCl-lpos[2])/lmom[2]
+                   lxEx = lpos[0]+lam*lmom[0]
+                   lyEx = lpos[1]+lam*lmom[1]
+                   if o==1 :   D = xCl - lxEx
+                   else:       D = yCl - lyEx
                    detID = aCl.GetFirst()
                    channel = detID%1000 + ((detID%10000)//1000)*128 + (detID%100000//10000)*512
                    rc = h['res'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um)
-                   rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,xEx)
-                   rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,yEx)
+                   rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lxEx)
+                   rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lyEx)
                    rc = h['resC'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,channel)
 
             theTrack.Delete()
@@ -258,9 +297,23 @@ class Scifi_residuals(ROOT.FairTask):
        for proj in P: T.append('scifiRes'+proj)
        for canvas in T:
            self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas,subdir='scifi')
-       ut.bookCanvas(h,detector+'trackDir',"track directions",900,1800,1,2)
+       ut.bookCanvas(h,detector+'trackDir',"track directions",1600,1800,3,2)
        h[detector+'trackDir'].cd(1)
        rc = h[detector+'trackSlopes'].Draw('colz')
        h[detector+'trackDir'].cd(2)
+       rc = h[detector+'trackSlopes'].ProjectionX("slopeX").Draw()
+       h[detector+'trackDir'].cd(3)
+       rc = h[detector+'trackSlopes'].ProjectionY("slopeY").Draw()
+       h[detector+'trackDir'].cd(4)
        rc = h[detector+'trackSlopesXL'].Draw('colz')
+       h[detector+'trackDir'].cd(5)
+       rc = h[detector+'trackSlopesXL'].ProjectionX("slopeXL").Draw()
+       h[detector+'trackDir'].cd(6)
+       rc = h[detector+'trackSlopesXL'].ProjectionY("slopeYL").Draw()
        self.M.myPrint(self.M.h[detector+'trackDir'],detector+'trackDir',subdir='scifi')
+       ut.bookCanvas(h,detector+'TtrackPos',"track position first state",1200,800,1,2)
+       h[detector+'TtrackPos'].cd(1)
+       rc = h[detector+'trackPosBeam'].Draw('colz')
+       h[detector+'TtrackPos'].cd(2)
+       rc = h[detector+'trackPos'].Draw('colz')
+       self.M.myPrint(self.M.h[detector+'TtrackPos'],detector+'trackPos',subdir='scifi')

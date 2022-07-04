@@ -16,6 +16,7 @@ ${PYTHIA8_INCLUDE_DIR}/..
 ${HEPMC_INCLUDE_DIR}
 ${EVTGEN_INCLUDE_DIR}
 ${EVTGEN_INCLUDE_DIR}/..
+$ENV{GENIE_ROOT}/genie/src 
 )
 
 include_directories(${INCLUDE_DIRECTORIES} ${VMC_INCLUDE_DIRS} ${FAIRROOT_INCLUDE_DIR} ${FairLogger_INCDIR} ${FMT_INCLUDE_DIR})
@@ -55,3 +56,9 @@ set(LIBRARY_NAME ShipGen)
 set(DEPENDENCIES Base ShipData EvtGen EvtGenExternal)
 
 GENERATE_LIBRARY()
+
+add_executable(sndlhcGSimpleNtpConverter sndlhcGSimpleNtpConverter.cxx)
+add_executable(addAuxiliaryToGST addAuxiliaryToGST.cxx)
+
+target_link_libraries(sndlhcGSimpleNtpConverter -Wl,--allow-shlib-undefined -L$ENV{GENIE_ROOT}/lib/ -lGFwMsg -lGFwReg -lGFwAlg -lGFwInt -lGFwGHEP -lGFwNum -lGFwUtl -lGFwParDat -lGFwEG -lGFwNtp -lGTlFlx ${ROOT_LIBRARIES} -lEGPythia6 -L$ENV{LIBXML2_ROOT}/lib -lxml2 -L$ENV{LOG4_ROOT}/lib -llog4cpp -L$ENV{LHAPDF_ROOT}/lib -lLHAPDF)
+target_link_libraries(addAuxiliaryToGST -Wl,--allow-shlib-undefined -L$ENV{GENIE_ROOT}/lib/ -lGFwMsg -lGFwReg -lGFwAlg -lGFwInt -lGFwGHEP -lGFwNum -lGFwUtl -lGFwParDat -lGFwEG -lGFwNtp -lGTlFlx ${ROOT_LIBRARIES} -lEGPythia6 -L$ENV{LIBXML2_ROOT}/lib -lxml2 -L$ENV{LOG4_ROOT}/lib -llog4cpp -L$ENV{LHAPDF_ROOT}/lib -lLHAPDF)

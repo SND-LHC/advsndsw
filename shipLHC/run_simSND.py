@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 import sys
-import getopt
 import ROOT
 
 import shipunit as u
@@ -22,7 +21,7 @@ parser = ArgumentParser()
 group = parser.add_mutually_exclusive_group()
 
 parser.add_argument("--H6",   dest="testbeam",   help="use geometry of H8/H6 testbeam setup", required=False, default = 0, type = int)
-parser.add_argument("--Genie",   dest="genie",   help="Genie for reading and processing neutrino interactions (1 standard, 2 FLUKA, 3 Pythia)", required=False, default = 0, type = int)
+parser.add_argument("--Genie",   dest="genie",   help="Genie for reading and processing neutrino interactions (1 standard, 2 FLUKA, 3 Pythia, 4 GENIE geometry driver)", required=False, default = 0, type = int)
 parser.add_argument("--Ntuple",  dest="ntuple",  help="Use ntuple as input", required=False, action="store_true")
 parser.add_argument("--MuonBack",dest="muonback",  help="Generate events from muon background file, --Cosmics=0 for cosmic generator data", required=False, action="store_true")
 parser.add_argument("--Pythia8", dest="pythia8", help="Use Pythia8", required=False, action="store_true")
@@ -317,6 +316,29 @@ run.CreateGeometryFile(geoFile)
 # save detector parameters dictionary in geofile
 import saveBasicParameters
 saveBasicParameters.execute(geoFile,snd_geo)
+
+# ------------------------------------------------------------------------
+# If using GENIE option 4 (geometry driver) copy GST TTree to the 
+# output file. This will make it easy to access the FLUKA variables for
+# each neutrino event.
+if options.genie == 4 :
+
+    f_input = ROOT.TFile(inputFile)
+    gst = f_input.gst
+
+    selection_string = "(Entry$ >= "+str(options.firstEvent)+")"
+    if (options.firstEvent + options.nEvents) < gst.GetEntries() :
+        selection_string += "&&(Entry$ < "+str(options.firstEvent + options.nEvents)+")"
+    
+    # Reopen output file
+    f_output = ROOT.TFile(outFile, "UPDATE")
+
+    # Copy only the events used in this run
+    gst_copy = gst.CopyTree(selection_string)
+    gst_copy.Write()
+
+    f_input.Close()
+    f_output.Close()
 
 # -----Finish-------------------------------------------------------
 timer.Stop()

@@ -4,6 +4,8 @@ from array import array
 import shipunit as u
 import SndlhcMuonReco
 A,B = ROOT.TVector3(),ROOT.TVector3()
+freq      =  160.316E6
+
 h={}
 from argparse import ArgumentParser
 parser = ArgumentParser()
@@ -106,7 +108,7 @@ def goodEvent(event):
            elif not onlyScifi  and totalN >  Nlimit: return True
            else: return False
 
-def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup='',verbose=0):
+def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSipmMult=1, Setup='',verbose=0):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
  h['simpleDisplay'].cd(1)
  zStart = 250. # TI18 coordinate system
@@ -116,7 +118,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
         h.pop('xz').Delete()
         h.pop('yz').Delete()
  ut.bookHist(h,'xz','; z [cm]; x [cm]',500,zStart,zStart+320.,100,-100.,10.)
- ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+320.,100,0.,80.)
+ ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+320.,100,-10.,80.)
 
  proj = {1:'xz',2:'yz'}
  h['xz'].SetStats(0)
@@ -129,10 +131,11 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
  text = ROOT.TLatex()
  event = eventTree
  OT = sink.GetOutTree()
+ if withTrack==0: OT = eventTree
  for N in range(start, event.GetEntries()):
     rc = event.GetEvent(N)
     if goodEvents and not goodEvent(event): continue
-    if withTrack:
+    if not withTrack<-1:
        if options.houghTransform:
           OT.Reco_MuonTracks.Delete()
           rc = source.GetInTree().GetEvent(N)
@@ -143,8 +146,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
        else:
           if withTrack==2:  trackTask.ExecuteTask("Scifi")
           elif withTrack==3:  trackTask.ExecuteTask("DS")
-          else:     trackTask.ExecuteTask()
-          ntracks = len(OT.Reco_MuonTracks)
+       ntracks = len(OT.Reco_MuonTracks)
        if ntracks<nTracks: continue
 
        if verbose>0:
@@ -153,7 +155,12 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
              pos      = aTrack.getFittedState().getPos()
              mom.Print()
              pos.Print()
-    print( "event ->",N )
+    T,dT = 0,0
+    if event.FindBranch("EventHeader"):
+       T = event.EventHeader.GetEventTime()
+       if Tprev >0: dT = T-Tprev
+       Tprev = T
+    print( "event -> %i   %8.4Fs  %8.4Fns"%(N,T/freq,dT/freq*1E9))
 
     digis = []
     if event.FindBranch("Digi_ScifiHits"): digis.append(event.Digi_ScifiHits)
@@ -165,28 +172,31 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
     if empty: continue
     h['hitCollectionX']= {'Scifi':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
     h['hitCollectionY']= {'Veto':[0,ROOT.TGraphErrors()],'Scifi':[0,ROOT.TGraphErrors()],'US':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
+    h['firedChannelsX']= {'Scifi':[0,0,0],'DS':[0,0,0]}
+    h['firedChannelsY']= {'Veto':[0,0,0,0],'Scifi':[0,0,0],'US':[0,0,0,0],'DS':[0,0,0,0]}
     systems = {1:'Veto',2:'US',3:'DS',0:'Scifi'}
     for collection in ['hitCollectionX','hitCollectionY']:
        for c in h[collection]:
           rc=h[collection][c][1].SetName(c)
           rc=h[collection][c][1].Set(0)
 
-    if event.FindBranch("EventHeader"):
-       T = event.EventHeader.GetEventTime()
-       dT = 0
-       if Tprev >0: dT = T-Tprev
-       Tprev = T
+    dTs = "%5.2Fns"%(dT/freq*1E9)
+    # find detector which triggered
+    minT = firstTimeStamp(event)
+    dTs+= "    " + str(minT[1].GetDetectorID())
     for p in proj:
        rc = h[ 'simpleDisplay'].cd(p)
-       if p==1: h[proj[p]].SetTitle('event '+str(N))
+       if p==1: h[proj[p]].SetTitle('event '+str(N)+"    dT="+dTs)
        h[proj[p]].Draw('b')
-
     for D in digis:
       for digi in D:
          detID = digi.GetDetectorID()
+         sipmMult = 1
          if digi.GetName()  == 'MuFilterHit':
             system = digi.GetSystem()
             geo.modules['MuFilter'].GetPosition(detID,A,B)
+            sipmMult = len(digi.GetAllSignals())
+            if sipmMult<minSipmMult and (system==1 or system==2): continue
             if trans2local:
                 curPath = nav.GetPath()
                 tmp = curPath.rfind('/')
@@ -212,7 +222,17 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
          c = h[collection][systems[system]]
          rc = c[1].SetPoint(c[0],Z,Y)
          rc = c[1].SetPointError(c[0],detSize[system][2],sY)
-         c[0]+=1 
+         c[0]+=1
+         if digi.isVertical():  F = 'firedChannelsX'
+         else:                     F = 'firedChannelsY'
+         ns = max(1,digi.GetnSides())
+         for side in range(ns):
+             for m in  range(digi.GetnSiPMs()):
+                   qdc = digi.GetSignal(m+side*digi.GetnSiPMs())
+                   if qdc < 0 and qdc > -900:  h[F][systems[system]][1]+=1
+                   elif not qdc<0:   
+                       h[F][systems[system]][0]+=1
+                       h[F][systems[system]][2+side]+=qdc
     h['hitCollectionY']['Veto'][1].SetMarkerColor(ROOT.kRed)
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
@@ -224,27 +244,35 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,Setup=
        h[ 'simpleDisplay'].cd(k)
        k+=1
        for c in h[collection]:
-          print(collection.split('ion')[1],c, h[collection][c][1].GetN())
+          F = collection.replace('hitCollection','firedChannels')
+          pj = collection.split('ion')[1]
+          if pj =="X" or c=="Scifi":
+              print( "%1s %5s %3i  +:%3i -:%3i qdc :%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2]))
+          else:
+              print( "%1s %5s %3i  +:%3i -:%3i qdcL:%5.1F qdcR:%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2],h[F][c][3]))
           if h[collection][c][1].GetN()<1: continue
           h[collection][c][1].SetMarkerStyle(20+k)
           h[collection][c][1].SetMarkerSize(1.5)
           rc=h[collection][c][1].Draw('sameP')
           h['display:'+c]=h[collection][c][1]
 
-    if withTrack == 1: addTrack()
-    if withTrack == 2: addTrack(True)
-
+    if withTrack == 2: addTrack(OT,True)
+    elif not withTrack<0:  addTrack(OT)
+    drawDetectors()
     h[ 'simpleDisplay'].Update()
+    if verbose>0: dumpChannels()
     if save: h['simpleDisplay'].Print('event_'+"{:04d}".format(N)+'.png')
     rc = input("hit return for next event or q for quit: ")
     if rc=='q': break
  if save: os.system("convert -delay 60 -loop 0 event*.png animated.gif")
 
-def addTrack(scifi=False):
+def addTrack(OT,scifi=False):
    xax = h['xz'].GetXaxis()
    nTrack = 0
-   OT = sink.GetOutTree()
    for   aTrack in OT.Reco_MuonTracks:
+      trackColor = ROOT.kRed
+      if aTrack.GetUniqueID()==1: trackColor = ROOT.kBlack
+      if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlue
       S = aTrack.getFitStatus()
       if not S.isFitConverged() and scifi: continue
       for p in [0,1]:
@@ -272,12 +300,64 @@ def addTrack(scifi=False):
 
       for p in [0,1]:
              tc = h[ 'simpleDisplay'].cd(p+1)
-             h['aLine'+str(nTrack*10+p)].SetLineColor(ROOT.kRed)
+             h['aLine'+str(nTrack*10+p)].SetLineColor(trackColor)
              h['aLine'+str(nTrack*10+p)].SetLineWidth(2)
              h['aLine'+str(nTrack*10+p)].Draw('same')
              tc.Update()
              h[ 'simpleDisplay'].Update()
       nTrack+=1
+
+def drawDetectors():
+    nodes = {'volVeto_1/volVetoPlane_0_0':ROOT.kRed,'volVeto_1/volVetoPlane_1_1':ROOT.kRed,
+                    'volMuFilter_1/volMuUpstreamDet_0_2':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_1_3':ROOT.kGreen,
+                    'volMuFilter_1/volMuUpstreamDet_2_4':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_3_5':ROOT.kGreen,
+                    'volMuFilter_1/volMuUpstreamDet_4_6':ROOT.kGreen,
+                    'volMuFilter_1/volMuDownstreamDet_0_7':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_1_8':ROOT.kCyan,
+                    'volMuFilter_1/volMuDownstreamDet_2_9':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_3_10':ROOT.kCyan,
+                    'volTarget_1/ScifiVolume1_1000000':ROOT.kBlue,'volTarget_1/ScifiVolume2_2000000':ROOT.kBlue,'volTarget_1/ScifiVolume3_3000000':ROOT.kBlue,
+                    'volTarget_1/ScifiVolume4_4000000':ROOT.kBlue,'volTarget_1/ScifiVolume5_5000000':ROOT.kBlue}
+    proj = {'X':0,'Y':1}
+    for node in nodes:
+      if not node+'X' in h:
+        n = '/Detector_0/'+node
+        nav.cd(n)
+        N = nav.GetCurrentNode()
+        S = N.GetVolume().GetShape()
+        dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
+        ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
+        for p in proj:
+           P = {}
+           M = {}
+           if p=='X':
+              P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
+              P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
+              P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
+              P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+           else:
+              P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+              P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
+              P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+              P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+           for C in P:
+                 M[C] = array('d',[0,0,0])
+                 nav.LocalToMaster(P[C],M[C])
+           h[node+p] = ROOT.TGraph()
+           X = h[node+p]
+           c = proj[p]
+           X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+           X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+           X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+           X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+           X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+           X.SetLineColor(nodes[node])
+           h[ 'simpleDisplay'].cd(c+1)
+           X.Draw('same')
+      else:
+        for p in proj:
+           X = h[node+p]
+           c = proj[p]
+           h[ 'simpleDisplay'].cd(c+1)
+           X.Draw('same')
 
 def dumpVeto():
     muHits = {10:[],11:[]}
@@ -363,4 +443,40 @@ def mufiNoise():
   ut.bookCanvas(h,'res','',600,1200,1,3)
   for s in range(1,4):
    tc = h['res'].cd(s)
-   h['res'+str(s)].Draw()   
+   h['res'+str(s)].Draw()
+
+def firstTimeStamp(event):
+        tmin = [1E9,'']
+        digis = [event.Digi_MuFilterHits,event.Digi_ScifiHits]
+        for digi in event.Digi_ScifiHits:
+               dt = digi.GetTime()
+               if dt<tmin[0]:
+                    tmin[0]=dt
+                    tmin[1]=digi
+        for digi in event.Digi_MuFilterHits:
+           for t in digi.GetAllTimes():
+               dt = t.second
+               if dt<tmin[0]:
+                    tmin[0]=dt
+                    tmin[1]=digi
+        return tmin
+def dumpChannels(D='Digi_MuFilterHits'):
+     X = eval("eventTree."+D)
+     text = {}
+     for aHit in X:
+         side = 'L'
+         txt = "%8i"%(aHit.GetDetectorID())
+         for k in range(aHit.GetnSiPMs()*aHit.GetnSides()):
+              qdc = aHit.GetSignal(k)
+              if qdc < -900: continue
+              i = k
+              if not k<aHit.GetnSiPMs():
+                   i = k-aHit.GetnSiPMs()
+                   if side == 'L':
+                        txt += " | "
+                        side = 'R'
+              txt+= "  %2i:%4.1F  "%(i,qdc)
+         text[aHit.GetDetectorID()] = txt
+     keys = list(text.keys())
+     keys.sort()
+     for k in keys: print(text[k])

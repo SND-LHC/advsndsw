@@ -13,7 +13,7 @@ def mem_monitor():
     pmsize = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     print("memory: virtuell = %5.2F MB  physical = %5.2F MB"%(vmsize/1.0E3,pmsize/1.0E3))
 
-import ROOT,os,sys,getopt
+import ROOT,os,sys
 import shipRoot_conf
 import shipunit as u
 

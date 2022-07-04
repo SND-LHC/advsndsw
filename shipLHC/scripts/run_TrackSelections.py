@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import ROOT,os,sys,getopt,subprocess,atexit,time
+import ROOT,os,sys,subprocess,atexit,time
 import Monitor
 import SndlhcMuonReco
 import SndlhcTracking
@@ -15,7 +15,7 @@ parser.add_argument("-o", "--outFile", dest="oname", help="output file name", ty
 parser.add_argument("-f", "--inputFile", dest="fname", help="file name for MC", type=str,default=None,required=False)
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,required=True)
-parser.add_argument("-p", "--path", dest="path", help="run number",required=False,default="")
+parser.add_argument("-p", "--path", dest="path", help="path to file",required=False,default="")
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=True)
 parser.add_argument("-b", "--heartBeat", dest="heartBeat", help="heart beat", default=10000,type=int)

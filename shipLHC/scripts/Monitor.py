@@ -71,7 +71,7 @@ class Monitoring():
         self.systemAndChannels     = {1:[8,0],2:[6,2],3:[1,0]}
         self.sdict                     = {0:'Scifi',1:'Veto',2:'US',3:'DS'}
 
-        self.freq      = 160.E6
+        self.freq      =  160.316E6
         self.TDC2ns = 1E9/self.freq
 
         path     = options.path
@@ -119,33 +119,36 @@ class Monitoring():
             self.run = self.converter.run
             return
         else:
-            partitions = 0
-            if options.partition < 0:
-               partitions = []
-               if path.find('eos')>0:
+            if options.fname:
+                f=ROOT.TFile.Open(options.fname)
+                eventChain = f.Get('rawConv')
+                if not eventChain:   eventChain = f.cbmsim
+                partitions = []
+            else:
+              partitions = 0
+              if options.partition < 0:
+                 partitions = []
+                 if path.find('eos')>0:
 # check for partitions
-                  dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
-                  for x in dirlist.split('\\n'):
-                     ix = x.find('sndsw_raw-')
-                     if ix<0: continue
-                     partitions.append(x[ix:])
-               else:
+                    dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
+                    for x in dirlist.split('\\n'):
+                       ix = x.find('sndsw_raw-')
+                       if ix<0: continue
+                       partitions.append(x[ix:])
+                 else:
 # check for partitions
-                 dirlist  = os.listdir(options.path+"run_"+self.runNr)
-                 for x in dirlist:
+                   dirlist  = os.listdir(options.path+"run_"+self.runNr)
+                   for x in dirlist:
                      data = "sndsw_raw-"+ str(partitions).zfill(4)
                      if not x.find(data)<0:
                           partitions.append(data)
-            else:
-                 partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)]
-            if options.runNumber>0:
+              else:
+                 partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)+".root"]
+              if options.runNumber>0:
                 eventChain = ROOT.TChain('rawConv')
                 for p in partitions:
                        eventChain.Add(path+'run_'+self.runNr+'/'+p)
-            else:
-# for MC data
-                f=ROOT.TFile.Open(options.fname)
-                eventChain = f.cbmsim
+
             rc = eventChain.GetEvent(0)
 # start FairRunAna
             self.run  = ROOT.FairRunAna()
@@ -153,8 +156,8 @@ class Monitoring():
             ioman.SetTreeName(eventChain.GetName())
             outFile = ROOT.TMemFile('dummy','CREATE')
             source = ROOT.FairFileSource(eventChain.GetCurrentFile())
-            if partitions>0:
-                  for p in range(1,partitions):
+            if len(partitions)>0:
+                  for p in range(1,len(partitions)):
                        source.AddFile(path+'run_'+self.runNr+'/sndsw_raw-'+str(p).zfill(4)+'.root')
             self.run.SetSource(source)
             sink = ROOT.FairRootFileSink(outFile)
@@ -169,7 +172,7 @@ class Monitoring():
             xrdb.getContainer("FairGeoParSet").setStatic()
 
             self.run.Init()
-            if partitions>0:  self.eventTree = ioman.GetInChain()
+            if len(partitions)>0:  self.eventTree = ioman.GetInChain()
             else:                 self.eventTree = ioman.GetInTree()
    
    def modtime(self,fname):
@@ -247,6 +250,28 @@ class Monitoring():
             rc = os.system("xrdcp -f online.html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
       except:
             print("copy of html failed. Token expired?")
+   def cleanUpHtml(self):
+      rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online.html  . ")
+      old = open("online.html")
+      oldL = old.readlines()
+      old.close()
+      tmp = open("tmp.html",'w')
+      dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/online/",shell=True) ) 
+      for L in oldL:
+           OK = True
+           if L.find("https://snd-lhc-monitoring.web.cern.ch/online")>0:
+              k = L.find("file=")+5
+              m =  L.find(".root")+5
+              R = L[k:m]
+              if not R in dirlist: OK = False  
+           if OK: tmp.write(L)
+      tmp.close()
+      os.system('cp tmp.html online.html')
+      try:
+            rc = os.system("xrdcp -f online.html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
+      except:
+            print("copy of html failed. Token expired?")
+
    def systemAndOrientation(self,s,plane):
       if s==1 or s==2: return "horizontal"
       if plane%2==1 or plane == 6: return "vertical"
@@ -454,6 +479,7 @@ class TrackSelector():
         ioman = ROOT.FairRootManager.Instance()
         ioman.SetTreeName(eventChain.GetName())
         source = ROOT.FairFileSource(eventChain.GetCurrentFile())
+        ioman.SetInChain(eventChain)
         first = True
         for p in partitions:
            if first:
@@ -470,15 +496,14 @@ class TrackSelector():
 # prepare output tree, same branches as input plus track(s)
         self.outFile = ROOT.TFile(options.oname,'RECREATE')
         self.fSink    = ROOT.FairRootFileSink(self.outFile)
-        self.run.SetSink(self.fSink)
 
         self.outTree = eventChain.CloneTree(0)
         ROOT.gDirectory.pwd()
         self.kalman_tracks = ROOT.TObjArray(10)
-        self.MuonTracksBranch    = self.outTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,1)
-        if not self.outTree.GetBranch("Cluster_Scifi"):
+        self.MuonTracksBranch    = self.outTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,0)
+        if not eventChain.GetBranch("Cluster_Scifi"):
            self.clusScifi   = ROOT.TClonesArray("sndCluster")
-           self.clusScifiBranch    = self.outTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
+           self.clusScifiBranch    = self.outTree.Branch("Cluster_Scifi",self.clusScifi,32000,0)
 
         B = ROOT.TList()
         B.SetName('BranchList')
@@ -492,21 +517,32 @@ class TrackSelector():
         self.fSink.SetOutTree(self.outTree)
 
         self.eventTree = eventChain
+        self.run.SetSink(self.fSink)
 
         self.trackTask = options.FairTasks["simpleTracking"]
         self.trackTask.Init()
         self.OT = ioman.GetSink().GetOutTree()
 
    def ExecuteEvent(self,event):
-           self.trackTask.ExecuteTask(option='Scifi')
+           self.trackTask.ExecuteTask(option='ScifiDS')
 
    def Execute(self):
       for n in range(self.options.nStart,self.options.nStart+self.options.nEvents):
           self.eventTree.GetEvent(n)
           self.ExecuteEvent(self.eventTree)
-          if self.OT.Reco_MuonTracks.GetEntries()>0:
-              self.OT.EventHeader.SetMCEntryNumber(n)
-              self.fSink.Fill()
+          if self.trackTask.kalman_tracks.GetEntries() == 0: continue
+          if not self.eventTree.GetBranch("Cluster_Scifi"):
+                self.clusScifi.Delete()
+                index = 0
+                for aCl in self.trackTask.clusScifi:
+                     if  self.clusScifi.GetSize() == index: self.clusScifi.Expand(index+10)
+                     self.clusScifi[index]=aCl
+                     index+=1
+          self.OT.Reco_MuonTracks.Delete()
+          for aTrack in self.trackTask.kalman_tracks:
+                self.OT.Reco_MuonTracks.Add(aTrack)
+          self.OT.EventHeader.SetMCEntryNumber(n)
+          self.fSink.Fill()
 
    def Finalize(self):
          self.fSink.Write()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import ROOT,os,sys,getopt,subprocess,atexit,time
+import ROOT,os,sys,subprocess,atexit,time
 import Monitor
 import Scifi_monitoring
 import Mufi_monitoring
@@ -65,7 +65,7 @@ def currentRun():
                print(Lcrun)
                curRun,curPart,start ="","",""
                break
-            if not l.find('/home/snd/snd/') < 0:
+            if not l.find('.root') < 0:
                  tmp = l.split('/')
                  curRun = tmp[len(tmp)-2]
                  curPart = tmp[len(tmp)-1]
@@ -111,7 +111,9 @@ if options.nEvents < 0 :
     else:    options.nEvents = M.eventTree.GetEntries()
 
 monitorTasks = {}
-monitorTasks['daq']   = DAQ_monitoring.DAQ_boards()
+if not options.fname:
+   monitorTasks['daq']     = DAQ_monitoring.DAQ_boards()
+   monitorTasks['rates']   = DAQ_monitoring.Time_evolution()
 monitorTasks['Scifi_hitMaps']   = Scifi_monitoring.Scifi_hitMaps()
 monitorTasks['Mufi_hitMaps']   = Mufi_monitoring.Mufi_hitMaps()
 monitorTasks['Mufi_QDCcorellations']   = Mufi_monitoring.Mufi_largeVSsmall()
