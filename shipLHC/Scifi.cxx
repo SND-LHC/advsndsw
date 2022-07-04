@@ -539,27 +539,41 @@ void Scifi::GetSiPMPosition(Int_t SiPMChan, TVector3& A, TVector3& B)
 	TString sID;
 	sID.Form("%i",SiPMChan);
 	locPosition += conf_floats["Scifi/LocM"+TString(sID(0,3))];
+	Float_t rotPhi = conf_floats["Scifi/RotPhiS"+TString(sID(0,1))];
+	Float_t rotPsi = conf_floats["Scifi/RotPsiS"+TString(sID(0,1))];
+	Float_t rotTheta = conf_floats["Scifi/RotThetaS"+TString(sID(0,1))];
+
 	Double_t loc[3] = {0,0,0};
 	TString path = "/cave_1/Detector_0/volTarget_1/ScifiVolume"+TString(sID(0,1))+"_"+TString(sID(0,1))+"000000/";
-	if (sID(1,1)=="0"){
-		path+="ScifiHorPlaneVol"+TString(sID(0,1))+"_"+TString(sID(0,1))+"000000";
-		loc[0] = -fFiberLength/2;
-		loc[1] = locPosition;
-	}else{
-		path+="ScifiVertPlaneVol"+TString(sID(0,1))+"_"+TString(sID(0,1))+"000000";
-		loc[1] = -fFiberLength/2;
-		loc[0] = locPosition;
-	}
-
 	TGeoNavigator* nav = gGeoManager->GetCurrentNavigator();
 	nav->cd(path);
 	Double_t glob[3] = {0,0,0};
-	nav->LocalToMaster(loc, glob);
-	A.SetXYZ( glob[0], glob[1],glob[2] );
-	if (sID(1,1)=="0"){loc[0]=-loc[0];}
-	else {loc[1]=-loc[1];}
-	nav->LocalToMaster(loc, glob);
-	B.SetXYZ( glob[0], glob[1],glob[2] );
+
+	if (sID(1,1)=="0"){
+		path+="ScifiHorPlaneVol"+TString(sID(0,1))+"_"+TString(sID(0,1))+"000000";
+		loc[0] = -fFiberLength/2 - (rotPhi + rotPsi)*locPosition ;
+		loc[1] = locPosition - fFiberLength/2 * (rotPhi + rotPsi) ;
+		loc[2] = rotTheta*locPosition;
+		nav->LocalToMaster(loc, glob);
+		A.SetXYZ( glob[0], glob[1],glob[2] );
+		loc[0] = fFiberLength/2 - (rotPhi + rotPsi)*locPosition ;
+		loc[1] = locPosition + fFiberLength/2 * (rotPhi + rotPsi) ;
+		loc[2] = - rotTheta*locPosition;
+		nav->LocalToMaster(loc, glob);
+		B.SetXYZ( glob[0], glob[1],glob[2] );
+	}else{
+		path+="ScifiVertPlaneVol"+TString(sID(0,1))+"_"+TString(sID(0,1))+"000000";
+		loc[0] = locPosition + fFiberLength/2*(rotPhi + rotPsi);
+		loc[1] = -fFiberLength/2 + locPosition*(rotPhi + rotPsi);
+		loc[2] = -fFiberLength/2*rotTheta;
+		nav->LocalToMaster(loc, glob);
+		A.SetXYZ( glob[0], glob[1],glob[2] );
+		loc[0] = locPosition - fFiberLength/2*(rotPhi + rotPsi);
+		loc[1] = fFiberLength/2 + locPosition*(rotPhi + rotPsi);
+		loc[2] = -fFiberLength/2*rotTheta;
+		nav->LocalToMaster(loc, glob);
+		B.SetXYZ( glob[0], glob[1],glob[2] );
+	}
 }
 
 Double_t Scifi::ycross(Double_t a,Double_t R,Double_t x)

@@ -141,6 +141,12 @@ with ConfigRegistry.register_config("basic") as c:
         c.Scifi.LocM410,c.Scifi.LocM411,c.Scifi.LocM412=   0.0*u.um,     0.0*u.um,          0.0*u.um
         c.Scifi.LocM500,c.Scifi.LocM501,c.Scifi.LocM502=   0.0*u.um,     0.0*u.um,          0.0*u.um
         c.Scifi.LocM510,c.Scifi.LocM511,c.Scifi.LocM512=   0.0*u.um,     0.0*u.um,          0.0*u.um
+# station rotations
+        c.Scifi.RotPhiS1,c.Scifi.RotPsiS1,c.Scifi.RotThetaS1 = 0,0,0
+        c.Scifi.RotPhiS2,c.Scifi.RotPsiS2,c.Scifi.RotThetaS2 = 0,0,0
+        c.Scifi.RotPhiS3,c.Scifi.RotPsiS3,c.Scifi.RotThetaS3 = 0,0,0
+        c.Scifi.RotPhiS4,c.Scifi.RotPsiS4,c.Scifi.RotThetaS4 = 0,0,0
+        c.Scifi.RotPhiS5,c.Scifi.RotPsiS5,c.Scifi.RotThetaS5 = 0,0,0
 
 # Time alignment Scifi, T0 = station 0,  mat 0 
         c.Scifi.signalSpeed = 15 * u.cm/u.ns
