@@ -22,7 +22,7 @@ parser.add_argument("--hits_for_triplet", dest = "hits_for_triplet", type=str, h
 
 options = parser.parse_args()
 
-trans2local = False
+trans2local = True
 
 import SndlhcGeo
 geo = SndlhcGeo.GeoInterface(options.geoFile)
@@ -132,6 +132,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
  event = eventTree
  OT = sink.GetOutTree()
  if withTrack==0: OT = eventTree
+ sig=[]
+ en=[]
  for N in range(start, event.GetEntries()):
     rc = event.GetEvent(N)
     if goodEvents and not goodEvent(event): continue
@@ -197,12 +199,22 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
             geo.modules['MuFilter'].GetPosition(detID,A,B)
             sipmMult = len(digi.GetAllSignals())
             if sipmMult<minSipmMult and (system==1 or system==2): continue
+            sumSignal = digi.SumOfSignals()['Sum']
+            sig.append(sumSignal)
+            print('signal:')
+            print(sumSignal)
+            print(min(sig), max(sig))
             if trans2local:
                 curPath = nav.GetPath()
                 tmp = curPath.rfind('/')
                 nav.cd(curPath[:tmp])
          else:
             geo.modules['Scifi'].GetSiPMPosition(detID,A,B)
+            energy = digi.GetEnergy()
+            print('energy:')
+            en.append(energy)
+            print(energy)
+            print(min(en), max(en))
             if trans2local:
                 curPath = nav.GetPath()
                 tmp = curPath.rfind('/')
@@ -220,12 +232,14 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    Y = locA[1]
                    sY = detSize[system][1]
          c = h[collection][systems[system]]
-         rc = c[1].SetPoint(c[0],Z,Y)
+         rc = c[1].SetPoint(c[0],Z,A[1])
          rc = c[1].SetPointError(c[0],detSize[system][2],sY)
          c[0]+=1
 
-         ROOT.gGeoManager.FindNode(locA[0], locA[1], Z)
-         fillNodes()
+         ROOT.gGeoManager.FindNode(A[0], A[1], A[2])
+         fillNodes(sumSignal)
+         print(globA[0], globA[1], globA[2])
+         print(locA[0], locA[1], locA[2])
 
          if digi.isVertical():  F = 'firedChannelsX'
          else:                     F = 'firedChannelsY'
@@ -244,8 +258,12 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     #h['hitCollectionX']['DS'][1].SetMarkerColor(ROOT.kCyan)
     #h['hitCollectionY']['US'][1].SetMarkerColor(ROOT.kGreen)
     k = 1
+    #suppFront = ROOT.TImage.Open('/home/fabio/Immagini/det_front_cut.png')
+    #suppSide = ROOT.TImage.Open('/home/fabio/Immagini/side_front_cut.png')
     for collection in ['hitCollectionX','hitCollectionY']:
        h[ 'simpleDisplay'].cd(k)
+       #if k==1:   suppFront.Draw('same')
+       #elif k==2:   suppSide.Draw('same')
        k+=1
        for c in h[collection]:
           F = collection.replace('hitCollection','firedChannels')
@@ -260,6 +278,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
             h[collection][c][1].SetMarkerSize(1.5)
             rc=h[collection][c][1].Draw('sameP')
             h['display:'+c]=h[collection][c][1]
+
 
     if withTrack == 2: addTrack(OT,True)
     elif not withTrack<0:  addTrack(OT)
@@ -345,29 +364,54 @@ def drawDetectors():
       node = '/cave_1/Detector_0/'+node_
       #if not any(xNode in node for xNode in xNodes):
       #   print(node)
-      if not node+'X' in h:
-         nav.cd(node)
-         N = nav.GetCurrentNode()
-         S = N.GetVolume().GetShape()
-         dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
-         ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
-         for p in proj:
+      for p in proj:
+         if node+p not in h:
+            nav.cd(node)
+            N = nav.GetCurrentNode()
+            S = N.GetVolume().GetShape()
+            dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
+            ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
+            if 'ScifiVolume' in node:
+               P = {}
+               M = {}
+               if p=='X':
+                  P['LeftBottom'] = array('d',[-2*dx+ox,oy,-dz+oz])
+                  P['LeftTop'] = array('d',[-dx+ox,oy,-dz+oz])
+                  P['RightBottom'] = array('d',[-2*dx+ox,oy,dz+oz])
+                  P['RightTop'] = array('d',[-dx+ox,oy,dz+oz])
+               else:
+                  P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+                  P['LeftTop'] = array('d',[ox,2*dy+oy,-dz+oz])
+                  P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+                  P['RightTop'] = array('d',[ox,2*dy+oy,dz+oz])
+               for C in P:
+                  M[C] = array('d',[0,0,0])
+                  nav.LocalToMaster(P[C],M[C])
+               h[node+'supp'+p] = ROOT.TPolyLine()
+               X = h[node+'supp'+p]
+               c = proj[p]
+               X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+               X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+               X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+               X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+               X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+               X.SetLineColor(ROOT.kGray+1)
+               h[ 'simpleDisplay'].cd(c+1)
+               X.SetLineWidth(2)
+               X.Draw('same')
             P = {}
             M = {}
-            if p=='X':
-               if not any(xNode in node for xNode in xNodes):
-                  P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
-                  P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
-                  P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
-                  P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
-               else: continue
-            else:
-               if 'ver' not in node:
-                  P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
-                  P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
-                  P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
-                  P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
-               else: continue
+            if p=='X' and not any(xNode in node for xNode in xNodes):
+               P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
+               P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
+               P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
+               P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+            elif p=='Y' and 'ver' not in node:
+               P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+               P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
+               P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+               P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+            else: continue
             for C in P:
                M[C] = array('d',[0,0,0])
                nav.LocalToMaster(P[C],M[C])
@@ -388,18 +432,15 @@ def drawDetectors():
             else:
                X.SetLineWidth(1)
                X.Draw('same')
-      else:
-         for p in proj:
-            if (p=='X' and not any(xNode in node for xNode in xNodes)) or (p=='Y' and 'ver' not in node):
-               X = h[node+p]
-               c = proj[p]
-               h[ 'simpleDisplay'].cd(c+1)
-               if any(passNode in node for passNode in passNodes):
-                  X.Draw('f&&same') 
-                  X.Draw('same') 
-               else:
-                  X.Draw('same')
-            else: continue
+         else:
+            X = h[node+p]
+            c = proj[p]
+            h[ 'simpleDisplay'].cd(c+1)
+            if any(passNode in node for passNode in passNodes):
+               X.Draw('f&&same') 
+               X.Draw('same') 
+            else:
+               X.Draw('same')
 
 def dumpVeto():
     muHits = {10:[],11:[]}
@@ -527,32 +568,26 @@ def dumpChannels(D='Digi_MuFilterHits'):
 def fillNode(node, color, thick, adj=0):
    xNodes = {'UpstreamBar', 'VetoBar', 'hor'}
    proj = {'X':0,'Y':1}
-   if not node+'X' in h:
-      print('si')
-      nav.cd(node)
-      N = nav.GetCurrentNode()
-      S = N.GetVolume().GetShape()
-      dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
-      ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
-      for p in proj:
+   for p in proj:
+      if node+p not in h:
+         nav.cd(node)
+         N = nav.GetCurrentNode()
+         S = N.GetVolume().GetShape()
+         dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
+         ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
          P = {}
          M = {}
-         if p=='X':
-            #if not any(xNode in node for xNode in xNodes):
-            print('xnode')
+         if p=='X' and not any(xNode in node for xNode in xNodes):
             P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
             P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
             P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
             P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
-            #else: continue
-         else:
-            #if 'ver' not in node:
-            print('ynode')
+         elif p=='Y' and 'ver' not in node:
             P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
             P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
             P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
             P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
-            #else: continue
+         else: continue
          for C in P:
             M[C] = array('d',[0,0,0])
             nav.LocalToMaster(P[C],M[C])
@@ -570,36 +605,47 @@ def fillNode(node, color, thick, adj=0):
          X.SetLineWidth(thick)
          X.Draw('f&&same')
          X.Draw('same')
-   else:
-      for p in proj:
-         if p=='X' and any(xNode in node for xNode in xNodes): continue
-         else:
-            X = h[node+p]
-            if adj==0 or (adj==1 and X.GetFillColor()!=ROOT.kBlack):
-               c = proj[p]
-               h[ 'simpleDisplay'].cd(c+1)
-               X.SetFillColor(color)
-               X.SetLineColor(color)
-               X.SetLineWidth(thick)
-               X.Draw('f&&same')
-               X.Draw('same')
+      else:
+         X = h[node+p]
+         if adj==0 or (adj==1 and X.GetFillColor()!=ROOT.kBlack) or (adj==2 and X.GetFillColor()!=ROOT.kBlack and X.GetFillColor()!=ROOT.kRed+2):
+            c = proj[p]
+            h[ 'simpleDisplay'].cd(c+1)
+            X.SetFillColor(color)
+            X.SetLineColor(color)
+            X.SetLineWidth(thick)
+            X.Draw('f&&same')
+            X.Draw('same')
                
-def fillNodes():
+def fillNodes(signal):
    node = ROOT.gGeoManager.GetPath()
    print(node)
-   fillNode(node, color=ROOT.kBlack, thick=4)
+   thick=int(signal//50)
+   print('thickness = {}'.format(thick))
+   if 'Scifi' not in node:
+      fillNode(node, color=ROOT.kBlack, thick=thick)
    if 'DownstreamBar' in node:
       nextBar = int(node[-3:])
       prevBar = nextBar -1
       nextBar+=1
       nextNode = node[:-3]+'{:0>3d}'.format(nextBar)
+      nnextNode = node[:-3]+'{:0>3d}'.format(nextBar+1)
       prevNode = node[:-3]+'{:0>3d}'.format(prevBar)
+      pprevNode = node[:-3]+'{:0>3d}'.format(prevBar-1)
       #print(nextNode, '--next')
       if ('hor' in node and nextBar < 60) or ('ver' in node and nextBar < 120):
-         fillNode(nextNode, color=ROOT.kRed, thick=3, adj=1)
+         fillNode(nextNode, color=ROOT.kRed+2, thick=thick, adj=1)
+      else: print('out of geometry')
       #print(prevNode, '--prev')   
       if ('hor' in node and prevBar > -1) or ('ver' in node and prevBar > 59):
-         fillNode(prevNode, color=ROOT.kRed, thick=3, adj=1)
+         fillNode(prevNode, color=ROOT.kRed+2, thick=thick, adj=1)
+      else: print('out of geometry')
+      if ('hor' in node and nextBar+1 < 60) or ('ver' in node and nextBar+1 < 120):
+         fillNode(nnextNode, color=ROOT.kOrange+2, thick=thick, adj=2)
+      else: print('out of geometry')
+      #print(prevNode, '--prev')   
+      if ('hor' in node and prevBar-1 > -1) or ('ver' in node and prevBar-1 > 59):
+         fillNode(pprevNode, color=ROOT.kOrange+2, thick=thick, adj=2)
+      else: print('out of geometry')
 
 def emptyNodes():
    nodes = {}
@@ -630,4 +676,4 @@ def emptyNodes():
                X.Draw('f&&same')
                X.Draw('same')
          except:
-            notaNode = 1
+            notFilled = 1
