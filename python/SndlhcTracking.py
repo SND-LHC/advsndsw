@@ -31,18 +31,26 @@ class Tracking(ROOT.FairTask):
    online        = False
    offlineRW   = False
    if not self.sink.GetOutTree():     offlineRO = True
-   if not self.ioman.GetInTree():     online = True
+   if not self.ioman.GetInTree() and not self.ioman.GetInChain():     online = True
    if not online and not offlineRO: offlineRW = True
 
    self.makeScifiClusters = False
+
    if offlineRO or offlineRW:
          self.event = self.ioman.GetInChain()     # should contain all digis, but not necessarily the tracks and scifi clusters
-         self.kalman_tracks = ROOT.TObjArray(10)
-         self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)  # user asks for tracking, independent if tracks exist in inputfile.
-         if not self.event.FindBranch("Cluster_Scifi"):   # no scifi clusters on input file, create them
-             self.makeScifiClusters = True
-             self.clusScifi   = ROOT.TObjArray(100);
-             self.ioman.Register("Cluster_Scifi","",self.clusScifi,ROOT.kTRUE)
+         if self.sink.GetOutTree():  # somebody else in charge
+            self.kalman_tracks = ROOT.TObjArray(10)
+            if not self.event.FindBranch("Cluster_Scifi"):
+                self.clusScifi   = ROOT.TObjArray(100);
+                self.makeScifiClusters = True
+         else:
+            self.kalman_tracks = ROOT.TObjArray(10)
+            self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)  # user asks for tracking, independent if tracks exist in inputfile.
+            if not self.event.FindBranch("Cluster_Scifi"):   # no scifi clusters on input file, create them
+               self.makeScifiClusters = True
+               self.clusScifi   = ROOT.TObjArray(100);
+               self.ioman.Register("Cluster_Scifi","",self.clusScifi,ROOT.kTRUE)
+
    if online:
          self.event = self.sink.GetOutTree()
          self.kalman_tracks = self.sink.GetOutTree().Reco_MuonTracks
@@ -118,9 +126,11 @@ class Tracking(ROOT.FairTask):
 # check for low occupancy and enough hits in Scifi
         event = self.event
         trackCandidates = []
-        if not hasattr(event,"Cluster_Scifi"): 
-            self.event.Cluster_Scifi = self.scifiCluster()
-        clusters = self.event.Cluster_Scifi
+        if not event.GetBranch("Cluster_Scifi"):
+            self.scifiCluster()
+            clusters = self.clusScifi
+        else:
+            clusters = self.event.Cluster_Scifi
         stations = {}
         projClusters = {0:{},1:{}}
         for s in range(1,6):
@@ -276,31 +286,30 @@ class Tracking(ROOT.FairTask):
     tmpList = {}
     A,B = ROOT.TVector3(),ROOT.TVector3()
     for k in hitlist:
-        isSifi = False
-        isUS  =False
-        isDS  =False
         aCl = hitlist[k]
         if hasattr(aCl,"GetFirst"):
-            isSifi = True
+            detSys  = 1
             detID = aCl.GetFirst()
             aCl.GetPosition(A,B)
+
         else:
             detID = aCl.GetDetectorID()
-            if detID//10000 < 2: isUS  = True
-            else: isDS  = True
+            if detID//10000 < 2: detSys  = 2
+            else: detSys  = 3
             self.mufiDet.GetPosition(detID,A,B)
         distance = 0
         tmp = array('d',[A[0],A[1],A[2],B[0],B[1],B[2],distance])
-        unSortedList[A[2]] = [ROOT.TVectorD(7,tmp),detID,k]
+        unSortedList[A[2]] = [ROOT.TVectorD(7,tmp),detID,k,detSys]
     sorted_z=list(unSortedList.keys())
     sorted_z.sort()
     for z in sorted_z:
         tp = ROOT.genfit.TrackPoint() # note how the point is told which track it belongs to
         hitCov = ROOT.TMatrixDSym(7)
-        if isDS:      
+        detSys = unSortedList[z][3]
+        if detSys==3:      
               res = self.sigmaMufiDS_spatial
               maxDis = 1.0
-        elif isUS:  
+        elif detSys==2:  
               res = self.sigmaMufiUS_spatial
               maxDis = 5.0
         else:         
