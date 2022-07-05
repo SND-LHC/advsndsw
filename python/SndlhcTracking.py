@@ -286,31 +286,30 @@ class Tracking(ROOT.FairTask):
     tmpList = {}
     A,B = ROOT.TVector3(),ROOT.TVector3()
     for k in hitlist:
-        isSifi = False
-        isUS  =False
-        isDS  =False
         aCl = hitlist[k]
         if hasattr(aCl,"GetFirst"):
-            isSifi = True
+            detSys  = 1
             detID = aCl.GetFirst()
             aCl.GetPosition(A,B)
+
         else:
             detID = aCl.GetDetectorID()
-            if detID//10000 < 2: isUS  = True
-            else: isDS  = True
+            if detID//10000 < 2: detSys  = 2
+            else: detSys  = 3
             self.mufiDet.GetPosition(detID,A,B)
         distance = 0
         tmp = array('d',[A[0],A[1],A[2],B[0],B[1],B[2],distance])
-        unSortedList[A[2]] = [ROOT.TVectorD(7,tmp),detID,k]
+        unSortedList[A[2]] = [ROOT.TVectorD(7,tmp),detID,k,detSys]
     sorted_z=list(unSortedList.keys())
     sorted_z.sort()
     for z in sorted_z:
         tp = ROOT.genfit.TrackPoint() # note how the point is told which track it belongs to
         hitCov = ROOT.TMatrixDSym(7)
-        if isDS:      
+        detSys = unSortedList[z][3]
+        if detSys==3:      
               res = self.sigmaMufiDS_spatial
               maxDis = 1.0
-        elif isUS:  
+        elif detSys==2:  
               res = self.sigmaMufiUS_spatial
               maxDis = 5.0
         else:         
