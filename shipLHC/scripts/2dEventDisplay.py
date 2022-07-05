@@ -163,6 +163,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
        if Tprev >0: dT = T-Tprev
        Tprev = T
     print( "event -> %i   %8.4Fs  %8.4Fns"%(N,T/freq,dT/freq*1E9))
+    if ntracks > 0: print('number of tracks: ', ntracks)
 
     digis = []
     if event.FindBranch("Digi_ScifiHits"): digis.append(event.Digi_ScifiHits)
@@ -272,12 +273,12 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
           if h[collection][c][1].GetN()<1: continue
           if c=='Scifi':
             h[collection][c][1].SetMarkerStyle(20)
-            h[collection][c][1].SetMarkerSize(2)
+            h[collection][c][1].SetMarkerSize(1.5)
             rc=h[collection][c][1].Draw('sameP')
             h['display:'+c]=h[collection][c][1]
     h[ 'simpleDisplay'].Update()
 
-
+    #withTrack=2 scifi, =3 DS
     if withTrack == 2: addTrack(OT,True)
     elif not withTrack<0:  addTrack(OT)
     if verbose>0: dumpChannels()
@@ -291,10 +292,12 @@ def addTrack(OT,scifi=False):
    nTrack = 0
    for   aTrack in OT.Reco_MuonTracks:
       trackColor = ROOT.kRed
-      if aTrack.GetUniqueID()==1: trackColor = ROOT.kBlack
-      if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlue
+      if aTrack.GetUniqueID()==1: trackColor = ROOT.kBlue
+      if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlack
       S = aTrack.getFitStatus()
-      if not S.isFitConverged() and scifi: continue
+      if not S.isFitConverged() and scifi:
+         print('not converge')
+         continue
       for p in [0,1]:
           h['aLine'+str(nTrack*10+p)] = ROOT.TGraph()
 
@@ -357,8 +360,6 @@ def drawDetectors():
    proj = {'X':0,'Y':1}
    for node_ in nodes:
       node = '/cave_1/Detector_0/'+node_
-      #if not any(xNode in node for xNode in xNodes):
-      #   print(node)
       for p in proj:
          if node+p not in h:
             nav.cd(node)
@@ -568,43 +569,43 @@ def fillNode(node, color, thick, adj=0):
    xNodes = {'UpstreamBar', 'VetoBar', 'hor'}
    proj = {'X':0,'Y':1}
    for p in proj:
-      if node+p not in h:
-         print('HELLO')
-         nav.cd(node)
-         N = nav.GetCurrentNode()
-         S = N.GetVolume().GetShape()
-         dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
-         ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
-         P = {}
-         M = {}
-         if p=='X' and not any(xNode in node for xNode in xNodes):
-            P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
-            P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
-            P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
-            P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
-         elif p=='Y' and 'ver' not in node:
-            P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
-            P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
-            P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
-            P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
-         else: continue
-         for C in P:
-            M[C] = array('d',[0,0,0])
-            nav.LocalToMaster(P[C],M[C])
-         h[node+p] = ROOT.TPolyLine()
-         X = h[node+p]
-         c = proj[p]
-         X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
-         X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
-         X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
-         X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
-         X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
-         h[ 'simpleDisplay'].cd(c+1)
-         X.SetFillColor(color)
-         X.SetLineColor(color)
-         X.SetLineWidth(thick)
-         X.Draw('f&&same')
-         X.Draw('same')
+      if node+p not in h: continue
+      #   print('HELLO', node)
+      #   nav.cd(node)
+      #   N = nav.GetCurrentNode()
+      #   S = N.GetVolume().GetShape()
+      #   dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
+      #   ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
+      #   P = {}
+      #   M = {}
+      #   if p=='X' and not any(xNode in node for xNode in xNodes):
+      #      P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
+      #      P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
+      #      P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
+      #      P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+      #   elif p=='Y' and 'ver' not in node:
+      #      P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+      #      P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
+      #      P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+      #      P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+      #   else: continue
+      #   for C in P:
+      #      M[C] = array('d',[0,0,0])
+      #      nav.LocalToMaster(P[C],M[C])
+      #   h[node+p] = ROOT.TPolyLine()
+      #   X = h[node+p]
+      #   c = proj[p]
+      #   X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+      #   X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+      #   X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+      #   X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+      #   X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+      #   h[ 'simpleDisplay'].cd(c+1)
+      #   X.SetFillColor(color)
+      #   X.SetLineColor(color)
+      #   X.SetLineWidth(thick)
+      #   X.Draw('f&&same')
+      #   X.Draw('same')
       else:
          X = h[node+p]
          if adj==0 or (adj==1 and X.GetFillColor()!=ROOT.kBlack) or (adj==2 and X.GetFillColor()!=ROOT.kBlack and X.GetFillColor()!=ROOT.kGray+3):
@@ -629,22 +630,25 @@ def fillNodes(node):
       prevNode = node[:-3]+'{:0>3d}'.format(prevBar)
       pprevNode = node[:-3]+'{:0>3d}'.format(prevBar-1)
       #print(nextNode, '--next')
-      if ('hor' in node and nextBar+1 < 60) or ('ver' in node and nextBar+1 < 120):
-         fillNode(nnextNode, color=ROOT.kGray+2, thick=10, adj=2)
-      else: print('out of geometry')
+      #if ('hor' in node and nextBar+1 < 60) or ('ver' in node and nextBar+1 < 120):
+      #   fillNode(nnextNode, color=ROOT.kGray+2, thick=10, adj=2)
+      #else: print('out of geometry')
       #print(prevNode, '--prev')   
-      if ('hor' in node and prevBar-1 > -1) or ('ver' in node and prevBar-1 > 59):
-         fillNode(pprevNode, color=ROOT.kGray+2, thick=10, adj=2)
-      else: print('out of geometry')
-      if ('hor' in node and nextBar < 60) or ('ver' in node and nextBar < 120):
-         fillNode(nextNode, color=ROOT.kGray+3, thick=10, adj=1)
-      else: print('out of geometry')
+      #if ('hor' in node and prevBar-1 > -1) or ('ver' in node and prevBar-1 > 59):
+      #   fillNode(pprevNode, color=ROOT.kGray+2, thick=10, adj=2)
+      #else: print('out of geometry')
+      #if ('hor' in node and nextBar < 60) or ('ver' in node and nextBar < 120):
+      #   fillNode(nextNode, color=ROOT.kGray+3, thick=10, adj=1)
+      #else: print('out of geometry')
       #print(prevNode, '--prev')   
-      if ('hor' in node and prevBar > -1) or ('ver' in node and prevBar > 59):
-         fillNode(prevNode, color=ROOT.kGray+3, thick=10, adj=1)
-      else: print('out of geometry')
+      #if ('hor' in node and prevBar > -1) or ('ver' in node and prevBar > 59):
+      #   fillNode(prevNode, color=ROOT.kGray+3, thick=10, adj=1)
+      #else: print('out of geometry')
    if 'Scifi' not in node:
-      fillNode(node, color=ROOT.kBlack, thick=10)
+      if 'Downstream' in node:
+         fillNode(node, color=ROOT.kBlack, thick=5)
+      else:
+         fillNode(node, color=ROOT.kBlack, thick=10)
    if 'Veto' in node:
       fillNode(node, color=ROOT.kRed+1, thick=10)
       
