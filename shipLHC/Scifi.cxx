@@ -546,7 +546,6 @@ void Scifi::GetSiPMPosition(Int_t SiPMChan, TVector3& A, TVector3& B)
 	Double_t loc[3] = {0,0,0};
 	TString path = "/cave_1/Detector_0/volTarget_1/ScifiVolume"+TString(sID(0,1))+"_"+TString(sID(0,1))+"000000/";
 	TGeoNavigator* nav = gGeoManager->GetCurrentNavigator();
-	nav->cd(path);
 	Double_t glob[3] = {0,0,0};
 
 	if (sID(1,1)=="0"){
@@ -554,6 +553,7 @@ void Scifi::GetSiPMPosition(Int_t SiPMChan, TVector3& A, TVector3& B)
 		loc[0] = -fFiberLength/2 - (rotPhi + rotPsi)*locPosition ;
 		loc[1] = locPosition - fFiberLength/2 * (rotPhi + rotPsi) ;
 		loc[2] = rotTheta*locPosition;
+		nav->cd(path);
 		nav->LocalToMaster(loc, glob);
 		A.SetXYZ( glob[0], glob[1],glob[2] );
 		loc[0] = fFiberLength/2 - (rotPhi + rotPsi)*locPosition ;
@@ -566,6 +566,7 @@ void Scifi::GetSiPMPosition(Int_t SiPMChan, TVector3& A, TVector3& B)
 		loc[0] = locPosition + fFiberLength/2*(rotPhi + rotPsi);
 		loc[1] = -fFiberLength/2 + locPosition*(rotPhi + rotPsi);
 		loc[2] = -fFiberLength/2*rotTheta;
+		nav->cd(path);
 		nav->LocalToMaster(loc, glob);
 		A.SetXYZ( glob[0], glob[1],glob[2] );
 		loc[0] = locPosition - fFiberLength/2*(rotPhi + rotPsi);
