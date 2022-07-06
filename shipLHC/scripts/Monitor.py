@@ -139,9 +139,8 @@ class Monitoring():
 # check for partitions
                    dirlist  = os.listdir(options.path+"run_"+self.runNr)
                    for x in dirlist:
-                     data = "sndsw_raw-"+ str(partitions).zfill(4)
-                     if not x.find(data)<0:
-                          partitions.append(data)
+                     if not x.find('sndsw_raw-')<0:
+                          partitions.append(x)
               else:
                  partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)+".root"]
               if options.runNumber>0:
@@ -157,8 +156,8 @@ class Monitoring():
             outFile = ROOT.TMemFile('dummy','CREATE')
             source = ROOT.FairFileSource(eventChain.GetCurrentFile())
             if len(partitions)>0:
-                  for p in range(1,len(partitions)):
-                       source.AddFile(path+'run_'+self.runNr+'/sndsw_raw-'+str(p).zfill(4)+'.root')
+                  for p in partitions:
+                       source.AddFile(path+'run_'+self.runNr+'/'+p)
             self.run.SetSource(source)
             sink = ROOT.FairRootFileSink(outFile)
             self.run.SetSink(sink)
@@ -460,11 +459,10 @@ class TrackSelector():
 # check for partitions
                  dirlist  = os.listdir(options.path+"run_"+self.runNr)
                  for x in dirlist:
-                     data = "sndsw_raw-"+ str(partitions).zfill(4)
-                     if not x.find(data)<0:
-                          partitions.append(data)
+                     if not x.find("sndsw_raw-")<0:
+                          partitions.append(x)
         else:
-                 partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)]
+                 partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)+".root"]
         if options.runNumber>0:
                 eventChain = ROOT.TChain('rawConv')
                 for p in partitions:
