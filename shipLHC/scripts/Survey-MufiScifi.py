@@ -90,6 +90,7 @@ parser.add_argument("-b", "--heartBeat", dest="heartBeat", help="heart beat", de
 parser.add_argument("-c", "--command", dest="command", help="command", default="")
 parser.add_argument("-n", "--nEvents", dest="nEvents", help="number of events", default=-1,type=int)
 parser.add_argument("-t", "--trackType", dest="trackType", help="DS or Scifi", default="DS")
+parser.add_argument("--remakeScifiClusters", dest="remakeScifiClusters", help="remake ScifiClusters", default=False)
 options = parser.parse_args()
 
 runNr   = str(options.runNumber).zfill(6)
@@ -310,7 +311,7 @@ else:
               f=ROOT.TFile.Open(options.fname)
               if f.Get('rawConv'):   eventChain = f.rawConv
               else:                        eventChain = f.cbmsim
-eventChain.GetEvent(0)
+if options.remakeScifiClusters: eventChain.SetBranchStatus("Cluster_Scifi*",0)
 
 run      = ROOT.FairRunAna()
 ioman = ROOT.FairRootManager.Instance()
@@ -345,7 +346,6 @@ run.Init()
 if partitions>0:  eventTree = ioman.GetInChain()
 else:                 eventTree = ioman.GetInTree()
 
-ioman = ROOT.FairRootManager.Instance()
 OT = ioman.GetSink().GetOutTree()
 
 # wait for user action 
@@ -3110,7 +3110,7 @@ def scifi_beamSpot():
             w+=1
         rc = h['bs'].Fill(xMean/w,yMean/w)
 
-def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,unbiased = True,minEnergy=False):
+def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,unbiased = True,minEnergy=False,remakeClusters=options.remakeScifiClusters):
     projs = {1:'V',0:'H'}
     for s in range(1,6):
      for o in range(2):
@@ -3144,7 +3144,7 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,
        if minEnergy:
          trackTypes = [0,0,0,0,0]
          for aTrack in event.Reco_MuonTracks:
-            if aTrack.GetUniqueID()==1: 
+            if aTrack.GetUniqueID()==1:
               trackTypes[1]+=1
               fstate =  aTrack.getFittedState()
               mom = fstate.getMom()
@@ -3168,18 +3168,17 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,
                   if mult[35]==1 and mult[34]==1:  trackTypes[4]+=1  # from IP1 and high momentum
 
             if aTrack.GetUniqueID()==3: trackTypes[3]+=1
-            aTrack.Delete()
          if not (trackTypes[4]==1): continue
 
+# required to bypass memory leak for files with tracks
+       if event.GetBranch("Reco_MuonTracks"):
+            for aTrack in event.Reco_MuonTracks: aTrack.Delete()
 
-       if not hasattr(event,"Cluster_Scifi") or alignPar:
+       if not hasattr(event,"Cluster_Scifi") or alignPar or remakeClusters:
                if hasattr(trackTask,"clusScifi"): 
-                   trackTask.clusScifi.Clear()   
+                   trackTask.clusScifi.Clear()
                trackTask.scifiCluster()
                clusters = trackTask.clusScifi
-               #scifi.GetSiPMPosition(2100000,A,B)
-               #print('made new clusters',scifi.GetConfParF('Scifi/RotPhiS2'))
-               #A.Print(),B.Print()
        else:
                clusters = event.Cluster_Scifi
 
@@ -3363,6 +3362,13 @@ def printScifiAlignment():
                   txt += "%8.2F*u.um,"%(Scifi.GetConfParF(x)/u.um)
              l = len(txt)
              print(txt[:l-1])
+    for s in range(1,6):
+        txt = "        c.Scifi.RotPhiS"+str(s)+",c.Scifi.RotPsiS"+str(s)+",c.Scifi.RotThetaS"+str(s)+" = "
+        for a in ["RotPhiS","RotPsiS","RotThetaS"]:
+            x = "Scifi/"+a+str(s)
+            txt += "%8.2F*u.mrad,"%(Scifi.GetConfParF(x)/u.mrad)
+        l = len(txt)
+        print(txt[:l-1])
 
 def minimizeAlignScifi(first=True,level=1,migrad=False):
     eventTree.SetBranchStatus("Cluster_Scifi",0)

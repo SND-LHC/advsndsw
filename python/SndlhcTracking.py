@@ -37,16 +37,19 @@ class Tracking(ROOT.FairTask):
    self.makeScifiClusters = False
 
    if offlineRO or offlineRW:
+         remakeClusters = False
          self.event = self.ioman.GetInChain()     # should contain all digis, but not necessarily the tracks and scifi clusters
+         if self.event.FindBranch("Cluster_Scifi"):
+             if not self.event.GetBranchStatus("Cluster_Scifi*"): remakeClusters = True
          if self.sink.GetOutTree():  # somebody else in charge
             self.kalman_tracks = ROOT.TObjArray(10)
-            if not self.event.FindBranch("Cluster_Scifi"):
+            if not self.event.FindBranch("Cluster_Scifi") or remakeClusters:
                 self.clusScifi   = ROOT.TObjArray(100);
                 self.makeScifiClusters = True
          else:
             self.kalman_tracks = ROOT.TObjArray(10)
             self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)  # user asks for tracking, independent if tracks exist in inputfile.
-            if not self.event.FindBranch("Cluster_Scifi"):   # no scifi clusters on input file, create them
+            if not self.event.FindBranch("Cluster_Scifi") or remakeClusters:   # no scifi clusters on input file, create them
                self.makeScifiClusters = True
                self.clusScifi   = ROOT.TObjArray(100);
                self.ioman.Register("Cluster_Scifi","",self.clusScifi,ROOT.kTRUE)
