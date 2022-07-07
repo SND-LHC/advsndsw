@@ -51,10 +51,12 @@ else:
 
 if f.FindKey('cbmsim'):
         eventTree = f.cbmsim
+        runId = 'sim'
         if eventTree.GetBranch('ScifiPoint'): mc = True
 else:   
         eventTree = f.rawConv
         ioman.SetTreeName('rawConv')
+        #runId = eventTree.EventHeader.GetRunId()
 
 outFile = ROOT.TMemFile('dummy','CREATE')
 source = ROOT.FairFileSource(f)
@@ -118,7 +120,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
         h.pop('xz').Delete()
         h.pop('yz').Delete()
  ut.bookHist(h,'xz','; z [cm]; x [cm]',500,zStart,zStart+350.,100,-100.,10.)
- ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+350.,100,-10.,80.)
+ ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+350.,100,-30.,80.)
 
  proj = {1:'xz',2:'yz'}
  h['xz'].SetStats(0)
@@ -160,6 +162,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     T,dT = 0,0
     if event.FindBranch("EventHeader"):
        T = event.EventHeader.GetEventTime()
+       runId = eventTree.EventHeader.GetRunId()
        if Tprev >0: dT = T-Tprev
        Tprev = T
     #print( "event -> %i   %8.4Fs  %8.4Fns"%(N,T/freq,dT/freq*1E9))
@@ -192,7 +195,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     for p in proj:
        rc = h[ 'simpleDisplay'].cd(p)
        #if p==1: h[proj[p]].SetTitle('event '+str(N)+"    dT="+dTs)
-       if p==1: h[proj[p]].SetTitle('event '+str(N)+ '    run ****')
+       #if p==1: h[proj[p]].SetTitle('event '+str(N)+'    run_'+str(runId))
        h[proj[p]].Draw('b')
     emptyNodes()
     drawDetectors()
@@ -242,7 +245,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
          rc = c[1].SetPointError(c[0],detSize[system][2],sY)
          c[0]+=1 
 
-         fillNodes(curPath)
+         fillNode(curPath)
 
          if digi.isVertical():  F = 'firedChannelsX'
          else:                     F = 'firedChannelsY'
@@ -254,23 +257,20 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    elif not qdc<0:   
                        h[F][systems[system]][0]+=1
                        #h[F][systems[system]][2+side]+=qdc
-    #h['hitCollectionY']['Veto'][1].SetMarkerColor(ROOT.kRed)
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
-    #h['hitCollectionY']['DS'][1].SetMarkerColor(ROOT.kCyan)
-    #h['hitCollectionX']['DS'][1].SetMarkerColor(ROOT.kCyan)
-    #h['hitCollectionY']['US'][1].SetMarkerColor(ROOT.kGreen)
     k = 1
-    #suppFront = ROOT.TImage.Open('/home/fabio/Immagini/det_front_cut.png')
-    #suppSide = ROOT.TImage.Open('/home/fabio/Immagini/side_front_cut.png')
     
     for collection in ['hitCollectionX','hitCollectionY']:
+       h[ 'simpleDisplay'].cd(k)
+       drawLogo()
+       h[ 'simpleDisplay'].cd(k)
+       printInfo(runId, N, T)
        h[ 'simpleDisplay'].cd(k)
        k+=1
        for c in h[collection]:
           F = collection.replace('hitCollection','firedChannels')
           pj = collection.split('ion')[1]
-          drawLogo()
           if pj =="X" or c=="Scifi":
               print( "%1s %5s %3i  +:%3i -:%3i qdc :%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2]))
           else:
@@ -570,96 +570,25 @@ def dumpChannels(D='Digi_MuFilterHits'):
      keys.sort()
      for k in keys: print(text[k])
 
-def fillNode(node, color, thick, adj=0):
+def fillNode(node):
    xNodes = {'UpstreamBar', 'VetoBar', 'hor'}
    proj = {'X':0,'Y':1}
-   nn=0
-   yy=0
+   color = ROOT.kBlack
+   thick = 10
    for p in proj:
-      if node+p not in h: continue
-         #print('HELLO', node)
-         #nav.cd(node)
-         #N = nav.GetCurrentNode()
-         #S = N.GetVolume().GetShape()
-         #dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
-         #ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
-         #P = {}
-         #M = {}
-         #if p=='X' and not any(xNode in node for xNode in xNodes):
-         #   P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
-         #   P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
-         #   P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
-         #   P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
-         #elif p=='Y' and 'ver' not in node:
-         #   P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
-         #   P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
-         #   P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
-         #   P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
-         #else: continue
-         #for C in P:
-         #   M[C] = array('d',[0,0,0])
-         #   nav.LocalToMaster(P[C],M[C])
-         #h[node+p] = ROOT.TPolyLine()
-         #X = h[node+p]
-         #c = proj[p]
-         #X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
-         #X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
-         #X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
-         #X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
-         #X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
-         #h[ 'simpleDisplay'].cd(c+1)
-         #X.SetFillColor(color)
-         #X.SetLineColor(color)
-         #X.SetLineWidth(thick)
-         #X.Draw('f&&same')
-         #X.Draw('same')
-      else:
+      if node+p in h:
          X = h[node+p]
-         if adj==0 or (adj==1 and X.GetFillColor()!=ROOT.kBlack) or (adj==2 and X.GetFillColor()!=ROOT.kBlack and X.GetFillColor()!=ROOT.kGray+3):
-            c = proj[p]
-            h[ 'simpleDisplay'].cd(c+1)
-            X.SetFillColor(color)
-            X.SetLineColor(color)
-            X.SetLineWidth(thick)
-            X.Draw('f&&same')
-            X.Draw('same')
-
-   
-
-def fillNodes(node):
-   #print(node)
-   #thick=int(signal//50)
-   #print('thickness = {}'.format(thick))
-   if 'DownstreamBar' in node:
-      nextBar = int(node[-3:])
-      prevBar = nextBar -1
-      nextBar+=1
-      nextNode = node[:-3]+'{:0>3d}'.format(nextBar)
-      nnextNode = node[:-3]+'{:0>3d}'.format(nextBar+1)
-      prevNode = node[:-3]+'{:0>3d}'.format(prevBar)
-      pprevNode = node[:-3]+'{:0>3d}'.format(prevBar-1)
-      #print(nextNode, '--next')
-      #if ('hor' in node and nextBar+1 < 60) or ('ver' in node and nextBar+1 < 120):
-      #   fillNode(nnextNode, color=ROOT.kGray+2, thick=10, adj=2)
-      #else: print('out of geometry')
-      #print(prevNode, '--prev')   
-      #if ('hor' in node and prevBar-1 > -1) or ('ver' in node and prevBar-1 > 59):
-      #   fillNode(pprevNode, color=ROOT.kGray+2, thick=10, adj=2)
-      #else: print('out of geometry')
-      #if ('hor' in node and nextBar < 60) or ('ver' in node and nextBar < 120):
-      #   fillNode(nextNode, color=ROOT.kGray+3, thick=10, adj=1)
-      #else: print('out of geometry')
-      #print(prevNode, '--prev')   
-      #if ('hor' in node and prevBar > -1) or ('ver' in node and prevBar > 59):
-      #   fillNode(prevNode, color=ROOT.kGray+3, thick=10, adj=1)
-      #else: print('out of geometry')
-   if 'Veto' in node:
-      fillNode(node, color=ROOT.kRed+1, thick=10)
-   elif 'Upstream' in node:
-      fillNode(node, color=ROOT.kBlack, thick=10)
-   elif 'Downstream' in node:
-      fillNode(node, color=ROOT.kBlack, thick=5)
-      
+         if 'Veto' in node:
+            color = ROOT.kRed+1
+         if 'Downstream' in node:
+            thick = 5
+         c = proj[p]
+         h[ 'simpleDisplay'].cd(c+1)
+         X.SetFillColor(color)
+         X.SetLineColor(color)
+         X.SetLineWidth(thick)
+         X.Draw('f&&same')
+         X.Draw('same')   
 
 def emptyNodes():
    nodes = {}
@@ -693,11 +622,26 @@ def emptyNodes():
             notFilled = 1
 
 def drawLogo():
-   logo = ROOT.TImage.Open('/home/fabio/Immagini/Large__SND_Logo-bleu.png')
-   if (not logo):
-      printf("Could not create an image... exit\n")
-
-   l = ROOT.TPad("l","l",0.,0.,0.4,0.4)
-   l.Draw()
-   l.cd()
+   logo = ROOT.TImage.Open('/home/fabio/Immagini/Large__SND_Logo_black_cut.png')
+   logo.SetConstRatio(True)
+   logo.DrawText(0, 0, 'SND', 98)
+   p = ROOT.TPad("logo","logo",0.1,0.1,0.2,0.3)
+   p.SetFillStyle(4000)
+   p.SetFillColorAlpha(0, 0)
+   p.Draw()
+   p.cd()
    logo.Draw()
+
+def printInfo(run, event, time):
+   p = ROOT.TPad("info","info",0.19,0.1,0.36,0.32)
+   p.SetFillStyle(4000)
+   #p.SetFillColorAlpha(4, 0.2)
+   p.Draw()
+   p.cd()
+   t = ROOT.TLatex()
+   t.SetTextAlign(11)
+   t.SetTextFont(42)
+   t.SetTextSize(.15)
+   t.DrawLatex(0, 0.6, 'SND@LHC Experiment, CERN')
+   t.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(event))
+   t.DrawLatex(0, 0.2, 'Time Stamp: {} a.u.'.format(time))
