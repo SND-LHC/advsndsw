@@ -100,7 +100,7 @@ class Tracking(ROOT.FairTask):
     for aHit in self.event.Digi_MuFilterHits:
          k+=1
          if not aHit.isValid(): continue
-         s = aHit.GetDetectorID()//10000
+         if aHit.GetDetectorID()//10000 != s : continue
          p = (aHit.GetDetectorID()//1000)%10
          bar = aHit.GetDetectorID()%1000
          plane = s*10+p
