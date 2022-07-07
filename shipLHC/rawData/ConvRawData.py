@@ -230,11 +230,16 @@ class ConvRawDataPY(ROOT.FairTask):
        self.digiSciFiBranch   = self.sTree.Branch("Digi_ScifiHits",self.digiSciFi,32000,1)
        self.digiMuFilter   = ROOT.TClonesArray("MuFilterHit")
        self.digiMuFilterHitBranch   = self.sTree.Branch("Digi_MuFilterHits",self.digiMuFilter,32000,1)
+       self.geoVersion = 0
   #scifi clusters
        if self.options.withGeoFile:
            self.clusScifi   = ROOT.TClonesArray("sndCluster")
            self.clusScifiBranch    = self.sTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
            self.scifiDet = ROOT.gROOT.GetListOfGlobals().FindObject('Scifi')
+           i = self.options.geoFile.find('_V')
+           if i >0:
+             k = self.options.geoFile[i+2:].find('_')
+             self.geoVersion = int(self.options.geoFile[i+2:i+2+k])
        if self.options.online:
            self.kalman_tracks = ROOT.TObjArray(10)
            self.MuonTracksBranch    = self.sTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,1)
@@ -359,6 +364,7 @@ class ConvRawDataPY(ROOT.FairTask):
      rc = event.GetEvent(eventNumber)
      self.header.SetEventTime(event.timestamp)
      self.header.SetRunId( self.options.runNumber )
+     self.header.SetInputFileId(self.geoVersion)
 
      indexSciFi=0
      self.digiSciFi.Delete()

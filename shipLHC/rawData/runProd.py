@@ -80,7 +80,7 @@ class prodManager():
           os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -cpp -b 100000 -p "+pathM+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
        else: 
           command = "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -b 1000 -p "+path+" --server="+self.options.server
-          command += "  -r "+str(int(r))+ " -P "+str(int(p)) + " -g geofile_sndlhc_TI18.root >log_"+r+'-'+p
+          command += "  -r "+str(int(r))+ " -P "+str(int(p)) + " -g "+self.options.geofile+" >log_"+r+'-'+p
           print("execute ",command)
           os.system(command)
        if check:
@@ -205,6 +205,7 @@ if __name__ == '__main__':
     parser.add_argument("--latest", dest="latest", help="last fully converted run", default=0,type=int)
     parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode checking regularly for new files",default=False,action='store_true')
     parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
+    parser.add_argument("-g", dest="geofile", help="geometry and alignment",default="geofile_sndlhc_TI18.root")
 
     options = parser.parse_args()
     M = prodManager()
