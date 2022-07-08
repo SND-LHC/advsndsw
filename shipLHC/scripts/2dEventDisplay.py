@@ -134,8 +134,6 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
  event = eventTree
  OT = sink.GetOutTree()
  if withTrack==0: OT = eventTree
- #sig=[]
- #en=[]
  for N in range(start, event.GetEntries()):
     rc = event.GetEvent(N)
     if goodEvents and not goodEvent(event): continue
@@ -209,10 +207,6 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
             sipmMult = len(digi.GetAllSignals())
             if sipmMult<minSipmMult and (system==1 or system==2): continue
             #sumSignal = digi.SumOfSignals()['Sum']
-            #sig.append(sumSignal)
-            #print('signal:')
-            #print(sumSignal)
-            #print(min(sig), max(sig))
             if trans2local:
                 curPath = nav.GetPath()
                 tmp = curPath.rfind('/')
@@ -220,10 +214,6 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
          else:
             geo.modules['Scifi'].GetSiPMPosition(detID,A,B)
             #energy = digi.GetEnergy()
-            #print('energy:')
-            #en.append(energy)
-            #print(energy)
-            #print(min(en), max(en))
             if trans2local:
                 curPath = nav.GetPath()
                 tmp = curPath.rfind('/')
@@ -260,13 +250,9 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     k = 1
-    
     for collection in ['hitCollectionX','hitCollectionY']:
        h[ 'simpleDisplay'].cd(k)
-       drawLogo()
-       h[ 'simpleDisplay'].cd(k)
-       printInfo(runId, N, T)
-       h[ 'simpleDisplay'].cd(k)
+       drawInfo(h[ 'simpleDisplay'], k, runId, N, T)
        k+=1
        for c in h[collection]:
           F = collection.replace('hitCollection','firedChannels')
@@ -372,36 +358,6 @@ def drawDetectors():
             S = N.GetVolume().GetShape()
             dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
             ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
-            #if 'ScifiVolume' in node:
-            #   P = {}
-            #   M = {}
-            #   if p=='X':
-            #      P['LeftBottom'] = array('d',[-2.9*dx+ox,oy,-dz+oz])
-            #      P['LeftTop'] = array('d',[-1.2*dx+ox,oy,-dz+oz])
-            #      P['RightBottom'] = array('d',[-2.9*dx+ox,oy,dz+oz])
-            #      P['RightTop'] = array('d',[-1.2*dx+ox,oy,dz+oz])
-            #   else:
-            #      P['LeftBottom'] = array('d',[ox,dy+oy,-dz+oz])
-            #      P['LeftTop'] = array('d',[ox,2*dy+oy,-dz+oz])
-            #      P['RightBottom'] = array('d',[ox,dy+oy,dz+oz])
-            #      P['RightTop'] = array('d',[ox,2*dy+oy,dz+oz])
-            #   for C in P:
-            #      M[C] = array('d',[0,0,0])
-            #      nav.LocalToMaster(P[C],M[C])
-            #   h[node+'supp'+p] = ROOT.TPolyLine()
-            #   X = h[node+'supp'+p]
-            #   c = proj[p]
-            #   X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
-            #   X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
-            #   X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
-            #   X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
-            #   X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
-            #   X.SetLineColor(ROOT.kGray+1)
-            #   X.SetFillColorAlpha(ROOT.kGray+1, 0.5)
-            #   h[ 'simpleDisplay'].cd(c+1)
-            #   X.SetLineWidth(1)
-            #   X.Draw('f&&same')
-            #   X.Draw('same')
             P = {}
             M = {}
             if p=='X' and not any(xNode in node for xNode in xNodes):
@@ -439,13 +395,7 @@ def drawDetectors():
             h[ 'simpleDisplay'].cd(c+1)
             if any(passNode in node for passNode in passNodes):
                X.Draw('f&&same') 
-            X.Draw('same') 
-            #if 'Scifi' in node:
-            #   X = h[node+'supp'+p]
-            #   X.Draw('f&&same') 
-            #   X.Draw('same') 
-
-
+            X.Draw('same')
 
 def dumpVeto():
     muHits = {10:[],11:[]}
@@ -621,27 +571,31 @@ def emptyNodes():
          except:
             notFilled = 1
 
-def drawLogo():
-   logo = ROOT.TImage.Open('/home/fabio/Immagini/Large__SND_Logo_black_cut.png')
-   logo.SetConstRatio(True)
-   logo.DrawText(0, 0, 'SND', 98)
-   p = ROOT.TPad("logo","logo",0.1,0.1,0.2,0.3)
-   p.SetFillStyle(4000)
-   p.SetFillColorAlpha(0, 0)
-   p.Draw()
-   p.cd()
-   logo.Draw()
+def drawInfo(pad, k, run, event, time):
+   drawLogo = True
+   drawText = True
+   if drawLogo:
+      padLogo = ROOT.TPad("logo","logo",0.1,0.1,0.2,0.3)
+      padLogo.SetFillStyle(4000)
+      padLogo.SetFillColorAlpha(0, 0)
+      padLogo.Draw()
+      logo = ROOT.TImage.Open('/home/fabio/Immagini/Large__SND_Logo_black_cut.png')
+      logo.SetConstRatio(True)
+      logo.DrawText(0, 0, 'SND', 98)
+      padLogo.cd()
+      logo.Draw()
+      pad.cd(k)
 
-def printInfo(run, event, time):
-   p = ROOT.TPad("info","info",0.19,0.1,0.36,0.32)
-   p.SetFillStyle(4000)
-   #p.SetFillColorAlpha(4, 0.2)
-   p.Draw()
-   p.cd()
-   t = ROOT.TLatex()
-   t.SetTextAlign(11)
-   t.SetTextFont(42)
-   t.SetTextSize(.15)
-   t.DrawLatex(0, 0.6, 'SND@LHC Experiment, CERN')
-   t.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(event))
-   t.DrawLatex(0, 0.2, 'Time Stamp: {} a.u.'.format(time))
+   if drawText:
+      padText = ROOT.TPad("info","info",0.19,0.1,0.36,0.32)
+      padText.SetFillStyle(4000)
+      padText.Draw()
+      padText.cd()
+      textInfo = ROOT.TLatex()
+      textInfo.SetTextAlign(11)
+      textInfo.SetTextFont(42)
+      textInfo.SetTextSize(.15)
+      textInfo.DrawLatex(0, 0.6, 'SND@LHC Experiment, CERN')
+      textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(event))
+      textInfo.DrawLatex(0, 0.2, 'Time Stamp: {} a.u.'.format(time))
+      pad.cd(k)
