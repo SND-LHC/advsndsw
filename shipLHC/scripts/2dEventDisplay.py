@@ -273,7 +273,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     if withTrack == 2: addTrack(OT,True)
     elif not withTrack<0:  addTrack(OT)
     if verbose>0: dumpChannels()
-    if save: h['simpleDisplay'].Print('event_'+"{:04d}".format(N)+'.png')
+    if save: h['simpleDisplay'].Print('{:0>2d}-event_{:04d}'.format(runId,N)+'.png')
     rc = input("hit return for next event or q for quit: ")
     if rc=='q': break
  if save: os.system("convert -delay 60 -loop 0 event*.png animated.gif")
@@ -283,7 +283,7 @@ def addTrack(OT,scifi=False):
    nTrack = 0
    for   aTrack in OT.Reco_MuonTracks:
       trackColor = ROOT.kRed
-      if aTrack.GetUniqueID()==1: trackColor = ROOT.kBlue
+      if aTrack.GetUniqueID()==1: trackColor = ROOT.kBlue+2
       if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlack
       S = aTrack.getFitStatus()
       if not S.isFitConverged() and scifi:
