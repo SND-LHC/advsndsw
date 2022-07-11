@@ -161,7 +161,7 @@ class Scifi_residuals(ROOT.FairTask):
             if not fitStatus.isFitConverged(): 
                  theTrack.Delete()
                  continue
-# test plane 
+# test plane
             for o in range(2):
                 testPlane = s*10+o
                 z = self.M.zPos['Scifi'][testPlane]
@@ -186,34 +186,16 @@ class Scifi_residuals(ROOT.FairTask):
                 rc = h['track_Scifi'+str(testPlane)].Fill(xEx,yEx)
                 for aCl in sortedClusters[testPlane]:
                    aCl.GetPosition(A,B)
-# apply rotation 
-                   nav.cd('/cave_1/Detector_0')
-                   gA = array('d',[A[0],A[1],A[2]])
-                   gB = array('d',[B[0],B[1],B[2]])
-                   lA =  array('d',[0,0,0])
-                   lB =  array('d',[0,0,0])
-                   nav.MasterToLocal(gA,lA)
-                   nav.MasterToLocal(gB,lB)
-                   xCl = (lA[0]+lB[0])/2.
-                   yCl = (lA[1]+lB[1])/2.
-                   zCl = (lA[2]+lB[2])/2.
-                   gpos =  array('d',[pos[0],pos[1],pos[2]])
-                   gmom =  array('d',[mom[0],mom[1],mom[2]])
-                   lpos =  array('d',[0,0,0])
-                   lmom =  array('d',[0,0,0])
-                   nav.MasterToLocal(gpos,lpos)
-                   nav.MasterToLocal(gmom,lmom)
-                   lam = (zCl-lpos[2])/lmom[2]
-                   lxEx = lpos[0]+lam*lmom[0]
-                   lyEx = lpos[1]+lam*lmom[1]
-                   if o==1 :   D = xCl - lxEx
-                   else:       D = yCl - lyEx
                    detID = aCl.GetFirst()
                    channel = detID%1000 + ((detID%10000)//1000)*128 + (detID%100000//10000)*512
-                   rc = h['res'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um)
-                   rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lxEx)
-                   rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lyEx)
-                   rc = h['resC'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,channel)
+# calculate DOCA
+                   pq = A-pos
+                   uCrossv= (B-A).Cross(mom)
+                   doca = pq.Dot(uCrossv)/uCrossv.Mag()
+                   rc = h['resC'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,channel)
+                   rc = h['res'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um)
+                   rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,xEx)
+                   rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,yEx)
 
             theTrack.Delete()
 

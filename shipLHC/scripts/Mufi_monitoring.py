@@ -35,6 +35,8 @@ class Mufi_hitMaps(ROOT.FairTask):
                   ut.bookHist(h,detector+'sigL_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
                   ut.bookHist(h,detector+'sigR_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
                   ut.bookHist(h,detector+'Tsig_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
+                  ut.bookHist(h,detector+'TsigL_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
+                  ut.bookHist(h,detector+'TsigR_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
                   # not used currently?
                   ut.bookHist(h,detector+'occ_'+str(s*10+l),'channel occupancy '+sdict[s]+str(l),100,0.0,200.)
                   ut.bookHist(h,detector+'occTag_'+str(s*10+l),'channel occupancy '+sdict[s]+str(l),100,0.0,200.)
@@ -160,8 +162,10 @@ class Mufi_hitMaps(ROOT.FairTask):
                  c=bar*nSiPMs*nSides + p*nSiPMs
                  for i in range(nSiPMs):
                       signal = aHit.GetSignal(i+p*nSiPMs)
-                      if signal > 0:
+                      if signal > -100:
                            rc  = h[detector+'Tsig_'+str(s)+str(l)].Fill(signal)
+                           if c<nSiPMs: rc  = h[detector+'TsigL_'+str(s)+str(l)].Fill(signal)
+                           else: rc  = h[detector+'TsigR_'+str(s)+str(l)].Fill(signal)
          mom = state.getMom()
          slopeX= mom.X()/mom.Z()
          slopeY= mom.Y()/mom.Z()
@@ -283,29 +287,30 @@ class Mufi_hitMaps(ROOT.FairTask):
            h[detector+'lLRinEff'+str(s)].AddEntry(h[name+'1Y'],'right all',"f")
            h[detector+'lLRinEff'+str(s)].Draw()
 
-       ut.bookCanvas(h,'signalUSVeto',' ',1200,1600,3,7)
-       s = 1
-       l = 1
-       for plane in range(2):
+       for tag in ["","T"]:
+        ut.bookCanvas(h,tag+'signalUSVeto',' ',1200,1600,3,7)
+        s = 1
+        l = 1
+        for plane in range(2):
                 for side in ['L','R','S']:
-                   tc = h['signalUSVeto'].cd(l)
+                   tc = h[tag+'signalUSVeto'].cd(l)
                    l+=1 
                    if side=='S': continue
-                   h[detector+'sig'+side+'_'+str( s*10+plane)].Draw()
-       s=2
-       for plane in range(5):
+                   h[detector+tag+'sig'+side+'_'+str( s*10+plane)].Draw()
+        s=2
+        for plane in range(5):
                 for side in ['L','R','S']:
-                   tc = h['signalUSVeto'].cd(l)
+                   tc = h[tag+'signalUSVeto'].cd(l)
                    l+=1
-                   h[detector+'sig'+side+'_'+str( s*10+plane)].Draw()
-       ut.bookCanvas(h,'signalDS',' ',900,1600,2,7)
-       s = 3
-       l = 1
-       for plane in range(7):
+                   h[detector+tag+'sig'+side+'_'+str( s*10+plane)].Draw()
+        ut.bookCanvas(h,tag+'signalDS',' ',900,1600,2,7)
+        s = 3
+        l = 1
+        for plane in range(7):
                for side in ['L','R']:
-                  tc = h['signalDS'].cd(l)
+                  tc = h[tag+'signalDS'].cd(l)
                   l+=1
-                  h[detector+'sig'+side+'_'+str( s*10+plane)].Draw()
+                  h[detector+tag+'sig'+side+'_'+str( s*10+plane)].Draw()
        ut.bookCanvas(h,detector+"chanbar",' ',1800,700,3,1)
        for s in self.M.systemAndPlanes:
             opt = ""
