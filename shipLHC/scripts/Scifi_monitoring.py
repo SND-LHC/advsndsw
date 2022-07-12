@@ -80,6 +80,7 @@ class Scifi_residuals(ROOT.FairTask):
        NbinsRes = options.ScifiNbinsRes
        xmin        = options.Scifixmin
        alignPar   = options.ScifialignPar
+       self.unbiased = options.ScifiResUnbiased
 
        self.M = monitor
        h = self.M.h
@@ -120,14 +121,20 @@ class Scifi_residuals(ROOT.FairTask):
                clusters = self.OT.Cluster_Scifi
        else:
                clusters = event.Cluster_Scifi
-
 # overall tracking
        self.trackTask.ExecuteTask("Scifi")
-       for aTrack in self.OT.Reco_MuonTracks:
-          if not aTrack.GetUniqueID()==1: continue
-          fitStatus = aTrack.getFitStatus()
-          if not fitStatus.isFitConverged(): continue
-          state = aTrack.getFittedState()
+       theTrack = False
+       for theTrack in self.OT.Reco_MuonTracks:
+          if not theTrack.GetUniqueID()==1:
+                 theTrack.Delete()
+                 theTrack = False
+                 continue
+          fitStatus = theTrack.getFitStatus()
+          if not fitStatus.isFitConverged():
+                 theTrack.Delete()
+                 theTrack = False
+                 continue
+          state = theTrack.getFittedState()
           pos    = state.getPos()
           mom = state.getMom()
           slopeX = mom.X()/mom.Z()
@@ -138,6 +145,8 @@ class Scifi_residuals(ROOT.FairTask):
           rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
           if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
 
+       if not self.unbiased and not theTrack: return
+
        sortedClusters={}
        for aCl in clusters:
            so = aCl.GetFirst()//100000
@@ -145,22 +154,29 @@ class Scifi_residuals(ROOT.FairTask):
            sortedClusters[so].append(aCl)
 # select events with clusters in each plane
        if len(sortedClusters)<10: return
+       goodEvent = True
+       for s in sortedClusters:
+          if len(sortedClusters[s])>1: goodEvent=False
+       if not goodEvent: return
+
        for s in range(1,6):
+            if self.unbiased:
 # build trackCandidate
-            hitlist = {}
-            k=0
-            for so in sortedClusters:
-                    if so//10 == s: continue
+              hitlist = {}
+              if self.unbiased or s==1:
+                k=0
+                for so in sortedClusters:
+                    if so//10 == s and self.unbiased: continue
                     for x in sortedClusters[so]:
                        hitlist[k] = x
                        k+=1
-            theTrack = self.trackTask.fitTrack(hitlist)
-            if not hasattr(theTrack,"getFittedState"): continue
+                theTrack = self.trackTask.fitTrack(hitlist)
+                if not hasattr(theTrack,"getFittedState"): continue
 # check residuals
-            fitStatus = theTrack.getFitStatus()
-            if not fitStatus.isFitConverged(): 
-                 theTrack.Delete()
-                 continue
+                fitStatus = theTrack.getFitStatus()
+                if not fitStatus.isFitConverged(): 
+                  theTrack.Delete()
+                  continue
 # test plane
             for o in range(2):
                 testPlane = s*10+o
@@ -176,6 +192,8 @@ class Scifi_residuals(ROOT.FairTask):
                    if abs(z-Pos.z())<mZmin:
                       mZmin = abs(z-Pos.z())
                       mClose = m
+                if mZmin>10000:
+                    print("something wrong here with measurements",mClose,mZmin,theTrack.getNumPointsWithMeasurement())
                 fstate =  theTrack.getFittedState(mClose)
                 pos,mom = fstate.getPos(),fstate.getMom()
                 rep.setPosMom(state,pos,mom)
@@ -197,7 +215,8 @@ class Scifi_residuals(ROOT.FairTask):
                    rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,xEx)
                    rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,yEx)
 
-            theTrack.Delete()
+            if self.unbiased: theTrack.Delete()
+       if not self.unbiased: theTrack.Delete()
 
 # analysis and plots 
    def Plot(self):
