@@ -75,6 +75,7 @@ class Time_evolution(ROOT.FairTask):
        ut.bookHist(h,'ctimeZ','delta event time per channel; dt [us]',10000,0.0,100.,1700,-0.5,1699.5)
        ut.bookHist(h,'ctimeM','delta event time per channel; dt [ms]',1000,0.0,10.,1700,-0.5,1699.5)
        ut.bookHist(h,'btime','delta timestamp per channel; ',3564*4+200,-0.5,3564*4-0.5+200,1700,-0.5,1699.5)
+       ut.bookHist(h,'bnr','bunch number; ',3564,-0.5,3564*4-0.5)
 
        self.Nevent = -1
        self.Tprev = [-1]*1700
@@ -102,6 +103,7 @@ class Time_evolution(ROOT.FairTask):
                 rc = h['btime'].Fill(T-self.Tprev[cNr],cNr)
                 rc = h['ctimeM'].Fill(dT*1E3,cNr)
                 rc = h['ctime'].Fill(dT,cNr)
+                rc = h['bnr'].Fill( T % (4*3564))
              self.Tprev[cNr] = T
        for aHit in event.Digi_ScifiHits:
           if not aHit.isValid(): continue
@@ -129,9 +131,12 @@ class Time_evolution(ROOT.FairTask):
            rc = h['EtimeZ'].Fill( dT*1E6)
            rc = h['time'].Fill(gtime[n-1]-T0)
 # analyse splash events
-       splashBins = []
-       av = h['time'].GetEntries()/nbins
-       for i in range(1,nbins+1):
+       withTGraph = False
+       anaSplash = False
+       if anaSplash and withTGraph:
+        splashBins = []
+        av = h['time'].GetEntries()/nbins
+        for i in range(1,nbins+1):
            B = h['time'].GetBinContent(i)
            if B>5*av: 
               tmin = h['time'].GetBinLowEdge(i)
@@ -145,7 +150,7 @@ class Time_evolution(ROOT.FairTask):
                    # if systems[sy]+'splash'+str(i) in h: h.pop(systems[sy]+'splash'+str(i)).Delete() 
                    h[systems[sy]+'splash'+str(i)] = ROOT.TGraph()
               splashBins.append( [i,tmin,tmax] )
-       for n in range(1,len(gtime)):
+        for n in range(1,len(gtime)):
            T = gtime[n-1]-T0
            for s in splashBins:
                 if T>s[1] and T<s[2]: 
@@ -153,8 +158,8 @@ class Time_evolution(ROOT.FairTask):
                      for sy in systems:
                            N = h[systems[sy]+'splash'+str(s[0])].GetN()
                            h[systems[sy]+'splash'+str(s[0])].SetPoint(N,(T-s[1])*1E6,self.QDCtime[sy].GetPointY(n-1))
-       N = len(splashBins)
-       if N>0:
+        N = len(splashBins)
+        if N>0:
           iy = int(ROOT.TMath.Sqrt(N))
           ix = N//iy
           if N>ix*iy: ix+=1
@@ -190,6 +195,48 @@ class Time_evolution(ROOT.FairTask):
           self.M.myPrint(h['Tsplash'],"Splashes",subdir='daq')   
           for sy in systems: self.M.myPrint(h[systems[sy]+'splash'],systems[sy]+" qdc sum",subdir='daq')   
 
+       elif anaSplash:
+# analyse splash events
+        splashBins = []
+        av = h['time'].GetEntries()/nbins
+        for i in range(1,nbins+1):
+           B = h['time'].GetBinContent(i)
+           if B>5*av: 
+              tmin = h['time'].GetBinLowEdge(i)
+              tmax = tmin+h['time'].GetBinWidth(i)
+              if 'splash'+str(i) in h: h.pop('splash'+str(i)).Delete()
+              ut.bookHist(h,'splash'+str(i),'; t [#mus];events per #mus',1000000,0,(tmax-tmin)*1E6)
+              for sy in systems:
+                   if systems[sy]+'splash'+str(i) in h: h.pop(systems[sy]+'splash'+str(i)).Delete() 
+                   ut.bookHist(h,systems[sy]+'splash'+str(i),systems[sy]+'sum qdc / N; t [1#mus];average sum qdc per event #mus',1000000,0,(tmax-tmin)*1E6)
+              splashBins.append( [i,tmin,tmax] )
+        for n in range(1,len(gtime)):
+           T = gtime[n-1]-T0
+           for s in splashBins:
+                if T>s[1] and T<s[2]: 
+                     rc = h['splash'+str(s[0])].Fill((T-s[1])*1E6)
+                     for sy in systems: 
+                           rc = h[systems[sy]+'splash'+str(s[0])].Fill((T-s[1])*1E6,self.QDCtime[sy].GetPointY(n-1))
+        N = len(splashBins)
+        if N>0:
+          iy = int(ROOT.TMath.Sqrt(N))
+          ix = N//iy
+          if N>ix*iy: ix+=1
+          ut.bookCanvas(h,'Tsplash','rates',1800,1200,ix,iy)
+          for sy in systems: ut.bookCanvas(h,systems[sy]+'splash','qdc sum',1800,1200,ix,iy)
+          n=1
+          for s in splashBins:
+            h['Tsplash'].cd(n)
+            h['splash'+str(s[0])].Draw('hist')
+            for sy in systems: 
+               tc = h[systems[sy]+'splash'].cd(n)
+               tc.SetLogy(1)
+               h[systems[sy]+'splash'+str(s[0])].Divide(h['splash'+str(s[0])])
+               h[systems[sy]+'splash'+str(s[0])].Draw('hist')
+            n+=1
+          self.M.myPrint(h['Tsplash'],"Splashes",subdir='daq')
+          for sy in systems: self.M.myPrint(h[systems[sy]+'splash'],systems[sy]+" qdc sum",subdir='daq')   
+
        tc = h['T'].cd(1)
        h['time'].SetStats(0)
        h['time'].Draw()
@@ -209,6 +256,12 @@ class Time_evolution(ROOT.FairTask):
        stats.SetOptFit(1111111)
        h['T'].Update()
        self.M.myPrint(h['T'],"Rates",subdir='daq')
+
+       ut.bookCanvas(h,'bunch','bunch nr',2048,768,1,1)
+       tc = h['bunch'].cd(1)
+       h['bnr'].SetStats(0)
+       h['bnr'].Draw()
+       self.M.myPrint(h['bnr'],"BunchNr",subdir='daq')
 
        ut.bookCanvas(h,'channels',' channel dt',1024,4*768,1,4)
        tc = h['channels'].cd(1)
