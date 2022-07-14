@@ -121,6 +121,10 @@ class MuonReco(ROOT.FairTask) :
 
     def Init(self) :
 
+        # Use skip_events to reconstruct only nth event.
+        self.event_skip = 1
+        self.current_event = 0
+        
         print("Initializing muon reconstruction task!")
         self.lsOfGlobals  = ROOT.gROOT.GetListOfGlobals()
         self.scifiDet = self.lsOfGlobals.FindObject('Scifi')
@@ -243,6 +247,9 @@ class MuonReco(ROOT.FairTask) :
     def SetHitsForTriplet(self, hits_for_triplet) :
         self.hits_for_triplet = hits_for_triplet
 
+    def SetEventSkip(self, event_skip) :
+        self.event_skip = event_skip
+
     def Passthrough(self) :
         T = self.ioman.GetInTree()
         
@@ -254,7 +261,14 @@ class MuonReco(ROOT.FairTask) :
 
     def Exec(self, opt) :
         self.kalman_tracks.Clear()
-        
+
+        self.current_event += 1
+
+        if self.current_event == self.event_skip :
+            self.current_event = 0
+        else :
+            return
+                
         hit_collection = {"pos" : [[], [], []], 
                           "d" : [[], [], []], 
                           "vert" : [], 
