@@ -3194,6 +3194,7 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,
        for s in sortedClusters:
           if len(sortedClusters[s])>1: goodEvent=False
        if not goodEvent: continue
+       validTrack = True
        for s in range(1,6):
 # build trackCandidate
             hitlist = {}
@@ -3205,17 +3206,20 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,
                        hitlist[k] = x
                        k+=1
                theTrack = trackTask.fitTrack(hitlist)
-               if not hasattr(theTrack,"getFittedState"): continue
+               if not hasattr(theTrack,"getFittedState"):
+                  validTrack = False
+                  continue
                fitStatus = theTrack.getFitStatus()
                if not fitStatus.isFitConverged() or theTrack.getNumPointsWithMeasurement()<8:
                   theTrack.Delete()
+                  validTrack = False
                   continue
                rc = h['trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
                fstate =  theTrack.getFittedState()
                mom = fstate.getMom()
                rc = h['trackSlopes'].Fill(mom.X()/mom.Z()*1000,mom.Y()/mom.Z()*1000)
 # check residuals
-
+            if not validTrack and not unbiased: break
 # test plane
             for o in range(2):
                 testPlane = s*10+o
@@ -3256,7 +3260,7 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,
                    rc = h['resY'+projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,yEx)
 
             if unbiased: theTrack.Delete()
-       if not unbiased: theTrack.Delete()
+       if not unbiased and validTrack: theTrack.Delete()
 # analysis and plots 
     P = {'':'','X':'colz','Y':'colz','C':'colz'}
     Par = {'mean':1,'sigma':2}
@@ -3277,6 +3281,15 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,
             if proj == '':
                 rc = h[hname].Fit('gaus','SQ')
                 fitResult = rc.Get()
+                tc.Update()
+                stats = h[hname].FindObject('stats')
+                stats.SetOptFit(1111111)
+                stats.SetX1NDC(0.76)
+                stats.SetY1NDC(0.30)
+                stats.SetX2NDC(0.98)
+                stats.SetY2NDC(0.92)
+                h[hname].Draw()
+                tc.Update()
                 for p in Par:
                    globalPos[p+projs[o]].SetPoint(s-1,s,fitResult.Parameter(Par[p]))
                    globalPos[p+projs[o]].SetPointError(s-1,0.5,fitResult.ParError(1))
@@ -3287,6 +3300,7 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,
                      h[hname+str(m)] = h[hname].ProjectionX(hname+str(m),m*512,m*512+512)
                      rc = h[hname+str(m)].Fit('gaus','SQ0')
                      fitResult = rc.Get()
+                     if not fitResult: continue
                      for p in Par:
                         h['globalPosM'][p+projs[o]].SetPoint(j[o], s*10+m,   fitResult.Parameter(Par[p]))
                         h['globalPosM'][p+projs[o]].SetPointError(j[o],0.5,fitResult.ParError(1))
@@ -3345,8 +3359,10 @@ def printScifi_residuals(tag='v0'):
              XM = (mean[0]+mean[1]+mean[2])/3.
              print("      mean value %8.2F            delta s: %8.2F  %8.2F  %8.2F"%(XM,mean[0]-XM,mean[1]-XM,mean[2]-XM))
 # for H6 beam
-    h['trackSlopes'].GetYaxis().SetRangeUser(-20,20)
-    h['trackSlopes'].GetXaxis().SetRangeUser(-40,0)
+    h6 = False
+    if H6:
+        h['trackSlopes'].GetYaxis().SetRangeUser(-20,20)
+        h['trackSlopes'].GetXaxis().SetRangeUser(-40,0)
     ut.bookCanvas(h,'beamSpot','track slopes',750,750,1,1)
     tc = h['beamSpot'].cd()
     h['trackSlopes'].Draw('colz')
