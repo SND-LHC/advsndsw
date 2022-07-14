@@ -75,7 +75,7 @@ class Time_evolution(ROOT.FairTask):
        ut.bookHist(h,'ctimeZ','delta event time per channel; dt [us]',10000,0.0,100.,1700,-0.5,1699.5)
        ut.bookHist(h,'ctimeM','delta event time per channel; dt [ms]',1000,0.0,10.,1700,-0.5,1699.5)
        ut.bookHist(h,'btime','delta timestamp per channel; ',3564*4+200,-0.5,3564*4-0.5+200,1700,-0.5,1699.5)
-       ut.bookHist(h,'bnr','bunch number; ',3564,-0.5,3564*4-0.5)
+       ut.bookHist(h,'bnr','bunch number; ',3564,-0.5,3564-0.5)
 
        self.Nevent = -1
        self.Tprev = [-1]*1700
@@ -103,7 +103,7 @@ class Time_evolution(ROOT.FairTask):
                 rc = h['btime'].Fill(T-self.Tprev[cNr],cNr)
                 rc = h['ctimeM'].Fill(dT*1E3,cNr)
                 rc = h['ctime'].Fill(dT,cNr)
-                rc = h['bnr'].Fill( T % (4*3564))
+                rc = h['bnr'].Fill( (T%(4*3564))/4)
              self.Tprev[cNr] = T
        for aHit in event.Digi_ScifiHits:
           if not aHit.isValid(): continue
@@ -257,11 +257,11 @@ class Time_evolution(ROOT.FairTask):
        h['T'].Update()
        self.M.myPrint(h['T'],"Rates",subdir='daq')
 
-       ut.bookCanvas(h,'bunch','bunch nr',2048,768,1,1)
+       ut.bookCanvas(h,'bunchNumber','bunch nr',2048,768,1,1)
        tc = h['bunch'].cd(1)
        h['bnr'].SetStats(0)
        h['bnr'].Draw()
-       self.M.myPrint(h['bnr'],"BunchNr",subdir='daq')
+       self.M.myPrint(h['bunch'],"BunchNr",subdir='daq')
 
        ut.bookCanvas(h,'channels',' channel dt',1024,4*768,1,4)
        tc = h['channels'].cd(1)
