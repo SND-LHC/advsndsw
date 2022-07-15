@@ -98,7 +98,7 @@ class Time_evolution(ROOT.FairTask):
              else:                     cNr = self.offsets[s+1][0] + self.offsets[s+1][1]*p + self.offsets[s+1][2]*(b-60) + c 
              if self.Tprev[cNr]>0:
                 dT = (T - self.Tprev[cNr])/self.M.freq
-                if dT<5E-9: print('something wrong',s,p,b,c,dT,T,self.Tprev[cNr])
+                if dT<5E-9: print('something wrong',self.Nevent,s,p,b,c,dT,T,self.Tprev[cNr])
                 rc = h['ctimeZ'].Fill(dT*1E6,cNr)
                 rc = h['btime'].Fill(T-self.Tprev[cNr],cNr)
                 rc = h['ctimeM'].Fill(dT*1E3,cNr)
@@ -261,7 +261,7 @@ class Time_evolution(ROOT.FairTask):
        tc = h['bunch'].cd(1)
        h['bnr'].SetStats(0)
        h['bnr'].Draw()
-       self.M.myPrint(h['bunch'],"BunchNr",subdir='daq')
+       self.M.myPrint(h['bunchNumber'],"BunchNr",subdir='daq')
 
        ut.bookCanvas(h,'channels',' channel dt',1024,4*768,1,4)
        tc = h['channels'].cd(1)
