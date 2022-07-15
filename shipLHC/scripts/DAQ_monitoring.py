@@ -258,7 +258,7 @@ class Time_evolution(ROOT.FairTask):
        self.M.myPrint(h['T'],"Rates",subdir='daq')
 
        ut.bookCanvas(h,'bunchNumber','bunch nr',2048,768,1,1)
-       tc = h['bunch'].cd(1)
+       tc = h['bunchNumber'].cd(1)
        h['bnr'].SetStats(0)
        h['bnr'].Draw()
        self.M.myPrint(h['bunchNumber'],"BunchNr",subdir='daq')
