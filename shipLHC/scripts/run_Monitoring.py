@@ -52,7 +52,7 @@ parser.add_argument("--interactive", dest="interactive", action='store_true',def
 options = parser.parse_args()
 
 options.dashboard = "currently_processed_file.txt"
-if options.auto or options.batch: ROOT.gROOT.SetBatch(True)
+if (options.auto and not options.interactive) or options.batch: ROOT.gROOT.SetBatch(True)
 
 def currentRun():
       with client.File() as f:

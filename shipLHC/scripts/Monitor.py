@@ -92,7 +92,9 @@ class Monitoring():
 
         self.runNr   = str(options.runNumber).zfill(6)
 # presenter file
-        self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','recreate')
+        name = 'run'+self.runNr+'.root'
+        if options.interactive: name = 'I-'+name
+        self.presenterFile = ROOT.TFile(name,'recreate')
         self.presenterFile.mkdir('scifi')
         self.presenterFile.mkdir('mufilter')
         self.presenterFile.mkdir('daq')
