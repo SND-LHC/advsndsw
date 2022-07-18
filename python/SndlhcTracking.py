@@ -35,6 +35,7 @@ class Tracking(ROOT.FairTask):
    if not online and not offlineRO: offlineRW = True
 
    self.makeScifiClusters = False
+   self.clusMufi   = ROOT.TObjArray(100);
 
    if offlineRO or offlineRW:
          remakeClusters = False
@@ -72,6 +73,7 @@ class Tracking(ROOT.FairTask):
           self.event.Cluster_Scifi = self.sink.GetOutTree().Cluster_Scifi
     self.trackCandidates = {}
     if option=='DS':
+           self.clusMufi.Clear()
            self.trackCandidates['DS'] = self.DStrack()
     elif option=='Scifi':
            self.trackCandidates['Scifi'] = self.Scifi_track()
@@ -91,23 +93,29 @@ class Tracking(ROOT.FairTask):
                 self.kalman_tracks.Add(rc)
 
  def DStrack(self,nPlanes = 2, nHits = 2):
+    event = self.event
     trackCandidates = []
+    if not event.GetBranch("Cluster_Mufi"):
+            self.dtCluster()
+            clusters = self.clusMufi
+    else:
+            clusters = self.event.Cluster_Mufi
+
     stations = {}
     s = 3
     for plane in range(self.systemAndPlanes[s]): 
           stations[s*10+plane] = {}
     k=-1
-    for aHit in self.event.Digi_MuFilterHits:
+    for aCl in clusters:
          k+=1
-         if not aHit.isValid(): continue
-         if aHit.GetDetectorID()//10000 != s : continue
-         p = (aHit.GetDetectorID()//1000)%10
-         bar = aHit.GetDetectorID()%1000
+         detID = aCl.GetFirst()
+         p = (detID//1000)%10
+         bar = detID%1000
          plane = s*10+p
          if s==3:
            if bar<60 or p==3: plane = s*10+2*p
            else:  plane = s*10+2*p+1
-           stations[plane][k] = aHit
+           stations[plane][k] = aCl
     success = True
     pXWithHits = 0
     pYWithHits = 0
@@ -229,6 +237,47 @@ class Tracking(ROOT.FairTask):
                    cprev = c
        for c in clusters:  self.clusScifi.Add(c)
 
+ def dtCluster(self):
+       if self.sink.GetOutTree().GetBranch("Cluster_DT"):  self.sink.GetOutTree().Cluster_DT.Delete()
+       clusters = []
+       hitDict = {}
+       for k in range(self.event.Digi_MuFilterHits.GetEntries()):
+            d = self.event.Digi_MuFilterHits[k]
+            if (d.GetDetectorID()//10000)<3 or (not d.isValid()): continue
+            hitDict[d.GetDetectorID()] = k
+       hitList = list(hitDict.keys())
+       if len(hitList)>0:
+              hitList.sort()
+              tmp = [ hitList[0] ]
+              cprev = hitList[0]
+              ncl = 0
+              last = len(hitList)-1
+              hitvector = ROOT.std.vector("MuFilterHit*")()
+              for i in range(len(hitList)):
+                   if i==0 and len(hitList)>1: continue
+                   c=hitList[i]
+                   neighbour = False
+                   if (c-cprev)==1 or (c-cprev)==2:    # allow for one missing channel
+                        neighbour = True
+                        tmp.append(c)
+                   if not neighbour  or c==hitList[last] or c%1000==59:
+                        first = tmp[0]
+                        N = len(tmp)
+                        hitvector.clear()
+                        for aHit in tmp: hitvector.push_back( self.event.Digi_MuFilterHits[hitDict[aHit]])
+                        aCluster = ROOT.sndCluster(first,N,hitvector,self.mufiDet,False)
+                        clusters.append(aCluster)
+                        if c!=hitList[last]:
+                             ncl+=1
+                             tmp = [c]
+                        elif not neighbour :   # save last channel
+                            hitvector.clear()
+                            hitvector.push_back( self.event.Digi_MuFilterHits[hitDict[c]])
+                            aCluster = ROOT.sndCluster(c,1,hitvector,self.mufiDet,False)
+                            clusters.append(aCluster)
+                   cprev = c
+       for c in clusters:  self.clusMufi.Add(c)
+
  def patternReco(self):
 # very simple for the moment, take all scifi clusters
     trackCandidates = []
@@ -291,10 +340,10 @@ class Tracking(ROOT.FairTask):
     for k in hitlist:
         aCl = hitlist[k]
         if hasattr(aCl,"GetFirst"):
-            detSys  = 1
             detID = aCl.GetFirst()
             aCl.GetPosition(A,B)
-
+            detSys  = 1
+            if detID>50000: detSys=3
         else:
             detID = aCl.GetDetectorID()
             if detID//10000 < 2: detSys  = 2
