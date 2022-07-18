@@ -21,6 +21,8 @@ class Mufi_hitMaps(ROOT.FairTask):
        if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
        ioman = ROOT.FairRootManager.Instance()
        self.OT = ioman.GetSink().GetOutTree()
+
+       ut.bookHist(h,detector+'Noise','events with hits in single plane; s*10+l;',40,0.5,39.5)
        for s in monitor.systemAndPlanes:
             ut.bookHist(h,sdict[s]+'Mult','QDCs vs nr hits; #hits; QDC [a.u.]',200,0.,800.,200,0.,300.)
             for l in range(monitor.systemAndPlanes[s]):
@@ -122,6 +124,13 @@ class Mufi_hitMaps(ROOT.FairTask):
                if withDSTrack:  rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c])
            allChannels.clear()
 #
+       # noise event with many hits in one plane
+       onePlane = []
+       for x in mult:
+           if mult[x]>3: onePlane.append(x)
+       if len(onePlane)==1:
+           rc = h[detector+'Noise'].Fill(onePlane[0])
+
        for aHit in event.Digi_MuFilterHits:
            if aHit.isValid(): continue
            for c in aHit.GetAllSignals(False):
@@ -135,7 +144,10 @@ class Mufi_hitMaps(ROOT.FairTask):
        for s in systemAndPlanes:
           for l in range(systemAndPlanes[s]):   
              rc = h[detector+'hitmult_'+str(s*10+l)].Fill(mult[s*10+l])
-    
+# to avoid memory leak
+       for aTrack in self.OT.Reco_MuonTracks:
+         if aTrack.GetUniqueID()==3: aTrack.Delete()
+
    def beamSpot(self,event):
       if not self.trackTask: return
       h = self.M.h
@@ -186,6 +198,9 @@ class Mufi_hitMaps(ROOT.FairTask):
               tc.SetLogy(1)
               k+=1
               rc = h[detector+'hitmult_'+str(s*10+l)].Draw()
+       ut.bookCanvas(h,'noise',' ',1200,1800,1,1)
+       tc = h['noise'].cd()
+       h[detector+'Noise'].Draw()
 
        ut.bookCanvas(h,'VETO',' ',1200,1800,1,2)
        for l in range(2):
@@ -325,7 +340,7 @@ class Mufi_hitMaps(ROOT.FairTask):
                    h[hname].Draw()
                    
        for canvas in ['signalUSVeto','signalDS',detector+'LR','USBars',
-                     "Vetochanbar","USchanbar","DSchanbar"]:
+                     "Vetochanbar","USchanbar","DSchanbar",'noise']:
               h[canvas].Update()
               self.M.myPrint(h[canvas],canvas,subdir='mufilter')
        for canvas in [detector+'hitmaps',detector+'Xhitmaps',detector+'barmaps']:
