@@ -121,7 +121,6 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
         h.pop('yz').Delete()
  ut.bookHist(h,'xz','; z [cm]; x [cm]',500,zStart,zStart+350.,100,-100.,10.)
  ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+350.,100,-30.,80.)
-
  proj = {1:'xz',2:'yz'}
  h['xz'].SetStats(0)
  h['yz'].SetStats(0)
