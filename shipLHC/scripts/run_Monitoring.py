@@ -60,11 +60,11 @@ def currentRun():
             status, L = f.read()
             Lcrun = L.decode().split('\n')
             f.close()
+      curRun,curPart,start ="","",""
       for l in Lcrun:
             if not l.find('FINISHED')<0:
                print("DAQ not running. Don't know which file to open.")
                print(Lcrun)
-               curRun,curPart,start ="","",""
                break
             if not l.find('.root') < 0:
                  tmp = l.split('/')
