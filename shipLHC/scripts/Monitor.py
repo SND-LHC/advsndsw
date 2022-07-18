@@ -157,9 +157,9 @@ class Monitoring():
             ioman.SetTreeName(eventChain.GetName())
             outFile = ROOT.TMemFile('dummy','CREATE')
             source = ROOT.FairFileSource(eventChain.GetCurrentFile())
-            if len(partitions)>0:
-                  for p in partitions:
-                       source.AddFile(path+'run_'+self.runNr+'/'+p)
+            for i in range(1,len(partitions)):
+                  p = partitions[i]
+                  source.AddFile(path+'run_'+self.runNr+'/'+p)
             self.run.SetSource(source)
             sink = ROOT.FairRootFileSink(outFile)
             self.run.SetSink(sink)
