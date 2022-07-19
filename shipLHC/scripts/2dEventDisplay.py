@@ -584,5 +584,6 @@ def drawInfo(pad, k, run, event, time):
       textInfo.SetTextSize(.15)
       textInfo.DrawLatex(0, 0.6, 'SND@LHC Experiment, CERN')
       textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(event))
-      textInfo.DrawLatex(0, 0.2, 'Time Stamp: {} a.u.'.format(time))
+      #textInfo.DrawLatex(0, 0.2, 'Time Stamp: {} a.u.'.format(time))
+      #waiting for more informative time estimate
       pad.cd(k)
