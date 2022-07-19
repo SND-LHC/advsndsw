@@ -125,25 +125,19 @@ class Scifi_residuals(ROOT.FairTask):
        self.trackTask.ExecuteTask("Scifi")
        theTrack = False
        for theTrack in self.OT.Reco_MuonTracks:
-          if not theTrack.GetUniqueID()==1:
-                 theTrack.Delete()
-                 theTrack = False
-                 continue
-          fitStatus = theTrack.getFitStatus()
-          if not fitStatus.isFitConverged():
-                 theTrack.Delete()
-                 theTrack = False
-                 continue
-          state = theTrack.getFittedState()
-          pos    = state.getPos()
-          mom = state.getMom()
-          slopeX = mom.X()/mom.Z()
-          slopeY = mom.Y()/mom.Z()
-          rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
-          rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
-          rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
-          rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
-          if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+          if theTrack.GetUniqueID()==1:
+              fitStatus = theTrack.getFitStatus()
+              if  fitStatus.isFitConverged():
+                 state = theTrack.getFittedState()
+                 pos    = state.getPos()
+                 mom = state.getMom()
+                 slopeX = mom.X()/mom.Z()
+                 slopeY = mom.Y()/mom.Z()
+                 rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
+                 rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
+                 rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
+                 rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
 
        if not self.unbiased and not theTrack: return
 
@@ -216,7 +210,6 @@ class Scifi_residuals(ROOT.FairTask):
                    rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,yEx)
 
             if self.unbiased: theTrack.Delete()
-       if not self.unbiased: theTrack.Delete()
 
 # analysis and plots 
    def Plot(self):

@@ -66,7 +66,6 @@ class Tracking(ROOT.FairTask):
   pass
 
  def ExecuteTask(self,option=''):
-    self.kalman_tracks.Clear()
     if self.makeScifiClusters:
           self.clusScifi.Clear()
           self.scifiCluster()

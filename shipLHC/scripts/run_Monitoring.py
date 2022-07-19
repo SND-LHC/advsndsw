@@ -127,6 +127,7 @@ for m in monitorTasks:
 if not options.auto:   # default online/offline mode
    for n in range(options.nStart,options.nStart+options.nEvents):
      event = M.GetEvent(n)
+     if n%options.heartBeat == 0: print("--> event nr:",n) 
      for m in monitorTasks:
         monitorTasks[m].ExecuteEvent(M.eventTree)
 

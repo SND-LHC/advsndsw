@@ -161,8 +161,8 @@ class Monitoring():
                   p = partitions[i]
                   source.AddFile(path+'run_'+self.runNr+'/'+p)
             self.run.SetSource(source)
-            sink = ROOT.FairRootFileSink(outFile)
-            self.run.SetSink(sink)
+            self.sink = ROOT.FairRootFileSink(outFile)
+            self.run.SetSink(self.sink)
 
             for t in FairTasks: 
                 self.run.AddTask(t)
@@ -211,6 +211,12 @@ class Monitoring():
                 self.converter.boards[name]=self.converter.fiN.Get(name)
 
    def GetEvent(self,n):
+      if self.eventTree.GetBranchStatus('Reco_MuonTracks'):
+            for aTrack in self.eventTree.Reco_MuonTracks:
+                  aTrack.Delete()
+      if self.sink.GetOutTree().GetBranchStatus('Reco_MuonTracks'):
+            for aTrack in self.sink.GetOutTree().Reco_MuonTracks:
+                  aTrack.Delete()
       if self.options.online:
             self.options.online.executeEvent(n)
             self.eventTree = self.options.online.sTree
