@@ -22,7 +22,7 @@ parser.add_argument("--hits_for_triplet", dest = "hits_for_triplet", type=str, h
 
 options = parser.parse_args()
 
-trans2local = True
+trans2local = False
 
 import SndlhcGeo
 geo = SndlhcGeo.GeoInterface(options.geoFile)
@@ -201,27 +201,22 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
             geo.modules['MuFilter'].GetPosition(detID,A,B)
             sipmMult = len(digi.GetAllSignals())
             if sipmMult<minSipmMult and (system==1 or system==2): continue
-            if trans2local:
-                curPath = nav.GetPath()
-                tmp = curPath.rfind('/')
-                nav.cd(curPath[:tmp])
          else:
             geo.modules['Scifi'].GetSiPMPosition(detID,A,B)
-            if trans2local:
-                curPath = nav.GetPath()
-                tmp = curPath.rfind('/')
-                nav.cd(curPath[:tmp])
             system = 0
+         curPath = nav.GetPath()
+         tmp = curPath.rfind('/')
+         nav.cd(curPath[:tmp])
          globA,locA = array('d',[A[0],A[1],A[2]]),array('d',[A[0],A[1],A[2]])
          if trans2local:   nav.MasterToLocal(globA,locA)
          Z = A[2]
          if digi.isVertical():
                    collection = 'hitCollectionX'
-                   Y = globA[0]
+                   Y = locA[0]
                    sY = detSize[system][0]
          else:                         
                    collection = 'hitCollectionY'
-                   Y = globA[1]
+                   Y = locA[1]
                    sY = detSize[system][1]
          c = h[collection][systems[system]]
          rc = c[1].SetPoint(c[0],Z, Y)
@@ -314,30 +309,30 @@ def addTrack(OT,scifi=False):
       nTrack+=1
 
 def drawDetectors():
-   nodes = {'volMuFilter_1/volFeBlockEnd_1':ROOT.kGreen-3}
+   nodes = {'volMuFilter_1/volFeBlockEnd_1':ROOT.kGreen-6}
    for i in range(2):
       nodes['volVeto_1/volVetoPlane_{}_{}'.format(i, i)]=ROOT.kRed
       for j in range(7):
          nodes['volVeto_1/volVetoPlane_{}_{}/volVetoBar_1{}{:0>3d}'.format(i, i, i, j)]=ROOT.kRed
       nodes['volVeto_1/subVetoBox_{}'.format(i)]=ROOT.kGray+1
    for i in range(4):
-      nodes['volMuFilter_1/volMuDownstreamDet_{}_{}'.format(i, i+7)]=ROOT.kBlue+2
+      nodes['volMuFilter_1/volMuDownstreamDet_{}_{}'.format(i, i+7)]=ROOT.kBlue+1
       for j in range(60):
-         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_ver_3{}{:0>3d}'.format(i, i+7, i, j+60)]=ROOT.kBlue+2
+         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_ver_3{}{:0>3d}'.format(i, i+7, i, j+60)]=ROOT.kBlue+1
          if i < 3:
-            nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_hor_3{}{:0>3d}'.format(i, i+7, i, j)]=ROOT.kBlue+2
+            nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_hor_3{}{:0>3d}'.format(i, i+7, i, j)]=ROOT.kBlue+1
    for i in range(4):
-      nodes['volMuFilter_1/subDSBox_{}'.format(i+7)]=ROOT.kGray
+      nodes['volMuFilter_1/subDSBox_{}'.format(i+7)]=ROOT.kGray+1
    for i in range(5):
-      nodes['volTarget_1/ScifiVolume{}_{}000000'.format(i+1, i+1)]=ROOT.kBlue+2
+      nodes['volTarget_1/ScifiVolume{}_{}000000'.format(i+1, i+1)]=ROOT.kBlue+1
       nodes['volTarget_1/volWallborder_{}'.format(i)]=ROOT.kGray
-      nodes['volMuFilter_1/subUSBox_{}'.format(i+2)]=ROOT.kGray
-      nodes['volMuFilter_1/volMuUpstreamDet_{}_{}'.format(i, i+2)]=ROOT.kBlue+2
+      nodes['volMuFilter_1/subUSBox_{}'.format(i+2)]=ROOT.kGray+1
+      nodes['volMuFilter_1/volMuUpstreamDet_{}_{}'.format(i, i+2)]=ROOT.kBlue+1
       for j in range(10):
-         nodes['volMuFilter_1/volMuUpstreamDet_{}_{}/volMuUpstreamBar_2{}00{}'.format(i, i+2, i, j)]=ROOT.kBlue+2
-      nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-3
+         nodes['volMuFilter_1/volMuUpstreamDet_{}_{}/volMuUpstreamBar_2{}00{}'.format(i, i+2, i, j)]=ROOT.kBlue+1
+      nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-6
    for i in range(7,10):
-      nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-3
+      nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-6
    passNodes = {'Block', 'Wall'}
    xNodes = {'UpstreamBar', 'VetoBar', 'hor'}
    proj = {'X':0,'Y':1}
@@ -375,10 +370,10 @@ def drawDetectors():
             X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
             X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
             X.SetLineColor(nodes[node_])
-            X.SetLineWidth(0)
+            X.SetLineWidth(1)
             h[ 'simpleDisplay'].cd(c+1)
             if any(passNode in node for passNode in passNodes):
-               X.SetFillColorAlpha(nodes[node_], 0.5)
+               X.SetFillColorAlpha(nodes[node_], 0.3)
                X.Draw('f&&same')
             X.Draw('same')
          else:
@@ -516,7 +511,7 @@ def fillNode(node):
    xNodes = {'UpstreamBar', 'VetoBar', 'hor'}
    proj = {'X':0,'Y':1}
    color = ROOT.kBlack
-   thick = 10
+   thick = 5
    for p in proj:
       if node+p in h:
          X = h[node+p]
@@ -571,7 +566,7 @@ def drawInfo(pad, k, run, event, time):
       padLogo.SetFillStyle(4000)
       padLogo.SetFillColorAlpha(0, 0)
       padLogo.Draw()
-      logo = ROOT.TImage.Open('/home/fabio/Immagini/Large__SND_Logo_black_cut.png')
+      logo = ROOT.TImage.Open('$SNDSW_ROOT/shipLHC/Large__SND_Logo_black_cut.png')
       logo.SetConstRatio(True)
       logo.DrawText(0, 0, 'SND', 98)
       padLogo.cd()
@@ -579,7 +574,7 @@ def drawInfo(pad, k, run, event, time):
       pad.cd(k)
 
    if drawText:
-      padText = ROOT.TPad("info","info",0.19,0.1,0.36,0.32)
+      padText = ROOT.TPad("info","info",0.19,0.1,0.4,0.3)
       padText.SetFillStyle(4000)
       padText.Draw()
       padText.cd()
