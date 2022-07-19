@@ -54,14 +54,13 @@ class prodManager():
 
    def check4NewFiles(self,latest):
       rawDataFiles = self.getFileList(path,latest,minSize=10E6)
-      convDataFiles = self.getFileList(pathConv,latest,minSize=10E6)
+      convDataFiles = self.getFileList(pathConv,latest,minSize=0)
       orderedRDF = list(rawDataFiles.keys())
       orderedCDF = list(convDataFiles.keys())
       orderedRDF.reverse(),orderedCDF.reverse()
-      lastCDF = -1
-      if len(orderedCDF)>0: lastCDF = orderedCDF[0]
+
       for x in orderedRDF: 
-           if not x > lastCDF: continue
+           if x in orderedCDF: continue
            r = x//10000 
            p = x%10000
            print('executing run %i and partition %i'%(r,p))
