@@ -170,8 +170,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     empty = True
     for x in digis:
        if x.GetEntries()>0:
+         if empty: print( "event -> %i"%N)
          empty = False
-         print( "event -> %i"%N)
     if empty: continue
     h['hitCollectionX']= {'Scifi':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
     h['hitCollectionY']= {'Veto':[0,ROOT.TGraphErrors()],'Scifi':[0,ROOT.TGraphErrors()],'US':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
@@ -373,7 +373,7 @@ def drawDetectors():
             X.SetLineWidth(1)
             h[ 'simpleDisplay'].cd(c+1)
             if any(passNode in node for passNode in passNodes):
-               X.SetFillColorAlpha(nodes[node_], 0.3)
+               X.SetFillColorAlpha(nodes[node_], 0.5)
                X.Draw('f&&same')
             X.Draw('same')
          else:
