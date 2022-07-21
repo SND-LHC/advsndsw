@@ -114,10 +114,13 @@ class Monitoring():
             self.converter.Init(options)
             self.options.online = self.converter
             self.eventTree = options.online.fSink.GetOutTree()
-            for T in FairTasks:
+            for t in self.FairTasks:
+               T = self.FairTasks[t]
                self.converter.run.AddTask(T)
-               T.Init()
-            # self.converter.run.Init()
+               if t=='simpleTracking':  
+                   T.Init(self.converter)
+                   self.Reco_MuonTracks = T.fittedTracks
+               else: T.Init()
             self.run = self.converter.run
             return
         else:
@@ -175,7 +178,10 @@ class Monitoring():
             self.run.Init()
             if len(partitions)>0:  self.eventTree = ioman.GetInChain()
             else:                 self.eventTree = ioman.GetInTree()
-   
+#fitted tracks
+            if "simpleTracking" in self.FairTasks:
+               self.trackTask = self.FairTasks["simpleTracking"]
+               self.Reco_MuonTracks = self.trackTask.fittedTracks
    def modtime(self,fname):
       dirname = fname[fname.rfind('//')+1:fname.rfind('/')]
       status, listing = self.myclient.dirlist(dirname, DirListFlags.STAT)
@@ -211,14 +217,20 @@ class Monitoring():
                 self.converter.boards[name]=self.converter.fiN.Get(name)
 
    def GetEvent(self,n):
-      if self.eventTree.GetBranchStatus('Reco_MuonTracks'):
+      if not self.options.online:   # offline, FairRoot in charge
+         if self.eventTree.GetBranchStatus('Reco_MuonTracks'):
             for aTrack in self.eventTree.Reco_MuonTracks:
-                  aTrack.Delete()
-      if self.sink.GetOutTree().GetBranchStatus('Reco_MuonTracks'):
+                if aTrack: aTrack.Delete()
+            self.eventTree.Reco_MuonTracks.Delete()
+         if self.sink.GetOutTree().GetBranchStatus('Reco_MuonTracks'):
             for aTrack in self.sink.GetOutTree().Reco_MuonTracks:
-                  aTrack.Delete()
+                  if aTrack: aTrack.Delete()
+      
       if self.options.online:
-            self.options.online.executeEvent(n)
+            online = self.options.online
+            online.executeEvent(n)
+            self.Reco_MuonTracks.Delete()
+            for t in self.FairTasks: self.FairTasks[t].ExecuteTask()
             self.eventTree = self.options.online.sTree
       else: 
             self.eventTree.GetEvent(n)

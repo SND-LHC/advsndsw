@@ -122,9 +122,8 @@ class Scifi_residuals(ROOT.FairTask):
        else:
                clusters = event.Cluster_Scifi
 # overall tracking
-       self.trackTask.ExecuteTask("Scifi")
        theTrack = False
-       for theTrack in self.OT.Reco_MuonTracks:
+       for theTrack in self.M.Reco_MuonTracks:
           if theTrack.GetUniqueID()==1:
               fitStatus = theTrack.getFitStatus()
               if  fitStatus.isFitConverged():

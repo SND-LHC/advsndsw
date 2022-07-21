@@ -232,17 +232,19 @@ class ConvRawDataPY(ROOT.FairTask):
        self.digiMuFilterHitBranch   = self.sTree.Branch("Digi_MuFilterHits",self.digiMuFilter,32000,1)
        self.geoVersion = 0
   #scifi clusters
-       if self.options.withGeoFile:
+       if self.options.withGeoFile and 0>1:  # these should move to somewhere else, trackSelector class
            self.clusScifi   = ROOT.TClonesArray("sndCluster")
-           self.clusScifiBranch    = self.sTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
+           self.clusScifiBranch    = self.sTree.Branch("Cluster_Scifi",self.clusScifi,32000,0)
            self.scifiDet = ROOT.gROOT.GetListOfGlobals().FindObject('Scifi')
            i = self.options.geoFile.find('_V')
            if i >0:
              k = self.options.geoFile[i+2:].find('_')
              self.geoVersion = int(self.options.geoFile[i+2:i+2+k])
-       if self.options.online:
-           self.kalman_tracks = ROOT.TObjArray(10)
-           self.MuonTracksBranch    = self.sTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,1)
+           self.kalman_tracks = ROOT.TClonesArray("genfit::Track")
+           self.kalman_tracks.BypassStreamer(ROOT.kFALSE)
+           self.MuonTracksBranch    = self.sTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,0)
+           self.clusMufi   = ROOT.TClonesArray("sndCluster")
+           self.clusMufiBranch    = self.sTree.Branch("Cluster_Mufi",self.clusMufi,32000,0)
 
        B = ROOT.TList()
        B.SetName('BranchList')
@@ -374,6 +376,7 @@ class ConvRawDataPY(ROOT.FairTask):
      digiMuFilterStore = {}
      if self.options.withGeoFile:
            self.clusScifi.Delete()
+           self.clusMufi.Delete()
 
      for board in self.boards:
         board_id = int(board.split('_')[1])
@@ -484,7 +487,7 @@ class ConvRawDataPY(ROOT.FairTask):
                indexMuFilter+=1
 
   # make simple clustering for scifi, only works with geometry file.
-     if self.options.withGeoFile:
+     if self.options.withGeoFile and 0>1:
       index = 0
       hitDict = {}
       for k in range(self.digiSciFi.GetEntries()):

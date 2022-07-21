@@ -77,7 +77,8 @@ class Mufi_hitMaps(ROOT.FairTask):
 
        self.beamSpot(event)
        withDSTrack = False
-       if self.OT.Reco_MuonTracks.GetEntries()>0: withDSTrack = True
+       for aTrack in self.M.Reco_MuonTracks:
+           if aTrack.GetUniqueID()==3: withDSTrack = True
        for aHit in event.Digi_MuFilterHits:
            if not aHit.isValid(): continue
            Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
@@ -144,17 +145,13 @@ class Mufi_hitMaps(ROOT.FairTask):
        for s in systemAndPlanes:
           for l in range(systemAndPlanes[s]):   
              rc = h[detector+'hitmult_'+str(s*10+l)].Fill(mult[s*10+l])
-# to avoid memory leak
-       for aTrack in self.OT.Reco_MuonTracks:
-         if aTrack.GetUniqueID()==3: aTrack.Delete()
 
    def beamSpot(self,event):
       if not self.trackTask: return
       h = self.M.h
-      self.trackTask.ExecuteTask("DS")
       Xbar = -10
       Ybar = -10
-      for aTrack in self.OT.Reco_MuonTracks:
+      for aTrack in self.M.Reco_MuonTracks:
          if not aTrack.GetUniqueID()==3: continue
          state = aTrack.getFittedState()
          pos    = state.getPos()

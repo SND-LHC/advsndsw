@@ -76,7 +76,8 @@ class Time_evolution(ROOT.FairTask):
        ut.bookHist(h,'ctimeM','delta event time per channel; dt [ms]',1000,0.0,10.,1700,-0.5,1699.5)
        ut.bookHist(h,'btime','delta timestamp per channel; ',3564*4+200,-0.5,3564*4-0.5+200,1700,-0.5,1699.5)
        ut.bookHist(h,'bnr','bunch number; ',3564,-0.5,3564-0.5)
-
+       self.boardsVsTime = {}
+                       
        self.Nevent = -1
        self.Tprev = [-1]*1700
    def ExecuteEvent(self,event):
@@ -85,6 +86,8 @@ class Time_evolution(ROOT.FairTask):
        T   = event.EventHeader.GetEventTime()
        self.gtime.append(T/self.M.freq)
        qdc = {0:0,1:0,2:0,3:0}
+       self.boardsVsTime[T]={}
+       
        for aHit in event.Digi_MuFilterHits:
           if not aHit.isValid(): continue
           detID = aHit.GetDetectorID()
@@ -103,7 +106,11 @@ class Time_evolution(ROOT.FairTask):
                 rc = h['btime'].Fill(T-self.Tprev[cNr],cNr)
                 rc = h['ctimeM'].Fill(dT*1E3,cNr)
                 rc = h['ctime'].Fill(dT,cNr)
-                rc = h['bnr'].Fill( (T%(4*3564))/4)
+                rc = h['bnr'].Fill( (T%(4*3564))/4)               
+             nb = aHit.GetBoardID(c)
+             if not nb in self.boardsVsTime: self.boardsVsTime[nb]={}
+             if not T in self.boardsVsTime[nb]: self.boardsVsTime[nb][T]=0
+             self.boardsVsTime[nb][T]+=1
              self.Tprev[cNr] = T
        for aHit in event.Digi_ScifiHits:
           if not aHit.isValid(): continue
@@ -130,6 +137,21 @@ class Time_evolution(ROOT.FairTask):
            rc = h['Etime'].Fill( dT )
            rc = h['EtimeZ'].Fill( dT*1E6)
            rc = h['time'].Fill(gtime[n-1]-T0)
+# time evolution of boards
+       ut.bookHist(h,'boardVStime','board vs time; t [s];'+yunit,nbins,0,tmax,len(self.boardsVsTime),0.5,len(self.boardsVsTime)+0.5)
+       i = 1
+       xAx = h['boardVStime'].GetXaxis()
+       for nb in self.boardsVsTime:
+          snb = str(nb)
+          xAx.SetBinLabel(i,snb)
+          for t in h['boardVStime'][nb]:
+             rc = h['boardVStime'].Fill(snb,t-T0) 
+          i+=1     
+       ut.bookCanvas(h,'bT','board nr vs time',2000,1600,1,1)
+       h['bT'].cd()
+       h['boardVStime'].Draw('colz')
+       self.M.myPrint(h['bT'],"board nr versus time",subdir='daq')      
+       
 # analyse splash events
        withTGraph = False
        anaSplash = False
