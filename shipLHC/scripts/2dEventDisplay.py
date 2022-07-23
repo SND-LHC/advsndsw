@@ -144,8 +144,14 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
           uniqueTracks = cleanTracks()
           if len(uniqueTracks)<nTracks: continue
        else:
-          if withTrack==2:  trackTask.ExecuteTask("Scifi")
-          elif withTrack==3:  trackTask.ExecuteTask("DS")
+          OT.Reco_MuonTracks = trackTask.fittedTracks
+          OT.Reco_MuonTracks.Delete()
+          if withTrack==1:  
+              trackTask.ExecuteTask("ScifiDS")
+          elif withTrack==2:  
+              trackTask.ExecuteTask("Scifi")
+          elif withTrack==3:  
+              trackTask.ExecuteTask("DS")
        ntracks = len(OT.Reco_MuonTracks)
        if ntracks<nTracks: continue
 

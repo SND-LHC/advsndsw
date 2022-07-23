@@ -84,9 +84,9 @@ class Time_evolution(ROOT.FairTask):
        self.Nevent +=1
        h = self.M.h
        T   = event.EventHeader.GetEventTime()
+       Tsec = int(T/self.M.freq)
        self.gtime.append(T/self.M.freq)
        qdc = {0:0,1:0,2:0,3:0}
-       self.boardsVsTime[T]={}
        
        for aHit in event.Digi_MuFilterHits:
           if not aHit.isValid(): continue
@@ -109,12 +109,16 @@ class Time_evolution(ROOT.FairTask):
                 rc = h['bnr'].Fill( (T%(4*3564))/4)               
              nb = aHit.GetBoardID(c)
              if not nb in self.boardsVsTime: self.boardsVsTime[nb]={}
-             if not T in self.boardsVsTime[nb]: self.boardsVsTime[nb][T]=0
-             self.boardsVsTime[nb][T]+=1
+             if not Tsec in self.boardsVsTime[nb]: self.boardsVsTime[nb][Tsec]=0
+             self.boardsVsTime[nb][Tsec]+=1
              self.Tprev[cNr] = T
        for aHit in event.Digi_ScifiHits:
           if not aHit.isValid(): continue
           qdc[0]+=1   
+          nb = aHit.GetBoardID(0)
+          if not nb in self.boardsVsTime: self.boardsVsTime[nb]={}
+          if not Tsec in self.boardsVsTime[nb]: self.boardsVsTime[nb][Tsec]=0
+          self.boardsVsTime[nb][Tsec]+=1
        for s in range(4):
           self.QDCtime[s].SetPoint(self.Nevent,self.Nevent,qdc[s])
 
@@ -139,13 +143,15 @@ class Time_evolution(ROOT.FairTask):
            rc = h['time'].Fill(gtime[n-1]-T0)
 # time evolution of boards
        ut.bookHist(h,'boardVStime','board vs time; t [s];'+yunit,nbins,0,tmax,len(self.boardsVsTime),0.5,len(self.boardsVsTime)+0.5)
+       boards = list(self.boardsVsTime.keys())
+       boards.sort()
        i = 1
-       xAx = h['boardVStime'].GetXaxis()
-       for nb in self.boardsVsTime:
+       yAx = h['boardVStime'].GetYaxis()
+       for nb in boards:
           snb = str(nb)
-          xAx.SetBinLabel(i,snb)
-          for t in h['boardVStime'][nb]:
-             rc = h['boardVStime'].Fill(snb,t-T0) 
+          yAx.SetBinLabel(i,snb)
+          for t in self.boardsVsTime[nb]:
+             rc = h['boardVStime'].Fill(t-T0,i,self.boardsVsTime[nb][t]) 
           i+=1     
        ut.bookCanvas(h,'bT','board nr vs time',2000,1600,1,1)
        h['bT'].cd()

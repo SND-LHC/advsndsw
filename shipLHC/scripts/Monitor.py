@@ -119,7 +119,10 @@ class Monitoring():
                self.converter.run.AddTask(T)
                if t=='simpleTracking':  
                    T.Init(self.converter)
+                   self.trackTask = self.FairTasks[t]
                    self.Reco_MuonTracks = T.fittedTracks
+                   self.clusMufi        = T.clusMufi
+                   self.clusScifi       = T.clusScifi
                else: T.Init()
             self.run = self.converter.run
             return
@@ -182,6 +185,9 @@ class Monitoring():
             if "simpleTracking" in self.FairTasks:
                self.trackTask = self.FairTasks["simpleTracking"]
                self.Reco_MuonTracks = self.trackTask.fittedTracks
+               self.clusMufi        = self.trackTask.clusMufi
+               self.clusScifi       = self.trackTask.clusScifi
+
    def modtime(self,fname):
       dirname = fname[fname.rfind('//')+1:fname.rfind('/')]
       status, listing = self.myclient.dirlist(dirname, DirListFlags.STAT)
@@ -221,10 +227,7 @@ class Monitoring():
          if self.eventTree.GetBranchStatus('Reco_MuonTracks'):
             for aTrack in self.eventTree.Reco_MuonTracks:
                 if aTrack: aTrack.Delete()
-            self.eventTree.Reco_MuonTracks.Delete()
-         if self.sink.GetOutTree().GetBranchStatus('Reco_MuonTracks'):
-            for aTrack in self.sink.GetOutTree().Reco_MuonTracks:
-                  if aTrack: aTrack.Delete()
+         self.eventTree.Reco_MuonTracks.Delete()
       
       if self.options.online:
             online = self.options.online

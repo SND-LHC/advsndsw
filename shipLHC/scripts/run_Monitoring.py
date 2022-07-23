@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 import ROOT,os,sys,subprocess,atexit,time
 import Monitor
@@ -127,7 +128,8 @@ for m in monitorTasks:
 if not options.auto:   # default online/offline mode
    for n in range(options.nStart,options.nStart+options.nEvents):
      event = M.GetEvent(n)
-     if n%options.heartBeat == 0: print("--> event nr:",n)
+     if not options.online:
+        if n%options.heartBeat == 0: print("--> event nr:",n)
 # assume for the moment file does not contain fitted tracks
      for m in monitorTasks:
         monitorTasks[m].ExecuteEvent(M.eventTree)
