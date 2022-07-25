@@ -214,6 +214,10 @@ class MuonReco(ROOT.FairTask) :
         # Now initialize output
            self.kalman_tracks = ROOT.TObjArray(self.max_reco_muons);
            self.ioman.Register("Reco_MuonTracks", self.ioman.GetFolderName(), self.kalman_tracks, ROOT.kTRUE);
+        # test new track class
+        # Now initialize output
+        self.muon_tracks = ROOT.TClonesArray("sndRecoTrack", self.max_reco_muons)
+        self.ioman.Register("Reco_MuonTracksNew", "", self.muon_tracks, ROOT.kTRUE);
 
         # Kalman filter stuff
 
@@ -261,6 +265,7 @@ class MuonReco(ROOT.FairTask) :
 
     def Exec(self, opt) :
         self.kalman_tracks.Clear()
+        self.muon_tracks.Clear()
 
         self.current_event += 1
 
@@ -275,7 +280,8 @@ class MuonReco(ROOT.FairTask) :
                           "index" : [],
                           "system" : [],
                           "detectorID" : [],
-                          "B" : [[], [], []]}
+                          "B" : [[], [], []],
+                          "tdc": []}
 
         if ("us" in self.hits_to_fit) or ("ds" in self.hits_to_fit) or ("ve" in self.hits_to_fit) :
             # Loop through muon filter hits
@@ -312,7 +318,10 @@ class MuonReco(ROOT.FairTask) :
                 hit_collection["index"].append(i_hit)
                 
                 hit_collection["detectorID"].append(muFilterHit.GetDetectorID())
-            
+                if muFilterHit.GetSystem() < 3:
+                   hit_collection["tdc"].append(muFilterHit.GetImpactT()) #already in ns
+                else: hit_collection["tdc"].append(muFilterHit.GetAllTimes()[0]*6.23768) #tdc2ns
+                
                 # Downstream
                 if muFilterHit.GetSystem() == 3 :
                     hit_collection["d"][1].append(self.MuFilter_ds_dx)
@@ -342,6 +351,7 @@ class MuonReco(ROOT.FairTask) :
                 hit_collection["system"].append(0)
             
                 hit_collection["detectorID"].append(scifiHit.GetDetectorID())
+                hit_collection["tdc"].append(scifiHit.GetTime()*6.23768) #tdc2ns
     
         # Make the hit collection numpy arrays.
         for key, item in hit_collection.items() :
@@ -508,6 +518,9 @@ class MuonReco(ROOT.FairTask) :
             
             hitID = 0 # Does it matter? We don't have a global hit ID.
             
+            hit_tdc = np.concatenate([hit_collection["tdc"][hit_collection["vert"]][track_hits_ZX],
+                                      hit_collection["tdc"][~hit_collection["vert"]][track_hits_ZY]])
+            
             for i_z_sorted in hit_z.argsort() :
                 tp = ROOT.genfit.TrackPoint()
                 hitCov = ROOT.TMatrixDSym(7)
@@ -547,6 +560,35 @@ class MuonReco(ROOT.FairTask) :
             # Now save the track!
             self.kalman_tracks.Add(theTrack)
             
+            # Load items into snd track class object
+            this_track = self.muon_tracks.ConstructedAt(i_muon)
+            trackPoints = []
+            trackPointsMom = []
+            hit_detIDs = []
+            pointTimes = [] 
+            for i, MP in enumerate(theTrack.getPointsWithMeasurement()):
+               state = theTrack.getFittedState(i)
+               trackPoints.append(state.getPos())
+               trackPointsMom.append(state.getMom())
+               hit_detIDs.append(MP.getRawMeasurement().getDetId())
+               if i ==0: this_track.setStart(state.getPos())
+               if i == len(theTrack.getPointsWithMeasurement())-1:
+                  this_track.setStop(state.getPos())              
+            for i_z_sorted in hit_z.argsort() :              
+               pointTimes.append(hit_tdc[i_z_sorted])              
+            
+            this_track.setTrackPoints(trackPoints)
+            this_track.setTrackPointsMom(trackPointsMom)
+            this_track.setRawMeasDetIDs(hit_detIDs)
+            this_track.setRawMeasTimes(pointTimes)
+            
+            this_track.setChi2(fitStatus.getChi2())
+            this_track.setChi2Ndf(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10))
+            this_track.setTrackFlag(fitStatus.isFitConverged())
+            
+            if self.hits_to_fit == "sf": this_track.setTrackType(11)
+            elif self.hits_to_fit == "ds": this_track.setTrackType(13)
+            else : this_track.setTrackType(15)
 
             # Remove track hits and try to find an additional track
             # Find array index to be removed
@@ -565,4 +607,4 @@ class MuonReco(ROOT.FairTask) :
                     raise Exception("Wrong number of dimensions found when deleting hits in iterative muon identification algorithm.")
 
     def FinishTask(self) :
-        pass
+        self.muon_tracks.Delete()
