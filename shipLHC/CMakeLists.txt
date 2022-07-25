@@ -7,6 +7,9 @@ ${BASE_INCLUDE_DIRECTORIES}
 ${CMAKE_SOURCE_DIR}/shipdata
 ${CMAKE_SOURCE_DIR}/shipLHC
 ${CMAKE_SOURCE_DIR}/veto
+${CMAKE_SOURCE_DIR}/genfit/core/include
+${CMAKE_SOURCE_DIR}/genfit/trackReps/include
+${CMAKE_SOURCE_DIR}/genfit/include/genfit
 ${ROOT_INCLUDE_DIR}
 )
 
@@ -36,12 +39,13 @@ MuFilterHit.cxx
 sndScifiHit.cxx
 sndCluster.cxx
 SNDLHCEventHeader.cxx
+sndRecoTrack.cxx
 )
 
 Set(HEADERS )
 Set(LINKDEF shipLHCLinkDef.h)
 Set(LIBRARY_NAME shipLHC)
-Set(DEPENDENCIES Base ShipData GeoBase ParBase Geom Core)
+Set(DEPENDENCIES Base ShipData GeoBase ParBase Geom Core genfit)
 
 include(FindPythonInterp)
 list(APPEND PYTHONPATH  "${CMAKE_SOURCE_DIR}/shipLHC/scripts")
