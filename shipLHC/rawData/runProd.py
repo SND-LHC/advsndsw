@@ -1,7 +1,7 @@
 import os,subprocess,time,multiprocessing
 import pwd
 import ROOT
-ncpus = multiprocessing.cpu_count()
+ncpus = multiprocessing.cpu_count() - 2
 
 """ input runlist
      for each run in runlist. look for number of partitions
@@ -11,6 +11,15 @@ ncpus = multiprocessing.cpu_count()
      run as many jobs in parallel as cpus are available
 """ 
 
+def delProcesses(pname):
+    username = pwd.getpwuid(os.getuid()).pw_name
+    callstring = "ps -f -u " + username
+    status = subprocess.check_output(callstring,shell=True)
+    for x in str(status).split("\\n"):
+         if not x.find(pname)<0:
+            pid = x.split(' ')[2]
+            os.system('kill '+pid)
+         
 class prodManager():
 
    def Init(self,options):
@@ -48,9 +57,6 @@ class prodManager():
     # find partitions
          for p in partitions[r]:
              self.runSinglePartition(path,runNr,str(p).zfill(4),EOScopy=True,check=True)
-             time.sleep(10)
-             while self.count_python_processes('convertRawData')>ncpus:
-                   time.sleep(200)
 
    def check4NewFiles(self,latest):
       rawDataFiles = self.getFileList(path,latest,minSize=10E6)
@@ -67,6 +73,12 @@ class prodManager():
            self.runSinglePartition(path,str(r).zfill(6),str(p).zfill(4),EOScopy=True,check=True)
 
    def runSinglePartition(self,path,r,p,EOScopy=False,check=True):
+       while self.count_python_processes('convertRawData')>ncpus or self.count_python_processes('runProd')>ncpus: time.sleep(300)
+       try:
+           pid = os.fork()
+       except OSError:
+           print("Could not create a child process")
+       if not pid == 0: return    
        inFile = self.options.server+path+'run_'+ r+'/data_'+p+'.root'
        fI = ROOT.TFile.Open(inFile)
        if not fI:
@@ -79,7 +91,7 @@ class prodManager():
           os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -cpp -b 100000 -p "+pathM+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
        else: 
           command = "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -b 1000 -p "+path+" --server="+self.options.server
-          command += "  -r "+str(int(r))+ " -P "+str(int(p)) + " -g "+self.options.geofile+" >log_"+r+'-'+p
+          command += "  -r "+str(int(r))+ " -P "+str(int(p)) + " >log_"+r+'-'+p
           print("execute ",command)
           os.system(command)
        if check:
@@ -90,6 +102,8 @@ class prodManager():
        print('finished converting ',r,p)
        tmp = {int(r):[int(p)]}
        if EOScopy:  self.copy2EOS(path,tmp,self.options.overwrite)
+       if pid == 0:  exit("Child process finished")
+       
 
    def checkFile(self,path,r,p):
       print('checkfile',path,r,p)
