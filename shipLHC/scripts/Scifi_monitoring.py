@@ -118,7 +118,7 @@ class Scifi_residuals(ROOT.FairTask):
        nav = self.nav
        if not hasattr(event,"Cluster_Scifi"):
                self.trackTask.scifiCluster()
-               clusters = self.OT.Cluster_Scifi
+               clusters = self.trackTask.clusScifi
        else:
                clusters = event.Cluster_Scifi
 # overall tracking
