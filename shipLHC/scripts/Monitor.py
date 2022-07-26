@@ -227,7 +227,7 @@ class Monitoring():
          if self.eventTree.GetBranchStatus('Reco_MuonTracks'):
             for aTrack in self.eventTree.Reco_MuonTracks:
                 if aTrack: aTrack.Delete()
-         self.eventTree.Reco_MuonTracks.Delete()
+            self.eventTree.Reco_MuonTracks.Delete()
       
       if self.options.online:
             online = self.options.online
