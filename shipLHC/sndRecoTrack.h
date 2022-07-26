@@ -31,7 +31,7 @@ class sndRecoTrack : public TObject {
   void setChi2Ndf(float f) { chi2Ndf = f; }
 
   TVector3 extrapolateToPlaneAtZ(float z);
-  float TrackDirection();
+  std::pair<int, float> TrackDirection();
   bool IsAlongZ();
   std::vector<float> getCorrTimes();
 
