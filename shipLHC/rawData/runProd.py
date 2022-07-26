@@ -58,6 +58,25 @@ class prodManager():
          for p in partitions[r]:
              self.runSinglePartition(path,runNr,str(p).zfill(4),EOScopy=True,check=True)
 
+   def runDataQuality(self,latest):
+      monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py --server=$EOSSHIP \
+                        -p "+pathConv+" -g ../geofile_sndlhc_TI18_V2_12July2022.root --ScifiResUnbiased 1 --batch --sudo "
+
+      dqDataFiles = []
+      hList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/offline",shell=True) )
+      for x in hList.split('\\n'):
+          if x.find('root')<0: continue
+          run = x.split('/')[-1]
+          dqDataFiles.append(int(run[3:9]))
+      convDataFiles = self.getFileList(pathConv,latest,minSize=0)
+      orderedCDF = list(convDataFiles.keys())
+      print(orderedCDF,dqDataFiles)
+      for x in orderedCDF: 
+           r = x//10000 
+           if r in dqDataFiles: continue
+           print('executing DQ for run %i'%(r))
+           os.system(monitorCommand + " -r "+str(r))
+
    def check4NewFiles(self,latest):
       rawDataFiles = self.getFileList(path,latest,minSize=10E6)
       convDataFiles = self.getFileList(pathConv,latest,minSize=0)
@@ -251,7 +270,13 @@ if __name__ == '__main__':
     if options.auto:
       while 1 > 0:
          M.check4NewFiles(options.latest)
-         time.sleep(1800)
+         time.sleep(600)
+      exit(0)
+
+    if options.command == "DQ":
+      while 1 > 0:
+         M.runDataQuality(options.latest)  
+         time.sleep(3600)
       exit(0)
 
     if options.command == "convert":
