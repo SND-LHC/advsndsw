@@ -312,7 +312,7 @@ else:
               if f.Get('rawConv'):   eventChain = f.rawConv
               else:                        eventChain = f.cbmsim
 if options.remakeScifiClusters: eventChain.SetBranchStatus("Cluster_Scifi*",0)
-
+rc = eventChain.GetEvent(0)
 run      = ROOT.FairRunAna()
 ioman = ROOT.FairRootManager.Instance()
 ioman.SetTreeName(eventChain.GetName())
