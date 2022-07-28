@@ -92,7 +92,9 @@ class Monitoring():
 
         self.runNr   = str(options.runNumber).zfill(6)
 # presenter file
-        self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','recreate')
+        name = 'run'+self.runNr+'.root'
+        if options.interactive: name = 'I-'+name
+        self.presenterFile = ROOT.TFile(name,'recreate')
         self.presenterFile.mkdir('scifi')
         self.presenterFile.mkdir('mufilter')
         self.presenterFile.mkdir('daq')
@@ -112,10 +114,16 @@ class Monitoring():
             self.converter.Init(options)
             self.options.online = self.converter
             self.eventTree = options.online.fSink.GetOutTree()
-            for T in FairTasks:
+            for t in self.FairTasks:
+               T = self.FairTasks[t]
                self.converter.run.AddTask(T)
-               T.Init()
-            # self.converter.run.Init()
+               if t=='simpleTracking':  
+                   T.Init(self.converter)
+                   self.trackTask = self.FairTasks[t]
+                   self.Reco_MuonTracks = T.fittedTracks
+                   self.clusMufi        = T.clusMufi
+                   self.clusScifi       = T.clusScifi
+               else: T.Init()
             self.run = self.converter.run
             return
         else:
@@ -139,9 +147,8 @@ class Monitoring():
 # check for partitions
                    dirlist  = os.listdir(options.path+"run_"+self.runNr)
                    for x in dirlist:
-                     data = "sndsw_raw-"+ str(partitions).zfill(4)
-                     if not x.find(data)<0:
-                          partitions.append(data)
+                     if not x.find('sndsw_raw-')<0:
+                          partitions.append(x)
               else:
                  partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)+".root"]
               if options.runNumber>0:
@@ -156,12 +163,12 @@ class Monitoring():
             ioman.SetTreeName(eventChain.GetName())
             outFile = ROOT.TMemFile('dummy','CREATE')
             source = ROOT.FairFileSource(eventChain.GetCurrentFile())
-            if len(partitions)>0:
-                  for p in range(1,len(partitions)):
-                       source.AddFile(path+'run_'+self.runNr+'/sndsw_raw-'+str(p).zfill(4)+'.root')
+            for i in range(1,len(partitions)):
+                  p = partitions[i]
+                  source.AddFile(path+'run_'+self.runNr+'/'+p)
             self.run.SetSource(source)
-            sink = ROOT.FairRootFileSink(outFile)
-            self.run.SetSink(sink)
+            self.sink = ROOT.FairRootFileSink(outFile)
+            self.run.SetSink(self.sink)
 
             for t in FairTasks: 
                 self.run.AddTask(t)
@@ -174,7 +181,13 @@ class Monitoring():
             self.run.Init()
             if len(partitions)>0:  self.eventTree = ioman.GetInChain()
             else:                 self.eventTree = ioman.GetInTree()
-   
+#fitted tracks
+            if "simpleTracking" in self.FairTasks:
+               self.trackTask = self.FairTasks["simpleTracking"]
+               self.Reco_MuonTracks = self.trackTask.fittedTracks
+               self.clusMufi        = self.trackTask.clusMufi
+               self.clusScifi       = self.trackTask.clusScifi
+
    def modtime(self,fname):
       dirname = fname[fname.rfind('//')+1:fname.rfind('/')]
       status, listing = self.myclient.dirlist(dirname, DirListFlags.STAT)
@@ -210,8 +223,17 @@ class Monitoring():
                 self.converter.boards[name]=self.converter.fiN.Get(name)
 
    def GetEvent(self,n):
+      if not self.options.online:   # offline, FairRoot in charge
+         if self.eventTree.GetBranchStatus('Reco_MuonTracks'):
+            for aTrack in self.eventTree.Reco_MuonTracks:
+                if aTrack: aTrack.Delete()
+            self.eventTree.Reco_MuonTracks.Delete()
+      
       if self.options.online:
-            self.options.online.executeEvent(n)
+            online = self.options.online
+            online.executeEvent(n)
+            self.Reco_MuonTracks.Delete()
+            for t in self.FairTasks: self.FairTasks[t].ExecuteTask()
             self.eventTree = self.options.online.sTree
       else: 
             self.eventTree.GetEvent(n)
@@ -460,11 +482,10 @@ class TrackSelector():
 # check for partitions
                  dirlist  = os.listdir(options.path+"run_"+self.runNr)
                  for x in dirlist:
-                     data = "sndsw_raw-"+ str(partitions).zfill(4)
-                     if not x.find(data)<0:
-                          partitions.append(data)
+                     if not x.find("sndsw_raw-")<0:
+                          partitions.append(x)
         else:
-                 partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)]
+                 partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)+".root"]
         if options.runNumber>0:
                 eventChain = ROOT.TChain('rawConv')
                 for p in partitions:
@@ -479,6 +500,7 @@ class TrackSelector():
         ioman = ROOT.FairRootManager.Instance()
         ioman.SetTreeName(eventChain.GetName())
         source = ROOT.FairFileSource(eventChain.GetCurrentFile())
+        ioman.SetInChain(eventChain)
         first = True
         for p in partitions:
            if first:
@@ -495,15 +517,14 @@ class TrackSelector():
 # prepare output tree, same branches as input plus track(s)
         self.outFile = ROOT.TFile(options.oname,'RECREATE')
         self.fSink    = ROOT.FairRootFileSink(self.outFile)
-        self.run.SetSink(self.fSink)
 
         self.outTree = eventChain.CloneTree(0)
         ROOT.gDirectory.pwd()
         self.kalman_tracks = ROOT.TObjArray(10)
-        self.MuonTracksBranch    = self.outTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,1)
-        if not self.outTree.GetBranch("Cluster_Scifi"):
+        self.MuonTracksBranch    = self.outTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,0)
+        if not eventChain.GetBranch("Cluster_Scifi"):
            self.clusScifi   = ROOT.TClonesArray("sndCluster")
-           self.clusScifiBranch    = self.outTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
+           self.clusScifiBranch    = self.outTree.Branch("Cluster_Scifi",self.clusScifi,32000,0)
 
         B = ROOT.TList()
         B.SetName('BranchList')
@@ -517,6 +538,7 @@ class TrackSelector():
         self.fSink.SetOutTree(self.outTree)
 
         self.eventTree = eventChain
+        self.run.SetSink(self.fSink)
 
         self.trackTask = options.FairTasks["simpleTracking"]
         self.trackTask.Init()
@@ -529,9 +551,19 @@ class TrackSelector():
       for n in range(self.options.nStart,self.options.nStart+self.options.nEvents):
           self.eventTree.GetEvent(n)
           self.ExecuteEvent(self.eventTree)
-          if self.OT.Reco_MuonTracks.GetEntries()>0:
-              self.OT.EventHeader.SetMCEntryNumber(n)
-              self.fSink.Fill()
+          if self.trackTask.kalman_tracks.GetEntries() == 0: continue
+          if not self.eventTree.GetBranch("Cluster_Scifi"):
+                self.clusScifi.Delete()
+                index = 0
+                for aCl in self.trackTask.clusScifi:
+                     if  self.clusScifi.GetSize() == index: self.clusScifi.Expand(index+10)
+                     self.clusScifi[index]=aCl
+                     index+=1
+          self.OT.Reco_MuonTracks.Delete()
+          for aTrack in self.trackTask.kalman_tracks:
+                self.OT.Reco_MuonTracks.Add(aTrack)
+          self.OT.EventHeader.SetMCEntryNumber(n)
+          self.fSink.Fill()
 
    def Finalize(self):
          self.fSink.Write()

@@ -230,14 +230,7 @@ class ConvRawDataPY(ROOT.FairTask):
        self.digiSciFiBranch   = self.sTree.Branch("Digi_ScifiHits",self.digiSciFi,32000,1)
        self.digiMuFilter   = ROOT.TClonesArray("MuFilterHit")
        self.digiMuFilterHitBranch   = self.sTree.Branch("Digi_MuFilterHits",self.digiMuFilter,32000,1)
-  #scifi clusters
-       if self.options.withGeoFile:
-           self.clusScifi   = ROOT.TClonesArray("sndCluster")
-           self.clusScifiBranch    = self.sTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
-           self.scifiDet = ROOT.gROOT.GetListOfGlobals().FindObject('Scifi')
-       if self.options.online:
-           self.kalman_tracks = ROOT.TObjArray(10)
-           self.MuonTracksBranch    = self.sTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,1)
+       self.geoVersion = 0
 
        B = ROOT.TList()
        B.SetName('BranchList')
@@ -359,6 +352,7 @@ class ConvRawDataPY(ROOT.FairTask):
      rc = event.GetEvent(eventNumber)
      self.header.SetEventTime(event.timestamp)
      self.header.SetRunId( self.options.runNumber )
+     self.header.SetInputFileId(self.geoVersion)
 
      indexSciFi=0
      self.digiSciFi.Delete()
@@ -366,8 +360,6 @@ class ConvRawDataPY(ROOT.FairTask):
      indexMuFilter = 0
      self.digiMuFilter.Delete()
      digiMuFilterStore = {}
-     if self.options.withGeoFile:
-           self.clusScifi.Delete()
 
      for board in self.boards:
         board_id = int(board.split('_')[1])
@@ -478,7 +470,7 @@ class ConvRawDataPY(ROOT.FairTask):
                indexMuFilter+=1
 
   # make simple clustering for scifi, only works with geometry file.
-     if self.options.withGeoFile:
+     if self.options.withGeoFile and 0>1:
       index = 0
       hitDict = {}
       for k in range(self.digiSciFi.GetEntries()):

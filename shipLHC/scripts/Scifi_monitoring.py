@@ -80,6 +80,7 @@ class Scifi_residuals(ROOT.FairTask):
        NbinsRes = options.ScifiNbinsRes
        xmin        = options.Scifixmin
        alignPar   = options.ScifialignPar
+       self.unbiased = options.ScifiResUnbiased
 
        self.M = monitor
        h = self.M.h
@@ -117,26 +118,27 @@ class Scifi_residuals(ROOT.FairTask):
        nav = self.nav
        if not hasattr(event,"Cluster_Scifi"):
                self.trackTask.scifiCluster()
-               clusters = self.OT.Cluster_Scifi
+               clusters = self.trackTask.clusScifi
        else:
                clusters = event.Cluster_Scifi
-
 # overall tracking
-       self.trackTask.ExecuteTask("Scifi")
-       for aTrack in self.OT.Reco_MuonTracks:
-          if not aTrack.GetUniqueID()==1: continue
-          fitStatus = aTrack.getFitStatus()
-          if not fitStatus.isFitConverged(): continue
-          state = aTrack.getFittedState()
-          pos    = state.getPos()
-          mom = state.getMom()
-          slopeX = mom.X()/mom.Z()
-          slopeY = mom.Y()/mom.Z()
-          rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
-          rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
-          rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
-          rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
-          if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+       theTrack = False
+       for theTrack in self.M.Reco_MuonTracks:
+          if theTrack.GetUniqueID()==1:
+              fitStatus = theTrack.getFitStatus()
+              if  fitStatus.isFitConverged():
+                 state = theTrack.getFittedState()
+                 pos    = state.getPos()
+                 mom = state.getMom()
+                 slopeX = mom.X()/mom.Z()
+                 slopeY = mom.Y()/mom.Z()
+                 rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
+                 rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
+                 rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
+                 rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+
+       if not self.unbiased and not theTrack: return
 
        sortedClusters={}
        for aCl in clusters:
@@ -145,23 +147,30 @@ class Scifi_residuals(ROOT.FairTask):
            sortedClusters[so].append(aCl)
 # select events with clusters in each plane
        if len(sortedClusters)<10: return
+       goodEvent = True
+       for s in sortedClusters:
+          if len(sortedClusters[s])>1: goodEvent=False
+       if not goodEvent: return
+
        for s in range(1,6):
+            if self.unbiased:
 # build trackCandidate
-            hitlist = {}
-            k=0
-            for so in sortedClusters:
-                    if so//10 == s: continue
+              hitlist = {}
+              if self.unbiased or s==1:
+                k=0
+                for so in sortedClusters:
+                    if so//10 == s and self.unbiased: continue
                     for x in sortedClusters[so]:
                        hitlist[k] = x
                        k+=1
-            theTrack = self.trackTask.fitTrack(hitlist)
-            if not hasattr(theTrack,"getFittedState"): continue
+                theTrack = self.trackTask.fitTrack(hitlist)
+                if not hasattr(theTrack,"getFittedState"): continue
 # check residuals
-            fitStatus = theTrack.getFitStatus()
-            if not fitStatus.isFitConverged(): 
-                 theTrack.Delete()
-                 continue
-# test plane 
+                fitStatus = theTrack.getFitStatus()
+                if not fitStatus.isFitConverged(): 
+                  theTrack.Delete()
+                  continue
+# test plane
             for o in range(2):
                 testPlane = s*10+o
                 z = self.M.zPos['Scifi'][testPlane]
@@ -176,6 +185,8 @@ class Scifi_residuals(ROOT.FairTask):
                    if abs(z-Pos.z())<mZmin:
                       mZmin = abs(z-Pos.z())
                       mClose = m
+                if mZmin>10000:
+                    print("something wrong here with measurements",mClose,mZmin,theTrack.getNumPointsWithMeasurement())
                 fstate =  theTrack.getFittedState(mClose)
                 pos,mom = fstate.getPos(),fstate.getMom()
                 rep.setPosMom(state,pos,mom)
@@ -186,36 +197,18 @@ class Scifi_residuals(ROOT.FairTask):
                 rc = h['track_Scifi'+str(testPlane)].Fill(xEx,yEx)
                 for aCl in sortedClusters[testPlane]:
                    aCl.GetPosition(A,B)
-# apply rotation 
-                   nav.cd('/cave_1/Detector_0')
-                   gA = array('d',[A[0],A[1],A[2]])
-                   gB = array('d',[B[0],B[1],B[2]])
-                   lA =  array('d',[0,0,0])
-                   lB =  array('d',[0,0,0])
-                   nav.MasterToLocal(gA,lA)
-                   nav.MasterToLocal(gB,lB)
-                   xCl = (lA[0]+lB[0])/2.
-                   yCl = (lA[1]+lB[1])/2.
-                   zCl = (lA[2]+lB[2])/2.
-                   gpos =  array('d',[pos[0],pos[1],pos[2]])
-                   gmom =  array('d',[mom[0],mom[1],mom[2]])
-                   lpos =  array('d',[0,0,0])
-                   lmom =  array('d',[0,0,0])
-                   nav.MasterToLocal(gpos,lpos)
-                   nav.MasterToLocal(gmom,lmom)
-                   lam = (zCl-lpos[2])/lmom[2]
-                   lxEx = lpos[0]+lam*lmom[0]
-                   lyEx = lpos[1]+lam*lmom[1]
-                   if o==1 :   D = xCl - lxEx
-                   else:       D = yCl - lyEx
                    detID = aCl.GetFirst()
                    channel = detID%1000 + ((detID%10000)//1000)*128 + (detID%100000//10000)*512
-                   rc = h['res'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um)
-                   rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lxEx)
-                   rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,lyEx)
-                   rc = h['resC'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(D/u.um,channel)
+# calculate DOCA
+                   pq = A-pos
+                   uCrossv= (B-A).Cross(mom)
+                   doca = pq.Dot(uCrossv)/uCrossv.Mag()
+                   rc = h['resC'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,channel)
+                   rc = h['res'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um)
+                   rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,xEx)
+                   rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,yEx)
 
-            theTrack.Delete()
+            if self.unbiased: theTrack.Delete()
 
 # analysis and plots 
    def Plot(self):

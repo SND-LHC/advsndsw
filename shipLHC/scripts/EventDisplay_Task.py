@@ -33,6 +33,16 @@ class twod(ROOT.FairTask):
        h['yz'].SetStats(0)
        self.proj = {1:'xz',2:'yz'}
 
+       self.nodes = {'volVeto_1/volVetoPlane_0_0':ROOT.kRed,'volVeto_1/volVetoPlane_1_1':ROOT.kRed,
+                    'volMuFilter_1/volMuUpstreamDet_0_2':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_1_3':ROOT.kGreen,
+                    'volMuFilter_1/volMuUpstreamDet_2_4':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_3_5':ROOT.kGreen,
+                    'volMuFilter_1/volMuUpstreamDet_4_6':ROOT.kGreen,
+                    'volMuFilter_1/volMuDownstreamDet_0_7':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_1_8':ROOT.kCyan,
+                    'volMuFilter_1/volMuDownstreamDet_2_9':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_3_10':ROOT.kCyan,
+                    'volTarget_1/ScifiVolume1_1000000':ROOT.kBlue,'volTarget_1/ScifiVolume2_2000000':ROOT.kBlue,'volTarget_1/ScifiVolume3_3000000':ROOT.kBlue,
+                    'volTarget_1/ScifiVolume4_4000000':ROOT.kBlue,'volTarget_1/ScifiVolume5_5000000':ROOT.kBlue}
+
+
    def ExecuteEvent(self,event):
        h = self.M.h
        proj = self.proj
@@ -64,6 +74,8 @@ class twod(ROOT.FairTask):
        if empty: return
        h['hitCollectionX']= {'Scifi':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
        h['hitCollectionY']= {'Veto':[0,ROOT.TGraphErrors()],'Scifi':[0,ROOT.TGraphErrors()],'US':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
+       h['firedChannelsX']= {'Scifi':[0,0,0],'DS':[0,0,0]}
+       h['firedChannelsY']= {'Veto':[0,0,0,0],'Scifi':[0,0,0],'US':[0,0,0,0],'DS':[0,0,0,0]}
 
        for collection in ['hitCollectionX','hitCollectionY']:
           for c in h[collection]:
@@ -72,6 +84,7 @@ class twod(ROOT.FairTask):
        for p in proj:
            rc = h[ 'simpleDisplay'].cd(p)
            if p==1: h[proj[p]].SetTitle('event '+str(N))
+           else: h[proj[p]].SetTitle('')
            h[proj[p]].Draw('b')
        for D in digis:
           for digi in D:
@@ -105,6 +118,16 @@ class twod(ROOT.FairTask):
              rc = c[1].SetPoint(c[0],Z,Y)
              rc = c[1].SetPointError(c[0],detSize[system][2],sY)
              c[0]+=1 
+             if digi.isVertical():  F = 'firedChannelsX'
+             else:                     F = 'firedChannelsY'
+             ns = max(1,digi.GetnSides())
+             for side in range(ns):
+                for m in  range(digi.GetnSiPMs()):
+                   qdc = digi.GetSignal(m+side*digi.GetnSiPMs())
+                   if qdc < 0 and qdc > -900:  h[F][self.systems[system]][1]+=1
+                   elif not qdc<0:   
+                       h[F][self.systems[system]][0]+=1
+                       h[F][self.systems[system]][2+side]+=qdc
        h['hitCollectionY']['Veto'][1].SetMarkerColor(ROOT.kRed)
        h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
        h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
@@ -116,6 +139,12 @@ class twod(ROOT.FairTask):
              h[ 'simpleDisplay'].cd(k)
              k+=1
              for c in h[collection]:
+                 F = collection.replace('hitCollection','firedChannels')
+                 pj = collection.split('ion')[1]
+                 if pj =="X" or c=="Scifi":
+                    print( "%1s %5s %3i  +:%3i -:%3i qdc :%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2]))
+                 else:
+                    print( "%1s %5s %3i  +:%3i -:%3i qdcL:%5.1F qdcR:%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2],h[F][c][3]))
                  if h[collection][c][1].GetN()<1: continue
                  h[collection][c][1].SetMarkerStyle(20+k)
                  h[collection][c][1].SetMarkerSize(1.5)
@@ -123,7 +152,7 @@ class twod(ROOT.FairTask):
                  h['display:'+c]=h[collection][c][1]
 
        if options.withTrack: self.addTrack()
-
+       self.drawDetectors()
        h[ 'simpleDisplay'].Update()
        if options.save: h['simpleDisplay'].Print('event_'+"{:04d}".format(N)+'.png')
        if options.interactive:  
@@ -209,3 +238,49 @@ class twod(ROOT.FairTask):
       if len(uniqueTracks)>1: 
          for n1 in range( len(listOfDetIDs) ): print(listOfDetIDs[n1])
       return uniqueTracks
+
+   def drawDetectors(self):
+    h = self.M.h
+    proj = {'X':0,'Y':1}
+    nav = ROOT.gGeoManager.GetCurrentNavigator()
+    for node in self.nodes:
+      if not node+'X' in h:
+        n = '/Detector_0/'+node
+        nav.cd(n)
+        N = nav.GetCurrentNode()
+        S = N.GetVolume().GetShape()
+        dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
+        ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
+        for p in proj:
+           P = {}
+           M = {}
+           if p=='X':
+              P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
+              P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
+              P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
+              P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+           else:
+              P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+              P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
+              P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+              P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+           for C in P:
+                 M[C] = array('d',[0,0,0])
+                 nav.LocalToMaster(P[C],M[C])
+           h[node+p] = ROOT.TGraph()
+           X = h[node+p]
+           c = proj[p]
+           X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+           X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+           X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+           X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+           X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+           X.SetLineColor(self.nodes[node])
+           h[ 'simpleDisplay'].cd(c+1)
+           X.Draw('same')
+      else:
+        for p in proj:
+           X = h[node+p]
+           c = proj[p]
+           h[ 'simpleDisplay'].cd(c+1)
+           X.Draw('same')

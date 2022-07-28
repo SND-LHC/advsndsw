@@ -51,6 +51,7 @@ else:
 
 if f.FindKey('cbmsim'):
         eventTree = f.cbmsim
+        runId = 'sim'
         if eventTree.GetBranch('ScifiPoint'): mc = True
 else:   
         eventTree = f.rawConv
@@ -117,9 +118,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
  if 'xz' in h: 
         h.pop('xz').Delete()
         h.pop('yz').Delete()
- ut.bookHist(h,'xz','; z [cm]; x [cm]',500,zStart,zStart+320.,100,-100.,10.)
- ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+320.,100,-10.,80.)
-
+ ut.bookHist(h,'xz','; z [cm]; x [cm]',500,zStart,zStart+350.,100,-100.,10.)
+ ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+350.,100,-30.,80.)
  proj = {1:'xz',2:'yz'}
  h['xz'].SetStats(0)
  h['yz'].SetStats(0)
@@ -144,8 +144,14 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
           uniqueTracks = cleanTracks()
           if len(uniqueTracks)<nTracks: continue
        else:
-          if withTrack==2:  trackTask.ExecuteTask("Scifi")
-          elif withTrack==3:  trackTask.ExecuteTask("DS")
+          OT.Reco_MuonTracks = trackTask.fittedTracks
+          OT.Reco_MuonTracks.Delete()
+          if withTrack==1:  
+              trackTask.ExecuteTask("ScifiDS")
+          elif withTrack==2:  
+              trackTask.ExecuteTask("Scifi")
+          elif withTrack==3:  
+              trackTask.ExecuteTask("DS")
        ntracks = len(OT.Reco_MuonTracks)
        if ntracks<nTracks: continue
 
@@ -158,9 +164,10 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     T,dT = 0,0
     if event.FindBranch("EventHeader"):
        T = event.EventHeader.GetEventTime()
+       runId = eventTree.EventHeader.GetRunId()
        if Tprev >0: dT = T-Tprev
        Tprev = T
-    print( "event -> %i   %8.4Fs  %8.4Fns"%(N,T/freq,dT/freq*1E9))
+    if ntracks > 0: print('number of tracks: ', ntracks)
 
     digis = []
     if event.FindBranch("Digi_ScifiHits"): digis.append(event.Digi_ScifiHits)
@@ -168,7 +175,9 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     if event.FindBranch("Digi_MuFilterHit"): digis.append(event.Digi_MuFilterHit)
     empty = True
     for x in digis:
-       if x.GetEntries()>0: empty = False
+       if x.GetEntries()>0:
+         if empty: print( "event -> %i"%N)
+         empty = False
     if empty: continue
     h['hitCollectionX']= {'Scifi':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
     h['hitCollectionY']= {'Veto':[0,ROOT.TGraphErrors()],'Scifi':[0,ROOT.TGraphErrors()],'US':[0,ROOT.TGraphErrors()],'DS':[0,ROOT.TGraphErrors()]}
@@ -186,8 +195,9 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     dTs+= "    " + str(minT[1].GetDetectorID())
     for p in proj:
        rc = h[ 'simpleDisplay'].cd(p)
-       if p==1: h[proj[p]].SetTitle('event '+str(N)+"    dT="+dTs)
        h[proj[p]].Draw('b')
+    emptyNodes()
+    drawDetectors()
     for D in digis:
       for digi in D:
          detID = digi.GetDetectorID()
@@ -197,17 +207,12 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
             geo.modules['MuFilter'].GetPosition(detID,A,B)
             sipmMult = len(digi.GetAllSignals())
             if sipmMult<minSipmMult and (system==1 or system==2): continue
-            if trans2local:
-                curPath = nav.GetPath()
-                tmp = curPath.rfind('/')
-                nav.cd(curPath[:tmp])
          else:
             geo.modules['Scifi'].GetSiPMPosition(detID,A,B)
-            if trans2local:
-                curPath = nav.GetPath()
-                tmp = curPath.rfind('/')
-                nav.cd(curPath[:tmp])
             system = 0
+         curPath = nav.GetPath()
+         tmp = curPath.rfind('/')
+         nav.cd(curPath[:tmp])
          globA,locA = array('d',[A[0],A[1],A[2]]),array('d',[A[0],A[1],A[2]])
          if trans2local:   nav.MasterToLocal(globA,locA)
          Z = A[2]
@@ -220,9 +225,12 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    Y = locA[1]
                    sY = detSize[system][1]
          c = h[collection][systems[system]]
-         rc = c[1].SetPoint(c[0],Z,Y)
+         rc = c[1].SetPoint(c[0],Z, Y)
          rc = c[1].SetPointError(c[0],detSize[system][2],sY)
-         c[0]+=1
+         c[0]+=1 
+
+         fillNode(curPath)
+
          if digi.isVertical():  F = 'firedChannelsX'
          else:                     F = 'firedChannelsY'
          ns = max(1,digi.GetnSides())
@@ -232,16 +240,13 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    if qdc < 0 and qdc > -900:  h[F][systems[system]][1]+=1
                    elif not qdc<0:   
                        h[F][systems[system]][0]+=1
-                       h[F][systems[system]][2+side]+=qdc
-    h['hitCollectionY']['Veto'][1].SetMarkerColor(ROOT.kRed)
-    h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
-    h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue)
-    h['hitCollectionY']['US'][1].SetMarkerColor(ROOT.kGreen)
-    h['hitCollectionY']['DS'][1].SetMarkerColor(ROOT.kCyan)
-    h['hitCollectionX']['DS'][1].SetMarkerColor(ROOT.kCyan)
+                       #h[F][systems[system]][2+side]+=qdc
+    h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
+    h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     k = 1
     for collection in ['hitCollectionX','hitCollectionY']:
        h[ 'simpleDisplay'].cd(k)
+       drawInfo(h[ 'simpleDisplay'], k, runId, N, T)
        k+=1
        for c in h[collection]:
           F = collection.replace('hitCollection','firedChannels')
@@ -251,17 +256,17 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
           else:
               print( "%1s %5s %3i  +:%3i -:%3i qdcL:%5.1F qdcR:%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2],h[F][c][3]))
           if h[collection][c][1].GetN()<1: continue
-          h[collection][c][1].SetMarkerStyle(20+k)
-          h[collection][c][1].SetMarkerSize(1.5)
-          rc=h[collection][c][1].Draw('sameP')
-          h['display:'+c]=h[collection][c][1]
-
-    if withTrack == 2: addTrack(OT,True)
-    elif not withTrack<0:  addTrack(OT)
-    drawDetectors()
+          if c=='Scifi':
+            h[collection][c][1].SetMarkerStyle(20)
+            h[collection][c][1].SetMarkerSize(1.5)
+            rc=h[collection][c][1].Draw('sameP')
+            h['display:'+c]=h[collection][c][1]
     h[ 'simpleDisplay'].Update()
+
+    if withTrack == 2: addTrack(OT,True)  #withTrack=2 scifi, =3 DS
+    elif not withTrack<0:  addTrack(OT)
     if verbose>0: dumpChannels()
-    if save: h['simpleDisplay'].Print('event_'+"{:04d}".format(N)+'.png')
+    if save: h['simpleDisplay'].Print('{:0>2d}-event_{:04d}'.format(runId,N)+'.png')
     rc = input("hit return for next event or q for quit: ")
     if rc=='q': break
  if save: os.system("convert -delay 60 -loop 0 event*.png animated.gif")
@@ -271,10 +276,12 @@ def addTrack(OT,scifi=False):
    nTrack = 0
    for   aTrack in OT.Reco_MuonTracks:
       trackColor = ROOT.kRed
-      if aTrack.GetUniqueID()==1: trackColor = ROOT.kBlack
-      if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlue
+      if aTrack.GetUniqueID()==1: trackColor = ROOT.kBlue+2
+      if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlack
       S = aTrack.getFitStatus()
-      if not S.isFitConverged() and scifi: continue
+      if not S.isFitConverged() and scifi:
+         print('not converge')
+         continue
       for p in [0,1]:
           h['aLine'+str(nTrack*10+p)] = ROOT.TGraph()
 
@@ -308,56 +315,80 @@ def addTrack(OT,scifi=False):
       nTrack+=1
 
 def drawDetectors():
-    nodes = {'volVeto_1/volVetoPlane_0_0':ROOT.kRed,'volVeto_1/volVetoPlane_1_1':ROOT.kRed,
-                    'volMuFilter_1/volMuUpstreamDet_0_2':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_1_3':ROOT.kGreen,
-                    'volMuFilter_1/volMuUpstreamDet_2_4':ROOT.kGreen,'volMuFilter_1/volMuUpstreamDet_3_5':ROOT.kGreen,
-                    'volMuFilter_1/volMuUpstreamDet_4_6':ROOT.kGreen,
-                    'volMuFilter_1/volMuDownstreamDet_0_7':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_1_8':ROOT.kCyan,
-                    'volMuFilter_1/volMuDownstreamDet_2_9':ROOT.kCyan,'volMuFilter_1/volMuDownstreamDet_3_10':ROOT.kCyan,
-                    'volTarget_1/ScifiVolume1_1000000':ROOT.kBlue,'volTarget_1/ScifiVolume2_2000000':ROOT.kBlue,'volTarget_1/ScifiVolume3_3000000':ROOT.kBlue,
-                    'volTarget_1/ScifiVolume4_4000000':ROOT.kBlue,'volTarget_1/ScifiVolume5_5000000':ROOT.kBlue}
-    proj = {'X':0,'Y':1}
-    for node in nodes:
-      if not node+'X' in h:
-        n = '/Detector_0/'+node
-        nav.cd(n)
-        N = nav.GetCurrentNode()
-        S = N.GetVolume().GetShape()
-        dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
-        ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
-        for p in proj:
-           P = {}
-           M = {}
-           if p=='X':
-              P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
-              P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
-              P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
-              P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
-           else:
-              P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
-              P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
-              P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
-              P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
-           for C in P:
-                 M[C] = array('d',[0,0,0])
-                 nav.LocalToMaster(P[C],M[C])
-           h[node+p] = ROOT.TGraph()
-           X = h[node+p]
-           c = proj[p]
-           X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
-           X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
-           X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
-           X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
-           X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
-           X.SetLineColor(nodes[node])
-           h[ 'simpleDisplay'].cd(c+1)
-           X.Draw('same')
-      else:
-        for p in proj:
-           X = h[node+p]
-           c = proj[p]
-           h[ 'simpleDisplay'].cd(c+1)
-           X.Draw('same')
+   nodes = {'volMuFilter_1/volFeBlockEnd_1':ROOT.kGreen-6}
+   for i in range(2):
+      nodes['volVeto_1/volVetoPlane_{}_{}'.format(i, i)]=ROOT.kRed
+      for j in range(7):
+         nodes['volVeto_1/volVetoPlane_{}_{}/volVetoBar_1{}{:0>3d}'.format(i, i, i, j)]=ROOT.kRed
+      nodes['volVeto_1/subVetoBox_{}'.format(i)]=ROOT.kGray+1
+   for i in range(4):
+      nodes['volMuFilter_1/volMuDownstreamDet_{}_{}'.format(i, i+7)]=ROOT.kBlue+1
+      for j in range(60):
+         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_ver_3{}{:0>3d}'.format(i, i+7, i, j+60)]=ROOT.kBlue+1
+         if i < 3:
+            nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_hor_3{}{:0>3d}'.format(i, i+7, i, j)]=ROOT.kBlue+1
+   for i in range(4):
+      nodes['volMuFilter_1/subDSBox_{}'.format(i+7)]=ROOT.kGray+1
+   for i in range(5):
+      nodes['volTarget_1/ScifiVolume{}_{}000000'.format(i+1, i+1)]=ROOT.kBlue+1
+      nodes['volTarget_1/volWallborder_{}'.format(i)]=ROOT.kGray
+      nodes['volMuFilter_1/subUSBox_{}'.format(i+2)]=ROOT.kGray+1
+      nodes['volMuFilter_1/volMuUpstreamDet_{}_{}'.format(i, i+2)]=ROOT.kBlue+1
+      for j in range(10):
+         nodes['volMuFilter_1/volMuUpstreamDet_{}_{}/volMuUpstreamBar_2{}00{}'.format(i, i+2, i, j)]=ROOT.kBlue+1
+      nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-6
+   for i in range(7,10):
+      nodes['volMuFilter_1/volFeBlock_{}'.format(i)]=ROOT.kGreen-6
+   passNodes = {'Block', 'Wall'}
+   xNodes = {'UpstreamBar', 'VetoBar', 'hor'}
+   proj = {'X':0,'Y':1}
+   for node_ in nodes:
+      node = '/cave_1/Detector_0/'+node_
+      for p in proj:
+         if node+p not in h:
+            nav.cd(node)
+            N = nav.GetCurrentNode()
+            S = N.GetVolume().GetShape()
+            dx,dy,dz = S.GetDX(),S.GetDY(),S.GetDZ()
+            ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
+            P = {}
+            M = {}
+            if p=='X' and not any(xNode in node for xNode in xNodes):
+               P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
+               P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
+               P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
+               P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
+            elif p=='Y' and 'ver' not in node:
+               P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
+               P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
+               P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
+               P['RightTop'] = array('d',[ox,dy+oy,dz+oz])
+            else: continue
+            for C in P:
+               M[C] = array('d',[0,0,0])
+               nav.LocalToMaster(P[C],M[C])
+            h[node+p] = ROOT.TPolyLine()
+            X = h[node+p]
+            c = proj[p]
+            X.SetPoint(0,M['LeftBottom'][2],M['LeftBottom'][c])
+            X.SetPoint(1,M['LeftTop'][2],M['LeftTop'][c])
+            X.SetPoint(2,M['RightTop'][2],M['RightTop'][c])
+            X.SetPoint(3,M['RightBottom'][2],M['RightBottom'][c])
+            X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
+            X.SetLineColor(nodes[node_])
+            X.SetLineWidth(1)
+            h[ 'simpleDisplay'].cd(c+1)
+            if any(passNode in node for passNode in passNodes):
+               X.SetFillColorAlpha(nodes[node_], 0.5)
+               X.Draw('f&&same')
+            X.Draw('same')
+         else:
+            X = h[node+p]
+            c = proj[p]
+            h[ 'simpleDisplay'].cd(c+1)
+            if any(passNode in node for passNode in passNodes):
+               X.Draw('f&&same') 
+            X.Draw('same')
 
 def dumpVeto():
     muHits = {10:[],11:[]}
@@ -460,6 +491,7 @@ def firstTimeStamp(event):
                     tmin[0]=dt
                     tmin[1]=digi
         return tmin
+
 def dumpChannels(D='Digi_MuFilterHits'):
      X = eval("eventTree."+D)
      text = {}
@@ -480,3 +512,84 @@ def dumpChannels(D='Digi_MuFilterHits'):
      keys = list(text.keys())
      keys.sort()
      for k in keys: print(text[k])
+
+def fillNode(node):
+   xNodes = {'UpstreamBar', 'VetoBar', 'hor'}
+   proj = {'X':0,'Y':1}
+   color = ROOT.kBlack
+   thick = 5
+   for p in proj:
+      if node+p in h:
+         X = h[node+p]
+         if 'Veto' in node:
+            color = ROOT.kRed+1
+         if 'Downstream' in node:
+            thick = 5
+         c = proj[p]
+         h[ 'simpleDisplay'].cd(c+1)
+         X.SetFillColor(color)
+         X.SetLineColor(color)
+         X.SetLineWidth(thick)
+         X.Draw('f&&same')
+         X.Draw('same')   
+
+def emptyNodes():
+   nodes = {}
+   for i in range(2):
+      for j in range(7):
+         nodes['volVeto_1/volVetoPlane_{}_{}/volVetoBar_1{}{:0>3d}'.format(i, i, i, j)]=ROOT.kRed
+   for i in range(3):
+      for j in range(60):
+         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_hor_3{}{:0>3d}'.format(i, i+7, i, j)]=ROOT.kBlue+2
+         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_ver_3{}{:0>3d}'.format(i, i+7, i, j+60)]=ROOT.kBlue+2
+   for j in range(60):
+      nodes['volMuFilter_1/volMuDownstreamDet_3_10/volMuDownstreamBar_ver_33{:0>3d}'.format(j+60)]=ROOT.kBlue+2
+   for i in range(5):
+      for j in range(10):
+         nodes['volMuFilter_1/volMuUpstreamDet_{}_{}/volMuUpstreamBar_2{}00{}'.format(i, i+2, i, j)]=ROOT.kBlue+2
+   proj = {'X':0,'Y':1}
+   for node_ in nodes:
+      node = '/cave_1/Detector_0/'+node_
+      for p in proj:
+         try:
+            X = h[node+p]
+            if X.GetFillColor()!=19:
+               c = proj[p]
+               h[ 'simpleDisplay'].cd(c+1)
+               X.SetFillColorAlpha(19, 0)
+               X.SetLineColor(nodes[node_])
+               X.SetLineWidth(1)
+               X.Draw('f&&same')
+               X.Draw('same')
+         except:
+            notFilled = 1
+
+def drawInfo(pad, k, run, event, time):
+   drawLogo = True
+   drawText = True
+   if drawLogo:
+      padLogo = ROOT.TPad("logo","logo",0.1,0.1,0.2,0.3)
+      padLogo.SetFillStyle(4000)
+      padLogo.SetFillColorAlpha(0, 0)
+      padLogo.Draw()
+      logo = ROOT.TImage.Open('$SNDSW_ROOT/shipLHC/Large__SND_Logo_black_cut.png')
+      logo.SetConstRatio(True)
+      logo.DrawText(0, 0, 'SND', 98)
+      padLogo.cd()
+      logo.Draw()
+      pad.cd(k)
+
+   if drawText:
+      padText = ROOT.TPad("info","info",0.19,0.1,0.4,0.3)
+      padText.SetFillStyle(4000)
+      padText.Draw()
+      padText.cd()
+      textInfo = ROOT.TLatex()
+      textInfo.SetTextAlign(11)
+      textInfo.SetTextFont(42)
+      textInfo.SetTextSize(.15)
+      textInfo.DrawLatex(0, 0.6, 'SND@LHC Experiment, CERN')
+      textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(event))
+      #textInfo.DrawLatex(0, 0.2, 'Time Stamp: {} a.u.'.format(time))
+      #waiting for more informative time estimate
+      pad.cd(k)

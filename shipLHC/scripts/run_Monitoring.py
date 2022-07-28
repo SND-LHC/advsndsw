@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 import ROOT,os,sys,subprocess,atexit,time
 import Monitor
@@ -41,6 +42,7 @@ parser.add_argument("-t", "--trackType", dest="trackType", help="DS or Scifi", d
 parser.add_argument("--ScifiNbinsRes", dest="ScifiNbinsRes", default=100)
 parser.add_argument("--Scifixmin", dest="Scifixmin", default=-2000.)
 parser.add_argument("--ScifialignPar", dest="ScifialignPar", default=False)
+parser.add_argument("--ScifiResUnbiased", dest="ScifiResUnbiased", default=False)
 
 parser.add_argument("--goodEvents", dest="goodEvents", action='store_true',default=False)
 parser.add_argument("--withTrack", dest="withTrack", action='store_true',default=False)
@@ -51,7 +53,7 @@ parser.add_argument("--interactive", dest="interactive", action='store_true',def
 options = parser.parse_args()
 
 options.dashboard = "currently_processed_file.txt"
-if options.auto or options.batch: ROOT.gROOT.SetBatch(True)
+if (options.auto and not options.interactive) or options.batch: ROOT.gROOT.SetBatch(True)
 
 def currentRun():
       with client.File() as f:
@@ -59,11 +61,11 @@ def currentRun():
             status, L = f.read()
             Lcrun = L.decode().split('\n')
             f.close()
+      curRun,curPart,start ="","",""
       for l in Lcrun:
             if not l.find('FINISHED')<0:
                print("DAQ not running. Don't know which file to open.")
                print(Lcrun)
-               curRun,curPart,start ="","",""
                break
             if not l.find('.root') < 0:
                  tmp = l.split('/')
@@ -126,6 +128,9 @@ for m in monitorTasks:
 if not options.auto:   # default online/offline mode
    for n in range(options.nStart,options.nStart+options.nEvents):
      event = M.GetEvent(n)
+     if not options.online:
+        if n%options.heartBeat == 0: print("--> event nr:",n)
+# assume for the moment file does not contain fitted tracks
      for m in monitorTasks:
         monitorTasks[m].ExecuteEvent(M.eventTree)
 

@@ -23,7 +23,7 @@ sndCluster::sndCluster(Int_t first, Int_t N,std::vector<sndScifiHit*> hitlist,Sc
 	for (int k = 0;k<fN; ++k){
 		ScifiDet->GetSiPMPosition(k+fFirst, A, B);
 		Double_t w = 1.;
-		if (withQDC) {dynamic_cast<sndScifiHit*> (hitlist.at(k))->GetEnergy();}
+		if (withQDC) {w = dynamic_cast<sndScifiHit*> (hitlist.at(k))->GetEnergy();}
 		Double_t t = 6.25 * dynamic_cast<sndScifiHit*> (hitlist.at(k))->GetTime();
 		weight+=w;
 		fMeanPositionA+=w*TVector3(A);
@@ -36,13 +36,31 @@ sndCluster::sndCluster(Int_t first, Int_t N,std::vector<sndScifiHit*> hitlist,Sc
 	fEnergy = weight;
 }
 
-sndCluster::sndCluster(Int_t first, Int_t N,std::vector<MuFilterHit*>,MuFilter* MuDet)
+sndCluster::sndCluster(Int_t first, Int_t N,std::vector<MuFilterHit*> hitlist,MuFilter* MuDet, Bool_t withQDC)
   :TObject(),
 	fType(1),
 	fFirst(first),
 	fN(N)
 {
 // make clusterCentre:
+	Double_t weight = 0;
+	TVector3 A(0,0,0);
+	TVector3 B(0,0,0);
+// make clusterCentre:
+	for (int k = 0;k<fN; ++k){
+		MuDet->GetPosition(k+fFirst, A, B);
+		Double_t w = 1.;
+		if (withQDC) {w = dynamic_cast<MuFilterHit*> (hitlist.at(k))->GetEnergy();}
+		Double_t t = 6.25 * dynamic_cast<MuFilterHit*> (hitlist.at(k))->GetTime();
+		weight+=w;
+		fMeanPositionA+=w*TVector3(A);
+		fMeanPositionB+=w*TVector3(B);
+		if(t<fTime){fTime = t;}
+	}
+	Double_t winv = 1./weight;
+	fMeanPositionA = TVector3(fMeanPositionA)*winv;
+	fMeanPositionB = TVector3(fMeanPositionB)*winv;
+	fEnergy = weight;
 	
 }
 
