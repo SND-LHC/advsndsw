@@ -606,6 +606,6 @@ def drawInfo(pad, k, run, event, timestamp):
       textInfo.SetTextFont(42)
       textInfo.SetTextSize(.15)
       textInfo.DrawLatex(0, 0.6, 'SND@LHC Experiment, CERN')
-      textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(event+1)) #first event is n.1 instead of 0
+      textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(event))
       textInfo.DrawLatex(0, 0.2, 'Time (GMT): {}'.format(time_event))
       pad.cd(k)
