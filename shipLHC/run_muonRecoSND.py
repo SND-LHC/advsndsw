@@ -46,7 +46,7 @@ for test_treename in ["cbmsim", "rawConv"] :
           break
 
 if treename is None :
-     raise RuntimeError("File {0} contains no object with a valid SND@LHC TTree name")
+     raise RuntimeError("File {0} contains no object with a valid SND@LHC TTree name".format(fullPath))
 
 fairRootManager = ROOT.FairRootManager.Instance()
 fairRootManager.SetTreeName(treename)
