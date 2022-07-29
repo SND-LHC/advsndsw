@@ -49,7 +49,7 @@ if treename is None :
      raise RuntimeError("File {0} contains no object with a valid SND@LHC TTree name")
 
 fairRootManager = ROOT.FairRootManager.Instance()
-fairRootManager.SetTreeName(options.treename)
+fairRootManager.SetTreeName(treename)
 
 run = ROOT.FairRunAna()
 print("Initialized FairRunAna")
