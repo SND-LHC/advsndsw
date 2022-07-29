@@ -4,7 +4,7 @@
 #include <TClonesArray.h>
 #include <TFile.h>
 #include "FairTask.h"           // for FairTask, InitStatus
-#include "FairEventHeader.h"    // for FairEventHeader
+#include "SNDLHCEventHeader.h"  // for EventHeader
 #include "Scifi.h"              // for Scifi detector
 #include "sndScifiHit.h"	// for SciFi Hit
 #include "MuFilterHit.h"	// for Muon Filter Hit
@@ -88,7 +88,7 @@ class ConvRawData : public FairTask
       double chi2Max, saturationLimit;
     
       /** Output data **/
-      FairEventHeader* fEventHeader;
+      SNDLHCEventHeader* fEventHeader;
       TClonesArray* fDigiSciFi;
       TClonesArray* fDigiMuFilter;
     

@@ -13,7 +13,6 @@
 #include <algorithm>            // std::sort
 #include <sys/stat.h>
 #include "TKey.h"
-#include "FairEventHeader.h"    // for FairEventHeader
 #include "FairRunAna.h"         // for FairRunAna
 #include "FairRootManager.h"    // for FairRootManager
 #include "FairParamList.h"
@@ -35,10 +34,13 @@
 #include "sndScifiHit.h"	// for SciFi Hit
 #include "MuFilterHit.h"	// for Muon Filter Hit
 #include "sndCluster.h"         // for Clusters
+#include "SNDLHCEventHeader.h"  // for EventHeader
 #include "TString.h"
 #include "nlohmann/json.hpp"     // library to operate with json files
 #include "boardMappingParser.h"  // for board mapping
 #include "XrdCl/XrdClFile.hh"
+
+#include <inttypes.h>
 
 using namespace std;
 using namespace std::chrono;
@@ -107,9 +109,9 @@ InitStatus ConvRawData::Init()
      if ( name.find("board") == string::npos ) continue;
      boards[name] = (TTree*)f0->Get(name.c_str());
     }
-     
-    fEventHeader = new FairEventHeader();
-    ioman->Register("EventHeader", "sndEventHeader", fEventHeader, kTRUE);
+       
+    fEventHeader = new SNDLHCEventHeader();
+    fEventHeader->Register();
     fDigiSciFi    = new TClonesArray("sndScifiHit");
     ioman->Register("Digi_ScifiHits", "DigiScifiHit_det", fDigiSciFi, kTRUE);
     fDigiMuFilter = new TClonesArray("MuFilterHit");
@@ -188,10 +190,27 @@ void ConvRawData::Exec(Option_t* /*opt*/)
                 << " local time " << ctime(&ttp);
   }
      
+  fEventHeader->SetFlags(fEventTree->GetLeaf("flags")->GetValue());
   fEventHeader->SetRunId(frunNumber);
   fEventHeader->SetEventTime(fEventTree->GetLeaf("evtTimestamp")->GetValue());
-  LOG (info) << "event: " << eventNumber << " timestamp: "
-              << fEventTree->GetLeaf("evtTimestamp")->GetValue();
+  fEventHeader->SetMCEntryNumber(fEventTree->GetLeaf("evtNumber")->GetValue());
+  LOG (info) << "evtNumber per run "
+             << fEventTree->GetLeaf("evtNumber")->GetValue()
+             << " evtNumber per partition: " << eventNumber
+             << " timestamp: " << fEventTree->GetLeaf("evtTimestamp")->GetValue();
+  
+  /*-- Tests -- 
+  uint64_t num = fEventTree->GetLeaf("flags")->GetValue();  
+  printf("%" PRIu64 "\n", num);
+  cout<<" Fill N and so on "<<(num & FILL_NUMBER_MASK)<<" "<< (num & ACCELERATOR_MODE_MASK)<<" "
+      << (num & BEAM_MODE_MASK)<< " " << (num & FAST_FILTER_MASK)<<" "<< (num & ADVANCED_FILTER_MASK)<<endl;
+  fEventHeader->GetFastNoiseFilters(fEventTree->GetLeaf("flags")->GetValue());
+  fEventHeader->GetAdvNoiseFilters(fEventTree->GetLeaf("flags")->GetValue());  
+  for ( auto it : fEventHeader->GetPassedFastNFCriteria(fEventTree->GetLeaf("flags")->GetValue())) cout<<it<<endl; 
+  for ( auto it : fEventHeader->GetPassedAdvNFCriteria(fEventTree->GetLeaf("flags")->GetValue())) cout<<it<<endl;
+  cout<<fEventHeader->GetBeamMode()<<" "<<fEventHeader->GetAccMode()<<endl;
+  ---- end test  */
+             
   // Delete pointer map elements
   for (auto it : digiSciFiStore)
   {
