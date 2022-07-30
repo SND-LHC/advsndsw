@@ -6,6 +6,7 @@ import SndlhcMuonReco
 import json
 import time
 from datetime import datetime
+from pathlib import Path
 
 A,B = ROOT.TVector3(),ROOT.TVector3()
 freq      =  160.316E6
@@ -585,18 +586,20 @@ def drawInfo(pad, k, run, event, timestamp):
       pad.cd(k)
 
    if drawText:
-      path = '/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_'+str(run).zfill(6)
-      with open(path+'/run_timestamps.json') as f:
-           jsonStr = f.read()
-      j = json.loads(jsonStr)
-      for status, time_str in j.items():
-           if status == 'start_time':
-                 time_obj = time.strptime(time_str, '%Y-%m-%dT%H:%M:%S')
-      timestamp_start = time.mktime(time_obj)
-      TDC2ns = 6.23768
-      timestamp_s = timestamp * TDC2ns * 1E-9
-      timestamp_event = int(timestamp_start + timestamp_s)
-      time_event = datetime.fromtimestamp(timestamp_event)
+      path_file = '/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_'+str(run).zfill(6)+'/run_timestamps.json'
+      path_exist = Path(path_file) 
+      if path_exist.is_file():
+           with open(path_file) as f:
+                jsonStr = f.read()
+           j = json.loads(jsonStr)
+           for status, time_str in j.items():
+                if status == 'start_time':
+                      time_obj = time.strptime(time_str, '%Y-%m-%dT%H:%M:%S')
+           timestamp_start = time.mktime(time_obj)
+           TDC2ns = 6.23768   #conversion factor from 160MHz clock to ns
+           timestamp_s = timestamp * TDC2ns * 1E-9
+           timestamp_event = int(timestamp_start + timestamp_s)
+           time_event = datetime.fromtimestamp(timestamp_event)
       padText = ROOT.TPad("info","info",0.19,0.1,0.4,0.3)
       padText.SetFillStyle(4000)
       padText.Draw()
@@ -607,5 +610,6 @@ def drawInfo(pad, k, run, event, timestamp):
       textInfo.SetTextSize(.15)
       textInfo.DrawLatex(0, 0.6, 'SND@LHC Experiment, CERN')
       textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(event))
-      textInfo.DrawLatex(0, 0.2, 'Time (GMT): {}'.format(time_event))
+      if path_exist.is_file():
+           textInfo.DrawLatex(0, 0.2, 'Time (GMT): {}'.format(time_event))
       pad.cd(k)
