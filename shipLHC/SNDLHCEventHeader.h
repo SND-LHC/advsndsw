@@ -34,10 +34,10 @@ class SNDLHCEventHeader : public FairEventHeader
     uint16_t GetFillNumber() const { return fFillNumber; }
     int GetAccMode() const { return fAccMode; }
     int GetBeamMode() const { return fBeamMode; }
-    map<string, int> GetFastNoiseFilters(uint64_t flags);
-    map<string, int> GetAdvNoiseFilters(uint64_t flags);
-    vector<string> GetPassedFastNFCriteria(uint64_t flags);
-    vector<string> GetPassedAdvNFCriteria(uint64_t flags);
+    map<string, int> GetFastNoiseFilters();
+    map<string, int> GetAdvNoiseFilters();
+    vector<string> GetPassedFastNFCriteria();
+    vector<string> GetPassedAdvNFCriteria();
 
     /** Output to screen **/
     virtual void Print(const Option_t* opt) const;

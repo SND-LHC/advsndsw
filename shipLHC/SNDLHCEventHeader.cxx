@@ -47,7 +47,7 @@ void SNDLHCEventHeader::SetFlags(uint64_t flags)
 }
 
 //-----   Getters   ----------------------------------------------------
-map<string, int> SNDLHCEventHeader::GetFastNoiseFilters(uint64_t flags)
+map<string, int> SNDLHCEventHeader::GetFastNoiseFilters()
 {
    map<string, int> FastNoiseFilters{};
    vector<string> fastNoiseFilters = { "SciFi", "SciFi_Total",
@@ -58,15 +58,16 @@ map<string, int> SNDLHCEventHeader::GetFastNoiseFilters(uint64_t flags)
    int i = 25;
    for ( auto item : fastNoiseFilters )
    {     
-      FastNoiseFilters[item] = ( (flags >> i) & 1 );
+      FastNoiseFilters[item] = ( (fFlags >> i) & 1 );
       i++;
    }
    //for test
-   for(auto it: FastNoiseFilters) cout<<" "<< it.first<< " "<<it.second<<endl;
+   //for(auto it: FastNoiseFilters) cout<<" "<< it.first<< " "<<it.second<<endl;
+
    return FastNoiseFilters;
 }
 
-map<string, int> SNDLHCEventHeader::GetAdvNoiseFilters(uint64_t flags)
+map<string, int> SNDLHCEventHeader::GetAdvNoiseFilters()
 {
    map<string, int> AdvNoiseFilters{};
    vector<string> advNoiseFilters  = { "SciFi_Planes", "SciFi_Hits",
@@ -79,17 +80,18 @@ map<string, int> SNDLHCEventHeader::GetAdvNoiseFilters(uint64_t flags)
    int i = 32;
    for ( auto item : advNoiseFilters )
    {     
-      AdvNoiseFilters[item] = ( (flags >> i) & 1 );
+      AdvNoiseFilters[item] = ( (fFlags >> i) & 1 );
       i++;
    }
    //for test
-   for(auto it: AdvNoiseFilters) cout<<" "<< it.first<< " "<<it.second<<endl;
+   //for(auto it: AdvNoiseFilters) cout<<" "<< it.first<< " "<<it.second<<endl;
+
    return AdvNoiseFilters;
 }
 
-vector<string> SNDLHCEventHeader::GetPassedFastNFCriteria(uint64_t flags)
+vector<string> SNDLHCEventHeader::GetPassedFastNFCriteria()
 {
-  map<string, int> FastNoiseFilters = GetFastNoiseFilters(flags);
+  map<string, int> FastNoiseFilters = GetFastNoiseFilters();
   vector<string> passed;
   for ( auto it : FastNoiseFilters )
       if ( it.second >0 ) passed.push_back(it.first);
@@ -97,9 +99,9 @@ vector<string> SNDLHCEventHeader::GetPassedFastNFCriteria(uint64_t flags)
   return passed;
 }
 
-vector<string> SNDLHCEventHeader::GetPassedAdvNFCriteria(uint64_t flags)
+vector<string> SNDLHCEventHeader::GetPassedAdvNFCriteria()
 {
-  map<string, int> AdvNoiseFilters = GetAdvNoiseFilters(flags);
+  map<string, int> AdvNoiseFilters = GetAdvNoiseFilters();
   vector<string> passed;
   for ( auto it : AdvNoiseFilters )
       if ( it.second >0 ) passed.push_back(it.first);
