@@ -347,6 +347,7 @@ if partitions>0:  eventTree = ioman.GetInChain()
 else:                 eventTree = ioman.GetInTree()
 
 OT = ioman.GetSink().GetOutTree()
+OT.Reco_MuonTracks = trackTask.fittedTracks
 
 # wait for user action 
 
@@ -1019,7 +1020,7 @@ def TimeStudy(Nev=options.nEvents,withDisplay=False):
 
 def beamSpot():
    trackTask.ExecuteTask()
-   T = ioman.GetObject("Reco_MuonTracks")
+   T = OT.Reco_MuonTracks
    Xbar = -10
    Ybar = -10
    for  aTrack in T:
@@ -3143,7 +3144,7 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,
        if N>Nev: break
        if minEnergy:
          trackTypes = [0,0,0,0,0]
-         for aTrack in event.Reco_MuonTracks:
+         for aTrack in OT.Reco_MuonTracks:
             if aTrack.GetUniqueID()==1:
               trackTypes[1]+=1
               fstate =  aTrack.getFittedState()
