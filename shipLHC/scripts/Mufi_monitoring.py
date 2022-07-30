@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import ROOT,os,sys
 import rootUtils as ut
+import shipunit as u
 
 A,B  = ROOT.TVector3(),ROOT.TVector3()
 detector = "mufi-"
@@ -63,6 +64,13 @@ class Mufi_hitMaps(ROOT.FairTask):
                   ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
                   for bar in range(monitor.systemAndBars[s]):
                      ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)+'; #channels',20,-0.5,19.5)
+#
+                  for proj in ['X','Y']:
+                      xmin = options.Mufixmin
+                      xmax = -xmin
+                      ut.bookHist(h,detector+'res'+proj+'_'+sdict[s]+str(s*10+l),'residual  '+proj+str(s*10+l)+'; [#cm]',
+                      100,xmin,xmax,100,-100.,100.)
+
 
        self.listOfHits = {1:[],2:[],3:[]}
    def ExecuteEvent(self,event):
@@ -145,6 +153,32 @@ class Mufi_hitMaps(ROOT.FairTask):
        for s in systemAndPlanes:
           for l in range(systemAndPlanes[s]):   
              rc = h[detector+'hitmult_'+str(s*10+l)].Fill(mult[s*10+l])
+# mufi residuals with scifi tracks
+       for aTrack in self.M.Reco_MuonTracks:
+           if not aTrack.GetUniqueID()==1: continue
+           fitStatus = aTrack.getFitStatus()
+           if not fitStatus.isFitConverged(): continue
+           posMom = {}
+           fstate =  aTrack.getFittedState()
+           posMom['first'] = [fstate.getPos(),fstate.getMom()]
+           fstate =  aTrack.getFittedState(aTrack.getNumPointsWithMeasurement()-1)
+           posMom['last'] = [fstate.getPos(),fstate.getMom()]
+           for aHit in event.Digi_MuFilterHits:
+              if not aHit.isValid(): continue
+              Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
+              s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
+              self.M.MuFilter.GetPosition(aHit.GetDetectorID(),A,B)
+# calculate DOCA
+              if s==1: pos,mom = posMom['first']
+              else: pos,mom = posMom['last']
+              zEx = self.M.zPos['MuFilter'][s*10+l]
+              lam = (zEx-pos.z())/mom.z()
+              xEx,yEx = pos.x()+lam*mom.x(),pos.y()+lam*mom.y()
+              pq = A-pos
+              uCrossv= (B-A).Cross(mom)
+              doca = pq.Dot(uCrossv)/uCrossv.Mag()
+              rc = h[detector+'resX_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,xEx)
+              rc = h[detector+'resY_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,yEx)
 
    def beamSpot(self,event):
       if not self.trackTask: return

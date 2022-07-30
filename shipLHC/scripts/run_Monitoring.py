@@ -43,6 +43,7 @@ parser.add_argument("--ScifiNbinsRes", dest="ScifiNbinsRes", default=100)
 parser.add_argument("--Scifixmin", dest="Scifixmin", default=-2000.)
 parser.add_argument("--ScifialignPar", dest="ScifialignPar", default=False)
 parser.add_argument("--ScifiResUnbiased", dest="ScifiResUnbiased", default=False)
+parser.add_argument("--Mufixmin", dest="Mufixmin", default=-10.)
 
 parser.add_argument("--goodEvents", dest="goodEvents", action='store_true',default=False)
 parser.add_argument("--withTrack", dest="withTrack", action='store_true',default=False)
@@ -51,7 +52,7 @@ parser.add_argument("--save", dest="save", action='store_true',default=False)
 parser.add_argument("--interactive", dest="interactive", action='store_true',default=False)
 
 options = parser.parse_args()
-
+options.startTime = ""
 options.dashboard = "currently_processed_file.txt"
 if (options.auto and not options.interactive) or options.batch: ROOT.gROOT.SetBatch(True)
 
@@ -137,7 +138,9 @@ if not options.auto:   # default online/offline mode
    if options.nEvents>0:
        for m in monitorTasks:
           monitorTasks[m].Plot()
-   M.publishRootFile()
+   if options.sudo: 
+       M.publishRootFile()
+       M.updateHtml()
 else: 
    """ auto mode
        check for open data file on the online machine

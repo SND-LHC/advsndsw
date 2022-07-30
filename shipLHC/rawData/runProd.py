@@ -36,6 +36,16 @@ class prodManager():
       for x in status.decode().split('\n'):
          if not x.find(macroName)<0 and not x.find('python') <0: n+=1
       return n
+   def list_of_runs(self,macroName):
+      lpruns = []
+      username = pwd.getpwuid(os.getuid()).pw_name
+      callstring = "ps -f -u " + username
+      status = subprocess.check_output(callstring,shell=True)
+      for x in status.decode().split('\n'):
+         if not x.find(macroName)<0 and not x.find('python') <0: 
+            i = x.find('-r')
+            lpruns.append(int(x[i+3:].split(' ')[0]))
+      return lpruns
 
    def getPartitions(self,runList,path):
       partitions = {}
@@ -70,9 +80,13 @@ class prodManager():
           dqDataFiles.append(int(run[3:9]))
       convDataFiles = self.getFileList(pathConv,latest,minSize=0)
       orderedCDF = list(convDataFiles.keys())
-      print(orderedCDF,dqDataFiles)
-      for x in orderedCDF: 
-           r = x//10000 
+      runNrs = []
+      for x in orderedCDF:
+          r = x//10000
+          if not r in runNrs: runNrs.append(r)
+      print(runNrs,dqDataFiles)
+
+      for r in runNrs: 
            if r in dqDataFiles: continue
            print('executing DQ for run %i'%(r))
            os.system(monitorCommand + " -r "+str(r))
@@ -86,6 +100,8 @@ class prodManager():
 
       for x in orderedRDF: 
            if x in orderedCDF: continue
+           lpruns = self.list_of_runs('convertRawData'))
+           if x in lpruns: continue
            r = x//10000 
            p = x%10000
            print('executing run %i and partition %i'%(r,p))
@@ -109,8 +125,8 @@ class prodManager():
        if options.FairTask_convRaw:
           os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -cpp -b 100000 -p "+pathM+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
        else: 
-          command = "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -b 1000 -p "+path+" --server="+self.options.server
-          command += "  -r "+str(int(r))+ " -P "+str(int(p)) + " >log_"+r+'-'+p
+          command = "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py  -r "+str(int(r))+ " -b 1000 -p "+path+" --server="+self.options.server
+          command += " -P "+str(int(p)) + " >log_"+r+'-'+p
           print("execute ",command)
           os.system(command)
        if check:

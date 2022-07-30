@@ -237,60 +237,67 @@ class Monitoring():
             self.eventTree = self.options.online.sTree
       else: 
             self.eventTree.GetEvent(n)
+            for t in self.FairTasks: self.FairTasks[t].ExecuteTask()
       self.EventNumber = n
       return self.eventTree
 
    def publishRootFile(self):
    # try to copy root file with TCanvas to EOS
        self.presenterFile.Close()
+       if self.options.online:
+           wwwPath = "/eos/experiment/sndlhc/www/online"
+       else:    
+           wwwPath = "/eos/experiment/sndlhc/www/offline"
        if self.options.sudo: 
          try:
-            rc = os.system("xrdcp -f "+self.presenterFile.GetName()+"  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online")
+            rc = os.system("xrdcp -f "+self.presenterFile.GetName()+"  "+os.environ['EOSSHIP']+wwwPath)
          except:
             print("copy of root file failed. Token expired?")
          self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','update')
 
    def updateHtml(self):
-      rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online.html  . ")
-      old = open("online.html")
+      if self.options.online: destination="online"
+      else: destination="offline"
+      rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/"+destination+".html  . ")
+      old = open(destination+".html")
       oldL = old.readlines()
       old.close()
       tmp = open("tmp.html",'w')
       found = False
       for L in oldL:
            if not L.find(self.runNr)<0: return
-           if L.find("https://snd-lhc-monitoring.web.cern.ch/online")>0 and not found:
+           if L.find("https://snd-lhc-monitoring.web.cern.ch/"+destination)>0 and not found:
               r = str(self.options.runNumber)
-              Lnew = '            <li> <a href="https://snd-lhc-monitoring.web.cern.ch/online/run.html?file=run'
+              Lnew = '            <li> <a href="https://snd-lhc-monitoring.web.cern.ch/'+destination+'/run.html?file=run'
               Lnew+= self.runNr+'.root&lastcycle">run '+r+'  '+self.options.startTime +' </a> \n'
               tmp.write(Lnew)
               found = True
            tmp.write(L)
       tmp.close()
-      os.system('cp tmp.html online.html')
+      os.system('cp tmp.html '+destination+'.html')
       try:
-            rc = os.system("xrdcp -f online.html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
+            rc = os.system("xrdcp -f "+destination+".html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
       except:
             print("copy of html failed. Token expired?")
-   def cleanUpHtml(self):
-      rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/online.html  . ")
-      old = open("online.html")
+   def cleanUpHtml(self,destination="online"):
+      rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/"+destination+".html  . ")
+      old = open(destination+".html")
       oldL = old.readlines()
       old.close()
       tmp = open("tmp.html",'w')
-      dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/online/",shell=True) ) 
+      dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/"+destination+"/",shell=True) ) 
       for L in oldL:
            OK = True
-           if L.find("https://snd-lhc-monitoring.web.cern.ch/online")>0:
+           if L.find("https://snd-lhc-monitoring.web.cern.ch/"+destination)>0:
               k = L.find("file=")+5
               m =  L.find(".root")+5
               R = L[k:m]
               if not R in dirlist: OK = False  
            if OK: tmp.write(L)
       tmp.close()
-      os.system('cp tmp.html online.html')
+      os.system('cp tmp.html '+destination+'.html')
       try:
-            rc = os.system("xrdcp -f online.html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
+            rc = os.system("xrdcp -f "+destination+".html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
       except:
             print("copy of html failed. Token expired?")
 
