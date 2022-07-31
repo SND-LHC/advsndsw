@@ -347,8 +347,8 @@ if partitions>0:  eventTree = ioman.GetInChain()
 else:                 eventTree = ioman.GetInTree()
 
 OT = ioman.GetSink().GetOutTree()
-OT.Reco_MuonTracks = trackTask.fittedTracks
-
+Reco_MuonTracks = trackTask.fittedTracks
+Cluster_Scifi         = trackTask.clusScifi
 # wait for user action 
 
 def help():
@@ -1020,10 +1020,9 @@ def TimeStudy(Nev=options.nEvents,withDisplay=False):
 
 def beamSpot():
    trackTask.ExecuteTask()
-   T = OT.Reco_MuonTracks
    Xbar = -10
    Ybar = -10
-   for  aTrack in T:
+   for  aTrack in Reco_MuonTracks:
          state = aTrack.getFittedState()
          pos    = state.getPos()
          rc = h['bs'].Fill(pos.x(),pos.y())
@@ -1060,8 +1059,6 @@ def beamSpot():
          slopeX= mom.Y()/mom.Z()
          h['slopes'].Fill(slopeX,slopeY)
          if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h['bsDS'].Fill(Xbar,Ybar)
-
-         aTrack.Delete()
 
 def USshower(Nev=options.nEvents):
     zUS0 = zPos['MuFilter'][20] -  10
@@ -1218,20 +1215,22 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,withReco='
     N+=1
     if N>Nev: break
     if withReco:
+       for aTrack in Reco_MuonTracks: aTrack.Delete()
+       Reco_MuonTracks.Clear()
        if optionTrack=='DS': rc = trackTask.ExecuteTask("DS")
        else                         : rc = trackTask.ExecuteTask("Scifi")
-    if not OT.Reco_MuonTracks.GetEntries()==1: continue
-    theTrack = OT.Reco_MuonTracks[0]
+    if not Reco_MuonTracks.GetEntries()==1: continue
+    theTrack = Reco_MuonTracks[0]
     if not theTrack.getFitStatus().isFitConverged() and optionTrack!='DS':   # for H8 where only two planes / proj were avaiable
-                 continue
+           continue
 # only take horizontal tracks
     state = theTrack.getFittedState(0)
     pos   = state.getPos()
     mom = state.getMom()
     slopeX= mom.X()/mom.Z()
     slopeY= mom.Y()/mom.Z()
-    if abs(mom.x()/mom.z())>0.25: continue   # 4cm distance, 250mrad = 1cm
-    if abs(mom.y()/mom.z())>0.1: continue
+    if abs(slopeX)>0.25: continue   # 4cm distance, 250mrad = 1cm
+    if abs(slopeY)>0.1: continue
 
 # now extrapolate to US and check for hits.
     fitStatus = theTrack.getFitStatus()
@@ -1243,7 +1242,7 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,withReco='
     if hasattr(event,"Cluster_Scifi"):
                clusters = event.Cluster_Scifi
     else:
-               clusters = OT.Cluster_Scifi
+               clusters = Cluster_Scifi
 
     for aCluster in clusters:
         for nHit in range(event.Digi_ScifiHits.GetEntries()):
@@ -1257,7 +1256,6 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,withReco='
 
     if chi2Ndof> 9 and optionTrack!='DS': 
        rc = h['trackslxy_badChi2'].Fill(mom.x()/mom.Mag(),mom.y()/mom.Mag())
-       theTrack.Delete()
        continue
     rc = h['trackslxy'].Fill(mom.x()/mom.Mag(),mom.y()/mom.Mag())
 # get T0 from Track
@@ -1548,8 +1546,6 @@ def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,withReco='
                      elif not(i<nSiPMs) and nR>0:
                           key =  sdict[s]+str(s*10+plane)+'_'+str(bar)+'-c'+str(i-nSiPMs)
                           rc = h['sigmaQDCR_'+key].Fill((S[i]-meanR/nR) )
-
-    theTrack.Delete()
 
  for s in [1,2]:
     for l in range(systemAndPlanes[s]):
@@ -3144,7 +3140,7 @@ def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,
        if N>Nev: break
        if minEnergy:
          trackTypes = [0,0,0,0,0]
-         for aTrack in OT.Reco_MuonTracks:
+         for aTrack in Reco_MuonTracks:
             if aTrack.GetUniqueID()==1:
               trackTypes[1]+=1
               fstate =  aTrack.getFittedState()
