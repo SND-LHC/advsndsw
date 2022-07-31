@@ -31,6 +31,8 @@ class ConvRawData : public FairTask
     virtual void Exec(Option_t* opt);
     
     private:
+      /** Start time of run **/
+      void StartTimeofRun(string path);
       /** Board mapping for Scifi and MuFilter **/
       void DetMapping(string path);
       void checkBoardMapping(string path);
@@ -86,6 +88,7 @@ class ConvRawData : public FairTask
       string fpath; 
       int eventNumber;
       double chi2Max, saturationLimit;
+      double runStartUTC;
     
       /** Output data **/
       SNDLHCEventHeader* fEventHeader;
@@ -95,6 +98,6 @@ class ConvRawData : public FairTask
       ConvRawData(const ConvRawData&);
       ConvRawData& operator=(const ConvRawData&);
 
-      ClassDef(ConvRawData, 1);
+      ClassDef(ConvRawData, 2);
 };
 #endif /* CONVRAWDATA_H_ */

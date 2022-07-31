@@ -117,7 +117,7 @@ InitStatus ConvRawData::Init()
     fDigiMuFilter = new TClonesArray("MuFilterHit");
     ioman->Register("Digi_MuFilterHits", "DigiMuFilterHit_det", fDigiMuFilter, kTRUE);
     ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
-    
+        
     local = false; 
     
     struct stat buffer;  
@@ -147,6 +147,7 @@ InitStatus ConvRawData::Init()
     DetMapping(set_path);
     timerBMap.Stop();
     LOG (info) << "Time to set the board mapping " << timerBMap.RealTime();
+    StartTimeofRun(set_path);
     
     // Get the FairLogger
     FairLogger *logger = FairLogger::GetLogger();
@@ -192,22 +193,27 @@ void ConvRawData::Exec(Option_t* /*opt*/)
      
   fEventHeader->SetFlags(fEventTree->GetLeaf("flags")->GetValue());
   fEventHeader->SetRunId(frunNumber);
-  fEventHeader->SetEventTime(fEventTree->GetLeaf("evtTimestamp")->GetValue());
+  fEventHeader->SetEventTime(fEventTree->GetLeaf("evtTimestamp")->GetValue()*6.23768*1e-9 + runStartUTC);
   fEventHeader->SetMCEntryNumber(fEventTree->GetLeaf("evtNumber")->GetValue());
   LOG (info) << "evtNumber per run "
              << fEventTree->GetLeaf("evtNumber")->GetValue()
              << " evtNumber per partition: " << eventNumber
              << " timestamp: " << fEventTree->GetLeaf("evtTimestamp")->GetValue();
   
-  /*-- Tests -- 
+  /*-- Tests --
   uint64_t num = fEventTree->GetLeaf("flags")->GetValue();  
   printf("%" PRIu64 "\n", num);
   cout<<" Fill N and so on "<<(num & FILL_NUMBER_MASK)<<" "<< (num & ACCELERATOR_MODE_MASK)<<" "
       << (num & BEAM_MODE_MASK)<< " " << (num & FAST_FILTER_MASK)<<" "<< (num & ADVANCED_FILTER_MASK)<<endl;
-  fEventHeader->GetFastNoiseFilters(fEventTree->GetLeaf("flags")->GetValue());
-  fEventHeader->GetAdvNoiseFilters(fEventTree->GetLeaf("flags")->GetValue());  
-  for ( auto it : fEventHeader->GetPassedFastNFCriteria(fEventTree->GetLeaf("flags")->GetValue())) cout<<it<<endl; 
-  for ( auto it : fEventHeader->GetPassedAdvNFCriteria(fEventTree->GetLeaf("flags")->GetValue())) cout<<it<<endl;
+  // to be called after flags are set!
+  cout<<"noise filter "<<endl;
+  fEventHeader->GetFastNoiseFilters();
+  cout<<"adv noise filter"<<endl;
+  fEventHeader->GetAdvNoiseFilters(); 
+  cout<<"passed noise filters "<<endl;  
+  for ( auto it : fEventHeader->GetPassedFastNFCriteria()) cout<<it<<endl; 
+  cout<<"passed adv noise filters "<<endl;
+  for ( auto it : fEventHeader->GetPassedAdvNFCriteria()) cout<<it<<endl;
   cout<<fEventHeader->GetBeamMode()<<" "<<fEventHeader->GetAccMode()<<endl;
   ---- end test  */
              
@@ -466,7 +472,53 @@ void ConvRawData::Exec(Option_t* /*opt*/)
       v_coarse: 0-1023, QDC mode: it represents the number of clock cycles the charge integration lasted.
       v_fine = 0-1023, QDC mode: represents the charge measured. Requires calibration.
 */
-
+/** Start time of run **/
+void ConvRawData::StartTimeofRun(string Path)
+{
+  nlohmann::json j;
+  // reading file with xrootd protocol
+  File file;
+  XRootDStatus status;
+  StatInfo *info;
+  uint64_t offset = 0;
+  uint32_t size;
+  uint32_t bytesRead = 0;
+  if (local)
+  {
+    ifstream jsonfile(Form("%s/run_timestamps.json", Path.c_str()));
+    jsonfile >> j;
+  }
+  else
+  {
+    status = file.Open(Form("%s/run_timestamps.json", Path.c_str()), OpenFlags::Read);
+    if( !status.IsOK() )
+    {
+      LOG (error) << "Error opening file";
+      exit(0);
+    }
+    file.Stat(false, info);
+    size = info->GetSize();
+    char *buff = new char[size];
+    status = file.Read(offset, size, buff, bytesRead);
+    vector<char> vec;
+    for (int i = 0; i < size; i++){vec.push_back(buff[i]);}
+    j = json::parse(vec);
+    status = file.Close();
+    delete info;
+    delete [] buff;
+    }
+  // Read the start-time string
+  struct tm tm;
+  for (auto& el : j.items())
+  {
+     if (el.key() == "start_time")
+     {
+       string timeStr = el.value().get<string>();
+       strptime(timeStr.c_str(), "%Y-%m-%dT%H:%M:%SZ", &tm);
+     }
+  }
+  runStartUTC = timegm(&tm);
+}
 /** Board mapping for Scifi and MuFilter **/
 void ConvRawData::DetMapping(string Path)
 {
@@ -481,7 +533,7 @@ void ConvRawData::DetMapping(string Path)
   // Call boardMappingParser
   if (local)
   {
-    ifstream jsonfile(Form("%s/board_mapping.json", Path.c_str()));      
+    ifstream jsonfile(Form("%s/board_mapping.json", Path.c_str()));
     jsonfile >> j;
   }
   else
