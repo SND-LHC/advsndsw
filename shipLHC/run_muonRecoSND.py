@@ -39,6 +39,18 @@ if options.withOutput:
 else:
   outFile = ROOT.TMemFile(outFileName,'CREATE')
 
+treename = None
+for test_treename in ["cbmsim", "rawConv"] :
+     if hasattr(F, test_treename) :
+          treename = test_treename
+          break
+
+if treename is None :
+     raise RuntimeError("File {0} contains no object with a valid SND@LHC TTree name".format(fullPath))
+
+fairRootManager = ROOT.FairRootManager.Instance()
+fairRootManager.SetTreeName(treename)
+
 run = ROOT.FairRunAna()
 print("Initialized FairRunAna")
 
