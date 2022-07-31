@@ -4,6 +4,7 @@
 #include "FairEventHeader.h"
 #include "SNDLHCEventHeaderConst.h"
 
+#include <ctime>
 #include <map>
 #include <string>
 #include <vector>
@@ -31,6 +32,7 @@ class SNDLHCEventHeader : public FairEventHeader
     void SetBeamMode(uint64_t flags) { fBeamMode = static_cast<int>(flags & BEAM_MODE_MASK); }
 
     /** Getters **/
+    string GetTimeAsString(); // GMT time
     uint16_t GetFillNumber() const { return fFillNumber; }
     int GetAccMode() const { return fAccMode; }
     int GetBeamMode() const { return fBeamMode; }
@@ -41,10 +43,7 @@ class SNDLHCEventHeader : public FairEventHeader
 
     /** Output to screen **/
     virtual void Print(const Option_t* opt) const;
-    int64_t Timestamp() const { return fEventTime; }
-    // TDC2ns global constant needed, use number for now
-    Float_t ElapsedTimeNS() const { return fEventTime*6.23765058; }
-    
+
     // Override FairEventHeader's Register
     virtual void Register(Bool_t Persistance = kTRUE);
 

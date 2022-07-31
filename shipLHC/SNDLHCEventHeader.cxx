@@ -2,6 +2,7 @@
 #include "SNDLHCEventHeaderConst.h"
 #include "FairRootManager.h"
 
+#include <ctime>
 #include <iostream>
 #include <map>
 #include <string>
@@ -47,6 +48,15 @@ void SNDLHCEventHeader::SetFlags(uint64_t flags)
 }
 
 //-----   Getters   ----------------------------------------------------
+string SNDLHCEventHeader::GetTimeAsString()
+{
+   time_t time = fEventTime;
+   struct tm *GMTtime;
+   GMTtime = gmtime(&time);
+
+   return asctime(GMTtime);
+}
+
 map<string, int> SNDLHCEventHeader::GetFastNoiseFilters()
 {
    map<string, int> FastNoiseFilters{};
@@ -122,8 +132,10 @@ void SNDLHCEventHeader::Print(const Option_t* opt) const
 {
 
   cout << "-I- SNDLHCEventHeader: run number " << fRunId
-       << " event number " << fMCEntryNo 
-       << "    timestamp " << fEventTime << endl;
+       << " event number "    << fMCEntryNo 
+       << " UTC timestamp "   << fEventTime << endl
+       << " LHC fill number " << fFillNumber
+       << " LHC beam mode "   << fBeamMode << endl;
 
 }
 // -------------------------------------------------------------------------
