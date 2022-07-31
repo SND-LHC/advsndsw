@@ -100,7 +100,7 @@ class prodManager():
 
       for x in orderedRDF: 
            if x in orderedCDF: continue
-           lpruns = self.list_of_runs('convertRawData'))
+           lpruns = self.list_of_runs('convertRawData')
            if x in lpruns: continue
            r = x//10000 
            p = x%10000

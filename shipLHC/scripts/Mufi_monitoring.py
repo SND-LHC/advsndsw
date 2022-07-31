@@ -65,11 +65,12 @@ class Mufi_hitMaps(ROOT.FairTask):
                   for bar in range(monitor.systemAndBars[s]):
                      ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)+'; #channels',20,-0.5,19.5)
 #
-                  for proj in ['X','Y']:
-                      xmin = options.Mufixmin
-                      xmax = -xmin
-                      ut.bookHist(h,detector+'res'+proj+'_'+sdict[s]+str(s*10+l),'residual  '+proj+str(s*10+l)+'; [#cm]',
-                      100,xmin,xmax,100,-100.,100.)
+                  xmin = options.Mufixmin
+                  xmax = -xmin
+                  ut.bookHist(h,detector+'resX_'+sdict[s]+str(s*10+l),'residual X'+str(s*10+l)+'; [#cm]',
+                      100,xmin,xmax,60,-60.,0.)
+                  ut.bookHist(h,detector+'resY_'+sdict[s]+str(s*10+l),'residual  Y'+str(s*10+l)+'; [#cm]',
+                      100,xmin,xmax,70,2.,68.)
 
 
        self.listOfHits = {1:[],2:[],3:[]}
@@ -394,6 +395,39 @@ class Mufi_hitMaps(ROOT.FairTask):
        h[detector+'TtrackPos'].cd(2)
        rc = h[detector+'trackPos'].Draw('colz')
        self.M.myPrint(self.M.h[detector+'TtrackPos'],detector+'trackPos',subdir='mufilter')
+# residuals
+       ut.bookCanvas(h,detector+"residualsVsX",'residualsVsX ',1200,1200,2,7)
+       ut.bookCanvas(h,detector+"residualsVsY",'residualsVsY ',1200,1200,2,7)
+       ut.bookCanvas(h,detector+"residuals",'residuals',1200,1200,2,7)
+# veto 2 H planes US 5 H planes DS 3 H planes  DS 4 V planes
+       for p in ['resX_','resY_']:
+          t = detector+"residualsVs"+p.replace('res','').replace('_','')
+          i = 1
+          for s in range(1,4):
+             for l in range(7): 
+                if s==1 and l>1: continue
+                if s==2 and l>4: continue
+                tc = h[t].cd(i)
+                hname = detector+p+sdict[s]+str(s*10+l)
+                h[hname].Draw('colz')
+                if p.find('X')>0:
+                    tc = h[detector+"residuals"].cd(i)
+                    h[hname+'proj']=h[hname].ProjectionX(hname+'proj')
+                    rc = h[hname+'proj'].Fit('gaus','SQ')
+                    fitResult = rc.Get()
+                    if fitResult: 
+                        tc.Update()
+                        stats = h[hname+'proj'].FindObject('stats')
+                        stats.SetOptFit(1111111)
+                        stats.SetX1NDC(0.68)
+                        stats.SetY1NDC(0.31)
+                        stats.SetX2NDC(0.98)
+                        stats.SetY2NDC(0.94)
+                        h[hname+'proj'].Draw()
+                i+=1
+       self.M.myPrint(self.M.h[detector+'residualsVsX'],detector+'residualsVsX',subdir='mufilter')
+       self.M.myPrint(self.M.h[detector+'residualsVsY'],detector+'residualsVsY',subdir='mufilter')
+       self.M.myPrint(self.M.h[detector+'residuals'],detector+'residuals',subdir='mufilter')
 
 class Mufi_largeVSsmall(ROOT.FairTask):
    """
