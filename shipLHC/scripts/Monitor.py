@@ -228,7 +228,9 @@ class Monitoring():
             for aTrack in self.eventTree.Reco_MuonTracks:
                 if aTrack: aTrack.Delete()
             self.eventTree.Reco_MuonTracks.Delete()
-      
+         if "simpleTracking" in self.FairTasks:
+            self.Reco_MuonTracks.Delete()
+
       if self.options.online:
             online = self.options.online
             online.executeEvent(n)

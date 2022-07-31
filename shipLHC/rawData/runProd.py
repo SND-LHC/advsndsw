@@ -84,12 +84,12 @@ class prodManager():
       for x in orderedCDF:
           r = x//10000
           if not r in runNrs: runNrs.append(r)
-      print(runNrs,dqDataFiles)
 
       for r in runNrs: 
            if r in dqDataFiles: continue
            print('executing DQ for run %i'%(r))
-           os.system(monitorCommand + " -r "+str(r))
+           os.system(monitorCommand + " -r "+str(r)+" &")
+           while self.count_python_processes('run_Monitoring')>ncpus : time.sleep(1800)
 
    def check4NewFiles(self,latest):
       rawDataFiles = self.getFileList(path,latest,minSize=10E6)
