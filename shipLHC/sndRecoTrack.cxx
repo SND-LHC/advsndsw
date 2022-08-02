@@ -112,8 +112,8 @@ TVector3 sndRecoTrack::extrapolateToPlaneAtZ(float z)
       if ( fabs(zMin - fTrackPoints[i].Z()) < zMin ) index = i;
    }
    TVector3 Closest_pos = fTrackPoints[index];
-   TVector3 Closest_mom = fTrackPointsMom[index];
-   rep->setPosMom(state, Closest_pos, Closest_mom);
+   TVector3 Track_mom = fTrackMom;
+   rep->setPosMom(state, Closest_pos, Track_mom);
    rep->extrapolateToPlane(state, NewPosition, parallelToZ);
 
    return state.getPos();
