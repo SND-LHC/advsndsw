@@ -583,7 +583,7 @@ class MuonReco(ROOT.FairTask) :
             this_track.setRawMeasTimes(pointTimes)
             
             this_track.setChi2(fitStatus.getChi2())
-            this_track.setChi2Ndf(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10))
+            this_track.setNdf(fitStatus.getNdf())
             this_track.setTrackFlag(fitStatus.isFitConverged())
             
             if self.hits_to_fit == "sf": this_track.setTrackType(11)
