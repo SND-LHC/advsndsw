@@ -39,7 +39,10 @@ class ConvRawDataPY(ROOT.FairTask):
       self.ioman = ROOT.FairRootManager.Instance()
       ioman = self.ioman
 # open input file
-      self.fiN=ROOT.TFile.Open(server+path+inFile)
+      if options.auto:
+           self.fiN=ROOT.TFile.Open(server+options.path+"/data_monitoring/"+inFile)
+      else:
+           self.fiN=ROOT.TFile.Open(server+path+inFile)
       self.nEvents = 1
       if not self.monitoring:
            if options.nEvents<0:  self.nEvents = self.fiN.event.GetEntries()

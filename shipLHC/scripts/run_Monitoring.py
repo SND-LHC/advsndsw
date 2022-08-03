@@ -1,6 +1,8 @@
 
 #!/usr/bin/env python
 import ROOT,os,sys,subprocess,atexit,time
+from XRootD import client
+from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
 import Monitor
 import Scifi_monitoring
 import Mufi_monitoring
@@ -53,12 +55,12 @@ parser.add_argument("--interactive", dest="interactive", action='store_true',def
 
 options = parser.parse_args()
 options.startTime = ""
-options.dashboard = "currently_processed_file.txt"
+options.dashboard = "/mnt/raid1/data_online/currently_processed_file.txt"
 if (options.auto and not options.interactive) or options.batch: ROOT.gROOT.SetBatch(True)
 
 def currentRun():
       with client.File() as f:
-            f.open(options.server+options.path+options.dashboard)
+            f.open(options.server+options.dashboard)
             status, L = f.read()
             Lcrun = L.decode().split('\n')
             f.close()
@@ -78,8 +80,6 @@ def currentRun():
 
 if options.auto:
    options.online = True
-   from XRootD import client
-   from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
 # search for current run
    if options.runNumber < 0:
         curRun = ""
@@ -89,11 +89,21 @@ if options.auto:
                    print("sleep 300sec.",time.ctime())
                    time.sleep(300)
         options.runNumber = int(curRun.split('_')[1])
-        options.partition = int(curPart.split('_')[1].split('.')[0])
+        options.partition = 0   #   monitoring file set to data_0000.root   int(curPart.split('_')[1].split('.')[0])
 else:
    if options.runNumber < 0:
        print("run number required for non-auto mode")
        os._exit(1)
+   runDir = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_"+str(options.runNumber).zfill(6)
+   jname = "run_timestamps.json"
+   dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+runDir,shell=True) ) 
+   if jname in dirlist:
+      with client.File() as f:          
+          f.open(options.server+runDir+"/run_timestamps.json")
+          status, jsonStr = f.read()
+      exec("date = "+jsonStr.decode())
+      options.startTime = date['start_time']
+      options.startTime += " - "+ date['stop_time']
 
 # prepare tasks:
 FairTasks = []
@@ -130,7 +140,7 @@ if not options.auto:   # default online/offline mode
    for n in range(options.nStart,options.nStart+options.nEvents):
      event = M.GetEvent(n)
      if not options.online:
-        if n%options.heartBeat == 0: print("--> event nr:",n)
+        if n%options.heartBeat == 0: print("--> run/event nr: %i %i %5.2F%%"%(M.eventTree.EventHeader.GetRunId(),n,n/M.eventTree.GetEntries()*100))
 # assume for the moment file does not contain fitted tracks
      for m in monitorTasks:
         monitorTasks[m].ExecuteEvent(M.eventTree)
@@ -138,7 +148,9 @@ if not options.auto:   # default online/offline mode
    if options.nEvents>0:
        for m in monitorTasks:
           monitorTasks[m].Plot()
-   if options.sudo: 
+   if options.sudo:
+       print(options.runNumber,options.startTime)
+       options.startTime += " #events="+str(options.nEvents)
        M.publishRootFile()
        M.updateHtml()
 else: 
@@ -151,13 +163,12 @@ else:
          if new file, finish run, publish histograms, and restart with new file
    """
    N0 = 0
-   lastFile = M.converter.fiN.GetName()
-   tmp = lastFile.split('/')
-   lastRun  = tmp[len(tmp)-2]
-   lastPart = tmp[len(tmp)-1]
+   lastRun  = options.runNumber
+   lastPart = 0   #   reading from second low speed DAQ stream    tmp[len(tmp)-1]
    nLast = options.nEvents
    nStart = nLast-options.Nlast
    M.updateHtml()
+   lastFile = M.converter.fiN.GetName()
    M.updateSource(lastFile)
    while 1>0:
       for n in range(nStart,nLast):
