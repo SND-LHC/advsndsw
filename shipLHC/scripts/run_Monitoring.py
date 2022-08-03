@@ -167,7 +167,7 @@ else:
    lastPart = 0   #   reading from second low speed DAQ stream    tmp[len(tmp)-1]
    nLast = options.nEvents
    nStart = nLast-options.Nlast
-   M.updateHtml()
+   if not options.interactive and options.sudo: M.updateHtml()
    lastFile = M.converter.fiN.GetName()
    M.updateSource(lastFile)
    while 1>0:
@@ -198,7 +198,7 @@ else:
                    time.sleep(300)
          if not curRun == lastRun:
             for m in monitorTasks:
-               monitorTasks[m].Plot()
+               if not options.interactive:  monitorTasks[m].Plot()
             print("run ",lastRun," has finished.")
             quit()  # reinitialize everything with new run number
          if not curPart == lastPart:
