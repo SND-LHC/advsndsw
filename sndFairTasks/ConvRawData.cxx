@@ -52,8 +52,6 @@ ConvRawData::ConvRawData()
     , fEventHeader(nullptr)
     , fDigiSciFi(nullptr)
     , fDigiMuFilter(nullptr)
-    , fClusScifi(nullptr)
-    , fKalmanTracks(nullptr)
 {}
 
 ConvRawData::~ConvRawData() {}
@@ -116,19 +114,7 @@ InitStatus ConvRawData::Init()
     ioman->Register("Digi_ScifiHits", "DigiScifiHit_det", fDigiSciFi, kTRUE);
     fDigiMuFilter = new TClonesArray("MuFilterHit");
     ioman->Register("Digi_MuFilterHits", "DigiMuFilterHit_det", fDigiMuFilter, kTRUE);
-    //Scifi clusters
-    fClusScifi = new TClonesArray("sndCluster");
     ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
-    if (withGeoFile)
-    {    
-      ioman->Register("Cluster_Scifi", "ScifiCluster_det", fClusScifi, kTRUE);
-    }
-    //Muon tracks
-    fKalmanTracks = new TClonesArray("TObjArray");
-    if (online)
-    {
-      ioman->Register("Reco_MuonTracks", "", fKalmanTracks, kTRUE);
-    }
     
     local = false; 
     
@@ -172,7 +158,6 @@ void ConvRawData::Exec(Option_t* /*opt*/)
 {
   fDigiSciFi->Delete();
   fDigiMuFilter->Delete();
-  fClusScifi->Delete();
     
   // Set number of events to process
   int indexSciFi{}, indexMuFilter{};
@@ -432,75 +417,6 @@ void ConvRawData::Exec(Option_t* /*opt*/)
   //timer.Stop();
   //cout<<timer.RealTime()<<endl;
     
-  /* 
-    Make simple clustering for scifi, only works with geometry file. 
-    Don't think it is a good idea at the moment.
-  */
-  if (withGeoFile)
-  {
-    map<int, int > hitDict{};
-    vector<int> hitList{};
-    vector<int> tmpV{};
-    bool neighbour;
-    int index{}, ncl{}, cprev{}, c{}, last{}, first{}, N{};
-    for (int k = 0, kEnd = fDigiSciFi->GetEntries(); k < kEnd; k++)
-    {
-        sndScifiHit* d = static_cast<sndScifiHit*>(fDigiSciFi->At(k));
-        if (!d->isValid()) continue;
-        hitDict[d->GetDetectorID()] = k ;
-        hitList.push_back(d->GetDetectorID());
-    }
-    if (hitList.size() > 0)
-    {
-        sort(hitList.begin(), hitList.end());
-        tmpV.push_back(hitList[0]);
-        cprev = hitList[0];
-        ncl = 0;
-        last = hitList.size()-1;
-        vector<sndScifiHit*> hitlist{};
-        for (unsigned int i =0; i<hitList.size(); i++)
-        {
-          if (i==0 && hitList.size()>1) continue;
-          c = hitList[i];
-          neighbour = false;
-          // does not account for neighbours across sipms
-          if (c-cprev ==1)
-          {
-             neighbour = true;
-             tmpV.push_back(c);
-          }
-          if (!neighbour || c==hitList[last])
-          {
-            first = tmpV[0];
-            N = tmpV.size();
-            hitlist.clear();
-            for (unsigned int j=0; j<tmpV.size(); j++)
-            {
-              sndScifiHit* aHit = static_cast<sndScifiHit*>(fDigiSciFi->At(hitDict[tmpV[j]]));
-              hitlist.push_back(aHit);
-            }
-            (*fClusScifi)[index] = new sndCluster(first, N, hitlist, ScifiDet, false);
-            index++;
-            if (c!=hitList[last])
-            {
-              ncl++;
-              tmpV.clear();
-              tmpV.push_back(c);
-            }
-            // save last channel
-            else if (!neighbour)
-            {
-              hitlist.clear();
-              sndScifiHit* aHit = static_cast<sndScifiHit*>(fDigiSciFi->At(hitDict[c]));
-              hitlist.push_back(aHit);
-              (*fClusScifi)[index] = new sndCluster(c, 1, hitlist, ScifiDet, false);
-              index++;            
-            }            
-          }
-          cprev = c;
-        }
-    }
-  } // end if (withGeoFile)
   LOG (info) << fnStart+1 << " events processed out of "
              << fEventTree->GetEntries() << " number of events in file.";
   /*

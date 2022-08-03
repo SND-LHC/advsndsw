@@ -91,8 +91,6 @@ class ConvRawData : public FairTask
       FairEventHeader* fEventHeader;
       TClonesArray* fDigiSciFi;
       TClonesArray* fDigiMuFilter;
-      TClonesArray* fClusScifi;
-      TClonesArray* fKalmanTracks;
     
       ConvRawData(const ConvRawData&);
       ConvRawData& operator=(const ConvRawData&);
