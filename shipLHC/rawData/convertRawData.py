@@ -24,6 +24,7 @@ parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_
 parser.add_argument( "--withCalibration", action='store_true', dest="makeCalibration", help="make QDC and TDC calibration, not taking from raw data", default=False)
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile",default=None)
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
+parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode online monitoring",default=False,action='store_true')
 
 options = parser.parse_args()
 options.chi2Max = 2000.
