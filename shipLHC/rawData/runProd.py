@@ -70,7 +70,7 @@ class prodManager():
 
    def runDataQuality(self,latest):
       monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py --server=$EOSSHIP \
-                        -p "+pathConv+" -g ../geofile_sndlhc_TI18_V2_12July2022.root --ScifiResUnbiased 1 --batch --sudo "
+                        -b 100000 -p "+pathConv+" -g ../geofile_sndlhc_TI18_V2_12July2022.root --ScifiResUnbiased 1 --batch --sudo "
 
       dqDataFiles = []
       hList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/offline",shell=True) )
@@ -89,7 +89,7 @@ class prodManager():
            if r in dqDataFiles: continue
            print('executing DQ for run %i'%(r))
            os.system(monitorCommand + " -r "+str(r)+" &")
-           while self.count_python_processes('run_Monitoring')>ncpus : time.sleep(1800)
+           while self.count_python_processes('run_Monitoring')>(ncpus-5) : time.sleep(1800)
 
    def check4NewFiles(self,latest):
       rawDataFiles = self.getFileList(path,latest,minSize=10E6)
@@ -137,6 +137,7 @@ class prodManager():
        print('finished converting ',r,p)
        tmp = {int(r):[int(p)]}
        if EOScopy:  self.copy2EOS(path,tmp,self.options.overwrite)
+
        if pid == 0:  exit("Child process finished")
        
 
@@ -167,6 +168,7 @@ class prodManager():
          pathConv = os.environ['EOSSHIP']+"/eos/experiment/sndlhc/convertedData/"+tmp+"run_"+r+"/sndsw_raw-"+p+".root"
          print('copy '+outFile+' to '+tmp+"run_"+r+"/sndsw_raw-"+p+".root")
          os.system('xrdcp '+outFile+'  '+pathConv)
+         os.system('rm '+outFile)
 
    def check(self,path,partitions):
      success = {}
