@@ -114,6 +114,7 @@ class Monitoring():
             self.converter.Init(options)
             self.options.online = self.converter
             self.eventTree = options.online.fSink.GetOutTree()
+            self.Nkeys = 38   # need to find a way to get this number automatically
             for t in self.FairTasks:
                T = self.FairTasks[t]
                self.converter.run.AddTask(T)
@@ -188,13 +189,6 @@ class Monitoring():
                self.clusMufi        = self.trackTask.clusMufi
                self.clusScifi       = self.trackTask.clusScifi
 
-   def modtime(self,fname):
-      dirname = fname[fname.rfind('//')+1:fname.rfind('/')]
-      status, listing = self.myclient.dirlist(dirname, DirListFlags.STAT)
-      fileName = fname[fname.rfind('/')+1:]
-      for entry in listing:
-        if entry.name==fileName: return entry.statinfo.modtimestr
-
    def updateSource(self,fname):
    # only needed in auto mode
      notOK = True
@@ -205,22 +199,34 @@ class Monitoring():
           print('too many attempts to read the file ',fname,' I am exiting.')
           quit()
       nIter+=1
-      time1 = self.modtime(fname)
-      self.converter.fiN = ROOT.TFile.Open(fname)
-      time.sleep(6) # sleep 6 seconds, and check if file is modified. Writing takes 5sec
-      time2 = self.modtime(fname)
-      if time1 != time2:
-          notOK = True
-          continue
-      notOK = False
-      for b in self.converter.fiN.GetListOfKeys():
-            name = b.GetName()
-            if not self.converter.fiN.Get(name): 
-               notOK = True
-               time.sleep(5)
-               break
+      if self.converter.fiN.GetName() != fname:
+          self.converter.fiN = ROOT.TFile.Open(fname)
+      else:
+          Nkeys = self.converter.fiN.ReadKeys()
+          if Nkeys != self.Nkeys:
+              time.sleep(10)
+              self.converter.fiN = ROOT.TFile.Open(fname)
+              print('wrong number of keys',Nkeys)
+              continue
+
+      listOfKeys = []
+      for b in self.converter.fiN.GetListOfKeys(): listOfKeys.append(b.GetName())
+      for name in listOfKeys:
+        exec("self.converter.fiN."+name+".Refresh()")
+
+      first = -1
+      for name in listOfKeys:
+          nentries = eval("self.converter.fiN."+name+".GetEntries()")
+          if first<0: first = nentries
+          if first != nentries:
+              print('wrong number of entries',first,nentries)
+              continue
+
+      for name in listOfKeys:
             if name.find('board')==0:
-                self.converter.boards[name]=self.converter.fiN.Get(name)
+                self.converter.boards[name]=eval("self.converter.fiN."+name)
+
+      notOK = False
 
    def GetEvent(self,n):
       if not self.options.online:   # offline, FairRoot in charge

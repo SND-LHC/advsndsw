@@ -54,6 +54,7 @@ parser.add_argument("--save", dest="save", action='store_true',default=False)
 parser.add_argument("--interactive", dest="interactive", action='store_true',default=False)
 
 options = parser.parse_args()
+options.slowStream = True
 options.startTime = ""
 options.dashboard = "/mnt/raid1/data_online/currently_processed_file.txt"
 if (options.auto and not options.interactive) or options.batch: ROOT.gROOT.SetBatch(True)
@@ -89,6 +90,7 @@ if options.auto:
                    print("sleep 300sec.",time.ctime())
                    time.sleep(300)
         options.runNumber = int(curRun.split('_')[1])
+        lastRun = curRun
         options.partition = 0   #   monitoring file set to data_0000.root   int(curPart.split('_')[1].split('.')[0])
 else:
    if options.runNumber < 0:
@@ -163,7 +165,6 @@ else:
          if new file, finish run, publish histograms, and restart with new file
    """
    N0 = 0
-   lastRun  = options.runNumber
    lastPart = 0   #   reading from second low speed DAQ stream    tmp[len(tmp)-1]
    nLast = options.nEvents
    nStart = nLast-options.Nlast
@@ -184,7 +185,7 @@ else:
            if options.sudo: M.publishRootFile()
 
       M.updateSource(lastFile)
-      newEntries = M.converter.fiN.event.GetEntries()
+      newEntries = M.converter.fiN.Get('event').GetEntries()
       if newEntries>nLast:
          nStart = max(nLast,newEntries-options.Nlast)
          nLast = newEntries
@@ -201,14 +202,12 @@ else:
                if not options.interactive:  monitorTasks[m].Plot()
             print("run ",lastRun," has finished.")
             quit()  # reinitialize everything with new run number
-         if not curPart == lastPart:
+         if not curPart == lastPart and not options.slowStream:
             lastPart = curPart
             lastFile = options.server+options.path+lastRun+"/"+ lastPart
             M.converter.fiN = ROOT.TFile.Open(lastFile)
          else:
-            time.sleep(30) # sleep 30 seconds and check for new events
-            print('DAQ inactive for 30sec. Last event = ',M.converter.fiN.event.GetEntries(), curRun,curPart,N0)
+            time.sleep(10) # sleep 10 seconds and check for new events
+            print('DAQ inactive for 10sec. Last event = ',M.converter.fiN.Get('event').GetEntries(), curRun,curPart,N0)
             nStart = nLast
-
-
 
