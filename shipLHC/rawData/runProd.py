@@ -182,12 +182,20 @@ class prodManager():
    def getFileList(self,p,latest,minSize=10E6):
       inventory = {}
       dirList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+p,shell=True) )
+      rawData = p.find('raw_data')>0
+      withJsonFile = False
       for x in dirList.split('\\n'):
           aDir = x[x.rfind('/')+1:]
           if not aDir.find('run')==0:continue
           runNr = int(aDir.split('_')[1])
           if not runNr > latest: continue
           fileList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls -l "+p+"/"+aDir,shell=True) )
+          if rawData: 
+             for z in fileList.split('\\n'):
+               if z.find('json')>0: 
+                  withJsonFile=True
+                  break
+          if rawData and not withJsonFile: continue
           for z in fileList.split('\\n'):
                k = max(z.find('data_'),z.find('sndsw'))
                if not k>0: continue
