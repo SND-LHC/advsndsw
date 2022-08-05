@@ -96,17 +96,19 @@ else:
    if options.runNumber < 0:
        print("run number required for non-auto mode")
        os._exit(1)
-   runDir = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_"+str(options.runNumber).zfill(6)
-   jname = "run_timestamps.json"
-   dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+runDir,shell=True) ) 
-   if jname in dirlist:
-      with client.File() as f:          
-          f.open(options.server+runDir+"/run_timestamps.json")
-          status, jsonStr = f.read()
-      exec("date = "+jsonStr.decode())
-      options.startTime = date['start_time']
-      options.startTime += " - "+ date['stop_time']
-      options.startTime.replace('Z','')
+# works only for runs on EOS
+   if not options.server.find('eos')<0:
+      runDir = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_"+str(options.runNumber).zfill(6)
+      jname = "run_timestamps.json"
+      dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+runDir,shell=True) ) 
+      if jname in dirlist:
+         with client.File() as f:          
+            f.open(options.server+runDir+"/run_timestamps.json")
+            status, jsonStr = f.read()
+         exec("date = "+jsonStr.decode())
+         options.startTime = date['start_time']
+         options.startTime += " - "+ date['stop_time']
+         options.startTime.replace('Z','')
 
 # prepare tasks:
 FairTasks = []
@@ -151,10 +153,10 @@ if not options.auto:   # default online/offline mode
    if options.nEvents>0:
        for m in monitorTasks:
           monitorTasks[m].Plot()
+   M.publishRootFile()
    if options.sudo:
        print(options.runNumber,options.startTime)
        options.startTime += " #events="+str(options.nEvents)
-       M.publishRootFile()
        M.updateHtml()
 else: 
    """ auto mode

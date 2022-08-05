@@ -162,7 +162,7 @@ class Mufi_hitMaps(ROOT.FairTask):
            posMom = {}
            fstate =  aTrack.getFittedState()
            posMom['first'] = [fstate.getPos(),fstate.getMom()]
-           fstate =  aTrack.getFittedState(aTrack.getNumPointsWithMeasurement()-1)
+           # fstate =  aTrack.getFittedState(aTrack.getNumPointsWithMeasurement()-1) does not make a difference
            posMom['last'] = [fstate.getPos(),fstate.getMom()]
            for aHit in event.Digi_MuFilterHits:
               if not aHit.isValid(): continue
