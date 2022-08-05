@@ -76,6 +76,12 @@ class Time_evolution(ROOT.FairTask):
        ut.bookHist(h,'ctimeM','delta event time per channel; dt [ms]',1000,0.0,10.,1700,-0.5,1699.5)
        ut.bookHist(h,'btime','delta timestamp per channel; ',3564*4+200,-0.5,3564*4-0.5+200,1700,-0.5,1699.5)
        ut.bookHist(h,'bnr','bunch number; ',3564,-0.5,3564-0.5)
+       ut.bookHist(h,'bnrF','bunch number forward tracks; ',3564,-0.5,3564-0.5)
+       ut.bookHist(h,'bnrB','bunch number backward tracks; ',3564,-0.5,3564-0.5)
+
+       ut.bookHist(h,'trackDir','track direction;',300,-2,1)
+       ut.bookHist(h,'trackDirSig','track direction significance;',100,-100,100)
+
        self.boardsVsTime = {}
                        
        self.Nevent = -1
@@ -86,6 +92,21 @@ class Time_evolution(ROOT.FairTask):
        T   = event.EventHeader.GetEventTime()
        Tsec = int(T/self.M.freq)
        self.gtime.append(T/self.M.freq)
+
+       trackTask = self.M.FairTasks['simpleTracking']
+       direction = 0
+       for theTrack in self.M.Reco_MuonTracks:
+            if not theTrack.getFitStatus().isFitConverged(): continue
+            if theTrack.GetUniqueID()!=1: continue
+            SL = trackTask.trackDir(theTrack)
+            rc = h['trackDir'].Fill(SL[0])
+            rc = h['trackDirSig'].Fill(SL[1])
+            if abs(SL[0])<0.05: direction = 1
+            elif SL[0]<-0.2:      direction = -1
+       rc = h['bnr'].Fill( (T%(4*3564))/4)
+       if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4)
+       elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4)
+
        qdc = {0:0,1:0,2:0,3:0}
        
        for aHit in event.Digi_MuFilterHits:
@@ -106,7 +127,6 @@ class Time_evolution(ROOT.FairTask):
                 rc = h['btime'].Fill(T-self.Tprev[cNr],cNr)
                 rc = h['ctimeM'].Fill(dT*1E3,cNr)
                 rc = h['ctime'].Fill(dT,cNr)
-                rc = h['bnr'].Fill( (T%(4*3564))/4)               
              nb = aHit.GetBoardID(c)
              if not nb in self.boardsVsTime: self.boardsVsTime[nb]={}
              if not Tsec in self.boardsVsTime[nb]: self.boardsVsTime[nb][Tsec]=0
@@ -271,24 +291,37 @@ class Time_evolution(ROOT.FairTask):
        tc = h['T'].cd(2)
        tc.SetLogy(1)
        h['EtimeZ'].Draw()
-       rc = h['EtimeZ'].Fit('expo','S','',0.,250.)
+       #rc = h['EtimeZ'].Fit('expo','S','',0.,250.)
        h['T'].Update()
        stats = h['EtimeZ'].FindObject('stats')
        stats.SetOptFit(1111111)
        tc = h['T'].cd(3)
        tc.SetLogy(1)
        h['Etime'].Draw()
-       rc = h['Etime'].Fit('expo','S')
+       #rc = h['Etime'].Fit('expo','S')
        h['T'].Update()
        stats = h['Etime'].FindObject('stats')
        stats.SetOptFit(1111111)
        h['T'].Update()
        self.M.myPrint(h['T'],"Rates",subdir='daq')
 
-       ut.bookCanvas(h,'bunchNumber','bunch nr',2048,768,1,1)
+       ut.bookCanvas(h,'TD',' ',1024,768,2,1)
+       h['TD'].cd(1)
+       h['trackDir'].Draw()
+       h['TD'].cd(2)
+       h['trackDirSig'].Draw()
+       self.M.myPrint(h['TD'],'trackdirections',subdir='daq')
+
+       ut.bookCanvas(h,'bunchNumber','bunch nr',2048,1600,1,3)
        tc = h['bunchNumber'].cd(1)
        h['bnr'].SetStats(0)
        h['bnr'].Draw()
+       tc = h['bunchNumber'].cd(2)
+       h['bnrF'].SetStats(0)
+       h['bnrF'].Draw()
+       tc = h['bunchNumber'].cd(3)
+       h['bnrB'].SetStats(0)
+       h['bnrB'].Draw()
        self.M.myPrint(h['bunchNumber'],"BunchNr",subdir='daq')
 
        ut.bookCanvas(h,'channels',' channel dt',1024,4*768,1,4)
