@@ -87,8 +87,8 @@ if options.auto:
         while curRun.find('run') < 0:
                curRun,curPart,options.startTime =  currentRun()
                if curRun.find('run') < 0:
-                   print("sleep 300sec.",time.ctime())
-                   time.sleep(300)
+                   print("no run info, sleep 30sec.",time.ctime())
+                   time.sleep(30)
         options.runNumber = int(curRun.split('_')[1])
         lastRun = curRun
         options.partition = 0   #   monitoring file set to data_0000.root   int(curPart.split('_')[1].split('.')[0])
@@ -106,6 +106,7 @@ else:
       exec("date = "+jsonStr.decode())
       options.startTime = date['start_time']
       options.startTime += " - "+ date['stop_time']
+      options.startTime.replace('Z','')
 
 # prepare tasks:
 FairTasks = []

@@ -27,6 +27,7 @@ class prodManager():
      if options.FairTask_convRaw: 
         self.Mext = '_CPP'  
      self.options = options
+     self.runNrs = []
    def count_python_processes(self,macroName):
       username = pwd.getpwuid(os.getuid()).pw_name
       callstring = "ps -f -u " + username
@@ -80,13 +81,16 @@ class prodManager():
           dqDataFiles.append(int(run[3:9]))
       convDataFiles = self.getFileList(pathConv,latest,minSize=0)
       orderedCDF = list(convDataFiles.keys())
-      runNrs = []
+      lpruns = self.list_of_runs('run_Monitoring')
+      print(lpruns)
+      print(self.runNrs)
       for x in orderedCDF:
           r = x//10000
-          if not r in runNrs: runNrs.append(r)
-
-      for r in runNrs: 
-           if r in dqDataFiles: continue
+          if  (r in self.runNrs) or (r in lpruns): continue
+          if r in dqDataFiles: continue
+          self.runNrs.append(r)
+          
+      for r in self.runNrs: 
            print('executing DQ for run %i'%(r))
            os.system(monitorCommand + " -r "+str(r)+" &")
            while self.count_python_processes('run_Monitoring')>(ncpus-5) : time.sleep(1800)
@@ -122,11 +126,13 @@ class prodManager():
        if not fI.Get('event'):
          print('file corrupted',path,r,p)
          exit()
-       command = "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py  -r "+str(int(r))+ " -b 1000 -p "+path+" --server="+self.options.server
-       if options.FairTask_convRaw: command += " -cpp "
-       command += " -P "+str(int(p)) + " >log_"+r+'-'+p
-       print("execute ",command)
-       os.system(command)
+       if options.FairTask_convRaw:
+          os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -cpp -b 100000 -p "+pathM+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
+       else: 
+          command = "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py  -r "+str(int(r))+ " -b 1000 -p "+path+" --server="+self.options.server
+          command += " -P "+str(int(p)) + " >log_"+r+'-'+p
+          print("execute ",command)
+          os.system(command)
        if check:
           rc = self.checkFile(path,r,p)
           if rc<0: 
@@ -182,20 +188,12 @@ class prodManager():
    def getFileList(self,p,latest,minSize=10E6):
       inventory = {}
       dirList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+p,shell=True) )
-      rawData = p.find('raw_data')>0
-      withJsonFile = False
       for x in dirList.split('\\n'):
           aDir = x[x.rfind('/')+1:]
           if not aDir.find('run')==0:continue
           runNr = int(aDir.split('_')[1])
           if not runNr > latest: continue
           fileList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls -l "+p+"/"+aDir,shell=True) )
-          if rawData: 
-             for z in fileList.split('\\n'):
-               if z.find('json')>0: 
-                  withJsonFile=True
-                  break
-          if rawData and not withJsonFile: continue
           for z in fileList.split('\\n'):
                k = max(z.find('data_'),z.find('sndsw'))
                if not k>0: continue
