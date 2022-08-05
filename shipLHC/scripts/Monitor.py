@@ -220,7 +220,9 @@ class Monitoring():
           if first<0: first = nentries
           if first != nentries:
               print('wrong number of entries',first,nentries)
-              continue
+              first = -1
+              break
+      if first<0: continue
 
       for name in listOfKeys:
             if name.find('board')==0:
