@@ -22,9 +22,13 @@ class Scifi_hitMaps(ROOT.FairTask):
           if s%2==1: ut.bookHist(h,detector+'mult_'+str(s),'mult vertical station '+str(s//2+1)+'; #hits',100,-0.5,99.5)
           else: ut.bookHist(h,detector+'mult_'+str(s),'mult horizontal station '+str(s//2+1)+'; #hits',100,-0.5,99.5)
        for mat in range(30):
-          ut.bookHist(h,detector+'mat_'+str(mat),'hit map / mat; #channel',512,-0.5,511.5)
-          ut.bookHist(h,detector+'sig_'+str(mat),'signal / mat; QDC [a.u.]',200,-50.0,150.)
-          ut.bookHist(h,detector+'tdc_'+str(mat),'tdc / mat; timestamp [LHC clock cycles]',200,-1.,4.)
+          s = mat//6
+          p = 'H'
+          if mat%6>2: p='V''
+          m = mat%3
+          ut.bookHist(h,detector+'mat_'+str(mat),'hit map station '+str(s)+p+' mat '+str(m)+'; #channel',512,-0.5,511.5)
+          ut.bookHist(h,detector+'sig_'+str(mat),'signal '+str(s)+p+' mat '+str(m)+'; QDC [a.u.]',200,-50.0,150.)
+          ut.bookHist(h,detector+'tdc_'+str(mat),'tdc '+str(s)+p+' mat '+str(m)+'; timestamp [LHC clock cycles]',200,-1.,4.)
    def ExecuteEvent(self,event):
        h = self.M.h
        mult = [0]*10
