@@ -44,10 +44,17 @@ class ConvRawDataPY(ROOT.FairTask):
       else:
            self.fiN=ROOT.TFile.Open(server+path+inFile)
       self.nEvents = 1
+      self.newFormat = True
+      if self.fiN.Get('event'):  self.newFormat = False # old format
+
       if not self.monitoring:
+        if self.newFormat:
+           if options.nEvents<0:  self.nEvents = self.fiN.data.GetEntries()
+           else: self.nEvents = min(options.nEvents,self.fiN.data.GetEntries())
+        else:
            if options.nEvents<0:  self.nEvents = self.fiN.event.GetEntries()
            else: self.nEvents = min(options.nEvents,self.fiN.event.GetEntries())
-           print('converting ',self.nEvents,' events ',' of run',options.runNumber)
+      print('converting ',self.nEvents,' events ',' of run',options.runNumber)
   # Pass input parameters to the task - runN, paths, etc.
       ioman.RegisterInputObject('runN', ROOT.TObjString(str(options.runNumber)))
       ioman.RegisterInputObject('path', ROOT.TObjString(path))
@@ -340,10 +347,141 @@ class ConvRawDataPY(ROOT.FairTask):
           self.run.Run(self.options.nStart, self.nEvents)
       else:
           for eventNumber in range(self.options.nStart,self.nEvents):
-             self.executeEvent(eventNumber)
+             if self.newFormat: self.executeEvent(eventNumber)
+             else:              self.executeEventOld(eventNumber)
           # fill TTree
              self.sTree.Fill()
    def executeEvent(self,eventNumber):
+     if self.options.FairTask_convRaw:
+          self.run.Run(self.options.nStart, self.nEvents)
+          Fout = self.outfile.GetRootFile()
+          self.sTree = Fout.Get('cbmsim')
+          return   
+     if eventNumber%self.options.heartBeat==0 or self.debug:
+               print('run ',self.options.runNumber, ' event',eventNumber," ",time.ctime())
+
+     event = self.fiN.data
+     event.GetEvent(eventNumber)
+     self.header.SetEventTime(event.evt_timestamp)
+     #self.header.SetEventNumber(event.evt_number)  for new event header
+     #self.header.SetFlags(event.evt_flags)
+     self.header.SetRunId( self.options.runNumber )
+
+     indexSciFi=0
+     self.digiSciFi.Delete()
+     digiSciFiStore = {}
+     indexMuFilter = 0
+     self.digiMuFilter.Delete()
+     digiMuFilterStore = {}
+
+     for n in range(event.n_hits):
+           board_id = event.boardId[n]
+           board = 'board_'+str(board_id)
+           scifi = True
+           if board in self.boardMaps['Scifi']:
+              station,mat = self.boardMaps['Scifi'][board]
+           elif board in self.boardMaps['MuFilter']:
+              scifi = False
+           else: 
+             print(board+' not known. Serious error, stop')
+             1/0
+           mask = False
+           tofpet_id = event.tofpetId[n]
+           tofpet_channel = event.tofpetChannel[n]
+           if self.options.makeCalibration:
+               if self.options.debug:
+                    tac = event.tac[n]
+                    print(scifi,board_id,tofpet_id,tofpet_channel,tac,event.tCoarse[n],event.tFine[n],event.vCoarse[n],event.vFine[n])
+               TDC,QDC,Chi2ndof,satur = self.comb_calibration(board_id,tofpet_id,tofpet_channel,tac,event.vCoarse[n],event.vFine[n],event.tCoarse[n],event.tFine[n])
+           else:
+               TDC = event.timestamp[n]
+               QDC = event.value[n]
+               QDCchi2N = event.valueCalChi2[n]/event.valueCalDof[n]
+               TDCchi2N = event.timestampCalChi2[n]/event.timestampCalDof[n]
+               Chi2ndof = max( QDCchi2N,TDCchi2N )
+               satur = event.value_saturation[n]
+               print('debug',board_id,tofpet_id,tofpet_channel,event.tac[n],event.vCoarse[n],event.vFine[n], event.timestamp[n], event.value[n], event.tCoarse[n],event.tFine[n],eventNumber,Chi2ndof)
+           if Chi2ndof > self.options.chi2Max:
+                         if QDC>1E20:    QDC = 997.   # checking for inf
+                         if QDC != QDC:  QDC = 998.   # checking for nan
+                         if QDC>0: QDC = -QDC
+                         mask = True
+           elif satur  > self.options.saturationLimit or QDC>1E20 or QDC != QDC:
+                         if QDC>1E20:    QDC = 987.   # checking for inf
+                         if self.options.debug: 
+                                print('inf',board_id,tofpet_id,tofpet_channel,event.tac[n],event.vCoarse[n],event.vFine[n],TDC-event.tCoarse[n],eventNumber,Chi2ndof)
+                         if QDC != QDC:  QDC = 988.   # checking for nan
+                         if self.options.debug: 
+                                 print('nan',board_id,tofpet_id,tofpet_channel,event.tac[n],event.vCoarse[n],event.vFine[n],TDC-event.tCoarse[n],eventNumber,Chi2ndof)
+                         A = int(min( QDC,1000))
+                         B = min(satur,999)/1000.
+                         QDC = A+B
+                         mask = True
+           elif Chi2ndof > self.options.chi2Max:
+                         if QDC>0: QDC = -QDC
+                         mask = True
+           if self.options.debug:
+                    print('calibrated: tdc = ',TDC,'  qdc = ',QDC)  # TDC clock cycle = 160 MHz or 6.25ns
+
+           if not scifi:
+  # mufi encoding
+                  system = self.MufiSystem[board_id][tofpet_id]
+                  key = (tofpet_id%2)*1000 + tofpet_channel
+                  tmp = self.boardMaps['MuFilter'][board][self.slots[tofpet_id]]
+                  if self.options.debug or not tmp.find('not')<0: print('debug',tmp,system,key,board,tofpet_id,tofpet_id%2,tofpet_channel)
+                  sipmChannel = 99
+                  if not key in self.TofpetMap[system]:
+                          print('key does not exist',key)
+                          print(system, key,board,tofpet_id, self.TofpetMap[system])
+                  else:
+                         sipmChannel = self.TofpetMap[system][key]-1
+                  nSiPMs = abs(self.offMap[tmp][1])
+                  nSides =   abs(self.offMap[tmp][2])
+                  direction            = int(self.offMap[tmp][1]/nSiPMs)
+                  detID                   = self.offMap[tmp][0] + direction*(sipmChannel//(nSiPMs))
+                  sipm_number = sipmChannel%(nSiPMs)
+                  if tmp.find('Right')>0:
+                         sipm_number += nSiPMs
+                  if not detID in digiMuFilterStore:
+                          digiMuFilterStore[detID] =  ROOT.MuFilterHit(detID,nSiPMs,nSides)
+                  test = digiMuFilterStore[detID].GetSignal(sipm_number)
+                  digiMuFilterStore[detID].SetDigi(QDC,TDC,sipm_number)
+                  digiMuFilterStore[detID].SetDaqID(sipm_number, board_id, tofpet_id, tofpet_channel)
+                  if mask: digiMuFilterStore[detID].SetMasked(sipm_number)
+
+                  if self.options.debug:
+                      print('create mu hit: ',detID,tmp,system,tofpet_id,self.offMap[tmp],sipmChannel,nSiPMs,nSides,test)
+                      print('                ',detID,sipm_number,QDC,TDC)
+                  if test>0 or detID%1000>200 or sipm_number>15:
+                      print('what goes wrong?',detID,sipm_number,system,key,board,tofpet_id,tofpet_channel,test)
+
+           else:
+  # scifi encoding
+                  chan = self.channel(tofpet_id,tofpet_channel,mat)
+                  orientation = 1
+                  if station[2]=="Y": orientation = 0
+                  sipmLocal = (chan - mat*512)
+                  sipmID = 1000000*int(station[1]) + 100000*orientation + 10000*mat + 1000*(sipmLocal//128) + chan%128
+                  if not sipmID in digiSciFiStore: 
+                       digiSciFiStore[sipmID] =  ROOT.sndScifiHit(sipmID)
+                  digiSciFiStore[sipmID].SetDigi(QDC,TDC)
+                  digiSciFiStore[sipmID].SetDaqID(0, board_id, tofpet_id, tofpet_channel)
+                  if mask: digiSciFiStore[sipmID].setInvalid()
+                  if self.options.debug:
+                      print('create scifi hit: tdc = ',board,sipmID,QDC,TDC)
+                      print('tofpet:', tofpet_id,tofpet_channel,mat,chan)
+                      print(station[1],station[2],mat,chan,int(chan/128)%4,chan%128)
+
+# copy hits to detector branches
+     for sipmID in digiSciFiStore:
+               if self.digiSciFi.GetSize() == indexSciFi: self.digiSciFi.Expand(indexSciFi+100)
+               self.digiSciFi[indexSciFi]=digiSciFiStore[sipmID]
+               indexSciFi+=1
+     for detID in digiMuFilterStore:
+               if self.digiMuFilter.GetSize() == indexMuFilter: self.digiMuFilter.Expand(indexMuFilter+100)
+               self.digiMuFilter[indexMuFilter]=digiMuFilterStore[detID]
+               indexMuFilter+=1
+   def executeEventOld(self,eventNumber):
      if self.options.FairTask_convRaw:
           self.run.Run(self.options.nStart, self.nEvents)
           Fout = self.outfile.GetRootFile()
@@ -472,48 +610,7 @@ class ConvRawDataPY(ROOT.FairTask):
                self.digiMuFilter[indexMuFilter]=digiMuFilterStore[detID]
                indexMuFilter+=1
 
-  # make simple clustering for scifi, only works with geometry file.
-     if self.options.withGeoFile and 0>1:
-      index = 0
-      hitDict = {}
-      for k in range(self.digiSciFi.GetEntries()):
-          d = self.digiSciFi[k]
-          if not d.isValid(): continue 
-          hitDict[d.GetDetectorID()] = k
-      hitList = list(hitDict.keys())
-      if len(hitList)>0:
-          hitList.sort()
-          tmp = [ hitList[0] ]
-          cprev = hitList[0]
-          ncl = 0
-          last = len(hitList)-1
-          hitlist = ROOT.std.vector("sndScifiHit*")()
-          for i in range(len(hitList)):
-               if i==0 and len(hitList)>1: continue
-               c=hitList[i]
-               neighbour = False
-               if (c-cprev)==1:    # does not account for neighbours across sipms
-                     neighbour = True
-                     tmp.append(c)
-               if not neighbour  or c==hitList[last]:
-                    first = tmp[0]
-                    N = len(tmp)
-                    hitlist.clear()
-                    for aHit in tmp: hitlist.push_back( self.digiSciFi[hitDict[aHit]])
-                    aCluster = ROOT.sndCluster(first,N,hitlist,self.scifiDet,False)
-                    if  self.clusScifi.GetSize() == index: self.clusScifi.Expand(index+10)
-                    self.clusScifi[index]=aCluster
-                    index+=1
-                    if c!=hitList[last]:
-                         ncl+=1
-                         tmp = [c]
-                    elif not neighbour :   # save last channel
-                         hitlist.clear()
-                         hitlist.push_back( self.digiSciFi[hitDict[c]])
-                         aCluster = ROOT.sndCluster(c,1,hitlist,self.scifiDet,False)
-                         self.clusScifi[index]=aCluster
-                         index+=1
-               cprev = c
+
    def Finalize(self):
       if self.options.FairTask_convRaw:
   # overwrite cbmsim 
