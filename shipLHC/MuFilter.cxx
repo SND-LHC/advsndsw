@@ -510,25 +510,32 @@ void MuFilter::GetPosition(Int_t fDetectorID, TVector3& vLeft, TVector3& vRight)
 
   TString path = "/cave_1/Detector_0/";
   TString barName;
-
+  Float_t shift;
   switch(subsystem) {
   
   case 1: 
       path+="volVeto_1/volVetoPlane_"+std::to_string(plane)+"_"+std::to_string(plane);
       barName = "/volVetoBar_";
+      shift = conf_floats["MuFilter/Veto"+std::to_string(plane+1)+"ShiftY"];
       break;
   case 2: 
       path+="volMuFilter_1/volMuUpstreamDet_"+std::to_string(plane)+"_"+std::to_string(plane+2);
       barName = "/volMuUpstreamBar_";
+      shift = conf_floats["MuFilter/US"+std::to_string(plane+1)+"ShiftY"];
       break;
   case 3: 
       path+="volMuFilter_1/volMuDownstreamDet_"+std::to_string(plane)+"_"+std::to_string(plane+7);
       barName = "/volMuDownstreamBar_";
-      if (bar_number<60){barName+="hor_";}
-      else{barName+="ver_";}
+      if (bar_number<60){
+           barName+="hor_";
+           shift = conf_floats["MuFilter/DS"+std::to_string(plane+1)+"ShiftY"];
+      }
+      else{
+           barName+="ver_";
+           shift = conf_floats["MuFilter/DS"+std::to_string(plane+1)+"ShiftX"];
+      }
       break;
   }
-
   path += barName+std::to_string(fDetectorID);
 
   TGeoNavigator* nav = gGeoManager->GetCurrentNavigator();
@@ -538,16 +545,16 @@ void MuFilter::GetPosition(Int_t fDetectorID, TVector3& vLeft, TVector3& vRight)
   TGeoBBox* S = dynamic_cast<TGeoBBox*>(W->GetVolume()->GetShape());
 
   if (subsystem == 3 and bar_number >59){  // vertical bars
-      Double_t top[3] = {0,S->GetDY(), 0};
-      Double_t bot[3] = {0,-S->GetDY(),0};
+      Double_t top[3] = {shift,S->GetDY(), 0};
+      Double_t bot[3] = {shift,-S->GetDY(),0};
       Double_t Gtop[3],Gbot[3];
       nav->LocalToMaster(top, Gtop);   nav->LocalToMaster(bot, Gbot);
       vLeft.SetXYZ(Gtop[0],Gtop[1],Gtop[2]);
       vRight.SetXYZ(Gbot[0],Gbot[1],Gbot[2]);
     }
     else {     // horizontal bars
-      Double_t posXend[3] = {S->GetDX(),0,0};
-      Double_t negXend[3] = {-S->GetDX(),0,0};
+      Double_t posXend[3] = {S->GetDX(),shift,0};
+      Double_t negXend[3] = {-S->GetDX(),shift,0};
       Double_t GposXend[3],GnegXend[3];
       nav->LocalToMaster(posXend, GposXend);   nav->LocalToMaster(negXend, GnegXend);
       vLeft.SetXYZ(GposXend[0],GposXend[1],GposXend[2]);
@@ -568,5 +575,15 @@ void MuFilter::GetPosition(Int_t fDetectorID, TVector3& vLeft, TVector3& vRight)
        if (subsystem==1){return conf_ints["MuFilter/UpstreamnSides"];}
        return conf_ints["MuFilter/DownstreamnSides"];
   }
-
+/*
+Double_t MuFilter::GetCorrectedTime(Int_t fDetectorID, Int_t channel, Double_t rawTime, Double_t L){
+ expect time in u.ns  and  path length to sipm u.cm 
+	TString channelName;
+	channelName.Form("%i",fDetectorID);
+	channelName+= std::to_string(channel);
+	Double_t cor = conf_floats["MuFilter/tI"+channelName];
+	cor += L/conf_floats["Mufi/signalSpeed"];
+	return rawTime-cor;
+}
+*/
 ClassImp(MuFilter)
