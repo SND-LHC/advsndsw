@@ -126,13 +126,11 @@ class prodManager():
        if not fI.Get('event'):
          print('file corrupted',path,r,p)
          exit()
-       if options.FairTask_convRaw:
-          os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -cpp -b 100000 -p "+pathM+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
-       else: 
-          command = "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py  -r "+str(int(r))+ " -b 1000 -p "+path+" --server="+self.options.server
-          command += " -P "+str(int(p)) + " >log_"+r+'-'+p
-          print("execute ",command)
-          os.system(command)
+       command =   "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py  -r "+str(int(r))+ " -b 1000 -p "+path+" --server="+self.options.server
+       if options.FairTask_convRaw:  command+= " -cpp "
+       command += " -P "+str(int(p)) + " >log_"+r+'-'+p    
+       print("execute ",command)
+       os.system(command)
        if check:
           rc = self.checkFile(path,r,p)
           if rc<0: 
@@ -171,7 +169,9 @@ class prodManager():
          tmp = path.split('raw_data')[1].replace('data/','')
          pathConv = os.environ['EOSSHIP']+"/eos/experiment/sndlhc/convertedData/"+tmp+"run_"+r+"/sndsw_raw-"+p+".root"
          print('copy '+outFile+' to '+tmp+"run_"+r+"/sndsw_raw-"+p+".root")
-         os.system('xrdcp '+outFile+'  '+pathConv)
+         command = 'xrdcp'
+         if overwrite: command+=' -f '
+         os.system(command+outFile+'  '+pathConv)
          os.system('rm '+outFile)
 
    def check(self,path,partitions):
