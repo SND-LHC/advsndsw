@@ -107,7 +107,8 @@ else:
             status, jsonStr = f.read()
          exec("date = "+jsonStr.decode())
          options.startTime = date['start_time']
-         options.startTime += " - "+ date['stop_time']
+         if 'stop_time' in date:
+             options.startTime += " - "+ date['stop_time']
          options.startTime.replace('Z','')
 
 # prepare tasks:
@@ -145,7 +146,8 @@ if not options.auto:   # default online/offline mode
    for n in range(options.nStart,options.nStart+options.nEvents):
      event = M.GetEvent(n)
      if not options.online:
-        if n%options.heartBeat == 0: print("--> run/event nr: %i %i %5.2F%%"%(M.eventTree.EventHeader.GetRunId(),n,n/M.eventTree.GetEntries()*100))
+        if n%options.heartBeat == 0:
+            print("--> run/event nr: %i %i %5.2F%%"%(M.eventTree.EventHeader.GetRunId(),n,n/options.nEvents*100))
 # assume for the moment file does not contain fitted tracks
      for m in monitorTasks:
         monitorTasks[m].ExecuteEvent(M.eventTree)
