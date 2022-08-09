@@ -79,8 +79,8 @@ class Time_evolution(ROOT.FairTask):
        ut.bookHist(h,'bnrF','bunch number forward tracks; ',3564,-0.5,3564-0.5)
        ut.bookHist(h,'bnrB','bunch number backward tracks; ',3564,-0.5,3564-0.5)
 
-       ut.bookHist(h,'trackDir','track direction;',300,-2,1)
-       ut.bookHist(h,'trackDirSig','track direction significance;',100,-100,100)
+       ut.bookHist(h,'trackDir','track direction;',300,-0.5,0.25)
+       ut.bookHist(h,'trackDirSig','track direction significance;',100,-20,10)
 
        self.boardsVsTime = {}
                        
