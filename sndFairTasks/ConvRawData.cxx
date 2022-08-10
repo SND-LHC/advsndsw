@@ -193,29 +193,32 @@ void ConvRawData::Exec(Option_t* /*opt*/)
      
   fEventHeader->SetFlags(fEventTree->GetLeaf("flags")->GetValue());
   fEventHeader->SetRunId(frunNumber);
-  fEventHeader->SetEventTime(fEventTree->GetLeaf("evtTimestamp")->GetValue()*6.23768*1e-9 + runStartUTC);
+  fEventHeader->SetEventTime(fEventTree->GetLeaf("evtTimestamp")->GetValue());
+  fEventHeader->SetUTCtimestamp(fEventTree->GetLeaf("evtTimestamp")->GetValue()*6.23768*1e-9 + runStartUTC);
   fEventHeader->SetMCEntryNumber(fEventTree->GetLeaf("evtNumber")->GetValue());
   LOG (info) << "evtNumber per run "
              << fEventTree->GetLeaf("evtNumber")->GetValue()
              << " evtNumber per partition: " << eventNumber
              << " timestamp: " << fEventTree->GetLeaf("evtTimestamp")->GetValue();
   
-  /*-- Tests --
-  uint64_t num = fEventTree->GetLeaf("flags")->GetValue();  
-  printf("%" PRIu64 "\n", num);
-  cout<<" Fill N and so on "<<(num & FILL_NUMBER_MASK)<<" "<< (num & ACCELERATOR_MODE_MASK)<<" "
-      << (num & BEAM_MODE_MASK)<< " " << (num & FAST_FILTER_MASK)<<" "<< (num & ADVANCED_FILTER_MASK)<<endl;
+  //-- Tests --
+  /**uint64_t num = fEventTree->GetLeaf("flags")->GetValue();  
+  printf("----%" PRIu64 "\n", num);
+  cout<<" Fill N and so on "<<(num & FILL_NUMBER_MASK)<<" "<< ((num >> 15)& ACCELERATOR_MODE_MASK)<<" "
+      << ((num >> 20) & BEAM_MODE_MASK)<< " " << (num & FAST_FILTER_MASK)<<" "<< (num & ADVANCED_FILTER_MASK)<<endl;
+  cout<< fEventHeader->GetUTCtimestamp()<<" "<< fEventHeader->GetTimeAsString()<<endl;
   // to be called after flags are set!
   cout<<"noise filter "<<endl;
-  fEventHeader->GetFastNoiseFilters();
+  for ( auto it :fEventHeader->GetFastNoiseFilters())  cout<<" "<< it.first<< " "<<it.second<<endl;
   cout<<"adv noise filter"<<endl;
-  fEventHeader->GetAdvNoiseFilters(); 
+  for ( auto it :fEventHeader->GetAdvNoiseFilters())  cout<<" "<< it.first<< " "<<it.second<<endl;
   cout<<"passed noise filters "<<endl;  
   for ( auto it : fEventHeader->GetPassedFastNFCriteria()) cout<<it<<endl; 
   cout<<"passed adv noise filters "<<endl;
   for ( auto it : fEventHeader->GetPassedAdvNFCriteria()) cout<<it<<endl;
-  cout<<fEventHeader->GetBeamMode()<<" "<<fEventHeader->GetAccMode()<<endl;
-  ---- end test  */
+  cout<<"FillN "<<fEventHeader->GetFillNumber()<<endl;
+  cout<<"beam Mode "<<fEventHeader->GetBeamMode()<<" acc mode "<<fEventHeader->GetAccMode()<<endl;**/
+  //---- end test  
              
   // Delete pointer map elements
   for (auto it : digiSciFiStore)

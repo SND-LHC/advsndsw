@@ -10,6 +10,21 @@
 
 using namespace std;
 
+// Helper function to get the left shift corresponding to a mask
+constexpr int maskToShift(uint64_t mask) {
+    int c = 64; // c will be the number of zero bits on the right
+    mask &= -mask;
+    if (mask) c--;
+    if (mask & 0x00000000FFFFFFFF) c -= 32;
+    if (mask & 0x0000FFFF0000FFFF) c -= 16;
+    if (mask & 0x00FF00FF00FF00FF) c -= 8;
+    if (mask & 0x0F0F0F0F0F0F0F0F) c -= 4;
+    if (mask & 0x3333333333333333) c -= 2;
+    if (mask & 0x5555555555555555) c -= 1;
+
+    return c;
+}
+
 // -----   Default constructor   -------------------------------------------
 SNDLHCEventHeader::SNDLHCEventHeader()
   : FairEventHeader()
@@ -26,10 +41,7 @@ SNDLHCEventHeader::SNDLHCEventHeader(Int_t runN, uint64_t evtNumber, int64_t tim
    SetRunId(runN);
    SetEventTime(timestamp);
    SetMCEntryNumber(evtNumber);
-   fFlags = flags;
-   SetFillNumber(flags);
-   SetBeamMode(flags);
-   SetAccMode(flags);
+   SetFlags(flags);
 }
 
 // -------------------------------------------------------------------------
@@ -42,79 +54,73 @@ SNDLHCEventHeader::~SNDLHCEventHeader() { }
 void SNDLHCEventHeader::SetFlags(uint64_t flags)
 {
     fFlags = flags;
-    SetFillNumber(flags);
-    SetBeamMode(flags);
-    SetAccMode(flags);
+    fFillNumber = (fFlags & FILL_NUMBER_MASK);
+    fAccMode    = (fFlags & ACCELERATOR_MODE_MASK) >> maskToShift(ACCELERATOR_MODE_MASK);
+    fBeamMode   = (fFlags & BEAM_MODE_MASK) >> maskToShift(BEAM_MODE_MASK);
 }
-
 //-----   Getters   ----------------------------------------------------
 string SNDLHCEventHeader::GetTimeAsString()
 {
-   time_t time = fEventTime;
+   time_t time = fUTCtimestamp;
    struct tm *GMTtime;
    GMTtime = gmtime(&time);
 
    return asctime(GMTtime);
 }
 
-map<string, int> SNDLHCEventHeader::GetFastNoiseFilters()
+map<string, bool> SNDLHCEventHeader::GetFastNoiseFilters()
 {
-   map<string, int> FastNoiseFilters{};
-   vector<string> fastNoiseFilters = { "SciFi", "SciFi_Total",
-                                        "US", "US_Total",
-                                        "DS", "DS_Total",
-                                        "Veto_Total" };
-   // reading flag bits 26 - 32
-   int i = 25;
-   for ( auto item : fastNoiseFilters )
-   {     
-      FastNoiseFilters[item] = ( (fFlags >> i) & 1 );
-      i++;
-   }
-   //for test
-   //for(auto it: FastNoiseFilters) cout<<" "<< it.first<< " "<<it.second<<endl;
+   map<string, bool> FastNoiseFilters{};
+
+   auto base = (fFlags & FAST_FILTER_MASK) >> maskToShift(FAST_FILTER_MASK);
+   FastNoiseFilters["SciFi"]       = base & FAST_FILTER_SCIFI;
+   FastNoiseFilters["SciFi_Total"] = base & FAST_FILTER_SCIFI_TOTAL;
+   FastNoiseFilters["US"]          = base & FAST_FILTER_US;
+   FastNoiseFilters["US_Total"]    = base & FAST_FILTER_US_TOTAL;
+   FastNoiseFilters["DS"]          = base & FAST_FILTER_DS;
+   FastNoiseFilters["DS_Total"]    = base & FAST_FILTER_DS_TOTAL;
+   FastNoiseFilters["Veto_Total"]  = base & FAST_FILTER_VETO_TOTAL;
 
    return FastNoiseFilters;
 }
 
-map<string, int> SNDLHCEventHeader::GetAdvNoiseFilters()
+map<string, bool> SNDLHCEventHeader::GetAdvNoiseFilters()
 {
-   map<string, int> AdvNoiseFilters{};
-   vector<string> advNoiseFilters  = { "SciFi_Planes", "SciFi_Hits",
-                                        "US_Planes", "US_Hits",
-                                        "DSH_Planes", "DSH_Hits",
-                                        "DSV_Planes", "DSV_Hits", "DS_Planes",
-                                        "Veto_Planes", "Veto_Hits",
-                                        "Global_Planes"};
-   // reading flag bits 33 - 44
-   int i = 32;
-   for ( auto item : advNoiseFilters )
-   {     
-      AdvNoiseFilters[item] = ( (fFlags >> i) & 1 );
-      i++;
-   }
-   //for test
-   //for(auto it: AdvNoiseFilters) cout<<" "<< it.first<< " "<<it.second<<endl;
+   map<string, bool> AdvNoiseFilters{};
+
+   auto base = (fFlags & ADVANCED_FILTER_MASK) >> maskToShift(ADVANCED_FILTER_MASK);
+   AdvNoiseFilters["SciFi_Planes"]  = base & ADVANCED_FILTER_SCIFI_PLANES;
+   AdvNoiseFilters["SciFi_Hits"]    = base & ADVANCED_FILTER_SCIFI_HITS;
+   AdvNoiseFilters["US_Planes"]     = base & ADVANCED_FILTER_US_PLANES;
+   AdvNoiseFilters["US_Hits"]       = base & ADVANCED_FILTER_US_HITS;
+   AdvNoiseFilters["DSH_Planes"]    = base & ADVANCED_FILTER_DSH_PLANES;
+   AdvNoiseFilters["DSH_Hits"]      = base & ADVANCED_FILTER_DSH_HITS;
+   AdvNoiseFilters["DSV_Planes"]    = base & ADVANCED_FILTER_DSV_PLANES;
+   AdvNoiseFilters["DSV_Hits"]      = base & ADVANCED_FILTER_DSV_HITS;
+   AdvNoiseFilters["DS_Planes"]     = base & ADVANCED_FILTER_DS_PLANES;
+   AdvNoiseFilters["VETO_Planes"]   = base & ADVANCED_FILTER_VETO_PLANES;
+   AdvNoiseFilters["VETO_Hits"]     = base & ADVANCED_FILTER_VETO_HITS;
+   AdvNoiseFilters["GLOBAL_Planes"] = base & ADVANCED_FILTER_GLOBAL_PLANES;
 
    return AdvNoiseFilters;
 }
 
 vector<string> SNDLHCEventHeader::GetPassedFastNFCriteria()
 {
-  map<string, int> FastNoiseFilters = GetFastNoiseFilters();
+  map<string, bool> FastNoiseFilters = GetFastNoiseFilters();
   vector<string> passed;
   for ( auto it : FastNoiseFilters )
-      if ( it.second >0 ) passed.push_back(it.first);
+      if ( it.second == true ) passed.push_back(it.first);
 
   return passed;
 }
 
 vector<string> SNDLHCEventHeader::GetPassedAdvNFCriteria()
 {
-  map<string, int> AdvNoiseFilters = GetAdvNoiseFilters();
+  map<string, bool> AdvNoiseFilters = GetAdvNoiseFilters();
   vector<string> passed;
   for ( auto it : AdvNoiseFilters )
-      if ( it.second >0 ) passed.push_back(it.first);
+      if ( it.second == true ) passed.push_back(it.first);
 
   return passed;
 }
@@ -133,7 +139,7 @@ void SNDLHCEventHeader::Print(const Option_t* opt) const
 
   cout << "-I- SNDLHCEventHeader: run number " << fRunId
        << " event number "    << fMCEntryNo 
-       << " UTC timestamp "   << fEventTime << endl
+       << " timestamp "       << fEventTime << endl
        << " LHC fill number " << fFillNumber
        << " LHC beam mode "   << fBeamMode << endl;
 

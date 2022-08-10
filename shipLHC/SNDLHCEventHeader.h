@@ -26,18 +26,17 @@ class SNDLHCEventHeader : public FairEventHeader
     virtual ~SNDLHCEventHeader();
 
     /** Setters **/
+    void SetUTCtimestamp(int64_t UTCtstamp) { fUTCtimestamp = UTCtstamp; };
     void SetFlags(uint64_t flags);
-    void SetFillNumber(uint64_t flags) { fFillNumber = (flags & FILL_NUMBER_MASK); }
-    void SetAccMode(uint64_t flags) { fAccMode = static_cast<int>(flags & ACCELERATOR_MODE_MASK); }
-    void SetBeamMode(uint64_t flags) { fBeamMode = static_cast<int>(flags & BEAM_MODE_MASK); }
 
     /** Getters **/
     string GetTimeAsString(); // GMT time
+    int64_t GetUTCtimestamp() const { return fUTCtimestamp; }
     uint16_t GetFillNumber() const { return fFillNumber; }
     int GetAccMode() const { return fAccMode; }
     int GetBeamMode() const { return fBeamMode; }
-    map<string, int> GetFastNoiseFilters();
-    map<string, int> GetAdvNoiseFilters();
+    map<string, bool> GetFastNoiseFilters();
+    map<string, bool> GetAdvNoiseFilters();
     vector<string> GetPassedFastNFCriteria();
     vector<string> GetPassedAdvNFCriteria();
 
@@ -48,6 +47,7 @@ class SNDLHCEventHeader : public FairEventHeader
     virtual void Register(Bool_t Persistance = kTRUE);
 
   private:
+    int64_t fUTCtimestamp;
     uint64_t fFlags;
     uint16_t fFillNumber;
     int fAccMode; // enum class
