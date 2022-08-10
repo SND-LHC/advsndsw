@@ -400,7 +400,6 @@ class ConvRawDataPY(ROOT.FairTask):
                TDCchi2N = event.timestampCalChi2[n]/event.timestampCalDof[n]
                Chi2ndof = max( QDCchi2N,TDCchi2N )
                satur = event.value_saturation[n]
-               print('debug',board_id,tofpet_id,tofpet_channel,event.tac[n],event.vCoarse[n],event.vFine[n], event.timestamp[n], event.value[n], event.tCoarse[n],event.tFine[n],eventNumber,Chi2ndof)
            if Chi2ndof > self.options.chi2Max:
                          if QDC>1E20:    QDC = 997.   # checking for inf
                          if QDC != QDC:  QDC = 998.   # checking for nan
