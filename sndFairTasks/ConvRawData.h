@@ -4,6 +4,7 @@
 #include <TClonesArray.h>
 #include <TFile.h>
 #include "FairTask.h"           // for FairTask, InitStatus
+#include "FairEventHeader.h"    // for FairEventHeader
 #include "SNDLHCEventHeader.h"  // for EventHeader
 #include "Scifi.h"              // for Scifi detector
 #include "sndScifiHit.h"	// for SciFi Hit
@@ -56,6 +57,9 @@ class ConvRawData : public FairTask
       int channel_func( int tofpet_id, int tofpet_channel, int position);
       /** Read csv data files **/
       void read_csv(string path);
+      /** Processing of different raw-data formats **/
+      void Process0();
+      void Process1();
     
       /** Data structures to be used in the class **/
       map<int, MuFilterHit* > digiMuFilterStore{};
@@ -84,14 +88,15 @@ class ConvRawData : public FairTask
       int frunNumber;
       int fnStart, fnEvents;
       int fheartBeat;
-      int withGeoFile, debug, stop, makeCalibration, online;
+      int withGeoFile, debug, stop, makeCalibration, online, newFormat;
       string fpath; 
       int eventNumber;
       double chi2Max, saturationLimit;
       double runStartUTC;
     
       /** Output data **/
-      SNDLHCEventHeader* fEventHeader;
+      SNDLHCEventHeader* fSNDLHCEventHeader;
+      FairEventHeader* fEventHeader;
       TClonesArray* fDigiSciFi;
       TClonesArray* fDigiMuFilter;
     
