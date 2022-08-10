@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 import ROOT,os,sys
 import boardMappingParser
@@ -347,11 +348,13 @@ class ConvRawDataPY(ROOT.FairTask):
           self.run.Run(self.options.nStart, self.nEvents)
       else:
           for eventNumber in range(self.options.nStart,self.nEvents):
-             if self.newFormat: self.executeEvent(eventNumber)
-             else:              self.executeEventOld(eventNumber)
+             self.executeEvent(eventNumber)
           # fill TTree
              self.sTree.Fill()
    def executeEvent(self,eventNumber):
+       if self.newFormat: self.executeEvent1(eventNumber)
+       else:              self.executeEvent0(eventNumber)
+   def executeEvent1(self,eventNumber):
      if self.options.FairTask_convRaw:
           self.run.Run(self.options.nStart, self.nEvents)
           Fout = self.outfile.GetRootFile()
@@ -480,7 +483,7 @@ class ConvRawDataPY(ROOT.FairTask):
                if self.digiMuFilter.GetSize() == indexMuFilter: self.digiMuFilter.Expand(indexMuFilter+100)
                self.digiMuFilter[indexMuFilter]=digiMuFilterStore[detID]
                indexMuFilter+=1
-   def executeEventOld(self,eventNumber):
+   def executeEvent0(self,eventNumber):
      if self.options.FairTask_convRaw:
           self.run.Run(self.options.nStart, self.nEvents)
           Fout = self.outfile.GetRootFile()

@@ -360,7 +360,7 @@ class Monitoring():
              entries[str(10*s+p)+side] = self.h['mufi-sig'+p+str(10*s+p)].GetEntries()
       res = sorted(entries.items(), key=operator.itemgetter(1),reverse=True)
       if res[0][1]>minEntries: # choose limit which makes it sensitive to check for empty boards
-      for p in range(2):
+       for p in range(2):
          for side in ['L','R']:
              if entries[str(10*s+p)+side] < 1:
                 self.alarms['Veto'].append(str(10*s+p)+side())
@@ -372,7 +372,7 @@ class Monitoring():
              entries[str(s*10+p)+side] = self.h['mufi-sig2'+p+str(s*10+p)].GetEntries()
       res = sorted(entries.items(), key=operator.itemgetter(1),reverse=True)
       if res[0][1]>1000: # choose limit which makes it sensitive to check for empty boards
-      for p in range(5):
+       for p in range(5):
          for side in ['L','R']:
              if entries[str(s*10+p)+side] < 1:
                 self.alarms['Veto'].append(str(s*10+p)+side())

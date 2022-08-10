@@ -24,7 +24,7 @@ class Scifi_hitMaps(ROOT.FairTask):
        for mat in range(30):
           s = mat//6
           p = 'H'
-          if mat%6>2: p='V''
+          if mat%6>2: p='V'
           m = mat%3
           ut.bookHist(h,detector+'mat_'+str(mat),'hit map station '+str(s)+p+' mat '+str(m)+'; #channel',512,-0.5,511.5)
           ut.bookHist(h,detector+'sig_'+str(mat),'signal '+str(s)+p+' mat '+str(m)+'; QDC [a.u.]',200,-50.0,150.)
