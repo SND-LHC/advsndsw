@@ -99,10 +99,11 @@ class Time_evolution(ROOT.FairTask):
             if not theTrack.getFitStatus().isFitConverged(): continue
             if theTrack.GetUniqueID()!=1: continue
             SL = trackTask.trackDir(theTrack)
+            if not SL: continue
             rc = h['trackDir'].Fill(SL[0])
             rc = h['trackDirSig'].Fill(SL[1])
-            if abs(SL[0])<0.05: direction = 1
-            elif SL[0]<-0.2:      direction = -1
+            if abs(SL[0])<0.03:  direction = 1
+            elif SL[0]<-0.07:     direction = -1
        rc = h['bnr'].Fill( (T%(4*3564))/4)
        if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4)
        elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4)
