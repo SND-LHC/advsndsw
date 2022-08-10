@@ -202,6 +202,7 @@ class Monitoring():
       if self.converter.fiN.GetName() != fname:
           self.converter.fiN = ROOT.TFile.Open(fname)
       else:
+          self.converter.fiN = ROOT.TFile.Open(fname)
           Nkeys = self.converter.fiN.ReadKeys()
           if Nkeys != self.Nkeys:
               time.sleep(10)
@@ -265,6 +266,28 @@ class Monitoring():
             print("copy of root file failed. Token expired?")
          self.presenterFile = ROOT.TFile('run'+self.runNr+'.root','update')
 
+   def purgeMonitorHistos(self):
+        wwwPath = "/eos/experiment/sndlhc/www/online/"
+        for r in options.runNumbers.split(','):
+            if r!= '': runList.append(int(r))
+        for r in runList:
+              runNr   = str(r).zfill(6)+'.root'
+              f = ROOT.TFile.Open(options.server+wwwPath+ runNr)
+              g = ROOT.TFile('tmp.root','recreate')
+              for d in f.GetListOfKeys():
+                  D = f.Get(d.GetName())
+                  D.Purge()
+              for d in f.GetListOfKeys():
+                name = d.GetName()
+                s = f.Get(name)
+                g.mkdir(name)
+                g.cd(name)
+                for x in s.GetListOfKeys():
+                    s.Get(x.GetName()).Write()
+        g.Close()
+        f.Close()
+        os.system('xrdcp -f tmp.root  '+options.server+options.path+rName)
+
    def updateHtml(self):
       if self.options.online: destination="online"
       else: destination="offline"
@@ -310,6 +333,53 @@ class Monitoring():
             rc = os.system("xrdcp -f "+destination+".html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
       except:
             print("copy of html failed. Token expired?")
+
+   def checkAlarm(self,minEntries=1000):
+      self.alarms = {'scifi':[]}
+      # check for empty histograms in scifi signal
+      entries = {}
+      for mat in range(30):
+           entries[mat] = self.h['scifi-mat_'+str(mat)].GetEntries()
+      res = sorted(entries.items(), key=operator.itemgetter(1),reverse=True)
+      if res[0][1]>minEntries: # choose limit which makes it sensitive to check for empty mats
+          for mat in range(30):
+              if entries[mat] < 1:
+                   s = mat//6 + 1
+                   if mat%6 < 3 : p='H'
+                   else : p='V'
+                   e = str(s)+p+str(mat%3)
+                   self.alarms['scifi'].append(e)
+      if len(self.alarms['scifi']) > 0:  self.sendAlarm()
+
+      self.alarms['Veto']=[]
+      # check for empty histograms in veto signal
+      entries = {}
+      s = 1
+      for p in range(2):
+         for side in ['L','R']:
+             entries[str(10*s+p)+side] = self.h['mufi-sig'+p+str(10*s+p)].GetEntries()
+      res = sorted(entries.items(), key=operator.itemgetter(1),reverse=True)
+      if res[0][1]>minEntries: # choose limit which makes it sensitive to check for empty boards
+      for p in range(2):
+         for side in ['L','R']:
+             if entries[str(10*s+p)+side] < 1:
+                self.alarms['Veto'].append(str(10*s+p)+side())
+      # check for empty histograms in US signal
+      entries = {}
+      s = 2
+      for p in range(5):
+         for side in ['L','R']:
+             entries[str(s*10+p)+side] = self.h['mufi-sig2'+p+str(s*10+p)].GetEntries()
+      res = sorted(entries.items(), key=operator.itemgetter(1),reverse=True)
+      if res[0][1]>1000: # choose limit which makes it sensitive to check for empty boards
+      for p in range(5):
+         for side in ['L','R']:
+             if entries[str(s*10+p)+side] < 1:
+                self.alarms['Veto'].append(str(s*10+p)+side())
+
+
+   def sendAlarm(self):
+       print('ALARM',self.alarms)
 
    def systemAndOrientation(self,s,plane):
       if s==1 or s==2: return "horizontal"
