@@ -51,8 +51,6 @@ class Scifi_hitMaps(ROOT.FairTask):
        ut.bookCanvas(h,detector+'tdc',' ',1024,768,6,5)
        for mat in range(30):
            tc = self.M.h[detector+'hitmaps'].cd(mat+1)
-           A = self.M.h[detector+'mat_'+str(mat)].GetSumOfWeights()/512.
-           if self.M.h[detector+'mat_'+str(mat)].GetMaximum()>10*A: self.M.h[detector+'mat_'+str(mat)].SetMaximum(10*A)
            self.M.h[detector+'mat_'+str(mat)].Draw()
            tc = self.M.h[detector+'signal'].cd(mat+1)
            self.M.h[detector+'sig_'+str(mat)].Draw()
