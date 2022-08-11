@@ -115,6 +115,7 @@ class Monitoring():
             self.options.online = self.converter
             self.eventTree = options.online.fSink.GetOutTree()
             self.Nkeys = 38   # need to find a way to get this number automatically
+            if self.converter.newFormat: self.Nkeys = 1
             for t in self.FairTasks:
                T = self.FairTasks[t]
                self.converter.run.AddTask(T)
@@ -188,6 +189,12 @@ class Monitoring():
                self.Reco_MuonTracks = self.trackTask.fittedTracks
                self.clusMufi        = self.trackTask.clusMufi
                self.clusScifi       = self.trackTask.clusScifi
+   def GetEntries(self):
+       if  self.options.online:
+         if  M.converter.newFormat:  return self.converter.fiN.Get('data').GetEntries()
+         else:                                   return self.converter.fiN.event.GetEntries()
+       else:
+           return M.eventTree.GetEntries()
 
    def updateSource(self,fname):
    # only needed in auto mode

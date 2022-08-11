@@ -125,9 +125,7 @@ else:
    FairTasks.append(trackTask)
 
 M = Monitor.Monitoring(options,FairTasks)
-if options.nEvents < 0 : 
-    if options.online: options.nEvents = M.converter.fiN.event.GetEntries()
-    else:    options.nEvents = M.eventTree.GetEntries()
+if options.nEvents < 0 :   options.nEvents = M.GetEntries()
 
 monitorTasks = {}
 if not options.fname:
@@ -190,7 +188,7 @@ else:
            if options.sudo: M.publishRootFile()
 
       M.updateSource(lastFile)
-      newEntries = M.converter.fiN.Get('event').GetEntries()
+      newEntries = M.GetEntries()
       if newEntries>nLast:
          nStart = max(nLast,newEntries-options.Nlast)
          nLast = newEntries
@@ -213,6 +211,6 @@ else:
             M.converter.fiN = ROOT.TFile.Open(lastFile)
          else:
             time.sleep(10) # sleep 10 seconds and check for new events
-            print('DAQ inactive for 10sec. Last event = ',M.converter.fiN.Get('event').GetEntries(), curRun,curPart,N0)
+            print('DAQ inactive for 10sec. Last event = ',M.GetEntries(), curRun,curPart,N0)
             nStart = nLast
 
