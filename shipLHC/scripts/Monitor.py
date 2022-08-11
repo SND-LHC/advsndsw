@@ -251,6 +251,7 @@ class Monitoring():
             online = self.options.online
             online.executeEvent(n)
             self.Reco_MuonTracks.Delete()
+            if self.options.FairTask_convRaw: self.options.online.sTree.GetEvent(n)
             for t in self.FairTasks: self.FairTasks[t].ExecuteTask()
             self.eventTree = self.options.online.sTree
       else: 
