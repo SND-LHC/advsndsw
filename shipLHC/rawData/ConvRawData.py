@@ -68,7 +68,8 @@ class ConvRawDataPY(ROOT.FairTask):
       ioman.RegisterInputObject('makeCalibration', ROOT.TObjString(str(int(options.makeCalibration))))
       ioman.RegisterInputObject('chi2Max', ROOT.TObjString(str(options.chi2Max)))
       ioman.RegisterInputObject('saturationLimit', ROOT.TObjString(str(options.saturationLimit)))
-      ioman.RegisterInputObject('online', ROOT.TObjString(str(int(options.online)))) 
+      ioman.RegisterInputObject('online', ROOT.TObjString(str(int(options.online))))
+      ioman.RegisterInputObject('newFormat', ROOT.TObjString(str(int(self.newFormat))))
       self.options = options
       
   # Initialize logger: set severity and verbosity
@@ -100,7 +101,7 @@ class ConvRawDataPY(ROOT.FairTask):
 # Fair convRawData task
       if options.FairTask_convRaw:
           self.run.AddTask(ROOT.ConvRawData())
-          self.fSink = ROOT.FairRootFileSink(self.outFile)
+          self.fSink = self.outfile
           #X = fSink.GetRootFile()
           #X.SetCompressionLevel(ROOT.CompressionSettings(ROOT.kLZMA, 5)) # it seems it has no effect
           self.run.Init()

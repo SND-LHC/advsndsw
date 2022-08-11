@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include "TKey.h"
 #include "FairEventHeader.h"    // for FairEventHeader
+#include "SNDLHCEventHeader.h"  // for EventHeader
 #include "FairRunAna.h"         // for FairRunAna
 #include "FairRootManager.h"    // for FairRootManager
 #include "FairParamList.h"
@@ -34,7 +35,6 @@
 #include "Scifi.h"	        // for SciFi detector
 #include "sndScifiHit.h"	// for SciFi Hit
 #include "MuFilterHit.h"	// for Muon Filter Hit
-#include "sndCluster.h"         // for Clusters
 #include "TString.h"
 #include "nlohmann/json.hpp"     // library to operate with json files
 #include "boardMappingParser.h"  // for board mapping
@@ -78,6 +78,7 @@ InitStatus ConvRawData::Init()
     TObjString* chi2Max_obj = dynamic_cast<TObjString*>(ioman->GetObject("chi2Max"));
     TObjString* saturationLimit_obj = dynamic_cast<TObjString*>(ioman->GetObject("saturationLimit"));
     TObjString* online_obj = dynamic_cast<TObjString*>(ioman->GetObject("online"));
+    TObjString* newFormat_obj = dynamic_cast<TObjString*>(ioman->GetObject("newFormat"));
     // Input raw data file is read from the FairRootManager
     // This allows to have it in custom format, e.g. have arbitary names of TTrees
     TFile* f0 = dynamic_cast<TFile*>(ioman->GetObject("rawData"));
@@ -94,22 +95,34 @@ InitStatus ConvRawData::Init()
     std::istringstream(chi2Max_obj->GetString().Data()) >> chi2Max;
     std::istringstream(saturationLimit_obj->GetString().Data()) >> saturationLimit;
     std::istringstream(online_obj->GetString().Data()) >> online;
+    std::istringstream(newFormat_obj->GetString().Data()) >> newFormat;
     
-    fEventTree = (TTree*)f0->Get("event"); 
-    // Get board_x data
-    TIter next(f0->GetListOfKeys());
-    TKey *b = new TKey();
-    string name;
-    while ((b = (TKey*)next()))
+    if (!newFormat)
+    { 
+       fEventTree = (TTree*)f0->Get("event"); 
+       // Get board_x data
+       TIter next(f0->GetListOfKeys());
+       TKey *b = new TKey();
+       string name;
+       while ((b = (TKey*)next()))
+       {
+          name = b->GetName();
+          // string.find func: If no matches were found, the function returns string::npos.
+          if ( name.find("board") == string::npos ) continue;
+          boards[name] = (TTree*)f0->Get(name.c_str());
+        }
+        // use FairRoot eventHeader class
+        fEventHeader = new FairEventHeader();
+        ioman->Register("EventHeader", "sndEventHeader", fEventHeader, kTRUE);
+    }
+    else
     {
-     name = b->GetName();
-     // string.find func: If no matches were found, the function returns string::npos.
-     if ( name.find("board") == string::npos ) continue;
-     boards[name] = (TTree*)f0->Get(name.c_str());
+        fEventTree = (TTree*)f0->Get("data");
+        // use sndlhc eventHeader class
+        fSNDLHCEventHeader = new SNDLHCEventHeader();
+        fSNDLHCEventHeader->Register();   
     }
      
-    fEventHeader = new FairEventHeader();
-    ioman->Register("EventHeader", "sndEventHeader", fEventHeader, kTRUE);
     fDigiSciFi    = new TClonesArray("sndScifiHit");
     ioman->Register("Digi_ScifiHits", "DigiScifiHit_det", fDigiSciFi, kTRUE);
     fDigiMuFilter = new TClonesArray("MuFilterHit");
@@ -155,11 +168,20 @@ InitStatus ConvRawData::Init()
 }
 
 void ConvRawData::Exec(Option_t* /*opt*/)
-{
-  fDigiSciFi->Delete();
-  fDigiMuFilter->Delete();
-    
-  // Set number of events to process
+{     
+     fDigiSciFi->Delete();
+     fDigiMuFilter->Delete();
+     
+     if (!newFormat) Process0();
+     else Process1();
+
+     // Manually change event number as input file is not set as source for this task
+     eventNumber++;
+
+}
+
+void ConvRawData::Process0()
+{   
   int indexSciFi{}, indexMuFilter{};
   bool scifi = false, mask = false;
   int board_id{};
@@ -433,11 +455,286 @@ void ConvRawData::Exec(Option_t* /*opt*/)
        cout << "stage " << it.first<< " took " << it.second*1e-9 << " [s]" << endl;
      }
   }
-  */
-  
-  // Manually change event number as input file is not set for this task
-  eventNumber++;
+  */ 
+}
 
+void ConvRawData::Process1()
+{    
+  int indexSciFi{}, indexMuFilter{};
+  bool scifi = false, mask = false;
+  int board_id{};
+  string board_name;
+  int tofpet_id{}, tofpet_channel{}, tac{}, mat{};
+  string station;
+  double TDC{}, QDC{}, Chi2ndof{}, satur{};
+  int A{};
+  double B{};
+  high_resolution_clock::time_point tE{}, t0{}, t1{}, t4{}, t5{}, t6{}, tt{};
+  int system{}, key{}, sipmChannel{};
+  string tmp;
+  int nSiPMs{}, nSides{}, direction{}, detID{}, sipm_number{}, chan{}, orientation{}, sipmLocal{};
+  int sipmID{};
+  double test{};
+  //TStopwatch timer;     
+  
+  tE = high_resolution_clock::now();
+  //timer.Start();
+  fEventTree->GetEvent(eventNumber);
+  if ( eventNumber%fheartBeat == 0 )
+  {
+     tt = high_resolution_clock::now();
+     time_t ttp = high_resolution_clock::to_time_t(tt);
+     LOG (info) << "run " << frunNumber << " event " << eventNumber
+                << " local time " << ctime(&ttp);
+  }
+  // cross-check name of flags branch FIXME   
+  fSNDLHCEventHeader->SetFlags(fEventTree->GetLeaf("evtFlags")->GetValue());
+  fSNDLHCEventHeader->SetRunId(frunNumber);
+  fSNDLHCEventHeader->SetEventTime(fEventTree->GetLeaf("evtTimestamp")->GetValue());
+  fSNDLHCEventHeader->SetUTCtimestamp(fEventTree->GetLeaf("evtTimestamp")->GetValue()*6.23768*1e-9 + runStartUTC);
+  fSNDLHCEventHeader->SetMCEntryNumber(fEventTree->GetLeaf("evtNumber")->GetValue());
+  
+  LOG (info) << "evtNumber per run "
+             << fEventTree->GetLeaf("evtNumber")->GetValue()
+             << " evtNumber per partition: " << eventNumber
+             << " timestamp: " << fEventTree->GetLeaf("evtTimestamp")->GetValue();
+  // Delete pointer map elements
+  for (auto it : digiSciFiStore)
+  {
+      delete it.second;
+  }
+  digiSciFiStore.clear();
+  for (auto it : digiMuFilterStore)
+  {
+      delete it.second;
+  }
+  digiMuFilterStore.clear();
+     
+  // Loop over hits per event!
+  for ( int n =0; n < fEventTree->GetLeaf("nHits")->GetValue(); n++ )
+  { 
+       board_id = fEventTree->GetLeaf("boardId")->GetValue(n);
+       board_name = "board_"+to_string(board_id);
+       scifi = true;
+       if (boardMaps["Scifi"].count(board_name)!=0) 
+       {
+         for (auto it : boardMaps["Scifi"][board_name])
+         {
+           station = it.first;
+           mat = it.second;
+         }         
+       }
+       else if (boardMaps["MuFilter"].count(board_name)!=0) scifi = false;
+       else
+       {
+         LOG (error) << board_name << " not known. Serious error, stop!";
+         break;
+       }
+       mask = false;
+       LOG (info) << "In scifi? " << scifi 
+                  << " " << board_id << " " << fEventTree->GetLeaf("tofpetId")->GetValue(n)
+                  << " " << fEventTree->GetLeaf("tofpetChannel")->GetValue(n)
+                  << " " << fEventTree->GetLeaf("tac")->GetValue(n)
+                  << " " << fEventTree->GetLeaf("tCoarse")->GetValue(n)
+                  << " " << fEventTree->GetLeaf("tFine")->GetValue(n)
+                  << " " << fEventTree->GetLeaf("vCoarse")->GetValue(n)
+                  << " " << fEventTree->GetLeaf("vFine")->GetValue(n);
+       t0 = high_resolution_clock::now();
+       tofpet_id = fEventTree->GetLeaf("tofpetId")->GetValue(n);
+       tofpet_channel = fEventTree->GetLeaf("tofpetChannel")->GetValue(n);
+       tac = fEventTree->GetLeaf("tac")->GetValue(n);
+       /* Since run 39 calibration is done online and 
+       calib data stored in root raw data file */
+       if (makeCalibration)
+         tie(TDC,QDC,Chi2ndof,satur) = comb_calibration(board_id, tofpet_id, tofpet_channel, tac,
+                                                   fEventTree->GetLeaf("vCoarse")->GetValue(n),
+                                                   fEventTree->GetLeaf("vFine")->GetValue(n),
+                                                   fEventTree->GetLeaf("tCoarse")->GetValue(n),
+                                                   fEventTree->GetLeaf("tFine")->GetValue(n),
+                                                   1.0, 0);
+       else
+       {
+         TDC = fEventTree->GetLeaf("timestamp")->GetValue(n);
+         QDC = fEventTree->GetLeaf("value")->GetValue(n);
+         Chi2ndof = 1;
+         satur = 0.;
+         //Chi2ndof = max(fEventTree->GetLeaf("timestampCalChi2")->GetValue(n)/fEventTree->GetLeaf("timestampCalDof")->GetValue(n),
+         //               fEventTree->GetLeaf("valueCalChi2")->GetValue(n)/fEventTree->GetLeaf("valueCalDof")->GetValue(n));
+         // FIXME, valueCalDof is a boolean that is true if v_fine/par[d] is above saturationLimit              
+         //satur = (fEventTree->GetLeaf("valueCalDof")->GetValue(n) == 1) ? 1.1*saturationLimit : 0.9*saturationLimit;    
+       }
+  
+       // Print a warning if TDC or QDC is nan.        
+       if ( TDC != TDC || QDC!=QDC) {
+       LOG (warning) << "NAN tdc/qdc detected! Check maps!"
+                      << " " << board_id << " " << fEventTree->GetLeaf("tofpetId")->GetValue(n)
+                     << " " << fEventTree->GetLeaf("tofpetChannel")->GetValue(n)
+                     << " " << fEventTree->GetLeaf("tac")->GetValue(n)
+                     << " " << fEventTree->GetLeaf("tCoarse")->GetValue(n)
+                     << " " << fEventTree->GetLeaf("tFine")->GetValue(n)
+                     << " " << fEventTree->GetLeaf("vCoarse")->GetValue(n)
+                     << " " << fEventTree->GetLeaf("vFine")->GetValue(n);
+       }
+         
+       t1 = high_resolution_clock::now();
+       if ( Chi2ndof > chi2Max )
+       {
+         if (QDC>1E20) QDC = 997.; // checking for inf
+         if (QDC != QDC) QDC = 998.; // checking for nan
+         if (QDC>0) QDC = -QDC;
+         mask = true;
+       }
+       else if (satur > saturationLimit || QDC>1E20 || QDC != QDC)
+       {
+         if (QDC>1E20) QDC = 987.; // checking for inf
+         LOG (info) << "inf " << board_id << " " << fEventTree->GetLeaf("tofpetId")->GetValue(n)    
+                    << " " << fEventTree->GetLeaf("tofpetChannel")->GetValue(n)
+                    << " " << fEventTree->GetLeaf("tac")->GetValue(n) 
+                    << " " << fEventTree->GetLeaf("vCoarse")->GetValue(n)
+                    << " " << fEventTree->GetLeaf("vFine")->GetValue(n)
+                    << " " << TDC-fEventTree->GetLeaf("tCoarse")->GetValue(n) 
+                    << " " << eventNumber << " " << Chi2ndof;
+         if (QDC != QDC) QDC = 988.; // checking for nan
+         LOG (info) << "nan " << board_id << " " << fEventTree->GetLeaf("tofpetId")->GetValue(n)
+                     << " " << fEventTree->GetLeaf("tofpetChannel")->GetValue(n)
+                     << " " << fEventTree->GetLeaf("tac")->GetValue(n)
+                     << " " << fEventTree->GetLeaf("vCoarse")->GetValue(n)
+                     << " " << fEventTree->GetLeaf("vFine")->GetValue(n)
+                     << " " << TDC-fEventTree->GetLeaf("tCoarse")->GetValue(n)
+                     << " " << TDC << " " << fEventTree->GetLeaf("tCoarse")->GetValue(n)
+                     << " " << eventNumber << " " << Chi2ndof;
+         A = int(min(QDC,double(1000.)));
+         B = min(satur,double(999.))/1000.;
+         QDC = A+B;
+         mask = true;
+       }
+       else if ( Chi2ndof > chi2Max )
+       {
+          if (QDC>0) QDC = -QDC;
+          mask = true;
+       }         
+         LOG (info) << "calibrated: tdc = " << TDC << ", qdc = " << QDC;//TDC clock cycle = 160 MHz or 6.25ns
+       t4 = high_resolution_clock::now();
+       // Set the unit of the execution time measurement to ns
+       counters["qdc"]+= duration_cast<nanoseconds>(t1 - t0).count();
+       counters["make"]+= duration_cast<nanoseconds>(t4-t0).count();
+       
+       // MuFilter encoding
+       if (!scifi)
+       {
+           system = MufiSystem[board_id][tofpet_id];
+           key = (tofpet_id%2)*1000 + tofpet_channel;
+           tmp = boardMapsMu["MuFilter"][board_name][slots[tofpet_id]];
+           if (debug || !tmp.find("not") == string::npos )
+           {
+             LOG (info) << system << " " << key << " " << board_name << " " << tofpet_id
+                         << " " << tofpet_id%2 << " " << tofpet_channel;
+           }
+           sipmChannel = 99;
+           if ( TofpetMap[system].count(key) == 0)
+           {
+                        cout << "key " << key << " does not exist. " << endl
+                             << board_name << " Tofpet id " << tofpet_id
+                             << " System " << system << " has Tofpet map elements: {";
+                        for ( auto it : TofpetMap[system])
+                        {
+                          cout << it.first << " : " << it.second << ", ";
+                        }
+                        cout << "}\n";
+           }
+           else sipmChannel = TofpetMap[system][key]-1;
+           
+           nSiPMs = abs(offMap[tmp][1]);
+           nSides = abs(offMap[tmp][2]);
+           direction = int(offMap[tmp][1]/nSiPMs);
+           detID = offMap[tmp][0] + direction*int(sipmChannel/nSiPMs);
+           sipm_number = sipmChannel%(nSiPMs);
+           if ( tmp.find("Right") != string::npos ) sipm_number+= nSiPMs;
+           if (digiMuFilterStore.count(detID)==0) 
+           {
+ 	     digiMuFilterStore[detID] = new MuFilterHit(detID,nSiPMs,nSides);
+           }
+           test = digiMuFilterStore[detID]->GetSignal(sipm_number);
+           digiMuFilterStore[detID]->SetDigi(QDC,TDC,sipm_number);
+           digiMuFilterStore[detID]->SetDaqID(sipm_number, board_id, tofpet_id, tofpet_channel);
+           if (mask) digiMuFilterStore[detID]->SetMasked(sipm_number);
+           
+           LOG (info) << "create mu hit: " << detID << " " << tmp << " " << system
+                       << " " << tofpet_id << " " << offMap[tmp][0] << " " << offMap[tmp][1]
+                       << " " << offMap[tmp][2] << " " << sipmChannel << " " << nSiPMs
+                       << " " << nSides << " " << test << endl
+                       << detID << " " << sipm_number << " " << QDC << " " << TDC;
+                       
+           if (test>0 || detID%1000>200 || sipm_number>15)
+           {
+             cout << "what goes wrong? " << detID << " SiPM " << sipm_number << " system " << system
+                  << " key " << key << " board " << board_name << " tofperID " << tofpet_id
+                  << " tofperChannel " << tofpet_channel << " test " << test << endl;
+           }
+           t5 = high_resolution_clock::now();
+           counters["createMufi"]+= duration_cast<nanoseconds>(t5 - t4).count();
+       } // end MuFilter encoding
+       
+       else // now Scifi encoding
+       {
+           chan = channel_func(tofpet_id, tofpet_channel, mat);
+           orientation = 1;
+           if (station[2]=='Y') orientation = 0;
+           sipmLocal = (chan - mat*512);
+           sipmID = 1000000*int(station[1]-'0') + 100000*orientation + 10000*mat
+                                            + 1000*(int(sipmLocal/128)) + chan%128;
+           if (digiSciFiStore.count(sipmID)==0)
+           {
+             digiSciFiStore[sipmID] =  new sndScifiHit(sipmID);             
+           }
+           digiSciFiStore[sipmID]->SetDigi(QDC,TDC);
+           digiSciFiStore[sipmID]->SetDaqID(0, board_id, tofpet_id, tofpet_channel);
+           if (mask) digiSciFiStore[sipmID]->setInvalid();
+           LOG (info) << "create scifi hit: tdc = " << board_name << " " << sipmID
+                       << " " << QDC << " " << TDC <<endl
+                       << "tofpet:" << " " << tofpet_id << " " << tofpet_channel << " " << mat
+                       << " " << chan << endl
+                       << station[1] << " " << station[2] << " " << mat << " " << chan
+                       << " " << int(chan/128)%4 << " " << chan%128;
+           t5 = high_resolution_clock::now();
+           counters["createScifi"]+= duration_cast<nanoseconds>(t5 - t4).count();
+       } // end Scifi encoding
+  } // end loop over hits in event
+
+  counters["N"]+= 1;
+  t6 = high_resolution_clock::now();
+  for (auto it_sipmID : digiSciFiStore)
+  {
+    (*fDigiSciFi)[indexSciFi]=digiSciFiStore[it_sipmID.first];
+    indexSciFi+= 1;
+  }
+  for (auto it_detID : digiMuFilterStore)
+  {
+    (*fDigiMuFilter)[indexMuFilter]=digiMuFilterStore[it_detID.first];
+    indexMuFilter+= 1;
+  }
+  counters["storage"]+= duration_cast<nanoseconds>(high_resolution_clock::now() - t6).count();
+  counters["event"]+= duration_cast<nanoseconds>(high_resolution_clock::now() - tE).count();
+  //timer.Stop();
+  //cout<<timer.RealTime()<<endl;
+    
+  LOG (info) << fnStart+1 << " events processed out of "
+             << fEventTree->GetEntries() << " number of events in file.";
+  /*
+  cout << "Monitor computing time:" << endl;
+  for (auto it: counters)
+  {
+     if( it.first=="N" )
+     {
+       cout << "Processed " << it.first<< " = " << it.second << " events." << endl;
+     }
+     else
+     {
+       // Print execution time in seconds
+       cout << "stage " << it.first<< " took " << it.second*1e-9 << " [s]" << endl;
+     }
+  }
+  */
 }
   
 /* https://gitlab.cern.ch/snd-scifi/software/-/wikis/Raw-data-format 
@@ -447,7 +744,53 @@ void ConvRawData::Exec(Option_t* /*opt*/)
       v_coarse: 0-1023, QDC mode: it represents the number of clock cycles the charge integration lasted.
       v_fine = 0-1023, QDC mode: represents the charge measured. Requires calibration.
 */
-
+/** Start time of run **/
+void ConvRawData::StartTimeofRun(string Path)
+{
+  nlohmann::json j;
+  // reading file with xrootd protocol
+  File file;
+  XRootDStatus status;
+  StatInfo *info;
+  uint64_t offset = 0;
+  uint32_t size;
+  uint32_t bytesRead = 0;
+  if (local)
+  {
+    ifstream jsonfile(Form("%s/run_timestamps.json", Path.c_str()));
+    jsonfile >> j;
+  }
+  else
+  {
+    status = file.Open(Form("%s/run_timestamps.json", Path.c_str()), OpenFlags::Read);
+    if( !status.IsOK() )
+    {
+      LOG (error) << "Error opening file";
+      exit(0);
+    }
+    file.Stat(false, info);
+    size = info->GetSize();
+    char *buff = new char[size];
+    status = file.Read(offset, size, buff, bytesRead);
+    vector<char> vec;
+    for (int i = 0; i < size; i++){vec.push_back(buff[i]);}
+    j = json::parse(vec);
+    status = file.Close();
+    delete info;
+    delete [] buff;
+    }
+  // Read the start-time string
+  struct tm tm;
+  for (auto& el : j.items())
+  {
+     if (el.key() == "start_time")
+     {
+       string timeStr = el.value().get<string>();
+       strptime(timeStr.c_str(), "%Y-%m-%dT%H:%M:%SZ", &tm);
+     }
+  }
+  runStartUTC = timegm(&tm);
+}
 /** Board mapping for Scifi and MuFilter **/
 void ConvRawData::DetMapping(string Path)
 {
