@@ -169,7 +169,7 @@ class prodManager():
          tmp = path.split('raw_data')[1].replace('data/','')
          pathConv = os.environ['EOSSHIP']+"/eos/experiment/sndlhc/convertedData/"+tmp+"run_"+r+"/sndsw_raw-"+p+".root"
          print('copy '+outFile+' to '+tmp+"run_"+r+"/sndsw_raw-"+p+".root")
-         command = 'xrdcp'
+         command = 'xrdcp '
          if overwrite: command+=' -f '
          os.system(command+outFile+'  '+pathConv)
          os.system('rm '+outFile)
