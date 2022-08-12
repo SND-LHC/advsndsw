@@ -27,7 +27,11 @@ constexpr int maskToShift(uint64_t mask) {
 
 // -----   Default constructor   -------------------------------------------
 SNDLHCEventHeader::SNDLHCEventHeader()
-  : FairEventHeader()
+  : TNamed()
+  , fRunId(0)
+  , fEventTime(-1)
+  , fInputFileId(-1)
+  , fEventNumber(-1)
   , fFlags(0)
   , fFillNumber(0)
   , fAccMode(0)
@@ -40,7 +44,7 @@ SNDLHCEventHeader::SNDLHCEventHeader(Int_t runN, uint64_t evtNumber, int64_t tim
 {
    SetRunId(runN);
    SetEventTime(timestamp);
-   SetMCEntryNumber(evtNumber);
+   SetEventNumber(evtNumber);
    SetFlags(flags);
 }
 
@@ -125,20 +129,12 @@ vector<string> SNDLHCEventHeader::GetPassedAdvNFCriteria()
   return passed;
 }
 
-// -----   Override for Fair's ioman->Register   ---------------------------
-void SNDLHCEventHeader::Register(bool Persistence)
-{
-    FairRootManager::Instance()->Register("EventHeader.",
-                                          "sndEventHeader",
-                                           this, Persistence);
-}
-
 // -----   Public method Print   -------------------------------------------
 void SNDLHCEventHeader::Print(const Option_t* opt) const
 {
 
   cout << "-I- SNDLHCEventHeader: run number " << fRunId
-       << " event number "    << fMCEntryNo 
+       << " event number "    << fEventNumber 
        << " timestamp "       << fEventTime << endl
        << " LHC fill number " << fFillNumber
        << " LHC beam mode "   << fBeamMode << endl;

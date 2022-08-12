@@ -1,7 +1,7 @@
 #ifndef SNDLHCEVENTHEADER_H
 #define SNDLHCEVENTHEADER_H 1
 
-#include "FairEventHeader.h"
+#include <TNamed.h>
 #include "SNDLHCEventHeaderConst.h"
 
 #include <ctime>
@@ -11,7 +11,10 @@
 
 using namespace std;
 
-class SNDLHCEventHeader : public FairEventHeader
+/**
+ * Event header class based on FairEventHeader
+ */
+class SNDLHCEventHeader : public TNamed
 {
 
   public:
@@ -26,10 +29,18 @@ class SNDLHCEventHeader : public FairEventHeader
     virtual ~SNDLHCEventHeader();
 
     /** Setters **/
+    void SetRunId(uint64_t runid) { fRunId = runid; }
+    void SetEventTime(int64_t time) { fEventTime = time; }
+    void SetInputFileId(int id) { fInputFileId = id; }
+    void SetEventNumber(int id) { fEventNumber = id; }
     void SetUTCtimestamp(int64_t UTCtstamp) { fUTCtimestamp = UTCtstamp; };
     void SetFlags(uint64_t flags);
 
     /** Getters **/
+    uint64_t GetRunId() { return fRunId; }
+    int64_t GetEventTime() { return fEventTime; }
+    int GetInputFileId() { return fInputFileId; }
+    int GetEventNumber() { return fEventNumber; }
     string GetTimeAsString(); // GMT time
     int64_t GetUTCtimestamp() const { return fUTCtimestamp; }
     uint16_t GetFillNumber() const { return fFillNumber; }
@@ -43,10 +54,11 @@ class SNDLHCEventHeader : public FairEventHeader
     /** Output to screen **/
     virtual void Print(const Option_t* opt) const;
 
-    // Override FairEventHeader's Register
-    virtual void Register(Bool_t Persistance = kTRUE);
-
-  private:
+  protected:
+    uint64_t fRunId;
+    int64_t fEventTime;
+    int fInputFileId;
+    int fEventNumber;
     int64_t fUTCtimestamp;
     uint64_t fFlags;
     uint16_t fFillNumber;

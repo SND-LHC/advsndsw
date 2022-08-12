@@ -50,6 +50,7 @@ ConvRawData::ConvRawData()
     , fEventTree(nullptr)
     , boards{}
     , fEventHeader(nullptr)
+    , fSNDLHCEventHeader(nullptr)
     , fDigiSciFi(nullptr)
     , fDigiMuFilter(nullptr)
 {}
@@ -120,7 +121,7 @@ InitStatus ConvRawData::Init()
         fEventTree = (TTree*)f0->Get("data");
         // use sndlhc eventHeader class
         fSNDLHCEventHeader = new SNDLHCEventHeader();
-        fSNDLHCEventHeader->Register();   
+        ioman->Register("EventHeader", "sndEventHeader", fSNDLHCEventHeader, kTRUE);        
     }
      
     fDigiSciFi    = new TClonesArray("sndScifiHit");
@@ -156,6 +157,7 @@ InitStatus ConvRawData::Init()
     TStopwatch timerBMap;
     timerBMap.Start();
     DetMapping(set_path);
+    StartTimeofRun(set_path);
     timerBMap.Stop();
     LOG (info) << "Time to set the board mapping " << timerBMap.RealTime();
     
@@ -487,13 +489,13 @@ void ConvRawData::Process1()
      LOG (info) << "run " << frunNumber << " event " << eventNumber
                 << " local time " << ctime(&ttp);
   }
-  // cross-check name of flags branch FIXME   
+  
   fSNDLHCEventHeader->SetFlags(fEventTree->GetLeaf("evtFlags")->GetValue());
   fSNDLHCEventHeader->SetRunId(frunNumber);
   fSNDLHCEventHeader->SetEventTime(fEventTree->GetLeaf("evtTimestamp")->GetValue());
   fSNDLHCEventHeader->SetUTCtimestamp(fEventTree->GetLeaf("evtTimestamp")->GetValue()*6.23768*1e-9 + runStartUTC);
-  fSNDLHCEventHeader->SetMCEntryNumber(fEventTree->GetLeaf("evtNumber")->GetValue());
-  
+  fSNDLHCEventHeader->SetEventNumber(fEventTree->GetLeaf("evtNumber")->GetValue());
+
   LOG (info) << "evtNumber per run "
              << fEventTree->GetLeaf("evtNumber")->GetValue()
              << " evtNumber per partition: " << eventNumber
