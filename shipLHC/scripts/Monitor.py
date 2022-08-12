@@ -191,10 +191,10 @@ class Monitoring():
                self.clusScifi       = self.trackTask.clusScifi
    def GetEntries(self):
        if  self.options.online:
-         if  M.converter.newFormat:  return self.converter.fiN.Get('data').GetEntries()
+         if  self.converter.newFormat:  return self.converter.fiN.Get('data').GetEntries()
          else:                                   return self.converter.fiN.event.GetEntries()
        else:
-           return M.eventTree.GetEntries()
+           return self.eventTree.GetEntries()
 
    def updateSource(self,fname):
    # only needed in auto mode

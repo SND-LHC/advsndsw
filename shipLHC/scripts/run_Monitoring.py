@@ -57,6 +57,7 @@ options = parser.parse_args()
 options.slowStream = True
 options.startTime = ""
 options.dashboard = "/mnt/raid1/data_online/currently_processed_file.txt"
+options.monitorTag = ''
 if (options.auto and not options.interactive) or options.batch: ROOT.gROOT.SetBatch(True)
 
 def currentRun():
@@ -76,6 +77,8 @@ def currentRun():
                  curRun = tmp[len(tmp)-2]
                  curPart = tmp[len(tmp)-1]
                  start = Lcrun[1]
+                 options.monitorTag = ''
+                 if len(Lcrun)>3: options.monitorTag = 'monitoring_'
                  break
       return curRun,curPart,start
 
@@ -91,7 +94,8 @@ if options.auto:
                    time.sleep(30)
         options.runNumber = int(curRun.split('_')[1])
         lastRun = curRun
-        options.partition = 0   #   monitoring file set to data_0000.root   int(curPart.split('_')[1].split('.')[0])
+        if options.monitorTag == "":   options.partition = 0   #   monitoring file set to data_0000.root   int(curPart.split('_')[1].split('.')[0])
+        else:                                      options.partition = int(curPart.split('_')[1].split('.')[0])
 else:
    if options.runNumber < 0:
        print("run number required for non-auto mode")
@@ -205,9 +209,9 @@ else:
                if not options.interactive:  monitorTasks[m].Plot()
             print("run ",lastRun," has finished.")
             quit()  # reinitialize everything with new run number
-         if not curPart == lastPart and not options.slowStream:
+         if not curPart == lastPart and not (options.slowStream and options.monitorTag == ""):
             lastPart = curPart
-            lastFile = options.server+options.path+lastRun+"/"+ lastPart
+            lastFile = options.server+options.path+options.monitorTag+lastRun+"/"+ lastPart
             M.converter.fiN = ROOT.TFile.Open(lastFile)
          else:
             time.sleep(10) # sleep 10 seconds and check for new events
