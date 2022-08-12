@@ -368,7 +368,7 @@ class ConvRawDataPY(ROOT.FairTask):
      event.GetEvent(eventNumber)
      self.header.SetEventTime(event.evt_timestamp)
      # self.header.SetEventNumber(event.evt_number) #   for new event header
-     self.header.SetFlags(event.evt_flags)
+     # self.header.SetFlags(event.evt_flags)
      self.header.SetRunId( self.options.runNumber )
 
      indexSciFi=0
@@ -495,7 +495,7 @@ class ConvRawDataPY(ROOT.FairTask):
      event = self.fiN.event
      rc = event.GetEvent(eventNumber)
      # self.header.SetEventNumber(event.evt_number)  # for new event header
-     self.header.SetFlags(event.flags)
+     # self.header.SetFlags(event.flags)
      self.header.SetEventTime(event.timestamp)
      self.header.SetRunId( self.options.runNumber )
      self.header.SetInputFileId(self.geoVersion)
