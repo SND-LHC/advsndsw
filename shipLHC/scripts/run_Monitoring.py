@@ -172,11 +172,16 @@ else:
          if new file, finish run, publish histograms, and restart with new file
    """
    N0 = 0
-   lastPart = 0   #   reading from second low speed DAQ stream    tmp[len(tmp)-1]
+   if options.monitorTag == "": lastPart = 0   #   reading from second low speed DAQ stream    tmp[len(tmp)-1]
    nLast = options.nEvents
    nStart = nLast-options.Nlast
    if not options.interactive and options.sudo: M.updateHtml()
    lastFile = M.converter.fiN.GetName()
+   if not options.monitorTag == "":
+     tmp = lastFile.split('/')
+     lastRun  = tmp[len(tmp)-2].replace('monitoring_','')
+     lastPart = tmp[len(tmp)-1]
+
    M.updateSource(lastFile)
    while 1>0:
       for n in range(nStart,nLast):
