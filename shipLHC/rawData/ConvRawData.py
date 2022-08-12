@@ -235,7 +235,7 @@ class ConvRawDataPY(ROOT.FairTask):
        self.fSink  = self.outfile
        self.sTree = ROOT.TTree('rawConv','raw data converted')
        ROOT.gDirectory.pwd()
-       self.header  = ROOT.FairEventHeader()
+       self.header  = ROOT.SNDLHCEventHeader()
        eventSND  = self.sTree.Branch("EventHeader",self.header,32000,-1)
 
        self.digiSciFi   = ROOT.TClonesArray("sndScifiHit")
@@ -248,7 +248,7 @@ class ConvRawDataPY(ROOT.FairTask):
        B.SetName('BranchList')
        B.Add(ROOT.TObjString('sndScifiHit'))
        B.Add(ROOT.TObjString('MuFilterHit'))
-       B.Add(ROOT.TObjString('FairEventHeader'))
+       B.Add(ROOT.TObjString('SNDLHCEventHeader'))
        self.fSink.WriteObject(B,"BranchList", ROOT.TObject.kSingleKey)
        self.fSink.SetRunId(options.runNumber)
        self.fSink.SetOutTree(self.sTree)
@@ -367,8 +367,8 @@ class ConvRawDataPY(ROOT.FairTask):
      event = self.fiN.data
      event.GetEvent(eventNumber)
      self.header.SetEventTime(event.evt_timestamp)
-     #self.header.SetEventNumber(event.evt_number)  for new event header
-     #self.header.SetFlags(event.evt_flags)
+     self.header.SetEventNumber(event.evt_number)  for new event header
+     self.header.SetFlags(event.evt_flags)
      self.header.SetRunId( self.options.runNumber )
 
      indexSciFi=0
@@ -494,6 +494,8 @@ class ConvRawDataPY(ROOT.FairTask):
                print('run ',self.options.runNumber, ' event',eventNumber," ",time.ctime())
      event = self.fiN.event
      rc = event.GetEvent(eventNumber)
+     self.header.SetEventNumber(event.evt_number)  for new event header
+     self.header.SetFlags(event.flags)
      self.header.SetEventTime(event.timestamp)
      self.header.SetRunId( self.options.runNumber )
      self.header.SetInputFileId(self.geoVersion)
