@@ -367,7 +367,7 @@ class ConvRawDataPY(ROOT.FairTask):
      event = self.fiN.data
      event.GetEvent(eventNumber)
      self.header.SetEventTime(event.evt_timestamp)
-     self.header.SetEventNumber(event.evt_number)  for new event header
+     # self.header.SetEventNumber(event.evt_number) #   for new event header
      self.header.SetFlags(event.evt_flags)
      self.header.SetRunId( self.options.runNumber )
 
@@ -494,7 +494,7 @@ class ConvRawDataPY(ROOT.FairTask):
                print('run ',self.options.runNumber, ' event',eventNumber," ",time.ctime())
      event = self.fiN.event
      rc = event.GetEvent(eventNumber)
-     self.header.SetEventNumber(event.evt_number)  for new event header
+     # self.header.SetEventNumber(event.evt_number)  # for new event header
      self.header.SetFlags(event.flags)
      self.header.SetEventTime(event.timestamp)
      self.header.SetRunId( self.options.runNumber )
