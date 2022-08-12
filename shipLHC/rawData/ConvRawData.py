@@ -41,13 +41,13 @@ class ConvRawDataPY(ROOT.FairTask):
       ioman = self.ioman
 # open input file
       if options.auto:
-           self.fiN=ROOT.TFile.Open(server+options.path+"/data_monitoring/"+inFile)
+           mpath = options.path+options.monitorTag+'run_'+ runNr+'/'
+           self.fiN=ROOT.TFile.Open(server+mpath+inFile)
       else:
            self.fiN=ROOT.TFile.Open(server+path+inFile)
       self.nEvents = 1
       self.newFormat = True
-      if self.fiN.Get('event'):  self.newFormat = False # old format
-
+      if self.fiN.Get('event'):   self.newFormat = False # old format
       if not self.monitoring:
         if self.newFormat:
            if options.nEvents<0:  self.nEvents = self.fiN.data.GetEntries()
