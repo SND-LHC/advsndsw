@@ -235,7 +235,7 @@ class ConvRawDataPY(ROOT.FairTask):
        self.fSink  = self.outfile
        self.sTree = ROOT.TTree('rawConv','raw data converted')
        ROOT.gDirectory.pwd()
-       self.header  = ROOT.SNDLHCEventHeader()
+       self.header  = ROOT.FairEventHeader()
        eventSND  = self.sTree.Branch("EventHeader",self.header,32000,-1)
 
        self.digiSciFi   = ROOT.TClonesArray("sndScifiHit")
@@ -248,7 +248,7 @@ class ConvRawDataPY(ROOT.FairTask):
        B.SetName('BranchList')
        B.Add(ROOT.TObjString('sndScifiHit'))
        B.Add(ROOT.TObjString('MuFilterHit'))
-       B.Add(ROOT.TObjString('SNDLHCEventHeader'))
+       B.Add(ROOT.TObjString('FairEventHeader'))
        self.fSink.WriteObject(B,"BranchList", ROOT.TObject.kSingleKey)
        self.fSink.SetRunId(options.runNumber)
        self.fSink.SetOutTree(self.sTree)
