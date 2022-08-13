@@ -94,8 +94,8 @@ if options.auto:
                    time.sleep(30)
         options.runNumber = int(curRun.split('_')[1])
         lastRun = curRun
-        if options.monitorTag == "":   options.partition = 0   #   monitoring file set to data_0000.root   int(curPart.split('_')[1].split('.')[0])
-        else:                                      options.partition = int(curPart.split('_')[1].split('.')[0])
+        if options.slowStream:   options.partition = 0   #   monitoring file set to data_0000.root   int(curPart.split('_')[1].split('.')[0])
+        else:                             options.partition = int(curPart.split('_')[1].split('.')[0])
 else:
    if options.runNumber < 0:
        print("run number required for non-auto mode")
@@ -172,12 +172,12 @@ else:
          if new file, finish run, publish histograms, and restart with new file
    """
    N0 = 0
-   if options.monitorTag == "": lastPart = 0   #   reading from second low speed DAQ stream    tmp[len(tmp)-1]
+   if options.slowStream: lastPart = 0   #   reading from second low speed DAQ stream    tmp[len(tmp)-1]
    nLast = options.nEvents
    nStart = nLast-options.Nlast
    if not options.interactive and options.sudo: M.updateHtml()
    lastFile = M.converter.fiN.GetName()
-   if not options.monitorTag == "":
+   if not options.slowStream:
      tmp = lastFile.split('/')
      lastRun  = tmp[len(tmp)-2].replace('monitoring_','')
      lastPart = tmp[len(tmp)-1]
@@ -207,14 +207,14 @@ else:
          while curRun.find('run') < 0:
                curRun,curPart,options.startTime  =  currentRun()
                if curRun.find('run') < 0:  
-                   print("sleep 300sec.",time.ctime())
+                   print("sleep 300sec.",curRun,time.ctime())
                    time.sleep(300)
          if not curRun == lastRun:
             for m in monitorTasks:
                if not options.interactive:  monitorTasks[m].Plot()
             print("run ",lastRun," has finished.")
             quit()  # reinitialize everything with new run number
-         if not curPart == lastPart and not (options.slowStream and options.monitorTag == ""):
+         if not curPart == lastPart and not options.slowStream:
             lastPart = curPart
             lastFile = options.server+options.path+options.monitorTag+lastRun+"/"+ lastPart
             M.converter.fiN = ROOT.TFile.Open(lastFile)
