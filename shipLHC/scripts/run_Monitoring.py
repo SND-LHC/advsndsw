@@ -148,8 +148,8 @@ for m in monitorTasks:
 
 if not options.auto:   # default online/offline mode
    for n in range(options.nStart,options.nStart+options.nEvents):
-     if option.postScale>1:
-        if ROOT.gRandom.Rndm()>1./option.postScale: continue
+     if options.postScale>1:
+        if ROOT.gRandom.Rndm()>1./options.postScale: continue
      event = M.GetEvent(n)
      if not options.online:
         if n%options.heartBeat == 0:

@@ -70,8 +70,9 @@ class prodManager():
              self.runSinglePartition(path,runNr,str(p).zfill(4),EOScopy=True,check=True)
 
    def runDataQuality(self,latest):
-      monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py --server=$EOSSHIP \
-                        -b 100000 -p "+pathConv+" -g ../geofile_sndlhc_TI18_V2_12July2022.root --ScifiResUnbiased 1 --batch --sudo "
+      monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
+                        -b 100000 -p "+pathConv+" -g ../geofile_sndlhc_TI18_V2_12July2022.root "\
+                        +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
 
       dqDataFiles = []
       hList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/offline",shell=True) )
@@ -92,8 +93,8 @@ class prodManager():
           
       for r in self.runNrs: 
            print('executing DQ for run %i'%(r))
-           os.system(monitorCommand + " -r "+str(r)+" &")
-           while self.count_python_processes('run_Monitoring')>(ncpus-5) : time.sleep(1800)
+           os.system(monitorCommand.replace('XXXX',str(r))+" &")
+           while self.count_python_processes('run_Monitoring')>(ncpus-2) : time.sleep(1800)
 
    def check4NewFiles(self,latest):
       rawDataFiles = self.getFileList(path,latest,minSize=10E6)
@@ -260,6 +261,7 @@ if __name__ == '__main__':
     parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode checking regularly for new files",default=False,action='store_true')
     parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
     parser.add_argument("-g", dest="geofile", help="geometry and alignment",default="geofile_sndlhc_TI18.root")
+    parser.add_argument("--postScale", dest="postScale",help="post scale events, 1..10..100", default=-1,type=int)
 
     options = parser.parse_args()
     M = prodManager()
