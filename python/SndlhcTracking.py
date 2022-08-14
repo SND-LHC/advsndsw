@@ -375,6 +375,8 @@ class Tracking(ROOT.FairTask):
 
  def trackDir(self,theTrack):
       if theTrack.GetUniqueID()>1: return False # for the moment, only the scifi is time calibrated
+      fitStatus   = theTrack.getFitStatus()
+      if not fitStatus.isFitConverged() : return
       state = theTrack.getFittedState(0)
       pos = state.getPos()
 # start with first measurement
