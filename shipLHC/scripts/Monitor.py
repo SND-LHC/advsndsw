@@ -310,7 +310,9 @@ class Monitoring():
            if L.find("https://snd-lhc-monitoring.web.cern.ch/"+destination)>0 and not found:
               r = str(self.options.runNumber)
               Lnew = '            <li> <a href="https://snd-lhc-monitoring.web.cern.ch/'+destination+'/run.html?file=run'
-              Lnew+= self.runNr+'.root&lastcycle">run '+r+' </a>'+self.options.startTime  +'\n'
+              Lnew+= self.runNr+'.root&lastcycle">run '+r+' </a>'+self.options.startTime
+              if options.postScale>1: Lnew+="  post scaled:"+str(options.postScale)
+              Lnew+='\n'
               tmp.write(Lnew)
               found = True
            tmp.write(L)

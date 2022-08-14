@@ -27,7 +27,7 @@ parser.add_argument("-M", "--online", dest="online", help="online mode",default=
 parser.add_argument("--batch", dest="batch", help="batch mode",default=False,action='store_true')
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,default=-1)
-parser.add_argument("-p", "--path", dest="path", help="run number",required=False,default="")
+parser.add_argument("-p", "--path", dest="path", help="path to data",required=False,default="")
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
 parser.add_argument("-d", "--Debug", dest="debug", help="debug", default=False)
 parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_convRaw", help="convert raw data using ConvRawData FairTask", default=False)
@@ -52,6 +52,8 @@ parser.add_argument("--withTrack", dest="withTrack", action='store_true',default
 parser.add_argument("--nTracks", dest="nTracks",default=0,type=int)
 parser.add_argument("--save", dest="save", action='store_true',default=False)
 parser.add_argument("--interactive", dest="interactive", action='store_true',default=False)
+
+parser.add_argument("--postScale", dest="postScale",help="post scale events, 1..10..100", default=-1,type=int)
 
 options = parser.parse_args()
 options.slowStream = True
@@ -110,10 +112,9 @@ else:
             f.open(options.server+runDir+"/run_timestamps.json")
             status, jsonStr = f.read()
          exec("date = "+jsonStr.decode())
-         options.startTime = date['start_time']
+         options.startTime = date['start_time'].replace('Z','')
          if 'stop_time' in date:
-             options.startTime += " - "+ date['stop_time']
-         options.startTime.replace('Z','')
+             options.startTime += " - "+ date['stop_time'].replace('Z','')
 
 # prepare tasks:
 FairTasks = []
@@ -130,6 +131,7 @@ else:
 
 M = Monitor.Monitoring(options,FairTasks)
 if options.nEvents < 0 :   options.nEvents = M.GetEntries()
+if options.postScale==0 and options.nEvents>5E6: options.postScale = 10
 
 monitorTasks = {}
 if not options.fname:
@@ -146,6 +148,8 @@ for m in monitorTasks:
 
 if not options.auto:   # default online/offline mode
    for n in range(options.nStart,options.nStart+options.nEvents):
+     if option.postScale>1:
+        if ROOT.gRandom.Rndm()>1./option.postScale: continue
      event = M.GetEvent(n)
      if not options.online:
         if n%options.heartBeat == 0:
