@@ -68,35 +68,35 @@ InitStatus ConvRawData::Init()
         
     // Reading input - initiating parameters
     TObjString* runN_obj = dynamic_cast<TObjString*>(ioman->GetObject("runN"));
-    TObjString* path_obj = dynamic_cast<TObjString*>(ioman->GetObject("path"));// maybe static?
+    TObjString* pathCalib_obj = dynamic_cast<TObjString*>(ioman->GetObject("pathCalib"));
+    TObjString* pathJSON_obj = dynamic_cast<TObjString*>(ioman->GetObject("pathJSON"));
     TObjString* nEvents_obj = dynamic_cast<TObjString*>(ioman->GetObject("nEvents"));
     TObjString* nStart_obj = dynamic_cast<TObjString*>(ioman->GetObject("nStart"));
     TObjString* debug_obj = dynamic_cast<TObjString*>(ioman->GetObject("debug"));
     TObjString* stop_obj = dynamic_cast<TObjString*>(ioman->GetObject("stop"));
     TObjString* heartBeat_obj = dynamic_cast<TObjString*>(ioman->GetObject("heartBeat"));
-    TObjString* withGeoFile_obj = dynamic_cast<TObjString*>(ioman->GetObject("withGeoFile"));
     TObjString* makeCalibration_obj = dynamic_cast<TObjString*>(ioman->GetObject("makeCalibration"));
     TObjString* chi2Max_obj = dynamic_cast<TObjString*>(ioman->GetObject("chi2Max"));
     TObjString* saturationLimit_obj = dynamic_cast<TObjString*>(ioman->GetObject("saturationLimit"));
-    TObjString* online_obj = dynamic_cast<TObjString*>(ioman->GetObject("online"));
     TObjString* newFormat_obj = dynamic_cast<TObjString*>(ioman->GetObject("newFormat"));
+    TObjString* local_obj = dynamic_cast<TObjString*>(ioman->GetObject("local"));
     // Input raw data file is read from the FairRootManager
     // This allows to have it in custom format, e.g. have arbitary names of TTrees
     TFile* f0 = dynamic_cast<TFile*>(ioman->GetObject("rawData"));
     // Set run parameters
     std::istringstream(runN_obj->GetString().Data()) >> frunNumber;
-    fpath = path_obj->GetString().Data();
+    fpathCalib = pathCalib_obj->GetString().Data();
+    fpathJSON = pathJSON_obj->GetString().Data();
     std::istringstream(nEvents_obj->GetString().Data()) >> fnEvents;
     std::istringstream(nStart_obj->GetString().Data()) >> fnStart;
     std::istringstream(debug_obj->GetString().Data()) >> debug;
     std::istringstream(stop_obj->GetString().Data()) >> stop;
     std::istringstream(heartBeat_obj->GetString().Data()) >> fheartBeat;
-    std::istringstream(withGeoFile_obj->GetString().Data()) >> withGeoFile;
     std::istringstream(makeCalibration_obj->GetString().Data()) >> makeCalibration;
     std::istringstream(chi2Max_obj->GetString().Data()) >> chi2Max;
     std::istringstream(saturationLimit_obj->GetString().Data()) >> saturationLimit;
-    std::istringstream(online_obj->GetString().Data()) >> online;
     std::istringstream(newFormat_obj->GetString().Data()) >> newFormat;
+    std::istringstream(local_obj->GetString().Data()) >> local;
     
     if (!newFormat)
     { 
@@ -130,34 +130,16 @@ InitStatus ConvRawData::Init()
     ioman->Register("Digi_MuFilterHits", "DigiMuFilterHit_det", fDigiMuFilter, kTRUE);
     ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
     
-    local = false; 
-    
-    struct stat buffer;  
-    // Setting path to input data
-    string set_path;
-    if( fpath.find("eos") == string::npos || stat(fpath.c_str(), &buffer) == 0)
-    {
-      local = true;
-      set_path = fpath; 
-      LOG (info) <<"path to use: "<< set_path;
-    }
-    else
-    {
-      TString server = gSystem->Getenv("EOSSHIP");
-      set_path = server.Data()+fpath; 
-      LOG (info) <<"path to use: "<< set_path;
-    }
- 
     TStopwatch timerCSV;
     timerCSV.Start();
-    read_csv(set_path);
+    read_csv(fpathCalib);
     timerCSV.Stop();
     LOG (info) << "Time to read CSV " << timerCSV.RealTime();
     //calibrationReport();
     TStopwatch timerBMap;
     timerBMap.Start();
-    DetMapping(set_path);
-    StartTimeofRun(set_path);
+    DetMapping(fpathJSON);
+    StartTimeofRun(fpathJSON);
     timerBMap.Stop();
     LOG (info) << "Time to set the board mapping " << timerBMap.RealTime();
     

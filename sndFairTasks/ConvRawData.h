@@ -31,6 +31,9 @@ class ConvRawData : public FairTask
     /** Virtual method Exec **/
     virtual void Exec(Option_t* opt);
     
+    /** Update the number of first-to-process event **/
+    void UpdateStartEventNum(int n) { eventNumber = n; }
+
     private:
       /** Start time of run **/
       void StartTimeofRun(string path);
@@ -79,7 +82,6 @@ class ConvRawData : public FairTask
   
       Scifi* ScifiDet;
       TFile* fOut;
-      bool local;
       /** Input data **/
       TTree* fEventTree;
       // Board_x data
@@ -88,8 +90,8 @@ class ConvRawData : public FairTask
       int frunNumber;
       int fnStart, fnEvents;
       int fheartBeat;
-      int withGeoFile, debug, stop, makeCalibration, online, newFormat;
-      string fpath; 
+      int debug, stop, makeCalibration, local, newFormat;
+      string fpathCalib, fpathJSON; 
       int eventNumber;
       double chi2Max, saturationLimit;
       double runStartUTC;
