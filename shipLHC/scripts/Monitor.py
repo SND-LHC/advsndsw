@@ -311,7 +311,7 @@ class Monitoring():
               r = str(self.options.runNumber)
               Lnew = '            <li> <a href="https://snd-lhc-monitoring.web.cern.ch/'+destination+'/run.html?file=run'
               Lnew+= self.runNr+'.root&lastcycle">run '+r+' </a>'+self.options.startTime
-              if options.postScale>1: Lnew+="  post scaled:"+str(options.postScale)
+              if self.options.postScale>1: Lnew+="  post scaled:"+str(self.options.postScale)
               Lnew+='\n'
               tmp.write(Lnew)
               found = True
