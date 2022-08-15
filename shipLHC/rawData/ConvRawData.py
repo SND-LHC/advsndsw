@@ -358,8 +358,9 @@ class ConvRawDataPY(ROOT.FairTask):
        else:              self.executeEvent0(eventNumber)
    def executeEvent1(self,eventNumber):
      if self.options.FairTask_convRaw:
-          # needed to run conversion starting from a custom eventN 
-          if self.auto: self.run.GetTask("ConvRawData").UpdateStartEventNum(eventNumber)            
+          # update source and run conversion starting from a custom eventN 
+          if self.auto:              
+             self.run.GetTask("ConvRawData").UpdateInput(eventNumber)
           self.run.Run(self.options.nStart, self.nEvents)
           Fout = self.outfile.GetRootFile()
           self.sTree = Fout.Get('cbmsim')
@@ -489,8 +490,9 @@ class ConvRawDataPY(ROOT.FairTask):
                indexMuFilter+=1
    def executeEvent0(self,eventNumber):
      if self.options.FairTask_convRaw:
-          # needed to run conversion starting from a custom eventN 
-          if self.auto: self.run.GetTask("ConvRawData").UpdateStartEventNum(eventNumber)            
+          # update source and run conversion starting from a custom eventN 
+          if self.auto:              
+             self.run.GetTask("ConvRawData").UpdateInput(eventNumber)
           self.run.Run(self.options.nStart, self.nEvents)
           Fout = self.outfile.GetRootFile()
           self.sTree = Fout.Get('cbmsim')

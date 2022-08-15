@@ -164,6 +164,14 @@ void ConvRawData::Exec(Option_t* /*opt*/)
 
 }
 
+void ConvRawData::UpdateInput(int NewStart)
+{ 
+   fEventTree->Refresh();
+   if (!newFormat)
+      for (auto it : boards) boards[it.first]->Refresh();
+   eventNumber = NewStart; 
+}
+
 void ConvRawData::Process0()
 {   
   int indexSciFi{}, indexMuFilter{};

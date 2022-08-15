@@ -30,9 +30,9 @@ class ConvRawData : public FairTask
 
     /** Virtual method Exec **/
     virtual void Exec(Option_t* opt);
-    
-    /** Update the number of first-to-process event **/
-    void UpdateStartEventNum(int n) { eventNumber = n; }
+
+    /** Update input raw-data file and first-to-process event **/
+    void UpdateInput(int n);
 
     private:
       /** Start time of run **/
