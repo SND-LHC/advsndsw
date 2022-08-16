@@ -274,7 +274,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    if qdc < 0 and qdc > -900:  h[F][systems[system]][1]+=1
                    elif not qdc<0:   
                        h[F][systems[system]][0]+=1
-                       #h[F][systems[system]][2+side]+=qdc
+                       h[F][systems[system]][2+side]+=qdc
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     k = 1
