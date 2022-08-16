@@ -118,7 +118,7 @@ def getStartTime(runNumber):
                status, jsonStr = f.read()
                f.close()
       date = json.loads(jsonStr)
-      time_str = date['start_time']
+      time_str = date['start_time'].replace('Z','')
       time_obj = time.strptime(time_str, '%Y-%m-%dT%H:%M:%S')
       startTimeOfRun[runNumber] = time.mktime(time_obj)
       return startTimeOfRun[runNumber]
