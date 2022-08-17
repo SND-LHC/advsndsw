@@ -12,6 +12,7 @@ class ConvRawDataPY(ROOT.FairTask):
    def Init(self,options):
       self.debug        = options.debug
       self.monitoring = options.online
+      self.auto = options.auto
       local = False
       if (options.path.find('eos')<0 and options.server.find('root://')<0 and not options.online) or os.path.isdir(options.path):    local = True
       if local: server = ''
@@ -58,17 +59,17 @@ class ConvRawDataPY(ROOT.FairTask):
       print('converting ',self.nEvents,' events ',' of run',options.runNumber)
   # Pass input parameters to the task - runN, paths, etc.
       ioman.RegisterInputObject('runN', ROOT.TObjString(str(options.runNumber)))
-      ioman.RegisterInputObject('path', ROOT.TObjString(path))
+      ioman.RegisterInputObject('pathCalib', ROOT.TObjString(server+path))
+      ioman.RegisterInputObject('pathJSON', ROOT.TObjString(server+path))
       ioman.RegisterInputObject('nEvents', ROOT.TObjString(str(self.nEvents)))
       ioman.RegisterInputObject('nStart', ROOT.TObjString(str(options.nStart)))
       ioman.RegisterInputObject('debug', ROOT.TObjString(str(options.debug)))
       ioman.RegisterInputObject('stop', ROOT.TObjString(str(options.stop)))
       ioman.RegisterInputObject('heartBeat', ROOT.TObjString(str(options.heartBeat)))
-      ioman.RegisterInputObject('withGeoFile', ROOT.TObjString(str(int(options.withGeoFile))))
       ioman.RegisterInputObject('makeCalibration', ROOT.TObjString(str(int(options.makeCalibration))))
       ioman.RegisterInputObject('chi2Max', ROOT.TObjString(str(options.chi2Max)))
       ioman.RegisterInputObject('saturationLimit', ROOT.TObjString(str(options.saturationLimit)))
-      ioman.RegisterInputObject('online', ROOT.TObjString(str(int(options.online))))
+      ioman.RegisterInputObject('local', ROOT.TObjString(str(int(local))))
       ioman.RegisterInputObject('newFormat', ROOT.TObjString(str(int(self.newFormat))))
       self.options = options
       
@@ -357,6 +358,9 @@ class ConvRawDataPY(ROOT.FairTask):
        else:              self.executeEvent0(eventNumber)
    def executeEvent1(self,eventNumber):
      if self.options.FairTask_convRaw:
+          # update source and run conversion starting from a custom eventN 
+          if self.auto:              
+             self.run.GetTask("ConvRawData").UpdateInput(eventNumber)
           self.run.Run(self.options.nStart, self.nEvents)
           Fout = self.outfile.GetRootFile()
           self.sTree = Fout.Get('cbmsim')
@@ -486,6 +490,9 @@ class ConvRawDataPY(ROOT.FairTask):
                indexMuFilter+=1
    def executeEvent0(self,eventNumber):
      if self.options.FairTask_convRaw:
+          # update source and run conversion starting from a custom eventN 
+          if self.auto:              
+             self.run.GetTask("ConvRawData").UpdateInput(eventNumber)
           self.run.Run(self.options.nStart, self.nEvents)
           Fout = self.outfile.GetRootFile()
           self.sTree = Fout.Get('cbmsim')
