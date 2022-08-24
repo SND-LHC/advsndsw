@@ -393,7 +393,7 @@ class Tracking(ROOT.FairTask):
       T0track = aCl.GetTime() - L0
       TZero    = aCl.GetTime()
       Z0track = pos[2]
-      Tline = ROOT.TGraph()
+      self.Tline = ROOT.TGraph()
       for nM in range(theTrack.getNumPointsWithMeasurement()):
             state   = theTrack.getFittedState(nM)
             posM   = state.getPos()
@@ -408,11 +408,12 @@ class Tracking(ROOT.FairTask):
             else: X = A-posM
             L = X.Mag()/self.scifi_vsignal
          # need to correct for signal propagation along fibre
-            dT = aCl.GetTime() - L - T0track - (posM[2] -Z0track)/u.speedOfLight
+            corTime = self.scifiDet.GetCorrectedTime(detID, aCl.GetTime(), 0)
+            dT = corTime - L - T0track - (posM[2] -Z0track)/u.speedOfLight
             dZ = posM[2] - Z0track
-            Tline.AddPoint(dZ,dT)
-      rc = Tline.Fit('pol1','SQ')
+            self.Tline.AddPoint(dZ,dT)
+      rc = self.Tline.Fit('pol1','SQ')
       fitResult =  rc.Get()
       slope = fitResult.Parameter(1)
-      return [slope,slope/fitResult.ParError(1)]
+      return [slope,slope/(fitResult.ParError(1)+1E-13)]
 
