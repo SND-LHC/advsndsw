@@ -21,6 +21,7 @@ parser = ArgumentParser()
 parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode online monitoring",default=False,action='store_true')
 parser.add_argument("--Nupdate", dest="Nupdate", help="frequence of updating online plots",default=100,type=int)
 parser.add_argument("--Nlast",      dest="Nlast", help="last N events to analyze on file",default=10,type=int)
+parser.add_argument("--Cosmics",      dest="cosmics", help="use default data stream if no beam",action='store_true',default=False)
 parser.add_argument("--sudo", dest="sudo", help="update files on EOS",default=False,action='store_true')
 
 parser.add_argument("-M", "--online", dest="online", help="online mode",default=False,action='store_true')
@@ -57,6 +58,7 @@ parser.add_argument("--postScale", dest="postScale",help="post scale events, 1..
 
 options = parser.parse_args()
 options.slowStream = True
+if options.cosmics: options.slowStream = False
 options.startTime = ""
 options.dashboard = "/mnt/raid1/data_online/currently_processed_file.txt"
 options.monitorTag = ''
@@ -195,7 +197,7 @@ else:
         for m in monitorTasks:
            monitorTasks[m].ExecuteEvent(M.eventTree)
 # update plots
-        if N0%options.Nupdate==0:
+        if N0%options.Nupdate==0 or N0==int(options.Nupdate/10):
            for m in monitorTasks:
                monitorTasks[m].Plot()
            if options.sudo: M.publishRootFile()
