@@ -67,6 +67,7 @@ class Time_evolution(ROOT.FairTask):
        self.M = monitor
        h = self.M.h
        self.gtime = []
+       self.gtimeWt = []
        self.QDCtime = {0:ROOT.TGraph(),1:ROOT.TGraph(),2:ROOT.TGraph(),3:ROOT.TGraph()}
 
        # 8*2*2*8 + 10*5*2*8 + 60*3*2 + 60*4
@@ -100,6 +101,7 @@ class Time_evolution(ROOT.FairTask):
             if theTrack.GetUniqueID()!=1: continue
             SL = trackTask.trackDir(theTrack)
             if not SL: continue
+            self.gtimeWt.append(T/self.M.freq)
             rc = h['trackDir'].Fill(SL[0])
             rc = h['trackDirSig'].Fill(SL[1])
             if abs(SL[0])<0.03:  direction = 1
@@ -154,14 +156,17 @@ class Time_evolution(ROOT.FairTask):
        if 'time' in h: 
           h.pop('time').Delete()
        ut.bookHist(h,'time','elapsed time from start; t [s];'+yunit,nbins,0,tmax)
+       ut.bookHist(h,'timeWt','elapsed time from start, events with tracks; t [s];'+yunit,nbins,0,tmax)
        ut.bookHist(h,'Etime','delta event time; dt [s]',100,0.0,1.)
        ut.bookHist(h,'EtimeZ','delta event time; dt [us]',10000,0.0,100.)
-       ut.bookCanvas(h,'T','rates',1024,3*768,1,3)
+       ut.bookCanvas(h,'T','rates',1024,3*768,1,4)
        for n in range(1,len(gtime)):
            dT = gtime[n]-gtime[n-1]
            rc = h['Etime'].Fill( dT )
            rc = h['EtimeZ'].Fill( dT*1E6)
            rc = h['time'].Fill(gtime[n-1]-T0)
+       for n in range(1,len(gtimeWt)):
+           rc = h['timeWt'].Fill(gtimeWt[n-1]-T0)
 # time evolution of boards
        ut.bookHist(h,'boardVStime','board vs time; t [s];'+yunit,nbins,0,tmax,len(self.boardsVsTime),0.5,len(self.boardsVsTime)+0.5)
        boards = list(self.boardsVsTime.keys())
@@ -290,13 +295,16 @@ class Time_evolution(ROOT.FairTask):
        h['time'].SetStats(0)
        h['time'].Draw()
        tc = h['T'].cd(2)
+       h['timeWt'].SetStats(0)
+       h['timeWt'].Draw()
+       tc = h['T'].cd(3)
        tc.SetLogy(1)
        h['EtimeZ'].Draw()
        #rc = h['EtimeZ'].Fit('expo','S','',0.,250.)
        h['T'].Update()
        stats = h['EtimeZ'].FindObject('stats')
        stats.SetOptFit(1111111)
-       tc = h['T'].cd(3)
+       tc = h['T'].cd(4)
        tc.SetLogy(1)
        h['Etime'].Draw()
        #rc = h['Etime'].Fit('expo','S')
