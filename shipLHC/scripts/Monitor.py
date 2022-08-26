@@ -308,7 +308,8 @@ class Monitoring():
       found = False
       for L in oldL:
            if not L.find(self.runNr)<0: return
-           if L.find("https://snd-lhc-monitoring.web.cern.ch/"+destination)>0 and not found:
+      for L in oldL:
+           if L.find("https://snd-lhc-monitoring.web.cern.ch/"+destination)>0 and L.find('#events')>0:
               r = str(self.options.runNumber)
               Lnew = '            <li> <a href="https://snd-lhc-monitoring.web.cern.ch/'+destination+'/run.html?file=run'
               Lnew+= self.runNr+'.root&lastcycle">run '+r+' </a>'+self.options.startTime
