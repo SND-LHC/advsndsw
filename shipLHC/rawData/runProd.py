@@ -78,6 +78,7 @@ class prodManager():
       hList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/offline",shell=True) )
       for x in hList.split('\\n'):
           if x.find('root')<0: continue
+          if x.find('run')!=0: continue
           run = x.split('/')[-1]
           dqDataFiles.append(int(run[3:9]))
       convDataFiles = self.getFileList(pathConv,latest,minSize=0)
@@ -124,7 +125,7 @@ class prodManager():
        if not fI:
          print('file not found',path,r,p)
          exit()
-       if not fI.Get('event'):
+       if not fI.Get('event') and not fI.Get('data'):
          print('file corrupted',path,r,p)
          exit()
        command =   "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py  -r "+str(int(r))+ " -b 1000 -p "+path+" --server="+self.options.server
@@ -148,7 +149,8 @@ class prodManager():
       print('checkfile',path,r,p)
       inFile = self.options.server+path+'run_'+ r+'/data_'+p+'.root'
       fI = ROOT.TFile.Open(inFile)
-      Nraw = fI.event.GetEntries()
+      if fI.Get('event'): Nraw = fI.event.GetEntries()
+      else: Nraw = fI.data.GetEntries()
       outFile = 'sndsw_raw_'+r+'-'+p+self.Mext+'.root'
       fC = ROOT.TFile(outFile)
       test = fC.Get('rawConv')
@@ -188,22 +190,38 @@ class prodManager():
 
    def getFileList(self,p,latest,minSize=10E6):
       inventory = {}
-      dirList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+p,shell=True) )
+      dirList = str( subprocess.check_output("xrdfs "+self.options.server+" ls "+p,shell=True) )
       for x in dirList.split('\\n'):
           aDir = x[x.rfind('/')+1:]
           if not aDir.find('run')==0:continue
           runNr = int(aDir.split('_')[1])
           if not runNr > latest: continue
-          fileList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls -l "+p+"/"+aDir,shell=True) )
+          fileList = str( subprocess.check_output("xrdfs "+self.options.server+" ls -l "+p+"/"+aDir,shell=True) )
           for z in fileList.split('\\n'):
-               k = max(z.find('data_'),z.find('sndsw'))
-               if not k>0: continue
-               j = z.split(' /eos')[0].rfind(' ')
-               size = int(z.split(' /eos')[0][j+1:])
+               jj=0
+               if self.options.server.find('snd-server')>0:
+                  jj = 3
+                  k = z.rfind('data_')
+                  if not k>0: continue
+                  if not z[k+9:k+10]=='.': continue
+                  first = False
+                  for x in z.split(' '):
+                     if x=='': continue
+                     if not first and x=='sndecs': first = True
+                     if first and not x=='sndecs': 
+                       size = int(x)
+                       break
+               else:
+                  k = max(z.find('data_'),z.find('sndsw'))
+                  if not k>0: continue
+                  j = z.split(' /eos')[0].rfind(' ')
+                  size = int(z.split(' /eos')[0][j+1:])
                if size<minSize: continue
-               tmp = z.split(' ')
-               theDay = tmp[1] 
-               theTime = tmp[2]
+               tmp = []
+               for o in z.split(' '):
+                  if not o=='': tmp.append(o)
+               theDay = tmp[1+jj] 
+               theTime = tmp[2+jj]
                fname = z[k:]
                run = int(aDir.split('_')[1])
                if run>900000: continue     # not a physical run
@@ -215,6 +233,26 @@ class prodManager():
                inventory[run*10000+partition] = [aDir+"/"+fname,gmt]
       return inventory
 
+   def checkEOS(self,copy=False):
+       self.eosInventory = self.getFileList('/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/',4570)
+       self.options.server = "root://snd-server-1.cern.ch/"
+       self.daqInventory = self.getFileList('/mnt/raid1/data_online/',4570)
+       self.missing = {}
+       for r in self.daqInventory:
+            if not r in self.eosInventory:
+               p = r%10000
+               run = r//10000
+               if not run in self.missing: self.missing[run]=[]
+               self.missing[run].append(p)
+       if copy:
+          for r in self.missing:
+               dirname ='run_'+str(r).zfill(6)
+               for p in self.missing[r]:
+                   filename = 'data_'+str(p).zfill(4)+'.root'
+                   source = '/mnt/raid1/data_online/'+dirname+'/'+filename
+                   target = '/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/'+dirname+'/'+filename
+                   os.system("xrdcp -f "+source+" "+os.environ['EOSSHIP']+target)
+       
    def getConvStats(self,runList):
      for run in runList:
        try: 
@@ -227,7 +265,8 @@ class prodManager():
       for run in runList:
          runNr   = str(run).zfill(6)
          r = ROOT.TFile.Open(os.environ['EOSSHIP']+path+"/run_"+runNr+"/data.root")
-         raw = r.event.GetEntries()
+         if fI.Get('event'): raw = r.event.GetEntries()
+         else:               raw = r.data.GetEntries()
          print(run,':',raw)
 
    def makeHistos(self,runList):
