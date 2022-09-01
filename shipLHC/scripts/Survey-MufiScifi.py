@@ -4,6 +4,7 @@ import ROOT,os,subprocess
 import atexit
 import time
 import ctypes
+import pickle
 from array import array
 # for fixing a root bug,  will be solved in the forthcoming 6.26 release.
 ROOT.gInterpreter.Declare("""
@@ -1145,9 +1146,16 @@ def USshower(Nev=options.nEvents):
 
 def USDSEnergy(Nev=options.nEvents,nproc=15):
 #
-    ut.bookHist(h,'energy23','tot energy in DS vs US',                        300,0.,15000,250,0.,20000.)
-    ut.bookHist(h,'Tenergy23','tot energy in DS vs US eith scifi track',300,0.,15000,250,0.,20000.)
+    for b in ['','lb1','lip1','lb2']:
+       ut.bookHist(h,'energy23'+b,'tot energy in DS vs US; US tot.QDC;DS tot.QDC ',                        300,0.,15000,250,0.,20000.)
+       ut.bookHist(h,'Tenergy23'+b,'tot energy in DS vs US with scifi track; US tot.QDC;DS tot.QDC',300,0.,15000,250,0.,20000.)
+       ut.bookHist(h,'Denergy23'+b,'tot energy in DS vs US with DS track; US tot.QDC;DS tot.QDC',300,0.,15000,250,0.,20000.)
 #
+    p = open("FSdict.pkl",'rb')
+    FSdict = pickle.load(p)
+    if options.runNumber in FSdict: fsdict = FSdict[options.runNumber]
+    else:  fsdict = False
+
     if Nev < 0 : Nev = eventTree.GetEntries()
     N=0
     process = []
@@ -1170,11 +1178,32 @@ def USDSEnergy(Nev=options.nEvents,nproc=15):
        for k in range(nstart,nstop):
         event = eventTree
         eventTree.GetEvent(k)
+# check for b1,b2,IP1,IP2
+        if fsdict:
+             bunchNumber = eventTree.EventHeader.GetEventTime()%(4*3564)//4
+             nb1 = (3564 + bunchNumber - fsdict['phaseShift1'])%3564
+             nb2 = (3564 + bunchNumber - fsdict['phaseShift1']- fsdict['phaseShift2'])%3564
+             b1 = nb1 in fsdict['B1']
+             b2 = nb2 in fsdict['B2']
+             IP1 = False
+             IP2 = False
+             if b1:
+                IP1 =  fsdict['B1'][nb1]['IP1']
+             if b2:
+                IP2 =  fsdict['B2'][nb2]['IP2']
+        # look for isolated bunch types
+        lb1 = False
+        if b1 and not b2: lb1 = True 
+        lip1 = False
+        if lb1 and IP1: lip1 = True 
+        lb2 = False
+        if b2 and not b1: lb2 = True 
+
         N+=1
         if N>Nev: break
         for aTrack in Reco_MuonTracks: aTrack.Delete()
         Reco_MuonTracks.Clear()
-        rc = trackTask.ExecuteTask("Scifi")
+        rc = trackTask.ExecuteTask("DSScifi")
         Etot = {2:0,3:0}
         for aHit in eventTree.Digi_MuFilterHits:
            if not aHit.isValid(): continue
@@ -1184,7 +1213,29 @@ def USDSEnergy(Nev=options.nEvents,nproc=15):
            S = map2Dict(aHit,'SumOfSignals')
            Etot[s]+=S['Sum']
         rc = h['energy23'].Fill(Etot[2],Etot[3])
-        if Reco_MuonTracks.GetEntries()==1: rc = h['Tenergy23'].Fill(Etot[2],Etot[3])
+        if lb1: rc = h['energy23lb1'].Fill(Etot[2],Etot[3])
+        if lb2: rc = h['energy23lb2'].Fill(Etot[2],Etot[3])
+        if lip1: rc = h['energy23lip1'].Fill(Etot[2],Etot[3])
+        trackTypes = [0,0]
+        for t in Reco_MuonTracks:
+          for aTrack in Reco_MuonTracks:
+            if aTrack.GetUniqueID()==1: trackTypes[0]+=1
+            else: trackTypes[1]+=1
+        if trackTypes[0]==1: 
+             rc = h['Tenergy23'].Fill(Etot[2],Etot[3])
+             if lb1: rc = h['Tenergy23lb1'].Fill(Etot[2],Etot[3])
+             if lb2: rc = h['Tenergy23lb2'].Fill(Etot[2],Etot[3])
+             if lip1: rc = h['Tenergy23lip1'].Fill(Etot[2],Etot[3])
+        if trackTypes[1]==1: 
+             rc = h['Denergy23'].Fill(Etot[2],Etot[3])
+             if lb1: rc = h['Denergy23lb1'].Fill(Etot[2],Etot[3])
+             if lb2: rc = h['Denergy23lb2'].Fill(Etot[2],Etot[3])
+             if lip1: rc = h['Denergy23lip1'].Fill(Etot[2],Etot[3])
+        if Etot[2]>5000 and Etot[3]>5000: 
+            print("HE",nstart,k,eventTree.GetChainOffset(),eventTree.GetCurrentFile().GetName(),Etot[2],Etot[3],lb1,lb2,lip1)
+        if Etot[2]<800 and Etot[3]>2000 and trackTypes[0]==1: 
+            print("DIS",nstart,k,eventTree.GetChainOffset(),eventTree.GetCurrentFile().GetName(),Etot[2],Etot[3],lb1,lb2,lip1)
+
        ut.writeHists(h,'tmp_'+str(i))
        exit(0)
 #
@@ -1197,6 +1248,29 @@ def USDSEnergy(Nev=options.nEvents,nproc=15):
     for i in range(nproc):
       ut.readHists(h,'tmp_'+str(i))
     print('i am finished')
+    ut.writeHists(h,"USDSEnergy-"+str(options.runNumber+".root"))
+# plot
+    for b in ['','lb1','lip1','lb2']:
+       ut.bookCanvas(h,'tc1'+b,'USDS Energy',2400,1800,3,2)
+       tc = h['tc1'+b].cd(1)
+       tc.SetLogz()
+       h['energy23'+b].Draw('colz')
+       tc = h['tc1'+b].cd(2)
+       tc.SetLogy()
+       h['energy23'+b].ProjectionX().Draw()
+       tc = h['tc1'+b].cd(3)
+       tc.SetLogy()
+       h['energy23'+b].ProjectionY().Draw()
+       tc = h['tc1'+b].cd(4)
+       tc.SetLogz()
+       h['Tenergy23'+b].Draw('colz')
+       tc = h['tc1'+b].cd(5)
+       tc.SetLogy()
+       h['Tenergy23'+b].ProjectionX().Draw()
+       tc = h['tc1'+b].cd(6)
+       tc.SetLogy()
+       h['Tenergy23'+b].ProjectionY().Draw()
+
     return
 
 def Mufi_Efficiency(Nev=options.nEvents,optionTrack=options.trackType,withReco='True',NbinsRes=100,X=10.):
