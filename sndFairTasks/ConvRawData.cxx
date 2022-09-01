@@ -139,7 +139,7 @@ InitStatus ConvRawData::Init()
     TStopwatch timerBMap;
     timerBMap.Start();
     DetMapping(fpathJSON);
-    StartTimeofRun(fpathJSON);
+    if (newFormat) StartTimeofRun(fpathJSON);
     timerBMap.Stop();
     LOG (info) << "Time to set the board mapping " << timerBMap.RealTime();
     
