@@ -35,7 +35,7 @@ parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_
 parser.add_argument( "--withCalibration", action='store_true', dest="makeCalibration", help="make QDC and TDC calibration, not taking from raw data", default=False)
 
 parser.add_argument("-f", "--inputFile", dest="fname", help="file name for MC", type=str,default=None,required=False)
-parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=True)
+parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=False,default=False)
 parser.add_argument("-b", "--heartBeat", dest="heartBeat", help="heart beat", default=10000,type=int)
 parser.add_argument("-c", "--command", dest="command", help="command", default="")
 parser.add_argument("-n", "--nEvents", dest="nEvents", help="number of events", default=-1,type=int)
@@ -63,6 +63,17 @@ options.startTime = ""
 options.dashboard = "/mnt/raid1/data_online/currently_processed_file.txt"
 options.monitorTag = ''
 if (options.auto and not options.interactive) or options.batch: ROOT.gROOT.SetBatch(True)
+
+# if no geofile given, use defaults according to run number
+if options.runNumber < 0  and not options.geoFile: 
+     print('No run number given and no geoFile. Do not know what to do. Exit.')
+     exit()
+if not options.geoFile:
+     if options.runNumber < 4620:
+           geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
+     if options.runNumber > 4619:
+          geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+# to be extended for future new alignments.
 
 def currentRun():
       with client.File() as f:
@@ -133,6 +144,7 @@ else:
 
 M = Monitor.Monitoring(options,FairTasks)
 if options.nEvents < 0 :   options.nEvents = M.GetEntries()
+if options.postScale==0 and options.nEvents>5E7: options.postScale = 100
 if options.postScale==0 and options.nEvents>5E6: options.postScale = 10
 
 monitorTasks = {}
