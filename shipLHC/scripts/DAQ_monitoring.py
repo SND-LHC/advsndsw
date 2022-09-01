@@ -148,6 +148,7 @@ class Time_evolution(ROOT.FairTask):
    def Plot(self):
        h = self.M.h
        gtime = self.gtime
+       gtimeWt = self.gtimeWt
        T0       = gtime[0]
        tmax   = gtime[len(gtime)-1] - T0
        nbins  = int(tmax)

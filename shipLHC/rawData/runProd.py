@@ -82,7 +82,7 @@ class prodManager():
           if run.find('run')!=0: continue
           dqDataFiles.append(int(run[3:9]))
       convDataFiles = self.getFileList(pathConv,latest,minSize=0)
-      checkEOS(copy=False)
+      self.checkEOS(copy=False)
       # remove directories which are not complete
       for r in self.missing:
              if r in convDataFiles: convDataFiles.pop(r)
