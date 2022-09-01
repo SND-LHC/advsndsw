@@ -71,17 +71,22 @@ class prodManager():
 
    def runDataQuality(self,latest):
       monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
-                        -b 100000 -p "+pathConv+" -g ../geofile_sndlhc_TI18_V2_12July2022.root "\
+                        -b 100000 -p "+pathConv+" -g GGGG "\
                         +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
 
       dqDataFiles = []
       hList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/offline",shell=True) )
       for x in hList.split('\\n'):
           if x.find('root')<0: continue
-          if x.find('run')!=0: continue
           run = x.split('/')[-1]
+          if run.find('run')!=0: continue
           dqDataFiles.append(int(run[3:9]))
       convDataFiles = self.getFileList(pathConv,latest,minSize=0)
+      checkEOS(copy=False)
+      # remove directories which are not complete
+      for r in self.missing:
+             if r in convDataFiles: convDataFiles.pop(r)
+
       orderedCDF = list(convDataFiles.keys())
       lpruns = self.list_of_runs('run_Monitoring')
       print(lpruns)
@@ -94,7 +99,9 @@ class prodManager():
           
       for r in self.runNrs: 
            print('executing DQ for run %i'%(r))
-           os.system(monitorCommand.replace('XXXX',str(r))+" &")
+           if r  < 4620:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
+           if r > 4619:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+           os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
            while self.count_python_processes('run_Monitoring')>(ncpus-2) : time.sleep(1800)
 
    def check4NewFiles(self,latest):
@@ -110,6 +117,7 @@ class prodManager():
            if x in lpruns: continue
            r = x//10000 
            p = x%10000
+           if r==4541 and p==38: continue   # corrupted raw data file
            print('executing run %i and partition %i'%(r,p))
            self.runSinglePartition(path,str(r).zfill(6),str(p).zfill(4),EOScopy=True,check=True)
 
@@ -234,9 +242,9 @@ class prodManager():
       return inventory
 
    def checkEOS(self,copy=False):
-       self.eosInventory = self.getFileList('/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/',4570)
+       self.eosInventory = self.getFileList('/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/',4361)
        self.options.server = "root://snd-server-1.cern.ch/"
-       self.daqInventory = self.getFileList('/mnt/raid1/data_online/',4570)
+       self.daqInventory = self.getFileList('/mnt/raid1/data_online/',4361)
        self.missing = {}
        for r in self.daqInventory:
             if not r in self.eosInventory:
