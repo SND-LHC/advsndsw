@@ -39,6 +39,7 @@ sndCluster::sndCluster(Int_t first, Int_t N,std::vector<sndScifiHit*> hitlist,Sc
 sndCluster::sndCluster(Int_t first, Int_t N,std::vector<MuFilterHit*> hitlist,MuFilter* MuDet, Bool_t withQDC)
   :TObject(),
 	fType(1),
+	fTime(999),
 	fFirst(first),
 	fN(N)
 {
