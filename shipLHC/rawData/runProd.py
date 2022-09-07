@@ -243,8 +243,10 @@ class prodManager():
 
    def checkEOS(self,copy=False):
        self.eosInventory = self.getFileList('/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/',4361)
+       tmp = self.options.server 
        self.options.server = "root://snd-server-1.cern.ch/"
        self.daqInventory = self.getFileList('/mnt/raid1/data_online/',4361)
+       self.options.server = tmp
        self.missing = {}
        for r in self.daqInventory:
             if not r in self.eosInventory:
