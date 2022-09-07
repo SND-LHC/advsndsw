@@ -308,8 +308,7 @@ class Monitoring():
       found = False
       for L in oldL:
            if not L.find(self.runNr)<0: return
-      for L in oldL:
-           if L.find("https://snd-lhc-monitoring.web.cern.ch/"+destination)>0 and L.find('#events')>0:
+           if L.find("https://snd-lhc-monitoring.web.cern.ch/"+destination+"/run.html?file=run")>0 and not found:
               r = str(self.options.runNumber)
               Lnew = '            <li> <a href="https://snd-lhc-monitoring.web.cern.ch/'+destination+'/run.html?file=run'
               Lnew+= self.runNr+'.root&lastcycle">run '+r+' </a>'+self.options.startTime
@@ -319,11 +318,13 @@ class Monitoring():
               found = True
            tmp.write(L)
       tmp.close()
+      os.system('cp '+destination+'.html '+destination+time.ctime().replace(' ','')+'.html ')  # make backup
       os.system('cp tmp.html '+destination+'.html')
       try:
             rc = os.system("xrdcp -f "+destination+".html  "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
       except:
             print("copy of html failed. Token expired?")
+
    def cleanUpHtml(self,destination="online"):
       rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/"+destination+".html  . ")
       old = open(destination+".html")
