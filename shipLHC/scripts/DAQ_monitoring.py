@@ -67,7 +67,7 @@ class Time_evolution(ROOT.FairTask):
        self.M = monitor
        h = self.M.h
        self.gtime = []
-       self.gtimeWt = []
+       self.gtimeWt = {1:[],3:[]}
        self.QDCtime = {0:ROOT.TGraph(),1:ROOT.TGraph(),2:ROOT.TGraph(),3:ROOT.TGraph()}
 
        # 8*2*2*8 + 10*5*2*8 + 60*3*2 + 60*4
@@ -96,12 +96,15 @@ class Time_evolution(ROOT.FairTask):
 
        trackTask = self.M.FairTasks['simpleTracking']
        direction = 0
+       DStrack = False
        for theTrack in self.M.Reco_MuonTracks:
-            if not theTrack.getFitStatus().isFitConverged(): continue
-            if theTrack.GetUniqueID()!=1: continue
+            if not theTrack.getFitStatus().isFitConverged() and theTrack.GetUniqueID()==1: continue
+            if theTrack.GetUniqueID()!=1: 
+                DStrack = True
+                continue
             SL = trackTask.trackDir(theTrack)
             if not SL: continue
-            self.gtimeWt.append(T/self.M.freq)
+            self.gtimeWt[1].append(T/self.M.freq)
             rc = h['trackDir'].Fill(SL[0])
             rc = h['trackDirSig'].Fill(SL[1])
             if abs(SL[0])<0.03:  direction = 1
@@ -109,7 +112,7 @@ class Time_evolution(ROOT.FairTask):
        rc = h['bnr'].Fill( (T%(4*3564))/4)
        if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4)
        elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4)
-
+       if DStrack: self.gtimeWt[3].append(T/self.M.freq)
        qdc = {0:0,1:0,2:0,3:0}
        
        for aHit in event.Digi_MuFilterHits:
@@ -157,7 +160,8 @@ class Time_evolution(ROOT.FairTask):
        if 'time' in h: 
           h.pop('time').Delete()
        ut.bookHist(h,'time','elapsed time from start; t [s];'+yunit,nbins,0,tmax)
-       ut.bookHist(h,'timeWt','elapsed time from start, events with tracks; t [s];'+yunit,nbins,0,tmax)
+       ut.bookHist(h,'timeWt','events with Scifi(red) DS(cyan) tracks; elapsed time from start t [s];'+yunit,nbins,0,tmax)
+       ut.bookHist(h,'timeWtDS','elapsed time from start, events with DS tracks; t [s];'+yunit,nbins,0,tmax)
        ut.bookHist(h,'Etime','delta event time; dt [s]',100,0.0,1.)
        ut.bookHist(h,'EtimeZ','delta event time; dt [us]',10000,0.0,100.)
        ut.bookCanvas(h,'T','rates',1024,3*768,1,4)
@@ -166,8 +170,10 @@ class Time_evolution(ROOT.FairTask):
            rc = h['Etime'].Fill( dT )
            rc = h['EtimeZ'].Fill( dT*1E6)
            rc = h['time'].Fill(gtime[n-1]-T0)
-       for n in range(1,len(gtimeWt)):
-           rc = h['timeWt'].Fill(gtimeWt[n-1]-T0)
+       K = {1:'',3:'DS'}
+       for k in [1,3]:
+         for n in range(1,len(gtimeWt[k])):
+             rc = h['timeWt'+K[k]].Fill(gtimeWt[k][n-1]-T0)
 # time evolution of boards
        ut.bookHist(h,'boardVStime','board vs time; t [s];'+yunit,nbins,0,tmax,len(self.boardsVsTime),0.5,len(self.boardsVsTime)+0.5)
        boards = list(self.boardsVsTime.keys())
@@ -297,7 +303,14 @@ class Time_evolution(ROOT.FairTask):
        h['time'].Draw()
        tc = h['T'].cd(2)
        h['timeWt'].SetStats(0)
+       h['timeWt'].SetLineColor(ROOT.kRed)
+       h['timeWtDS'].SetStats(0)
+       h['timeWtDS'].SetLineColor(ROOT.kCyan)
+       mx = max( h['timeWt'].GetBinContent(h['timeWtDS'].GetMaximumBin()),\
+                         h['timeWtDS'].GetBinContent(h['timeWtDS'].GetMaximumBin()) )
+       h['timeWt'].SetMaximum(mx)
        h['timeWt'].Draw()
+       h['timeWtDS'].Draw('same')
        tc = h['T'].cd(3)
        tc.SetLogy(1)
        h['EtimeZ'].Draw()
