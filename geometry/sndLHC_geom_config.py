@@ -259,6 +259,22 @@ with ConfigRegistry.register_config("basic") as c:
         c.MuFilter.VETOBoxY1        = c.MuFilter.VETOLocY - c.MuFilter.VetoBarZ/2 - c.MuFilter.SupportBoxD
         c.MuFilter.VETOBoxY2        = c.MuFilter.VETOLocY + c.MuFilter.VetoBarZ/2 + c.MuFilter.SupportBoxD
 
+       # VETO/US/DS plane alignment
+        c.MuFilter.Veto1ShiftY = 0 * u.cm
+        c.MuFilter.Veto2ShiftY = 0 * u.cm
+        c.MuFilter.US1ShiftY =   0 * u.cm
+        c.MuFilter.US2ShiftY =   0 * u.cm
+        c.MuFilter.US3ShiftY =   0 * u.cm
+        c.MuFilter.US4ShiftY =   0 * u.cm
+        c.MuFilter.US5ShiftY =   0 * u.cm
+        c.MuFilter.DS1ShiftY =   0 * u.cm
+        c.MuFilter.DS1ShiftX =   0 * u.cm
+        c.MuFilter.DS2ShiftY =   0 * u.cm
+        c.MuFilter.DS2ShiftX =   0 * u.cm
+        c.MuFilter.DS3ShiftY =   0 * u.cm
+        c.MuFilter.DS3ShiftX =   0 * u.cm
+        c.MuFilter.DS4ShiftX =   0 * u.cm
+
        #digitization parameters
         c.MuFilter.DsAttenuationLength   =  350 * u.cm                #  values between 300 cm and 400cm observed for H6 testbeam
         c.MuFilter.DsTAttenuationLength =  700 * u.cm                # top readout with mirror on bottom

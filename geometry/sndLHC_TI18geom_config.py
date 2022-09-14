@@ -131,19 +131,19 @@ with ConfigRegistry.register_config("basic") as c:
         c.Scifi.LfirstChannelHX,c.Scifi.LfirstChannelHY,c.Scifi.LfirstChannelHZ = -195.0*u.mm, 195.178*u.mm,  6.25*u.mm  # sipm on the right side direction away from IP1
 
 # relative mat alignments
-        c.Scifi.LocM100,c.Scifi.LocM101,c.Scifi.LocM102 =      7.30*u.um,  259.99*u.um,  229.39*u.um
-        c.Scifi.LocM110,c.Scifi.LocM111,c.Scifi.LocM112 =   -103.87*u.um,  -78.97*u.um,  -12.46*u.um
-        c.Scifi.LocM200,c.Scifi.LocM201,c.Scifi.LocM202 =   -286.76*u.um,  -67.32*u.um,  -97.12*u.um
-        c.Scifi.LocM210,c.Scifi.LocM211,c.Scifi.LocM212 =    103.99*u.um,  117.92*u.um,  140.19*u.um
+        c.Scifi.LocM100,c.Scifi.LocM101,c.Scifi.LocM102 =      7.30*u.um,  219.99*u.um,  247.73*u.um
+        c.Scifi.LocM110,c.Scifi.LocM111,c.Scifi.LocM112 =   -103.87*u.um, -105.64*u.um,    2.54*u.um
+        c.Scifi.LocM200,c.Scifi.LocM201,c.Scifi.LocM202 =   -286.76*u.um,  -53.99*u.um,  -85.45*u.um
+        c.Scifi.LocM210,c.Scifi.LocM211,c.Scifi.LocM212 =    103.99*u.um,  113.92*u.um,  148.52*u.um
         c.Scifi.LocM300,c.Scifi.LocM301,c.Scifi.LocM302 =     -1.85*u.um,   78.98*u.um,   13.98*u.um
         c.Scifi.LocM310,c.Scifi.LocM311,c.Scifi.LocM312 =      0.76*u.um, -109.75*u.um,   74.54*u.um
         c.Scifi.LocM400,c.Scifi.LocM401,c.Scifi.LocM402 =    -16.79*u.um,   56.44*u.um,   96.94*u.um
         c.Scifi.LocM410,c.Scifi.LocM411,c.Scifi.LocM412 =     71.04*u.um,  -64.13*u.um,   17.25*u.um
-        c.Scifi.LocM500,c.Scifi.LocM501,c.Scifi.LocM502 =     76.32*u.um,   62.01*u.um,  -18.33*u.um
-        c.Scifi.LocM510,c.Scifi.LocM511,c.Scifi.LocM512 =    -78.20*u.um,  164.06*u.um,   38.10*u.um
+        c.Scifi.LocM500,c.Scifi.LocM501,c.Scifi.LocM502 =     76.32*u.um,   51.34*u.um,  -13.33*u.um
+        c.Scifi.LocM510,c.Scifi.LocM511,c.Scifi.LocM512 =    -78.20*u.um,  158.73*u.um,   39.76*u.um
 # station rotations
-        c.Scifi.RotPhiS1,c.Scifi.RotPsiS1,c.Scifi.RotThetaS1 =     0.00*u.mrad,   -1.61*u.mrad,    0.00*u.mrad
-        c.Scifi.RotPhiS2,c.Scifi.RotPsiS2,c.Scifi.RotThetaS2 =     0.00*u.mrad,    0.02*u.mrad,    0.00*u.mrad
+        c.Scifi.RotPhiS1,c.Scifi.RotPsiS1,c.Scifi.RotThetaS1 =     0.00*u.mrad,   -1.00*u.mrad,    0.00*u.mrad
+        c.Scifi.RotPhiS2,c.Scifi.RotPsiS2,c.Scifi.RotThetaS2 =     0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad
         c.Scifi.RotPhiS3,c.Scifi.RotPsiS3,c.Scifi.RotThetaS3 =     0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad
         c.Scifi.RotPhiS4,c.Scifi.RotPsiS4,c.Scifi.RotThetaS4 =     0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad
         c.Scifi.RotPhiS5,c.Scifi.RotPsiS5,c.Scifi.RotThetaS5 =     0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad
@@ -259,6 +259,22 @@ with ConfigRegistry.register_config("basic") as c:
         c.MuFilter.VETOBoxY1        = c.MuFilter.VETOLocY - c.MuFilter.VetoBarZ/2 - c.MuFilter.SupportBoxD
         c.MuFilter.VETOBoxY2        = c.MuFilter.VETOLocY + c.MuFilter.VetoBarZ/2 + c.MuFilter.SupportBoxD
 
+       # VETO/US/DS plane alignment
+        c.MuFilter.Veto1ShiftY =  0.11 * u.cm
+        c.MuFilter.Veto2ShiftY =  -0.04 * u.cm
+        c.MuFilter.US1ShiftY =   0.10 * u.cm
+        c.MuFilter.US2ShiftY =   0.26 * u.cm
+        c.MuFilter.US3ShiftY =   0.24 * u.cm
+        c.MuFilter.US4ShiftY =   0.31 * u.cm
+        c.MuFilter.US5ShiftY =   0.34 * u.cm
+        c.MuFilter.DS1ShiftY =   0.43 * u.cm
+        c.MuFilter.DS1ShiftX =    1.13 * u.cm
+        c.MuFilter.DS2ShiftY =   0.53 * u.cm
+        c.MuFilter.DS2ShiftX =    1.31 * u.cm
+        c.MuFilter.DS3ShiftY =   0.61 * u.cm
+        c.MuFilter.DS3ShiftX =    1.35 * u.cm
+        c.MuFilter.DS4ShiftX =    1.39 * u.cm
+        
        #digitization parameters
         c.MuFilter.DsAttenuationLength   =  350 * u.cm                #  values between 300 cm and 400cm observed for H6 testbeam
         c.MuFilter.DsTAttenuationLength =  700 * u.cm                # top readout with mirror on bottom

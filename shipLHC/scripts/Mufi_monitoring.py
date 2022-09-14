@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import ROOT,os,sys
 import rootUtils as ut
+import shipunit as u
 
 A,B  = ROOT.TVector3(),ROOT.TVector3()
 detector = "mufi-"
@@ -21,6 +22,8 @@ class Mufi_hitMaps(ROOT.FairTask):
        if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
        ioman = ROOT.FairRootManager.Instance()
        self.OT = ioman.GetSink().GetOutTree()
+
+       ut.bookHist(h,detector+'Noise','events with hits in single plane; s*10+l;',40,0.5,39.5)
        for s in monitor.systemAndPlanes:
             ut.bookHist(h,sdict[s]+'Mult','QDCs vs nr hits; #hits; QDC [a.u.]',200,0.,800.,200,0.,300.)
             for l in range(monitor.systemAndPlanes[s]):
@@ -31,7 +34,9 @@ class Mufi_hitMaps(ROOT.FairTask):
                   if s==3:  ut.bookHist(h,detector+'bar_'+str(s*10+l),'bar map / plane '+sdict[s]+str(l)+'; #bar',60,-0.5,59.5)
                   else:       ut.bookHist(h,detector+'bar_'+str(s*10+l),'bar map / plane '+sdict[s]+str(l)+'; #bar',10,-0.5,9.5)
                   ut.bookHist(h,detector+'sig_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
-                  if s==2:    ut.bookHist(h,detector+'sigS_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
+                  if s==2:    
+                      ut.bookHist(h,detector+'sigS_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
+                      ut.bookHist(h,detector+'TsigS_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
                   ut.bookHist(h,detector+'sigL_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
                   ut.bookHist(h,detector+'sigR_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
                   ut.bookHist(h,detector+'Tsig_'+str(s*10+l),'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
@@ -59,6 +64,14 @@ class Mufi_hitMaps(ROOT.FairTask):
                   ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
                   for bar in range(monitor.systemAndBars[s]):
                      ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)+'; #channels',20,-0.5,19.5)
+#
+                  xmin = options.Mufixmin
+                  xmax = -xmin
+                  ut.bookHist(h,detector+'resX_'+sdict[s]+str(s*10+l),'residual X'+str(s*10+l)+'; [#cm]',
+                      100,xmin,xmax,60,-60.,0.)
+                  ut.bookHist(h,detector+'resY_'+sdict[s]+str(s*10+l),'residual  Y'+str(s*10+l)+'; [#cm]',
+                      100,xmin,xmax,70,2.,68.)
+
 
        self.listOfHits = {1:[],2:[],3:[]}
    def ExecuteEvent(self,event):
@@ -66,14 +79,17 @@ class Mufi_hitMaps(ROOT.FairTask):
        sdict = self.M.sdict
        h = self.M.h
        mult = {}
-       withX = False
        planes = {}
        for i in self.listOfHits:  self.listOfHits[i].clear()
        for s in systemAndPlanes:
            for l in range(systemAndPlanes[s]):   mult[s*10+l]=0
+
+       self.beamSpot(event)
+       withDSTrack = False
+       for aTrack in self.M.Reco_MuonTracks:
+           if aTrack.GetUniqueID()==3: withDSTrack = True
        for aHit in event.Digi_MuFilterHits:
            if not aHit.isValid(): continue
-           if aHit.isVertical():     withX = True
            Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
            s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
            mult[s*10+l]+=1
@@ -105,12 +121,26 @@ class Mufi_hitMaps(ROOT.FairTask):
                channel = bar*nSiPMs*nSides + c
                rc = h[detector+'hit_'+str(s)+str(l)].Fill( int(channel))
                rc = h[detector+'bar_'+str(s)+str(l)].Fill(bar)
-               if s==2 and self.M.smallSiPMchannel(c) : rc  = h[detector+'sigS_'+str(s)+str(l)].Fill(allChannels[c])
-               elif c<nSiPMs: rc  = h[detector+'sigL_'+str(s)+str(l)].Fill(allChannels[c])
-               else             :             rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c])
+               if s==2 and self.M.smallSiPMchannel(c) : 
+                     rc  = h[detector+'sigS_'+str(s)+str(l)].Fill(allChannels[c])
+                     if withDSTrack: rc  = h[detector+'TsigS_'+str(s)+str(l)].Fill(allChannels[c])
+               elif c<nSiPMs: 
+                     rc  = h[detector+'sigL_'+str(s)+str(l)].Fill(allChannels[c])
+                     if withDSTrack: rc  = h[detector+'TsigL_'+str(s)+str(l)].Fill(allChannels[c])
+               else             :             
+                     rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c])
+                     if withDSTrack: rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c])
                rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c])
+               if withDSTrack:  rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c])
            allChannels.clear()
 #
+       # noise event with many hits in one plane
+       onePlane = []
+       for x in mult:
+           if mult[x]>3: onePlane.append(x)
+       if len(onePlane)==1:
+           rc = h[detector+'Noise'].Fill(onePlane[0])
+
        for aHit in event.Digi_MuFilterHits:
            if aHit.isValid(): continue
            for c in aHit.GetAllSignals(False):
@@ -124,48 +154,43 @@ class Mufi_hitMaps(ROOT.FairTask):
        for s in systemAndPlanes:
           for l in range(systemAndPlanes[s]):   
              rc = h[detector+'hitmult_'+str(s*10+l)].Fill(mult[s*10+l])
+# mufi residuals with scifi tracks
+       for aTrack in self.M.Reco_MuonTracks:
+           if not aTrack.GetUniqueID()==1: continue
+           fitStatus = aTrack.getFitStatus()
+           if not fitStatus.isFitConverged(): continue
+           posMom = {}
+           fstate =  aTrack.getFittedState()
+           posMom['first'] = [fstate.getPos(),fstate.getMom()]
+           # fstate =  aTrack.getFittedState(aTrack.getNumPointsWithMeasurement()-1) does not make a difference
+           posMom['last'] = [fstate.getPos(),fstate.getMom()]
+           for aHit in event.Digi_MuFilterHits:
+              if not aHit.isValid(): continue
+              Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
+              s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
+              self.M.MuFilter.GetPosition(aHit.GetDetectorID(),A,B)
+# calculate DOCA
+              if s==1: pos,mom = posMom['first']
+              else: pos,mom = posMom['last']
+              zEx = self.M.zPos['MuFilter'][s*10+l]
+              lam = (zEx-pos.z())/mom.z()
+              xEx,yEx = pos.x()+lam*mom.x(),pos.y()+lam*mom.y()
+              pq = A-pos
+              uCrossv= (B-A).Cross(mom)
+              doca = pq.Dot(uCrossv)/uCrossv.Mag()
+              rc = h[detector+'resX_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,xEx)
+              rc = h[detector+'resY_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,yEx)
 
-       max2Bar = True
-       for key in planes:
-          if key < 30: continue
-          if len(planes[key]) > 3: max2Bar = False
-       if withX and max2Bar:  self.beamSpot(event)
-    
    def beamSpot(self,event):
       if not self.trackTask: return
       h = self.M.h
-      self.trackTask.ExecuteTask("DS")
       Xbar = -10
       Ybar = -10
-      for aTrack in self.OT.Reco_MuonTracks:
+      for aTrack in self.M.Reco_MuonTracks:
          if not aTrack.GetUniqueID()==3: continue
          state = aTrack.getFittedState()
          pos    = state.getPos()
          rc = h[detector+'bs'].Fill(pos.x(),pos.y())
-         points = aTrack.getPoints()
-         keys     = ROOT.std.vector('int')()
-         detIDs = ROOT.std.vector('int')()
-         ROOT.fixRoot(points, detIDs,keys,True)
-         for k in range(keys.size()):
-             #                                     m = p.getRawMeasurement()
-             detID =detIDs[k] # m.getDetId()
-             key = keys[k]          # m.getHitId()//1000 # for mufi
-             aHit = event.Digi_MuFilterHits[key]
-             if aHit.GetDetectorID() != detID: continue # not a Mufi hit
-             Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
-             s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
-             if s==3 and l%2==0: Ybar=bar
-             if s==3 and l%2==1: Xbar=bar
-             nSiPMs = aHit.GetnSiPMs()
-             nSides  = aHit.GetnSides()
-             for p in range(nSides):
-                 c=bar*nSiPMs*nSides + p*nSiPMs
-                 for i in range(nSiPMs):
-                      signal = aHit.GetSignal(i+p*nSiPMs)
-                      if signal > -100:
-                           rc  = h[detector+'Tsig_'+str(s)+str(l)].Fill(signal)
-                           if c<nSiPMs: rc  = h[detector+'TsigL_'+str(s)+str(l)].Fill(signal)
-                           else: rc  = h[detector+'TsigR_'+str(s)+str(l)].Fill(signal)
          mom = state.getMom()
          slopeX= mom.X()/mom.Z()
          slopeY= mom.Y()/mom.Z()
@@ -205,6 +230,9 @@ class Mufi_hitMaps(ROOT.FairTask):
               tc.SetLogy(1)
               k+=1
               rc = h[detector+'hitmult_'+str(s*10+l)].Draw()
+       ut.bookCanvas(h,'noise',' ',1200,1800,1,1)
+       tc = h['noise'].cd()
+       h[detector+'Noise'].Draw()
 
        ut.bookCanvas(h,'VETO',' ',1200,1800,1,2)
        for l in range(2):
@@ -344,7 +372,7 @@ class Mufi_hitMaps(ROOT.FairTask):
                    h[hname].Draw()
                    
        for canvas in ['signalUSVeto','signalDS',detector+'LR','USBars',
-                     "Vetochanbar","USchanbar","DSchanbar"]:
+                     "Vetochanbar","USchanbar","DSchanbar",'noise']:
               h[canvas].Update()
               self.M.myPrint(h[canvas],canvas,subdir='mufilter')
        for canvas in [detector+'hitmaps',detector+'Xhitmaps',detector+'barmaps']:
@@ -367,6 +395,39 @@ class Mufi_hitMaps(ROOT.FairTask):
        h[detector+'TtrackPos'].cd(2)
        rc = h[detector+'trackPos'].Draw('colz')
        self.M.myPrint(self.M.h[detector+'TtrackPos'],detector+'trackPos',subdir='mufilter')
+# residuals
+       ut.bookCanvas(h,detector+"residualsVsX",'residualsVsX ',1200,1200,2,7)
+       ut.bookCanvas(h,detector+"residualsVsY",'residualsVsY ',1200,1200,2,7)
+       ut.bookCanvas(h,detector+"residuals",'residuals',1200,1200,2,7)
+# veto 2 H planes US 5 H planes DS 3 H planes  DS 4 V planes
+       for p in ['resX_','resY_']:
+          t = detector+"residualsVs"+p.replace('res','').replace('_','')
+          i = 1
+          for s in range(1,4):
+             for l in range(7): 
+                if s==1 and l>1: continue
+                if s==2 and l>4: continue
+                tc = h[t].cd(i)
+                hname = detector+p+sdict[s]+str(s*10+l)
+                h[hname].Draw('colz')
+                if p.find('X')>0:
+                    tc = h[detector+"residuals"].cd(i)
+                    h[hname+'proj']=h[hname].ProjectionX(hname+'proj')
+                    rc = h[hname+'proj'].Fit('gaus','SQ')
+                    fitResult = rc.Get()
+                    if fitResult: 
+                        tc.Update()
+                        stats = h[hname+'proj'].FindObject('stats')
+                        stats.SetOptFit(1111111)
+                        stats.SetX1NDC(0.68)
+                        stats.SetY1NDC(0.31)
+                        stats.SetX2NDC(0.98)
+                        stats.SetY2NDC(0.94)
+                        h[hname+'proj'].Draw()
+                i+=1
+       self.M.myPrint(self.M.h[detector+'residualsVsX'],detector+'residualsVsX',subdir='mufilter')
+       self.M.myPrint(self.M.h[detector+'residualsVsY'],detector+'residualsVsY',subdir='mufilter')
+       self.M.myPrint(self.M.h[detector+'residuals'],detector+'residuals',subdir='mufilter')
 
 class Mufi_largeVSsmall(ROOT.FairTask):
    """

@@ -5,7 +5,7 @@ A,B = ROOT.TVector3(),ROOT.TVector3()
 
 class Tracking(ROOT.FairTask):
  " Tracking "
- def Init(self):
+ def Init(self,online=False):
    geoMat =  ROOT.genfit.TGeoMaterialInterface()
    bfield     = ROOT.genfit.ConstField(0,0,0)   # constant field of zero
    fM = ROOT.genfit.FieldManager.getInstance()
@@ -16,47 +16,32 @@ class Tracking(ROOT.FairTask):
    self.scifiDet = lsOfGlobals.FindObject('Scifi')
    self.mufiDet = lsOfGlobals.FindObject('MuFilter')
 
+   # internal storage of clusters
+   self.clusScifi   = ROOT.TObjArray(100)
+   self.DetID2Key = {}
+   self.clusMufi   = ROOT.TObjArray(100)
+   
    self.fitter = ROOT.genfit.KalmanFitter()
    self.fitter.setMaxIterations(50)
+   #internal storage of fitted tracks
+   self.fittedTracks = ROOT.TObjArray(10)
+   
    self.sigmaScifi_spatial = 2*150.*u.um
    self.sigmaMufiUS_spatial = 2.*u.cm
    self.sigmaMufiDS_spatial = 0.3*u.cm
+   self.scifi_vsignal = 15.*u.cm/u.ns
    self.Debug = False
    self.ioman = ROOT.FairRootManager.Instance()
    self.sink = self.ioman.GetSink()
-   # online mode:         raw data in, converted data in output, Reco_MuonTracks defined in ConvRawData
+   # online mode:         raw data in, converted data in output
    # offline read only:   converted data in, no output
    # offline read/write:  converted data in, converted data out
-   offlineRO   = False
-   online        = False
-   offlineRW   = False
-   if not self.sink.GetOutTree():     offlineRO = True
-   if not self.ioman.GetInTree() and not self.ioman.GetInChain():     online = True
-   if not online and not offlineRO: offlineRW = True
 
-   self.makeScifiClusters = False
-
-   if offlineRO or offlineRW:
-         remakeClusters = False
-         self.event = self.ioman.GetInChain()     # should contain all digis, but not necessarily the tracks and scifi clusters
-         if self.event.FindBranch("Cluster_Scifi"):
-             if not self.event.GetBranchStatus("Cluster_Scifi*"): remakeClusters = True
-         if self.sink.GetOutTree():  # somebody else in charge
-            self.kalman_tracks = ROOT.TObjArray(10)
-            if not self.event.FindBranch("Cluster_Scifi") or remakeClusters:
-                self.clusScifi   = ROOT.TObjArray(100);
-                self.makeScifiClusters = True
-         else:
-            self.kalman_tracks = ROOT.TObjArray(10)
-            self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)  # user asks for tracking, independent if tracks exist in inputfile.
-            if not self.event.FindBranch("Cluster_Scifi") or remakeClusters:   # no scifi clusters on input file, create them
-               self.makeScifiClusters = True
-               self.clusScifi   = ROOT.TObjArray(100);
-               self.ioman.Register("Cluster_Scifi","",self.clusScifi,ROOT.kTRUE)
 
    if online:
-         self.event = self.sink.GetOutTree()
-         self.kalman_tracks = self.sink.GetOutTree().Reco_MuonTracks
+      self.event = self.sink.GetOutTree()
+   else: 
+      self.event = self.ioman.GetInChain()     # should contain all digis, but not necessarily the tracks and scifi clusters
 
    self.systemAndPlanes  = {1:2,2:5,3:7}
    return 0
@@ -64,22 +49,16 @@ class Tracking(ROOT.FairTask):
  def FinishEvent(self):
   pass
 
- def ExecuteTask(self,option=''):
-    self.kalman_tracks.Clear()
-    if self.makeScifiClusters:
-          self.clusScifi.Clear()
-          self.scifiCluster()
-          self.event.Cluster_Scifi = self.sink.GetOutTree().Cluster_Scifi
+ def ExecuteTask(self,option='ScifiDS'):
     self.trackCandidates = {}
-    if option=='DS':
+    if not option.find('DS')<0:
+           self.clusMufi.Delete()
+           self.dsCluster()
            self.trackCandidates['DS'] = self.DStrack()
-    elif option=='Scifi':
+    if not option.find('Scifi')<0:
+           self.clusScifi.Delete()
+           self.scifiCluster()
            self.trackCandidates['Scifi'] = self.Scifi_track()
-    elif option=='ScifiDS':
-           self.trackCandidates['DS'] = self.DStrack()
-           self.trackCandidates['Scifi'] = self.Scifi_track()
-    else:
-           self.trackCandidates['comb'] = self.patternReco()
     for x in self.trackCandidates:
       for aTrack in self.trackCandidates[x]:
            rc = self.fitTrack(aTrack)
@@ -88,26 +67,28 @@ class Tracking(ROOT.FairTask):
            else:
                 if x=='DS':   rc.SetUniqueID(3)
                 if x=='Scifi': rc.SetUniqueID(1)
-                self.kalman_tracks.Add(rc)
+                self.fittedTracks.Add(rc)
 
  def DStrack(self,nPlanes = 2, nHits = 2):
+    event = self.event
     trackCandidates = []
+    clusters = self.clusMufi
+
     stations = {}
     s = 3
     for plane in range(self.systemAndPlanes[s]): 
           stations[s*10+plane] = {}
     k=-1
-    for aHit in self.event.Digi_MuFilterHits:
+    for aCl in clusters:
          k+=1
-         if not aHit.isValid(): continue
-         if aHit.GetDetectorID()//10000 != s : continue
-         p = (aHit.GetDetectorID()//1000)%10
-         bar = aHit.GetDetectorID()%1000
+         detID = aCl.GetFirst()
+         p = (detID//1000)%10
+         bar = detID%1000
          plane = s*10+p
          if s==3:
            if bar<60 or p==3: plane = s*10+2*p
            else:  plane = s*10+2*p+1
-           stations[plane][k] = aHit
+           stations[plane][k] = aCl
     success = True
     pXWithHits = 0
     pYWithHits = 0
@@ -129,11 +110,7 @@ class Tracking(ROOT.FairTask):
 # check for low occupancy and enough hits in Scifi
         event = self.event
         trackCandidates = []
-        if not event.GetBranch("Cluster_Scifi"):
-            self.scifiCluster()
-            clusters = self.clusScifi
-        else:
-            clusters = self.event.Cluster_Scifi
+        clusters = self.clusScifi
         stations = {}
         projClusters = {0:{},1:{}}
         for s in range(1,6):
@@ -189,8 +166,8 @@ class Tracking(ROOT.FairTask):
         return trackCandidates
 
  def scifiCluster(self):
-       if self.sink.GetOutTree().GetBranch("Cluster_Scifi"):  self.sink.GetOutTree().Cluster_Scifi.Delete()
        clusters = []
+       self.DetID2Key.clear()
        hitDict = {}
        for k in range(self.event.Digi_ScifiHits.GetEntries()):
             d = self.event.Digi_ScifiHits[k]
@@ -227,7 +204,54 @@ class Tracking(ROOT.FairTask):
                             aCluster = ROOT.sndCluster(c,1,hitvector,self.scifiDet,False)
                             clusters.append(aCluster)
                    cprev = c
-       for c in clusters:  self.clusScifi.Add(c)
+       self.clusScifi.Delete()            
+       for c in clusters:  
+            self.clusScifi.Add(c)
+# map clusters to hit keys
+            for nHit in range(self.event.Digi_ScifiHits.GetEntries()):
+              if self.event.Digi_ScifiHits[nHit].GetDetectorID()==c.GetFirst():
+                 self.DetID2Key[c.GetFirst()] = nHit
+
+ def dsCluster(self):
+       clusters = []
+       hitDict = {}
+       for k in range(self.event.Digi_MuFilterHits.GetEntries()):
+            d = self.event.Digi_MuFilterHits[k]
+            if (d.GetDetectorID()//10000)<3 or (not d.isValid()): continue
+            hitDict[d.GetDetectorID()] = k
+       hitList = list(hitDict.keys())
+       if len(hitList)>0:
+              hitList.sort()
+              tmp = [ hitList[0] ]
+              cprev = hitList[0]
+              ncl = 0
+              last = len(hitList)-1
+              hitvector = ROOT.std.vector("MuFilterHit*")()
+              for i in range(len(hitList)):
+                   if i==0 and len(hitList)>1: continue
+                   c=hitList[i]
+                   neighbour = False
+                   if (c-cprev)==1 or (c-cprev)==2:    # allow for one missing channel
+                        neighbour = True
+                        tmp.append(c)
+                   if not neighbour  or c==hitList[last] or c%1000==59:
+                        first = tmp[0]
+                        N = len(tmp)
+                        hitvector.clear()
+                        for aHit in tmp: hitvector.push_back( self.event.Digi_MuFilterHits[hitDict[aHit]])
+                        aCluster = ROOT.sndCluster(first,N,hitvector,self.mufiDet,False)
+                        clusters.append(aCluster)
+                        if c!=hitList[last]:
+                             ncl+=1
+                             tmp = [c]
+                        elif not neighbour :   # save last channel
+                            hitvector.clear()
+                            hitvector.push_back( self.event.Digi_MuFilterHits[hitDict[c]])
+                            aCluster = ROOT.sndCluster(c,1,hitvector,self.mufiDet,False)
+                            clusters.append(aCluster)
+                   cprev = c
+       self.clusMufi.Delete()
+       for c in clusters:  self.clusMufi.Add(c)
 
  def patternReco(self):
 # very simple for the moment, take all scifi clusters
@@ -291,10 +315,10 @@ class Tracking(ROOT.FairTask):
     for k in hitlist:
         aCl = hitlist[k]
         if hasattr(aCl,"GetFirst"):
-            detSys  = 1
             detID = aCl.GetFirst()
             aCl.GetPosition(A,B)
-
+            detSys  = 1
+            if detID>50000: detSys=3
         else:
             detID = aCl.GetDetectorID()
             if detID//10000 < 2: detSys  = 2
@@ -348,3 +372,49 @@ class Tracking(ROOT.FairTask):
             detID = rawM.getDetId()
             print(detID,"weights",info.getWeights()[0],info.getWeights()[1],fitStatus.getNdf())
     return theTrack
+
+ def trackDir(self,theTrack):
+      if theTrack.GetUniqueID()>1: return False # for the moment, only the scifi is time calibrated
+      fitStatus   = theTrack.getFitStatus()
+      if not fitStatus.isFitConverged() : return [100,-100]
+      if theTrack.getFitStatus().getNumIterations()>19: return [100,-100]
+      state = theTrack.getFittedState(0)
+      pos = state.getPos()
+# start with first measurement
+      M = theTrack.getPointWithMeasurement(0)
+      W      = M.getRawMeasurement()
+      detID = W.getDetId()
+      aHit   = self.event.Digi_ScifiHits[ self.DetID2Key[detID] ]
+      self.scifiDet.GetSiPMPosition(detID,A,B)
+      X = B-pos
+      L0 = X.Mag()/self.scifi_vsignal
+      # need to correct for signal propagation along fibre
+      clkey  = W.getHitId()
+      aCl = self.clusScifi[clkey]
+      T0track = aCl.GetTime() - L0
+      TZero    = aCl.GetTime()
+      Z0track = pos[2]
+      self.Tline = ROOT.TGraph()
+      for nM in range(theTrack.getNumPointsWithMeasurement()):
+            state   = theTrack.getFittedState(nM)
+            posM   = state.getPos()
+            M = theTrack.getPointWithMeasurement(nM)
+            W = M.getRawMeasurement()
+            detID = W.getDetId()
+            clkey = W.getHitId()
+            aCl = self.clusScifi[clkey]
+            aHit = self.event.Digi_ScifiHits[ self.DetID2Key[detID] ]
+            self.scifiDet.GetSiPMPosition(detID,A,B)
+            if aHit.isVertical(): X = B-posM
+            else: X = A-posM
+            L = X.Mag()/self.scifi_vsignal
+         # need to correct for signal propagation along fibre
+            corTime = self.scifiDet.GetCorrectedTime(detID, aCl.GetTime(), 0)
+            dT = corTime - L - T0track - (posM[2] -Z0track)/u.speedOfLight
+            dZ = posM[2] - Z0track
+            self.Tline.AddPoint(dZ,dT)
+      rc = self.Tline.Fit('pol1','SQ')
+      fitResult =  rc.Get()
+      slope = fitResult.Parameter(1)
+      return [slope,slope/(fitResult.ParError(1)+1E-13)]
+

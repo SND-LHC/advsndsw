@@ -67,6 +67,7 @@ class Time_evolution(ROOT.FairTask):
        self.M = monitor
        h = self.M.h
        self.gtime = []
+       self.gtimeWt = {1:[],3:[]}
        self.QDCtime = {0:ROOT.TGraph(),1:ROOT.TGraph(),2:ROOT.TGraph(),3:ROOT.TGraph()}
 
        # 8*2*2*8 + 10*5*2*8 + 60*3*2 + 60*4
@@ -75,15 +76,45 @@ class Time_evolution(ROOT.FairTask):
        ut.bookHist(h,'ctimeZ','delta event time per channel; dt [us]',10000,0.0,100.,1700,-0.5,1699.5)
        ut.bookHist(h,'ctimeM','delta event time per channel; dt [ms]',1000,0.0,10.,1700,-0.5,1699.5)
        ut.bookHist(h,'btime','delta timestamp per channel; ',3564*4+200,-0.5,3564*4-0.5+200,1700,-0.5,1699.5)
+       ut.bookHist(h,'bnr','bunch number; ',3564,-0.5,3564-0.5)
+       ut.bookHist(h,'bnrF','bunch number forward tracks; ',3564,-0.5,3564-0.5)
+       ut.bookHist(h,'bnrB','bunch number backward tracks; ',3564,-0.5,3564-0.5)
 
+       ut.bookHist(h,'trackDir','track direction;',300,-0.5,0.25)
+       ut.bookHist(h,'trackDirSig','track direction significance;',100,-20,10)
+
+       self.boardsVsTime = {}
+                       
        self.Nevent = -1
        self.Tprev = [-1]*1700
    def ExecuteEvent(self,event):
        self.Nevent +=1
        h = self.M.h
        T   = event.EventHeader.GetEventTime()
+       Tsec = int(T/self.M.freq)
        self.gtime.append(T/self.M.freq)
+
+       trackTask = self.M.FairTasks['simpleTracking']
+       direction = 0
+       DStrack = False
+       for theTrack in self.M.Reco_MuonTracks:
+            if not theTrack.getFitStatus().isFitConverged() and theTrack.GetUniqueID()==1: continue
+            if theTrack.GetUniqueID()!=1: 
+                DStrack = True
+                continue
+            SL = trackTask.trackDir(theTrack)
+            if not SL: continue
+            self.gtimeWt[1].append(T/self.M.freq)
+            rc = h['trackDir'].Fill(SL[0])
+            rc = h['trackDirSig'].Fill(SL[1])
+            if abs(SL[0])<0.03:  direction = 1
+            elif SL[0]<-0.07:     direction = -1
+       rc = h['bnr'].Fill( (T%(4*3564))/4)
+       if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4)
+       elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4)
+       if DStrack: self.gtimeWt[3].append(T/self.M.freq)
        qdc = {0:0,1:0,2:0,3:0}
+       
        for aHit in event.Digi_MuFilterHits:
           if not aHit.isValid(): continue
           detID = aHit.GetDetectorID()
@@ -97,21 +128,30 @@ class Time_evolution(ROOT.FairTask):
              else:                     cNr = self.offsets[s+1][0] + self.offsets[s+1][1]*p + self.offsets[s+1][2]*(b-60) + c 
              if self.Tprev[cNr]>0:
                 dT = (T - self.Tprev[cNr])/self.M.freq
-                if dT<5E-9: print('something wrong',s,p,b,c,dT,T,self.Tprev[cNr])
+                if dT<5E-9: print('something wrong',self.Nevent,s,p,b,c,dT,T,self.Tprev[cNr])
                 rc = h['ctimeZ'].Fill(dT*1E6,cNr)
                 rc = h['btime'].Fill(T-self.Tprev[cNr],cNr)
                 rc = h['ctimeM'].Fill(dT*1E3,cNr)
                 rc = h['ctime'].Fill(dT,cNr)
+             nb = aHit.GetBoardID(c)
+             if not nb in self.boardsVsTime: self.boardsVsTime[nb]={}
+             if not Tsec in self.boardsVsTime[nb]: self.boardsVsTime[nb][Tsec]=0
+             self.boardsVsTime[nb][Tsec]+=1
              self.Tprev[cNr] = T
        for aHit in event.Digi_ScifiHits:
           if not aHit.isValid(): continue
           qdc[0]+=1   
+          nb = aHit.GetBoardID(0)
+          if not nb in self.boardsVsTime: self.boardsVsTime[nb]={}
+          if not Tsec in self.boardsVsTime[nb]: self.boardsVsTime[nb][Tsec]=0
+          self.boardsVsTime[nb][Tsec]+=1
        for s in range(4):
           self.QDCtime[s].SetPoint(self.Nevent,self.Nevent,qdc[s])
 
    def Plot(self):
        h = self.M.h
        gtime = self.gtime
+       gtimeWt = self.gtimeWt
        T0       = gtime[0]
        tmax   = gtime[len(gtime)-1] - T0
        nbins  = int(tmax)
@@ -120,18 +160,44 @@ class Time_evolution(ROOT.FairTask):
        if 'time' in h: 
           h.pop('time').Delete()
        ut.bookHist(h,'time','elapsed time from start; t [s];'+yunit,nbins,0,tmax)
+       ut.bookHist(h,'timeWt','events with Scifi(red) DS(cyan) tracks; elapsed time from start t [s];'+yunit,nbins,0,tmax)
+       ut.bookHist(h,'timeWtDS','elapsed time from start, events with DS tracks; t [s];'+yunit,nbins,0,tmax)
        ut.bookHist(h,'Etime','delta event time; dt [s]',100,0.0,1.)
        ut.bookHist(h,'EtimeZ','delta event time; dt [us]',10000,0.0,100.)
-       ut.bookCanvas(h,'T','rates',1024,3*768,1,3)
+       ut.bookCanvas(h,'T','rates',1024,3*768,1,4)
        for n in range(1,len(gtime)):
            dT = gtime[n]-gtime[n-1]
            rc = h['Etime'].Fill( dT )
            rc = h['EtimeZ'].Fill( dT*1E6)
            rc = h['time'].Fill(gtime[n-1]-T0)
+       K = {1:'',3:'DS'}
+       for k in [1,3]:
+         for n in range(1,len(gtimeWt[k])):
+             rc = h['timeWt'+K[k]].Fill(gtimeWt[k][n-1]-T0)
+# time evolution of boards
+       ut.bookHist(h,'boardVStime','board vs time; t [s];'+yunit,nbins,0,tmax,len(self.boardsVsTime),0.5,len(self.boardsVsTime)+0.5)
+       boards = list(self.boardsVsTime.keys())
+       boards.sort()
+       i = 1
+       yAx = h['boardVStime'].GetYaxis()
+       for nb in boards:
+          snb = str(nb)
+          yAx.SetBinLabel(i,snb)
+          for t in self.boardsVsTime[nb]:
+             rc = h['boardVStime'].Fill(t-T0,i,self.boardsVsTime[nb][t]) 
+          i+=1     
+       ut.bookCanvas(h,'bT','board nr vs time',2000,1600,1,1)
+       h['bT'].cd()
+       h['boardVStime'].Draw('colz')
+       self.M.myPrint(h['bT'],"board nr versus time",subdir='daq')      
+       
 # analyse splash events
-       splashBins = []
-       av = h['time'].GetEntries()/nbins
-       for i in range(1,nbins+1):
+       withTGraph = False
+       anaSplash = False
+       if anaSplash and withTGraph:
+        splashBins = []
+        av = h['time'].GetEntries()/nbins
+        for i in range(1,nbins+1):
            B = h['time'].GetBinContent(i)
            if B>5*av: 
               tmin = h['time'].GetBinLowEdge(i)
@@ -145,7 +211,7 @@ class Time_evolution(ROOT.FairTask):
                    # if systems[sy]+'splash'+str(i) in h: h.pop(systems[sy]+'splash'+str(i)).Delete() 
                    h[systems[sy]+'splash'+str(i)] = ROOT.TGraph()
               splashBins.append( [i,tmin,tmax] )
-       for n in range(1,len(gtime)):
+        for n in range(1,len(gtime)):
            T = gtime[n-1]-T0
            for s in splashBins:
                 if T>s[1] and T<s[2]: 
@@ -153,8 +219,8 @@ class Time_evolution(ROOT.FairTask):
                      for sy in systems:
                            N = h[systems[sy]+'splash'+str(s[0])].GetN()
                            h[systems[sy]+'splash'+str(s[0])].SetPoint(N,(T-s[1])*1E6,self.QDCtime[sy].GetPointY(n-1))
-       N = len(splashBins)
-       if N>0:
+        N = len(splashBins)
+        if N>0:
           iy = int(ROOT.TMath.Sqrt(N))
           ix = N//iy
           if N>ix*iy: ix+=1
@@ -190,25 +256,96 @@ class Time_evolution(ROOT.FairTask):
           self.M.myPrint(h['Tsplash'],"Splashes",subdir='daq')   
           for sy in systems: self.M.myPrint(h[systems[sy]+'splash'],systems[sy]+" qdc sum",subdir='daq')   
 
+       elif anaSplash:
+# analyse splash events
+        splashBins = []
+        av = h['time'].GetEntries()/nbins
+        for i in range(1,nbins+1):
+           B = h['time'].GetBinContent(i)
+           if B>5*av: 
+              tmin = h['time'].GetBinLowEdge(i)
+              tmax = tmin+h['time'].GetBinWidth(i)
+              if 'splash'+str(i) in h: h.pop('splash'+str(i)).Delete()
+              ut.bookHist(h,'splash'+str(i),'; t [#mus];events per #mus',1000000,0,(tmax-tmin)*1E6)
+              for sy in systems:
+                   if systems[sy]+'splash'+str(i) in h: h.pop(systems[sy]+'splash'+str(i)).Delete() 
+                   ut.bookHist(h,systems[sy]+'splash'+str(i),systems[sy]+'sum qdc / N; t [1#mus];average sum qdc per event #mus',1000000,0,(tmax-tmin)*1E6)
+              splashBins.append( [i,tmin,tmax] )
+        for n in range(1,len(gtime)):
+           T = gtime[n-1]-T0
+           for s in splashBins:
+                if T>s[1] and T<s[2]: 
+                     rc = h['splash'+str(s[0])].Fill((T-s[1])*1E6)
+                     for sy in systems: 
+                           rc = h[systems[sy]+'splash'+str(s[0])].Fill((T-s[1])*1E6,self.QDCtime[sy].GetPointY(n-1))
+        N = len(splashBins)
+        if N>0:
+          iy = int(ROOT.TMath.Sqrt(N))
+          ix = N//iy
+          if N>ix*iy: ix+=1
+          ut.bookCanvas(h,'Tsplash','rates',1800,1200,ix,iy)
+          for sy in systems: ut.bookCanvas(h,systems[sy]+'splash','qdc sum',1800,1200,ix,iy)
+          n=1
+          for s in splashBins:
+            h['Tsplash'].cd(n)
+            h['splash'+str(s[0])].Draw('hist')
+            for sy in systems: 
+               tc = h[systems[sy]+'splash'].cd(n)
+               tc.SetLogy(1)
+               h[systems[sy]+'splash'+str(s[0])].Divide(h['splash'+str(s[0])])
+               h[systems[sy]+'splash'+str(s[0])].Draw('hist')
+            n+=1
+          self.M.myPrint(h['Tsplash'],"Splashes",subdir='daq')
+          for sy in systems: self.M.myPrint(h[systems[sy]+'splash'],systems[sy]+" qdc sum",subdir='daq')   
+
        tc = h['T'].cd(1)
        h['time'].SetStats(0)
        h['time'].Draw()
        tc = h['T'].cd(2)
+       h['timeWt'].SetStats(0)
+       h['timeWt'].SetLineColor(ROOT.kRed)
+       h['timeWtDS'].SetStats(0)
+       h['timeWtDS'].SetLineColor(ROOT.kCyan)
+       mx = max( h['timeWt'].GetBinContent(h['timeWtDS'].GetMaximumBin()),\
+                         h['timeWtDS'].GetBinContent(h['timeWtDS'].GetMaximumBin()) )
+       h['timeWt'].SetMaximum(mx)
+       h['timeWt'].Draw()
+       h['timeWtDS'].Draw('same')
+       tc = h['T'].cd(3)
        tc.SetLogy(1)
        h['EtimeZ'].Draw()
-       rc = h['EtimeZ'].Fit('expo','S','',0.,250.)
+       #rc = h['EtimeZ'].Fit('expo','S','',0.,250.)
        h['T'].Update()
        stats = h['EtimeZ'].FindObject('stats')
        stats.SetOptFit(1111111)
-       tc = h['T'].cd(3)
+       tc = h['T'].cd(4)
        tc.SetLogy(1)
        h['Etime'].Draw()
-       rc = h['Etime'].Fit('expo','S')
+       #rc = h['Etime'].Fit('expo','S')
        h['T'].Update()
        stats = h['Etime'].FindObject('stats')
        stats.SetOptFit(1111111)
        h['T'].Update()
        self.M.myPrint(h['T'],"Rates",subdir='daq')
+
+       ut.bookCanvas(h,'TD',' ',1024,768,2,1)
+       h['TD'].cd(1)
+       h['trackDir'].Draw()
+       h['TD'].cd(2)
+       h['trackDirSig'].Draw()
+       self.M.myPrint(h['TD'],'trackdirections',subdir='daq')
+
+       ut.bookCanvas(h,'bunchNumber','bunch nr',2048,1600,1,3)
+       tc = h['bunchNumber'].cd(1)
+       h['bnr'].SetStats(0)
+       h['bnr'].Draw()
+       tc = h['bunchNumber'].cd(2)
+       h['bnrF'].SetStats(0)
+       h['bnrF'].Draw()
+       tc = h['bunchNumber'].cd(3)
+       h['bnrB'].SetStats(0)
+       h['bnrB'].Draw()
+       self.M.myPrint(h['bunchNumber'],"BunchNr",subdir='daq')
 
        ut.bookCanvas(h,'channels',' channel dt',1024,4*768,1,4)
        tc = h['channels'].cd(1)

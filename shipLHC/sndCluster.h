@@ -30,8 +30,8 @@ class sndCluster : public TObject
 
 
     /** Constructor with list of hits**/
-    sndCluster(Int_t first, Int_t N,std::vector<sndScifiHit*> hitlist,Scifi* ScifiDet,Bool_t withQDC=kTRUE);
-    sndCluster(Int_t first, Int_t N,std::vector<MuFilterHit*> hitlist,MuFilter* MuDet);
+    sndCluster(Int_t first, Int_t N,std::vector<sndScifiHit*> hitlist,Scifi* ScifiDet,Bool_t withQDC=kFALSE);
+    sndCluster(Int_t first, Int_t N,std::vector<MuFilterHit*> hitlist,MuFilter* MuDet,Bool_t withQDC=kFALSE);
 
     /** Destructor **/
     virtual ~sndCluster();

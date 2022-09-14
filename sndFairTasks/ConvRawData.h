@@ -5,6 +5,7 @@
 #include <TFile.h>
 #include "FairTask.h"           // for FairTask, InitStatus
 #include "FairEventHeader.h"    // for FairEventHeader
+#include "SNDLHCEventHeader.h"  // for EventHeader
 #include "Scifi.h"              // for Scifi detector
 #include "sndScifiHit.h"	// for SciFi Hit
 #include "MuFilterHit.h"	// for Muon Filter Hit
@@ -29,8 +30,13 @@ class ConvRawData : public FairTask
 
     /** Virtual method Exec **/
     virtual void Exec(Option_t* opt);
-    
+
+    /** Update input raw-data file and first-to-process event **/
+    void UpdateInput(int n);
+
     private:
+      /** Start time of run **/
+      void StartTimeofRun(string path);
       /** Board mapping for Scifi and MuFilter **/
       void DetMapping(string path);
       void checkBoardMapping(string path);
@@ -54,6 +60,9 @@ class ConvRawData : public FairTask
       int channel_func( int tofpet_id, int tofpet_channel, int position);
       /** Read csv data files **/
       void read_csv(string path);
+      /** Processing of different raw-data formats **/
+      void Process0();
+      void Process1();
     
       /** Data structures to be used in the class **/
       map<int, MuFilterHit* > digiMuFilterStore{};
@@ -73,7 +82,6 @@ class ConvRawData : public FairTask
   
       Scifi* ScifiDet;
       TFile* fOut;
-      bool local;
       /** Input data **/
       TTree* fEventTree;
       // Board_x data
@@ -82,21 +90,21 @@ class ConvRawData : public FairTask
       int frunNumber;
       int fnStart, fnEvents;
       int fheartBeat;
-      int withGeoFile, debug, stop, makeCalibration, online;
-      string fpath; 
+      int debug, stop, makeCalibration, local, newFormat;
+      string fpathCalib, fpathJSON; 
       int eventNumber;
       double chi2Max, saturationLimit;
+      double runStartUTC;
     
       /** Output data **/
+      SNDLHCEventHeader* fSNDLHCEventHeader;
       FairEventHeader* fEventHeader;
       TClonesArray* fDigiSciFi;
       TClonesArray* fDigiMuFilter;
-      TClonesArray* fClusScifi;
-      TClonesArray* fKalmanTracks;
     
       ConvRawData(const ConvRawData&);
       ConvRawData& operator=(const ConvRawData&);
 
-      ClassDef(ConvRawData, 1);
+      ClassDef(ConvRawData, 2);
 };
 #endif /* CONVRAWDATA_H_ */

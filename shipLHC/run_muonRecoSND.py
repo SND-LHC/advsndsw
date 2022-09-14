@@ -11,6 +11,7 @@ parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=
 parser.add_argument("-n", "--nEvents", dest="nEvents",  type=int, help="number of events to process", default=100000)
 parser.add_argument("-i", "--firstEvent",dest="firstEvent",  help="First event of input file to use", required=False,  default=0, type=int)
 parser.add_argument("-t", "--tolerance", dest="tolerance",  type=float, help="How far away from Hough line hits assigned to the muon can be. In cm.", default=0.)
+parser.add_argument("-s", "--event_skip", dest="event_skip",  type=int, help="Run reconstruction every [event_skip] events.", default=1)
 
 parser.add_argument("--hits_to_fit", dest = "hits_to_fit", type=str, help="Which detectors to use in the fit, in the format: vesfusds, where [ve] is veto, [sf] is Scifi, [us] is Upstream muon filter, and [ds] is downstream muon filter. Default: sfusds", default = "sfusds")
 parser.add_argument("--hits_for_triplet", dest = "hits_for_triplet", type=str, help="Which detectors to use for the triplet condition. In the same format as --hits_to_fit. Default: ds", default = "ds")
@@ -38,6 +39,18 @@ if options.withOutput:
 else:
   outFile = ROOT.TMemFile(outFileName,'CREATE')
 
+treename = None
+for test_treename in ["cbmsim", "rawConv"] :
+     if hasattr(F, test_treename) :
+          treename = test_treename
+          break
+
+if treename is None :
+     raise RuntimeError("File {0} contains no object with a valid SND@LHC TTree name".format(fullPath))
+
+fairRootManager = ROOT.FairRootManager.Instance()
+fairRootManager.SetTreeName(treename)
+
 run = ROOT.FairRunAna()
 print("Initialized FairRunAna")
 
@@ -56,6 +69,7 @@ run.Init()
 muon_reco_task.SetTolerance(options.tolerance)
 muon_reco_task.SetHitsToFit(options.hits_to_fit)
 muon_reco_task.SetHitsForTriplet(options.hits_for_triplet)
+muon_reco_task.SetEventSkip(options.event_skip)
 
 run.Run(options.firstEvent, options.firstEvent + options.nEvents)
 print("Done running")

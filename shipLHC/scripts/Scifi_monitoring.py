@@ -22,9 +22,13 @@ class Scifi_hitMaps(ROOT.FairTask):
           if s%2==1: ut.bookHist(h,detector+'mult_'+str(s),'mult vertical station '+str(s//2+1)+'; #hits',100,-0.5,99.5)
           else: ut.bookHist(h,detector+'mult_'+str(s),'mult horizontal station '+str(s//2+1)+'; #hits',100,-0.5,99.5)
        for mat in range(30):
-          ut.bookHist(h,detector+'mat_'+str(mat),'hit map / mat; #channel',512,-0.5,511.5)
-          ut.bookHist(h,detector+'sig_'+str(mat),'signal / mat; QDC [a.u.]',200,-50.0,150.)
-          ut.bookHist(h,detector+'tdc_'+str(mat),'tdc / mat; timestamp [LHC clock cycles]',200,-1.,4.)
+          s = mat//6
+          p = 'H'
+          if mat%6>2: p='V'
+          m = mat%3
+          ut.bookHist(h,detector+'mat_'+str(mat),'hit map station '+str(s)+p+' mat '+str(m)+'; #channel',512,-0.5,511.5)
+          ut.bookHist(h,detector+'sig_'+str(mat),'signal '+str(s)+p+' mat '+str(m)+'; QDC [a.u.]',200,-50.0,150.)
+          ut.bookHist(h,detector+'tdc_'+str(mat),'tdc '+str(s)+p+' mat '+str(m)+'; timestamp [LHC clock cycles]',200,-1.,4.)
    def ExecuteEvent(self,event):
        h = self.M.h
        mult = [0]*10
@@ -47,8 +51,6 @@ class Scifi_hitMaps(ROOT.FairTask):
        ut.bookCanvas(h,detector+'tdc',' ',1024,768,6,5)
        for mat in range(30):
            tc = self.M.h[detector+'hitmaps'].cd(mat+1)
-           A = self.M.h[detector+'mat_'+str(mat)].GetSumOfWeights()/512.
-           if self.M.h[detector+'mat_'+str(mat)].GetMaximum()>10*A: self.M.h[detector+'mat_'+str(mat)].SetMaximum(10*A)
            self.M.h[detector+'mat_'+str(mat)].Draw()
            tc = self.M.h[detector+'signal'].cd(mat+1)
            self.M.h[detector+'sig_'+str(mat)].Draw()
@@ -80,6 +82,7 @@ class Scifi_residuals(ROOT.FairTask):
        NbinsRes = options.ScifiNbinsRes
        xmin        = options.Scifixmin
        alignPar   = options.ScifialignPar
+       self.unbiased = options.ScifiResUnbiased
 
        self.M = monitor
        h = self.M.h
@@ -117,26 +120,27 @@ class Scifi_residuals(ROOT.FairTask):
        nav = self.nav
        if not hasattr(event,"Cluster_Scifi"):
                self.trackTask.scifiCluster()
-               clusters = self.OT.Cluster_Scifi
+               clusters = self.trackTask.clusScifi
        else:
                clusters = event.Cluster_Scifi
-
 # overall tracking
-       self.trackTask.ExecuteTask("Scifi")
-       for aTrack in self.OT.Reco_MuonTracks:
-          if not aTrack.GetUniqueID()==1: continue
-          fitStatus = aTrack.getFitStatus()
-          if not fitStatus.isFitConverged(): continue
-          state = aTrack.getFittedState()
-          pos    = state.getPos()
-          mom = state.getMom()
-          slopeX = mom.X()/mom.Z()
-          slopeY = mom.Y()/mom.Z()
-          rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
-          rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
-          rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
-          rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
-          if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+       theTrack = False
+       for theTrack in self.M.Reco_MuonTracks:
+          if theTrack.GetUniqueID()==1:
+              fitStatus = theTrack.getFitStatus()
+              if  fitStatus.isFitConverged():
+                 state = theTrack.getFittedState()
+                 pos    = state.getPos()
+                 mom = state.getMom()
+                 slopeX = mom.X()/mom.Z()
+                 slopeY = mom.Y()/mom.Z()
+                 rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
+                 rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
+                 rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
+                 rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+
+       if not self.unbiased and not theTrack: return
 
        sortedClusters={}
        for aCl in clusters:
@@ -145,22 +149,29 @@ class Scifi_residuals(ROOT.FairTask):
            sortedClusters[so].append(aCl)
 # select events with clusters in each plane
        if len(sortedClusters)<10: return
+       goodEvent = True
+       for s in sortedClusters:
+          if len(sortedClusters[s])>1: goodEvent=False
+       if not goodEvent: return
+
        for s in range(1,6):
+            if self.unbiased:
 # build trackCandidate
-            hitlist = {}
-            k=0
-            for so in sortedClusters:
-                    if so//10 == s: continue
+              hitlist = {}
+              if self.unbiased or s==1:
+                k=0
+                for so in sortedClusters:
+                    if so//10 == s and self.unbiased: continue
                     for x in sortedClusters[so]:
                        hitlist[k] = x
                        k+=1
-            theTrack = self.trackTask.fitTrack(hitlist)
-            if not hasattr(theTrack,"getFittedState"): continue
+                theTrack = self.trackTask.fitTrack(hitlist)
+                if not hasattr(theTrack,"getFittedState"): continue
 # check residuals
-            fitStatus = theTrack.getFitStatus()
-            if not fitStatus.isFitConverged(): 
-                 theTrack.Delete()
-                 continue
+                fitStatus = theTrack.getFitStatus()
+                if not fitStatus.isFitConverged(): 
+                  theTrack.Delete()
+                  continue
 # test plane
             for o in range(2):
                 testPlane = s*10+o
@@ -176,6 +187,8 @@ class Scifi_residuals(ROOT.FairTask):
                    if abs(z-Pos.z())<mZmin:
                       mZmin = abs(z-Pos.z())
                       mClose = m
+                if mZmin>10000:
+                    print("something wrong here with measurements",mClose,mZmin,theTrack.getNumPointsWithMeasurement())
                 fstate =  theTrack.getFittedState(mClose)
                 pos,mom = fstate.getPos(),fstate.getMom()
                 rep.setPosMom(state,pos,mom)
@@ -197,7 +210,7 @@ class Scifi_residuals(ROOT.FairTask):
                    rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,xEx)
                    rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,yEx)
 
-            theTrack.Delete()
+            if self.unbiased: theTrack.Delete()
 
 # analysis and plots 
    def Plot(self):

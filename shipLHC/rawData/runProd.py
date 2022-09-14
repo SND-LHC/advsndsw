@@ -1,7 +1,7 @@
 import os,subprocess,time,multiprocessing
 import pwd
 import ROOT
-ncpus = multiprocessing.cpu_count()
+ncpus = multiprocessing.cpu_count() - 2
 
 """ input runlist
      for each run in runlist. look for number of partitions
@@ -11,6 +11,15 @@ ncpus = multiprocessing.cpu_count()
      run as many jobs in parallel as cpus are available
 """ 
 
+def delProcesses(pname):
+    username = pwd.getpwuid(os.getuid()).pw_name
+    callstring = "ps -f -u " + username
+    status = subprocess.check_output(callstring,shell=True)
+    for x in str(status).split("\\n"):
+         if not x.find(pname)<0:
+            pid = x.split(' ')[2]
+            os.system('kill '+pid)
+         
 class prodManager():
 
    def Init(self,options):
@@ -18,6 +27,7 @@ class prodManager():
      if options.FairTask_convRaw: 
         self.Mext = '_CPP'  
      self.options = options
+     self.runNrs = []
    def count_python_processes(self,macroName):
       username = pwd.getpwuid(os.getuid()).pw_name
       callstring = "ps -f -u " + username
@@ -27,6 +37,16 @@ class prodManager():
       for x in status.decode().split('\n'):
          if not x.find(macroName)<0 and not x.find('python') <0: n+=1
       return n
+   def list_of_runs(self,macroName):
+      lpruns = []
+      username = pwd.getpwuid(os.getuid()).pw_name
+      callstring = "ps -f -u " + username
+      status = subprocess.check_output(callstring,shell=True)
+      for x in status.decode().split('\n'):
+         if not x.find(macroName)<0 and not x.find('python') <0: 
+            i = x.find('-r')
+            lpruns.append(int(x[i+3:].split(' ')[0]))
+      return lpruns
 
    def getPartitions(self,runList,path):
       partitions = {}
@@ -48,41 +68,79 @@ class prodManager():
     # find partitions
          for p in partitions[r]:
              self.runSinglePartition(path,runNr,str(p).zfill(4),EOScopy=True,check=True)
-             time.sleep(10)
-             while self.count_python_processes('convertRawData')>ncpus:
-                   time.sleep(200)
+
+   def runDataQuality(self,latest):
+      monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
+                        -b 100000 -p "+pathConv+" -g GGGG "\
+                        +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
+
+      dqDataFiles = []
+      hList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/offline",shell=True) )
+      for x in hList.split('\\n'):
+          if x.find('root')<0: continue
+          run = x.split('/')[-1]
+          if run.find('run')!=0: continue
+          dqDataFiles.append(int(run[3:9]))
+      convDataFiles = self.getFileList(pathConv,latest,minSize=0)
+      self.checkEOS(copy=False)
+      # remove directories which are not complete
+      for r in self.missing:
+             if r in convDataFiles: convDataFiles.pop(r)
+
+      orderedCDF = list(convDataFiles.keys())
+      lpruns = self.list_of_runs('run_Monitoring')
+      print(lpruns)
+      print(self.runNrs)
+      for x in orderedCDF:
+          r = x//10000
+          if  (r in self.runNrs) or (r in lpruns): continue
+          if r in dqDataFiles: continue
+          self.runNrs.append(r)
+          
+      for r in self.runNrs: 
+           print('executing DQ for run %i'%(r))
+           if r  < 4620:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
+           if r > 4619:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+           os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
+           while self.count_python_processes('run_Monitoring')>(ncpus-2) : time.sleep(1800)
 
    def check4NewFiles(self,latest):
       rawDataFiles = self.getFileList(path,latest,minSize=10E6)
-      convDataFiles = self.getFileList(pathConv,latest,minSize=10E6)
+      convDataFiles = self.getFileList(pathConv,latest,minSize=0)
       orderedRDF = list(rawDataFiles.keys())
       orderedCDF = list(convDataFiles.keys())
       orderedRDF.reverse(),orderedCDF.reverse()
-      lastCDF = -1
-      if len(orderedCDF)>0: lastCDF = orderedCDF[0]
+
       for x in orderedRDF: 
-           if not x > lastCDF: continue
+           if x in orderedCDF: continue
+           lpruns = self.list_of_runs('convertRawData')
+           if x in lpruns: continue
            r = x//10000 
            p = x%10000
+           if r==4541 and p==38: continue   # corrupted raw data file
            print('executing run %i and partition %i'%(r,p))
            self.runSinglePartition(path,str(r).zfill(6),str(p).zfill(4),EOScopy=True,check=True)
 
    def runSinglePartition(self,path,r,p,EOScopy=False,check=True):
+       while self.count_python_processes('convertRawData')>ncpus or self.count_python_processes('runProd')>ncpus: time.sleep(300)
+       try:
+           pid = os.fork()
+       except OSError:
+           print("Could not create a child process")
+       if not pid == 0: return    
        inFile = self.options.server+path+'run_'+ r+'/data_'+p+'.root'
        fI = ROOT.TFile.Open(inFile)
        if not fI:
          print('file not found',path,r,p)
          exit()
-       if not fI.Get('event'):
+       if not fI.Get('event') and not fI.Get('data'):
          print('file corrupted',path,r,p)
          exit()
-       if options.FairTask_convRaw:
-          os.system("python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -cpp -b 100000 -p "+pathM+"  -r "+str(int(r))+ " -P "+str(int(p)) + "  >log_"+r+'-'+p)
-       else: 
-          command = "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py -b 1000 -p "+path+" --server="+self.options.server
-          command += "  -r "+str(int(r))+ " -P "+str(int(p)) + " -g "+self.options.geofile+" >log_"+r+'-'+p
-          print("execute ",command)
-          os.system(command)
+       command =   "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py  -r "+str(int(r))+ " -b 1000 -p "+path+" --server="+self.options.server
+       if options.FairTask_convRaw:  command+= " -cpp "
+       command += " -P "+str(int(p)) + " >log_"+r+'-'+p    
+       print("execute ",command)
+       os.system(command)
        if check:
           rc = self.checkFile(path,r,p)
           if rc<0: 
@@ -92,11 +150,15 @@ class prodManager():
        tmp = {int(r):[int(p)]}
        if EOScopy:  self.copy2EOS(path,tmp,self.options.overwrite)
 
+       if pid == 0:  exit("Child process finished")
+       
+
    def checkFile(self,path,r,p):
       print('checkfile',path,r,p)
       inFile = self.options.server+path+'run_'+ r+'/data_'+p+'.root'
       fI = ROOT.TFile.Open(inFile)
-      Nraw = fI.event.GetEntries()
+      if fI.Get('event'): Nraw = fI.event.GetEntries()
+      else: Nraw = fI.data.GetEntries()
       outFile = 'sndsw_raw_'+r+'-'+p+self.Mext+'.root'
       fC = ROOT.TFile(outFile)
       test = fC.Get('rawConv')
@@ -118,7 +180,10 @@ class prodManager():
          tmp = path.split('raw_data')[1].replace('data/','')
          pathConv = os.environ['EOSSHIP']+"/eos/experiment/sndlhc/convertedData/"+tmp+"run_"+r+"/sndsw_raw-"+p+".root"
          print('copy '+outFile+' to '+tmp+"run_"+r+"/sndsw_raw-"+p+".root")
-         os.system('xrdcp '+outFile+'  '+pathConv)
+         command = 'xrdcp '
+         if overwrite: command+=' -f '
+         os.system(command+outFile+'  '+pathConv)
+         os.system('rm '+outFile)
 
    def check(self,path,partitions):
      success = {}
@@ -133,22 +198,38 @@ class prodManager():
 
    def getFileList(self,p,latest,minSize=10E6):
       inventory = {}
-      dirList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+p,shell=True) )
+      dirList = str( subprocess.check_output("xrdfs "+self.options.server+" ls "+p,shell=True) )
       for x in dirList.split('\\n'):
           aDir = x[x.rfind('/')+1:]
           if not aDir.find('run')==0:continue
           runNr = int(aDir.split('_')[1])
           if not runNr > latest: continue
-          fileList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls -l "+p+"/"+aDir,shell=True) )
+          fileList = str( subprocess.check_output("xrdfs "+self.options.server+" ls -l "+p+"/"+aDir,shell=True) )
           for z in fileList.split('\\n'):
-               k = max(z.find('data_'),z.find('sndsw'))
-               if not k>0: continue
-               j = z.split(' /eos')[0].rfind(' ')
-               size = int(z.split(' /eos')[0][j+1:])
+               jj=0
+               if self.options.server.find('snd-server')>0:
+                  jj = 3
+                  k = z.rfind('data_')
+                  if not k>0: continue
+                  if not z[k+9:k+10]=='.': continue
+                  first = False
+                  for x in z.split(' '):
+                     if x=='': continue
+                     if not first and x=='sndecs': first = True
+                     if first and not x=='sndecs': 
+                       size = int(x)
+                       break
+               else:
+                  k = max(z.find('data_'),z.find('sndsw'))
+                  if not k>0: continue
+                  j = z.split(' /eos')[0].rfind(' ')
+                  size = int(z.split(' /eos')[0][j+1:])
                if size<minSize: continue
-               tmp = z.split(' ')
-               theDay = tmp[1] 
-               theTime = tmp[2]
+               tmp = []
+               for o in z.split(' '):
+                  if not o=='': tmp.append(o)
+               theDay = tmp[1+jj] 
+               theTime = tmp[2+jj]
                fname = z[k:]
                run = int(aDir.split('_')[1])
                if run>900000: continue     # not a physical run
@@ -160,6 +241,28 @@ class prodManager():
                inventory[run*10000+partition] = [aDir+"/"+fname,gmt]
       return inventory
 
+   def checkEOS(self,copy=False):
+       self.eosInventory = self.getFileList('/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/',4361)
+       tmp = self.options.server 
+       self.options.server = "root://snd-server-1.cern.ch/"
+       self.daqInventory = self.getFileList('/mnt/raid1/data_online/',4361)
+       self.options.server = tmp
+       self.missing = {}
+       for r in self.daqInventory:
+            if not r in self.eosInventory:
+               p = r%10000
+               run = r//10000
+               if not run in self.missing: self.missing[run]=[]
+               self.missing[run].append(p)
+       if copy:
+          for r in self.missing:
+               dirname ='run_'+str(r).zfill(6)
+               for p in self.missing[r]:
+                   filename = 'data_'+str(p).zfill(4)+'.root'
+                   source = '/mnt/raid1/data_online/'+dirname+'/'+filename
+                   target = '/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/'+dirname+'/'+filename
+                   os.system("xrdcp -f "+source+" "+os.environ['EOSSHIP']+target)
+       
    def getConvStats(self,runList):
      for run in runList:
        try: 
@@ -172,7 +275,8 @@ class prodManager():
       for run in runList:
          runNr   = str(run).zfill(6)
          r = ROOT.TFile.Open(os.environ['EOSSHIP']+path+"/run_"+runNr+"/data.root")
-         raw = r.event.GetEntries()
+         if fI.Get('event'): raw = r.event.GetEntries()
+         else:               raw = r.data.GetEntries()
          print(run,':',raw)
 
    def makeHistos(self,runList):
@@ -206,6 +310,7 @@ if __name__ == '__main__':
     parser.add_argument("-A", "--auto", dest="auto", help="run in auto mode checking regularly for new files",default=False,action='store_true')
     parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
     parser.add_argument("-g", dest="geofile", help="geometry and alignment",default="geofile_sndlhc_TI18.root")
+    parser.add_argument("--postScale", dest="postScale",help="post scale events, 1..10..100", default=-1,type=int)
 
     options = parser.parse_args()
     M = prodManager()
@@ -238,7 +343,13 @@ if __name__ == '__main__':
     if options.auto:
       while 1 > 0:
          M.check4NewFiles(options.latest)
-         time.sleep(1800)
+         time.sleep(600)
+      exit(0)
+
+    if options.command == "DQ":
+      while 1 > 0:
+         M.runDataQuality(options.latest)  
+         time.sleep(3600)
       exit(0)
 
     if options.command == "convert":
