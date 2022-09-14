@@ -2,10 +2,13 @@
 
 #include "TObject.h"
 #include "TVector3.h"
+#include "Track.h"
 
 class sndRecoTrack : public TObject {
  public :
   sndRecoTrack(){;}
+  /* Constructor from genfit::Track object */
+  sndRecoTrack(genfit::Track*);
   ~sndRecoTrack(){;}
 
   TVector3 getStart() {return start;}
@@ -20,24 +23,17 @@ class sndRecoTrack : public TObject {
   int   getNdf()       { return Ndf; }
   float getChi2Ndf()   { return chi2/(Ndf+1E-10); }
 
-  void setStart(TVector3 s){ start = s; }
-  void setStop(TVector3 s){ stop = s; }
-  void setRawMeasDetIDs(std::vector<int> l) { fRawMeasDetID = l; }
   void setRawMeasTimes(std::vector<float> l) { fRawMeasTimes = l; }
-  void setTrackPoints(std::vector<TVector3 > l) { fTrackPoints = l; }
-  void setTrackMom(TVector3 l) { fTrackMom = l; }
   void setTrackType(int t) { fTrackType = t; }
-  void setTrackFlag(bool f) { fFlag = f; }
-  void setChi2(float f) { chi2 = f; }
-  void setNdf(int i) { Ndf = i; }
 
   TVector3 extrapolateToPlaneAtZ(float z);
   std::pair<int, float> TrackDirection();
-  bool IsAlongZ();
+  std::pair<float, float> Velocity();
+  std::pair<float, float> trackDir();
   std::vector<float> getCorrTimes();
 
  private :
-  std::vector<TVector3 > fTrackPoints;  
+  std::vector<TVector3 > fTrackPoints;
   std::vector<int> fRawMeasDetID;
   std::vector<float> fRawMeasTimes;
   TVector3 fTrackMom;
@@ -48,5 +44,5 @@ class sndRecoTrack : public TObject {
   float chi2;
   int Ndf;
 
-  ClassDef(sndRecoTrack, 2);
+  ClassDef(sndRecoTrack, 3);
 };

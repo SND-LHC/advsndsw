@@ -10,6 +10,7 @@ ${CMAKE_SOURCE_DIR}/veto
 ${CMAKE_SOURCE_DIR}/genfit/core/include
 ${CMAKE_SOURCE_DIR}/genfit/trackReps/include
 ${CMAKE_SOURCE_DIR}/genfit/include/genfit
+${CMAKE_SOURCE_DIR}/genfit/fields/include
 ${ROOT_INCLUDE_DIR}
 )
 
