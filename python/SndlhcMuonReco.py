@@ -196,6 +196,9 @@ class MuonReco(ROOT.FairTask) :
         self.hits_to_fit = "sfusds"
         # Which hits to use for triplet condition. By default use only downstream muon system hits.
         self.hits_for_triplet = "ds"
+        
+        # Track type based on self.hits_to_fit; to be saved in the track class
+        self.track_type = 15
 
         # Initialize Hough transforms for both views:
         self.h_ZX = hough(n_accumulator_rho, [-80, 0], n_accumulator_angle, [-max_angle+np.pi/2., max_angle+np.pi/2.])
@@ -247,6 +250,9 @@ class MuonReco(ROOT.FairTask) :
         if hits_to_fit == "sf" :
             self.h_ZX.smooth = False
             self.h_ZY.smooth = False
+            self.track_type = 11
+        elif hits_to_fit == "ds": self.track_type = 13
+        else : self.track_type = 15
 
     def SetHitsForTriplet(self, hits_for_triplet) :
         self.hits_for_triplet = hits_for_triplet
@@ -265,7 +271,7 @@ class MuonReco(ROOT.FairTask) :
 
     def Exec(self, opt) :
         self.kalman_tracks.Clear()
-        self.muon_tracks.Clear()
+        self.muon_tracks.Clear("C") # class contains pointers
 
         self.current_event += 1
 
@@ -561,34 +567,14 @@ class MuonReco(ROOT.FairTask) :
             self.kalman_tracks.Add(theTrack)
             
             # Load items into snd track class object
-            this_track = self.muon_tracks.ConstructedAt(i_muon)
-            trackPoints = []
-            trackPointsMom = []
-            hit_detIDs = []
-            pointTimes = [] 
-            for i, MP in enumerate(theTrack.getPointsWithMeasurement()):
-               state = theTrack.getFittedState(i)
-               trackPoints.append(state.getPos())
-               trackPointsMom.append(state.getMom())
-               hit_detIDs.append(MP.getRawMeasurement().getDetId())
-               if i ==0: this_track.setStart(state.getPos())
-               if i == len(theTrack.getPointsWithMeasurement())-1:
-                  this_track.setStop(state.getPos())              
+            this_track = ROOT.sndRecoTrack(theTrack)            
+            pointTimes = []              
             for i_z_sorted in hit_z.argsort() :              
-               pointTimes.append(hit_tdc[i_z_sorted])              
-            
-            this_track.setTrackPoints(trackPoints)
-            this_track.setTrackPointsMom(trackPointsMom)
-            this_track.setRawMeasDetIDs(hit_detIDs)
+               pointTimes.append(hit_tdc[i_z_sorted])
             this_track.setRawMeasTimes(pointTimes)
-            
-            this_track.setChi2(fitStatus.getChi2())
-            this_track.setNdf(fitStatus.getNdf())
-            this_track.setTrackFlag(fitStatus.isFitConverged())
-            
-            if self.hits_to_fit == "sf": this_track.setTrackType(11)
-            elif self.hits_to_fit == "ds": this_track.setTrackType(13)
-            else : this_track.setTrackType(15)
+            this_track.setTrackType(self.track_type)                
+            # Save the track in sndRecoTrack format
+            self.muon_tracks[i_muon] = this_track
 
             # Remove track hits and try to find an additional track
             # Find array index to be removed
