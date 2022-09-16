@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<!-- Configuration for tracking with SndlhcMuonReco -->
+
+<!-- Replace  <TrackingParams>
+     with     <TrackingParams
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation='./TrackingParams.xsd'>
+     to get Schema validation if you have written a .xsd file -->
+
+<TrackingParams
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation='./TrackingParams.xsd'>
+
+  <!--  A scale factor, 
+        run reconstruction once for a randomly selected event in every [scale] events. -->
+  <scale> 10 </scale>
+  <!--  Tracks stored in genfit::Track format, value 1,
+        or sndRecoTrack class, value 0  -->
+  <genfitTrack> 0 </genfitTrack>
+  <!--  Use SciFi hits, value 0, or clusters, value 1  -->
+  <Scifi_meas> 1 </Scifi_meas>
+
+  <tracking_case name = "nu_interaction_products">     
+     <!--  Which detectors to use in the tracks fit, in the format: vesfusds, 
+           where [ve] is Veto, [sf] is SciFi, [us] is Upstream Muon Filter,
+           and [ds] is Downstream Muon Filter. -->
+     <hits_to_fit> sfusds </hits_to_fit>
+     <!--  Which detectors to use for the Hough transform. Format as above.
+           Detectors specified here are automatically used in the cathegory above. -->
+     <hits_for_hough> ds </hits_for_hough>
+     <!--  Minumum number of planes with measurement
+           to start pattern recognition.
+           Also, the required minimum number of planes intersected by
+           the Hough line prediction to proceed to track fitting. -->
+     <min_planes_hit> 3 </min_planes_hit>
+     <!--  Maximum number of fitted tracks per event  -->
+     <max_reco_muons> 5 </max_reco_muons>
+     <!--  Maximum absolute value of reconstructed angle 
+           (+/- 1 rad is the maximum angle to form a triplet in the SciFi) -->
+     <max_angle unit="rad"> 1. </max_angle>
+     <!--  Number of random throws per measurement  -->
+     <n_random> 5 </n_random>
+     <!--  How many more times muon filter hits are thrown compared to SciFi measurements?  -->
+     <mufi_weight> 100 </mufi_weight>
+     <!-- How far away from Hough line hits assigned to the muon can be.  -->
+     <tolerance unit="cm"> 0. </tolerance>
+     <!--  Define the Hough poarameter space -->
+     <N_rho_bins> 1000 </N_rho_bins>
+     <rho_min_xz unit="cm"> -80. </rho_min_xz>
+     <rho_max_xz unit="cm"> 0. </rho_max_xz>
+     <rho_min_yz unit="cm"> 0. </rho_min_yz>
+     <rho_max_yz unit="cm"> 80. </rho_max_yz>
+     <N_theta_bins> 2500 </N_theta_bins>
+     <theta_min unit="cm"> -1.57 </theta_min>
+     <theta_max unit="cm"> 1.57 </theta_max>
+  </tracking_case>
+
+  <tracking_case name = "passing_mu_Sf">     
+     <!--  Which detectors to use in the tracks fit, in the format: vesfusds, 
+           where [ve] is Veto, [sf] is SciFi, [us] is Upstream Muon Filter,
+           and [ds] is Downstream Muon Filter. -->
+     <hits_to_fit> sf </hits_to_fit>
+     <!--  Which detectors to use for the Hough transform. Format as above.
+           Detectors specified here are automatically used in the cathegory above. -->
+     <hits_for_hough> sf </hits_for_hough>
+     <!--  Minumum number of planes with measurement
+           to start pattern recognition.
+           Also, the required minimum number of planes intersected by
+           the Hough line prediction to proceed to track fitting. -->
+     <min_planes_hit> 3 </min_planes_hit>
+     <!--  Maximum number of fitted tracks per event  -->
+     <max_reco_muons> 5 </max_reco_muons>
+     <!--  Maximum absolute value of reconstructed angle 
+           (+/- 1 rad is the maximum angle to form a triplet in the SciFi) -->
+     <max_angle unit="rad"> 1. </max_angle>
+     <!--  Number of random throws per measurement  -->
+     <n_random> 1 </n_random>
+     <!--  How many more times muon filter hits are thrown compared to SciFi measurements?  -->
+     <mufi_weight> 1 </mufi_weight>
+     <!-- How far away from Hough line hits assigned to the muon can be.  -->
+     <tolerance unit="cm"> 0.1 </tolerance>
+     <!--  Define the Hough poarameter space -->
+     <N_rho_bins> 7600 </N_rho_bins>
+     <rho_min_xz unit="cm"> -380. </rho_min_xz>
+     <rho_max_xz unit="cm"> 380. </rho_max_xz>
+     <rho_min_yz unit="cm"> -380. </rho_min_yz>
+     <rho_max_yz unit="cm"> 380. </rho_max_yz>
+     <N_theta_bins> 2500 </N_theta_bins>
+     <theta_min unit="cm"> -1.57 </theta_min>
+     <theta_max unit="cm"> 1.57 </theta_max>
+  </tracking_case>
+
+  <tracking_case name = "passing_mu_DS">     
+     <!--  Which detectors to use in the tracks fit, in the format: vesfusds, 
+           where [ve] is Veto, [sf] is SciFi, [us] is Upstream Muon Filter,
+           and [ds] is Downstream Muon Filter. -->
+     <hits_to_fit> ds </hits_to_fit>
+     <!--  Which detectors to use for the Hough transform. Format as above.
+           Detectors specified here are automatically used in the cathegory above. -->
+     <hits_for_hough> ds </hits_for_hough>
+     <!--  Minumum number of planes with measurement
+           to start pattern recognition.
+           Also, the required minimum number of planes intersected by
+           the Hough line prediction to proceed to track fitting. -->
+     <min_planes_hit> 3 </min_planes_hit>
+     <!--  Maximum number of fitted tracks per event  -->
+     <max_reco_muons> 5 </max_reco_muons>
+     <!--  Maximum absolute value of reconstructed angle 
+           (+/- 1 rad is the maximum angle to form a triplet in the SciFi) -->
+     <max_angle unit="rad"> 1. </max_angle>
+     <!--  Number of random throws per measurement  -->
+     <n_random> 5 </n_random>
+     <!--  How many more times muon filter hits are thrown compared to SciFi measurements?  -->
+     <mufi_weight> 1 </mufi_weight>
+     <!-- How far away from Hough line hits assigned to the muon can be.  -->
+     <tolerance unit="cm"> 1. </tolerance>
+     <!--  Define the Hough poarameter space -->
+     <N_rho_bins> 1152 </N_rho_bins>
+     <rho_min_xz unit="cm"> -576. </rho_min_xz>
+     <rho_max_xz unit="cm"> 576. </rho_max_xz>
+     <rho_min_yz unit="cm"> -576. </rho_min_yz>
+     <rho_max_yz unit="cm"> 576. </rho_max_yz>
+     <N_theta_bins> 2500 </N_theta_bins>
+     <theta_min unit="cm"> -1.57 </theta_min>
+     <theta_max unit="cm"> 1.57 </theta_max>
+  </tracking_case>
+
+</TrackingParams>
+

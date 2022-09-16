@@ -3,6 +3,7 @@ import numpy as np
 import scipy.ndimage
 import warnings
 from array import array
+import xml.etree.ElementTree as ET
 
 def hit_finder(slope, intercept, box_centers, box_ds, tol = 0.) :
     """ Finds hits intersected by Hough line """
@@ -119,11 +120,7 @@ def numPlanesHit(systems, detector_ids) :
 class MuonReco(ROOT.FairTask) :
     " Muon reconstruction "
 
-    def Init(self) :
-
-        # Use skip_events to reconstruct only nth event.
-        self.event_skip = 1
-        self.current_event = 0
+    def Init(self) :        
         
         print("Initializing muon reconstruction task!")
         self.lsOfGlobals  = ROOT.gROOT.GetListOfGlobals()
@@ -151,31 +148,67 @@ class MuonReco(ROOT.FairTask) :
                warnings.warn("Digi_MuFilterHits not in branch list")
                self.MuFilterHits = self.ioman.GetInTree().Digi_MuFilterHits
             if self.ScifiHits == None :
-               warnings.warn("Digi_ScigiHits not in branch list")
+               warnings.warn("Digi_ScifiHits not in branch list")
                self.ScifiHits = self.ioman.GetInTree().Digi_ScifiHits
         
         if self.MuFilterHits == None :
             raise RuntimeException("Digi_MuFilterHits not found in input file.")
         if self.ScifiHits == None :
             raise RuntimeException("Digi_ScifiHits not found in input file.")
+        
+        # Initialize hough transform - reading parameter xml file
+        tree = ET.parse(self.par_file)
+        root = tree.getroot()        
+        
+        # Run reconstruction once for a randomly selected event in every [Scale] events.
+        self.scale = int(root[0].text)
+        self.current_event = -1
+        self.events_run = 0
+        
+        # Output trakc in genfit::Track or sndRecoTrack format
+        self.genfitTrack = int(root[1].text)
+        
+        # Use SciFi hits or clusters
+        self.Scifi_meas = int(root[2].text)
+        
+        track_case_exists = False
+        for case in root.findall('tracking_case'):
+            if case.get('name') == self.tracking_case:            
+               track_case_exists = True
+               # Maximum absolute value of reconstructed angle (+/- 1 rad is the maximum angle to form a triplet in the SciFi)
+               max_angle = float(case.find('max_angle').text)
 
-        # Initialize hough transform
-        # Reco parameters (these should be registered in the rtdb?):
-        # Maximum absolute value of reconstructed angle (+/- 1 rad is the maximum angle to form a triplet in the SciFi)
-        max_angle = 1.
-        # Number of bins per Hough accumulator axis
-        n_accumulator_rho = 1000
-        n_accumulator_angle = 2500
-        # Number of random throws per hit
-        self.n_random = 5
-        # MuFilter weight. Muon filter hits are thrown more times than scifi
-        self.muon_weight = 100
-        # Minimum number of planes hit in each of the downstream muon filter (if muon filter hits used) or scifi (if muon filter hits not used) views to try to reconstruct a muon
-        self.min_planes_hit = 3
+               # Number of bins per Hough accumulator axis and range
+               n_accumulator_rho = int(case.find('N_rho_bins').text)
+               rho_min_xz = float(case.find('rho_min_xz').text)
+               rho_max_xz = float(case.find('rho_max_xz').text)
+               rho_min_yz = float(case.find('rho_min_yz').text)
+               rho_max_yz = float(case.find('rho_max_yz').text)
+               n_accumulator_angle = int(case.find('N_theta_bins').text)
+               theta_min = float(case.find('theta_min').text)
+               theta_max = float(case.find('theta_max').text)
+  
+               # Number of random throws per hit
+               self.n_random = int(case.find('n_random').text)
+               # MuFilter weight. Muon filter hits are thrown more times than scifi
+               self.muon_weight = int(case.find('mufi_weight').text)
+               # Minimum number of planes hit in each of the downstream muon filter (if muon filter hits used) or scifi (if muon filter hits not used) views to try to reconstruct a muon
+               self.min_planes_hit = int(case.find('min_planes_hit').text)
 
-        # Maximum number of muons to find. To avoid spending too much time on events with lots of downstream activity.
-        self.max_reco_muons = 5
+               # Maximum number of muons to find. To avoid spending too much time on events with lots of downstream activity.
+               self.max_reco_muons = int(case.find('max_reco_muons').text)
 
+               # How far away from Hough line hits will be assigned to the muon, for Kalman tracking
+               self.tolerance = float(case.find('tolerance').text)
+
+               # Which hits to use for track fitting. By default use both scifi and muon filter.
+               self.hits_to_fit = case.find('hits_to_fit').text.strip()
+               # Which hits to use for triplet condition. By default use only downstream muon system hits.
+               self.hits_for_triplet = case.find('hits_for_hough').text.strip()
+            else: continue
+        if not track_case_exists:
+           raise RuntimeException("Unknown tracking case, check parameter xml file.")
+                
         # Get sensor dimensions from geometry
         self.MuFilter_ds_dx = self.mufiDet.GetConfParF("MuFilter/DownstreamBarY") # Assume y dimensions in vertical bars are the same as x dimensions in horizontal bars.
         self.MuFilter_ds_dy = self.mufiDet.GetConfParF("MuFilter/DownstreamBarY") # Assume y dimensions in vertical bars are the same as x dimensions in horizontal bars.
@@ -189,21 +222,18 @@ class MuonReco(ROOT.FairTask) :
         self.Scifi_dy = self.scifiDet.GetConfParF("Scifi/channel_width")
         self.Scifi_dz = self.scifiDet.GetConfParF("Scifi/epoxymat_z") # From Scifi.cxx This is the variable used to define the z dimension of SiPM channels, so seems like the right dimension to use.
 
-        # How far away from Hough line hits will be assigned to the muon, for Kalman tracking
-        self.tolerance = 0.
-
-        # Which hits to use for track fitting. By default use both scifi and muon filter.
-        self.hits_to_fit = "sfusds"
-        # Which hits to use for triplet condition. By default use only downstream muon system hits.
-        self.hits_for_triplet = "ds"
-        
-        # Track type based on self.hits_to_fit; to be saved in the track class
-        self.track_type = 15
-
         # Initialize Hough transforms for both views:
-        self.h_ZX = hough(n_accumulator_rho, [-80, 0], n_accumulator_angle, [-max_angle+np.pi/2., max_angle+np.pi/2.])
-        self.h_ZY = hough(n_accumulator_rho, [0, 80], n_accumulator_angle, [-max_angle+np.pi/2., max_angle+np.pi/2.])
+        self.h_ZX = hough(n_accumulator_rho, [rho_min_xz, rho_max_xz], n_accumulator_angle, [-max_angle+np.pi/2., max_angle+np.pi/2.])
+        self.h_ZY = hough(n_accumulator_rho, [rho_min_yz, rho_max_yz], n_accumulator_angle, [-max_angle+np.pi/2., max_angle+np.pi/2.])
 
+        # If only Scifi hits used, no need for accumulator smoothing.
+        if self.hits_to_fit == "sf" :
+            self.h_ZX.smooth = False
+            self.h_ZY.smooth = False
+            self.track_type = 11
+        elif self.hits_to_fit == "ds": self.track_type = 13
+        else : self.track_type = 15
+        
         # To keep temporary detector information
         self.a = ROOT.TVector3()
         self.b = ROOT.TVector3()
@@ -214,14 +244,17 @@ class MuonReco(ROOT.FairTask) :
         if self.event:
             self.kalman_tracks = sink.GetOutTree().Reco_MuonTracks 
         else:
-        # Now initialize output
-           self.kalman_tracks = ROOT.TObjArray(self.max_reco_muons);
-           self.ioman.Register("Reco_MuonTracks", self.ioman.GetFolderName(), self.kalman_tracks, ROOT.kTRUE);
-        # test new track class
-        # Now initialize output
-        self.muon_tracks = ROOT.TClonesArray("sndRecoTrack", self.max_reco_muons)
-        self.ioman.Register("Reco_MuonTracksNew", "", self.muon_tracks, ROOT.kTRUE);
+        # Now initialize output in genfit::track or sndRecoTrack format
+           if self.genfitTrack:
+              self.kalman_tracks = ROOT.TObjArray(self.max_reco_muons)
+              self.ioman.Register("Reco_MuonTracks", self.ioman.GetFolderName(), self.kalman_tracks, ROOT.kTRUE)
+           else:
+              self.kalman_tracks = ROOT.TClonesArray("sndRecoTrack", self.max_reco_muons)
+              self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)
 
+        # internal storage of clusters
+        if self.Scifi_meas: self.clusScifi = ROOT.TObjArray(100)
+        
         # Kalman filter stuff
 
         geoMat = ROOT.genfit.TGeoMaterialInterface()
@@ -240,25 +273,11 @@ class MuonReco(ROOT.FairTask) :
         # Init() MUST return int
         return 0
     
-    def SetTolerance(self, tolerance) :
-        self.tolerance = tolerance
-
-    def SetHitsToFit(self, hits_to_fit) :
-        self.hits_to_fit = hits_to_fit
-        
-        # If only Scifi hits used, no need for accumulator smoothing.
-        if hits_to_fit == "sf" :
-            self.h_ZX.smooth = False
-            self.h_ZY.smooth = False
-            self.track_type = 11
-        elif hits_to_fit == "ds": self.track_type = 13
-        else : self.track_type = 15
-
-    def SetHitsForTriplet(self, hits_for_triplet) :
-        self.hits_for_triplet = hits_for_triplet
-
-    def SetEventSkip(self, event_skip) :
-        self.event_skip = event_skip
+    def SetParFile(self, file_name):
+        self.par_file = file_name
+    
+    def SetTrackingCase(self, case):
+        self.tracking_case = case
 
     def Passthrough(self) :
         T = self.ioman.GetInTree()
@@ -270,16 +289,21 @@ class MuonReco(ROOT.FairTask) :
              self.ioman.Register(obj_name, self.ioman.GetFolderName(), self.ioman.GetObject(obj_name), ROOT.kTRUE) 
 
     def Exec(self, opt) :
-        self.kalman_tracks.Clear()
-        self.muon_tracks.Clear("C") # class contains pointers
+        self.kalman_tracks.Clear('C')
 
-        self.current_event += 1
+        if self.scale>1:
+           self.current_event += 1
+           if self.current_event == 0: 
+              self.event_to_process = int(ROOT.gRandom.Rndm()*self.scale)
+           if not self.current_event == self.event_to_process: 
+              if self.current_event == self.scale - 1:
+                 self.current_event = -1                 
+              return
+           else:
+                if self.current_event == self.scale - 1:
+                   self.current_event = -1                
 
-        if self.current_event == self.event_skip :
-            self.current_event = 0
-        else :
-            return
-                
+        self.events_run += 1
         hit_collection = {"pos" : [[], [], []], 
                           "d" : [[], [], []], 
                           "vert" : [], 
@@ -324,40 +348,70 @@ class MuonReco(ROOT.FairTask) :
                 hit_collection["index"].append(i_hit)
                 
                 hit_collection["detectorID"].append(muFilterHit.GetDetectorID())
-                if muFilterHit.GetSystem() < 3:
-                   hit_collection["tdc"].append(muFilterHit.GetImpactT()) #already in ns
-                else: hit_collection["tdc"].append(muFilterHit.GetAllTimes()[0]*6.23768) #tdc2ns
-                
+            
                 # Downstream
                 if muFilterHit.GetSystem() == 3 :
                     hit_collection["d"][1].append(self.MuFilter_ds_dx)
+                    hit_collection["tdc"].append(muFilterHit.GetImpactT()) #already in ns
                 # Upstream
                 else :
                     hit_collection["d"][1].append(self.MuFilter_us_dy)
+                    hit_collection["tdc"].append(muFilterHit.GetAllTimes()[0]*6.23768) #tdc2ns
         
         if "sf" in self.hits_to_fit :
-            # Loop through scifi hits
-            for i_hit, scifiHit in enumerate(self.ScifiHits) :
-                self.scifiDet.GetSiPMPosition(scifiHit.GetDetectorID(), self.a, self.b)
-                hit_collection["pos"][0].append(self.a.X())
-                hit_collection["pos"][1].append(self.a.Y())
-                hit_collection["pos"][2].append(self.a.Z())
-            
-                hit_collection["B"][0].append(self.b.X())
-                hit_collection["B"][1].append(self.b.Y())
-                hit_collection["B"][2].append(self.b.Z())
-            
-                hit_collection["d"][0].append(self.Scifi_dx)
-                hit_collection["d"][1].append(self.Scifi_dy)
-                hit_collection["d"][2].append(self.Scifi_dz)
+            if self.Scifi_meas:
+               # Make scifi clusters
+               self.clusScifi.Clear()
+               self.scifiCluster()
+               
+               # Loop through scifi clusters
+               for i_clust, scifiCl in enumerate(self.clusScifi) :
+                   scifiCl.GetPosition(self.a,self.b)
                 
-                hit_collection["vert"].append(scifiHit.isVertical())
-                hit_collection["index"].append(i_hit)
+                   hit_collection["pos"][0].append(self.a.X())
+                   hit_collection["pos"][1].append(self.a.Y())
+                   hit_collection["pos"][2].append(self.a.Z())
                 
-                hit_collection["system"].append(0)
+                   hit_collection["B"][0].append(self.b.X())
+                   hit_collection["B"][1].append(self.b.Y())
+                   hit_collection["B"][2].append(self.b.Z())
+                   
+                   # take the cluster size as the active area size
+                   hit_collection["d"][0].append(scifiCl.GetN()*self.Scifi_dx)
+                   hit_collection["d"][1].append(scifiCl.GetN()*self.Scifi_dy)
+                   hit_collection["d"][2].append(self.Scifi_dz)
+                
+                   if int(scifiCl.GetFirst()/100000)%10==1:
+                      hit_collection["vert"].append(True)
+                   else: hit_collection["vert"].append(False)
+                   hit_collection["index"].append(i_clust)
+                
+                   hit_collection["system"].append(0)
+                   hit_collection["detectorID"].append(scifiCl.GetFirst())
+                   hit_collection["tdc"].append(scifiCl.GetTime())
+                              
+            else:
+                 # Loop through scifi hits
+                 for i_hit, scifiHit in enumerate(self.ScifiHits) :
+                     self.scifiDet.GetSiPMPosition(scifiHit.GetDetectorID(), self.a, self.b)
+                     hit_collection["pos"][0].append(self.a.X())
+                     hit_collection["pos"][1].append(self.a.Y())
+                     hit_collection["pos"][2].append(self.a.Z())
             
-                hit_collection["detectorID"].append(scifiHit.GetDetectorID())
-                hit_collection["tdc"].append(scifiHit.GetTime()*6.23768) #tdc2ns
+                     hit_collection["B"][0].append(self.b.X())
+                     hit_collection["B"][1].append(self.b.Y())
+                     hit_collection["B"][2].append(self.b.Z())
+            
+                     hit_collection["d"][0].append(self.Scifi_dx)
+                     hit_collection["d"][1].append(self.Scifi_dy)
+                     hit_collection["d"][2].append(self.Scifi_dz)
+                
+                     hit_collection["vert"].append(scifiHit.isVertical())
+                     hit_collection["index"].append(i_hit)
+                
+                     hit_collection["system"].append(0)
+            
+                     hit_collection["detectorID"].append(scifiHit.GetDetectorID())
     
         # Make the hit collection numpy arrays.
         for key, item in hit_collection.items() :
@@ -564,17 +618,18 @@ class MuonReco(ROOT.FairTask) :
                 raise RuntimeException("Kalman fit did not converge.")
             
             # Now save the track!
-            self.kalman_tracks.Add(theTrack)
+            if self.genfitTrack: self.kalman_tracks.Add(theTrack)
+            else :            
+                # Load items into snd track class object
+                this_track = ROOT.sndRecoTrack(theTrack)            
+                pointTimes = []              
+                for i_z_sorted in hit_z.argsort() :              
+                    pointTimes.append(hit_tdc[i_z_sorted])
+                this_track.setRawMeasTimes(pointTimes)
+                this_track.setTrackType(self.track_type)                
+                # Save the track in sndRecoTrack format
+                self.kalman_tracks[i_muon] = this_track
             
-            # Load items into snd track class object
-            this_track = ROOT.sndRecoTrack(theTrack)            
-            pointTimes = []              
-            for i_z_sorted in hit_z.argsort() :              
-               pointTimes.append(hit_tdc[i_z_sorted])
-            this_track.setRawMeasTimes(pointTimes)
-            this_track.setTrackType(self.track_type)                
-            # Save the track in sndRecoTrack format
-            self.muon_tracks[i_muon] = this_track
 
             # Remove track hits and try to find an additional track
             # Find array index to be removed
@@ -593,4 +648,50 @@ class MuonReco(ROOT.FairTask) :
                     raise Exception("Wrong number of dimensions found when deleting hits in iterative muon identification algorithm.")
 
     def FinishTask(self) :
-        self.muon_tracks.Delete()
+        print("Processed" ,self.events_run)
+        if not self.genfitTrack : self.kalman_tracks.Delete()
+        else : pass
+
+    # this is a copy on SndlhcTracking function with small adjustments in event object names to make it work here
+    # FIXME Should find a way to use this function straight from the SndlhcTracking!
+    def scifiCluster(self):
+       clusters = []
+       hitDict = {}
+       for k in range(self.ScifiHits.GetEntries()):
+            d = self.ScifiHits[k]
+            if not d.isValid(): continue 
+            hitDict[d.GetDetectorID()] = k
+       hitList = list(hitDict.keys())
+       if len(hitList)>0:
+              hitList.sort()
+              tmp = [ hitList[0] ]
+              cprev = hitList[0]
+              ncl = 0
+              last = len(hitList)-1
+              hitvector = ROOT.std.vector("sndScifiHit*")()
+              for i in range(len(hitList)):
+                   if i==0 and len(hitList)>1: continue
+                   c=hitList[i]
+                   neighbour = False
+                   if (c-cprev)==1:    # does not account for neighbours across sipms
+                        neighbour = True
+                        tmp.append(c)
+                   if not neighbour  or c==hitList[last]:
+                        first = tmp[0]
+                        N = len(tmp)
+                        hitvector.clear()
+                        for aHit in tmp: hitvector.push_back( self.ScifiHits[hitDict[aHit]])
+                        aCluster = ROOT.sndCluster(first,N,hitvector,self.scifiDet,False)
+                        clusters.append(aCluster)
+                        if c!=hitList[last]:
+                             ncl+=1
+                             tmp = [c]
+                        elif not neighbour :   # save last channel
+                            hitvector.clear()
+                            hitvector.push_back(self.ScifiHits[hitDict[c]])
+                            aCluster = ROOT.sndCluster(c,1,hitvector,self.scifiDet,False)
+                            clusters.append(aCluster)
+                   cprev = c
+       self.clusScifi.Delete()            
+       for c in clusters:  
+            self.clusScifi.Add(c)
