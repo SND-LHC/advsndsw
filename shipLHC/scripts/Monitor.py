@@ -65,6 +65,9 @@ class Monitoring():
    def __init__(self,options,FairTasks):
         self.options = options
         self.EventNumber = -1
+        self.TStart = -1
+        self.TEnd   = -1
+
 # MuFilter mapping of planes and bars 
         self.systemAndPlanes  = {1:2,2:5,3:7}
         self.systemAndBars     = {1:7,2:10,3:60}
@@ -159,6 +162,14 @@ class Monitoring():
                        eventChain.Add(path+'run_'+self.runNr+'/'+p)
 
             rc = eventChain.GetEvent(0)
+            self.TStart = eventChain.EventHeader.GetEventTime()
+            if options.nEvents <0:
+               rc = eventChain.GetEvent(eventChain.GetEntries()-1)
+            else:
+               rc = eventChain.GetEvent(options.nEvents-1)
+            self.TEnd = eventChain.EventHeader.GetEventTime()
+            rc = eventChain.GetEvent(0)
+
 # start FairRunAna
             self.run  = ROOT.FairRunAna()
             ioman = ROOT.FairRootManager.Instance()
