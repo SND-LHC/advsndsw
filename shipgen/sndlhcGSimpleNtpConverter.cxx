@@ -40,11 +40,11 @@ int main(int argc, char** argv){
   // Scoring plane info
   // Plane z in FLUKA coordinates: 48386 cm
   // FLUKA z = 0 in sndsw coordinates : -48000 cm
-  double z = (48386-48000)/100.; // In m!
+  double z = (48386-48000); // In cm for consistency with the FLUKA file.
   
-  double plane_corner[] = {-70/100., 5/100., z};
-  double plane_dir1[] = {140/100., 0, 0};
-  double plane_dir2[] = {0, 65/100., 0};
+  double plane_corner[] = {-70., 5., z};
+  double plane_dir1[] = {140., 0, 0};
+  double plane_dir2[] = {0, 65., 0};
 
   // Set up input file
   std::ifstream in_file(inFileName);
@@ -184,9 +184,9 @@ int main(int argc, char** argv){
   meta_entry->minWgt = min_weight;
   
   meta_entry->protons = pp_collision_number; // Placeholder. Can use for number of collisions used to produce file?
-  for (int i = 0; i < 3; i++) meta_entry->windowBase[i] = plane_corner[i];
-  for (int i = 0; i < 3; i++) meta_entry->windowDir1[i] = plane_dir1[i];
-  for (int i = 0; i < 3; i++) meta_entry->windowDir2[i] = plane_dir2[i];
+  for (int i = 0; i < 3; i++) meta_entry->windowBase[i] = plane_corner[i]/100.;
+  for (int i = 0; i < 3; i++) meta_entry->windowDir1[i] = plane_dir1[i]/100.;
+  for (int i = 0; i < 3; i++) meta_entry->windowDir2[i] = plane_dir2[i]/100.;
   
   meta_entry->infiles.push_back(inFileName);
   meta_entry->seed = ran->GetSeed();
