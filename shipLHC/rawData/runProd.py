@@ -1,4 +1,4 @@
-import os,subprocess,time,multiprocessing
+import os,subprocess,time,multiprocessing,psutil
 import pwd
 import ROOT
 ncpus = multiprocessing.cpu_count() - 2
@@ -69,18 +69,20 @@ class prodManager():
          for p in partitions[r]:
              self.runSinglePartition(path,runNr,str(p).zfill(4),EOScopy=True,check=True)
 
-   def runDataQuality(self,latest):
-      monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
-                        -b 100000 -p "+pathConv+" -g GGGG "\
-                        +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
-
-      dqDataFiles = []
+   def getRunNrFromOffline(self,rMin=-1,rMax=9999):
+      self.dqDataFiles = []
       hList = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls /eos/experiment/sndlhc/www/offline",shell=True) )
       for x in hList.split('\\n'):
           if x.find('root')<0: continue
           run = x.split('/')[-1]
           if run.find('run')!=0: continue
-          dqDataFiles.append(int(run[3:9]))
+          r = int(run[3:9])
+          if r>=rMin and r<=rMax:  self.dqDataFiles.append(r)
+   def runDataQuality(self,latest):
+      monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
+                        -b 100000 -p "+pathConv+" -g GGGG "\
+                        +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
+
       convDataFiles = self.getFileList(pathConv,latest,minSize=0)
       self.checkEOS(copy=False)
       # remove directories which are not complete
@@ -94,15 +96,30 @@ class prodManager():
       for x in orderedCDF:
           r = x//10000
           if  (r in self.runNrs) or (r in lpruns): continue
-          if r in dqDataFiles: continue
+          if r in self.dqDataFiles: continue
           self.runNrs.append(r)
           
-      for r in self.runNrs: 
+      for r in self.runNrs:
            print('executing DQ for run %i'%(r))
            if r  < 4620:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
            if r > 4619:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
            os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
-           while self.count_python_processes('run_Monitoring')>(ncpus-2) : time.sleep(1800)
+           while self.count_python_processes('run_Monitoring')>(ncpus-2) or psutil.virtual_memory()[2]>90 : time.sleep(1800)
+
+   def RerunDataQuality(self,runNrs=[],rMin=-1,rMax=9999):
+      monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
+                        -b 100000 -p "+pathConv+" -g GGGG "\
+                        +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
+      if len(runNrs) ==0:
+         getRunNrFromOffline(self,rMin,rMax)
+         runNrs = self.dqDataFiles
+      for r in runNrs:
+           print('executing DQ for run %i'%(r))
+           if r  < 4620:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
+           if r > 4619:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+           os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
+           time.sleep(20)
+           while self.count_python_processes('run_Monitoring')>(ncpus-5) or psutil.virtual_memory()[2]>90 : time.sleep(300)
 
    def check4NewFiles(self,latest):
       rawDataFiles = self.getFileList(path,latest,minSize=10E6)
@@ -241,6 +258,19 @@ class prodManager():
                inventory[run*10000+partition] = [aDir+"/"+fname,gmt]
       return inventory
 
+   def getNumberOfEvents(self,r):
+# check for partitions
+           dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+pathConv+"run_"+str(r).zfill(6),shell=True) )
+           partitions = []
+           for x in dirlist.split('\\n'):
+                ix = x.find('sndsw_raw-')
+                if ix<0: continue
+                partitions.append(x[ix:])
+           eventChain = ROOT.TChain('rawConv')
+           for p in partitions:
+                eventChain.Add(options.server+pathConv+'run_'+str(r).zfill(6)+'/'+p)
+           return eventChain.GetEntries()
+
    def checkEOS(self,copy=False):
        self.eosInventory = self.getFileList('/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/',4361)
        tmp = self.options.server 
@@ -311,6 +341,8 @@ if __name__ == '__main__':
     parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
     parser.add_argument("-g", dest="geofile", help="geometry and alignment",default="geofile_sndlhc_TI18.root")
     parser.add_argument("--postScale", dest="postScale",help="post scale events, 1..10..100", default=-1,type=int)
+    parser.add_argument("-rMin", dest="rMin",help="first run to process", default=-1,type=int)
+    parser.add_argument("-rMax", dest="rMax",help="last run to process", default=9999,type=int)
 
     options = parser.parse_args()
     M = prodManager()
@@ -351,8 +383,13 @@ if __name__ == '__main__':
          M.runDataQuality(options.latest)  
          time.sleep(3600)
       exit(0)
+    elif options.command == "rerunDQ":
+        runList = []
+        for r in options.runNumbers.split(','):
+            if r!= '': runList.append(int(r))
+        M.RerunDataQuality(runList,options.rMin,options.rMax)
 
-    if options.command == "convert":
+    elif options.command == "convert":
         for r in options.runNumbers.split(','):
             if r!= '': runList.append(int(r))
         M.convert(runList,path)    
