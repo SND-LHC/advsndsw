@@ -7,6 +7,8 @@
 #include "TMath.h"
 #include "TRandom3.h"
 
+#include "ShipUnit.h"
+
 #include "Tools/Flux/GSimpleNtpFlux.h"
 
 /*
@@ -139,9 +141,9 @@ int main(int argc, char** argv){
 	gsimple_entry->metakey = metakey;
 	gsimple_entry->pdg = FLUKAtoPDG[FlukaID];
 	gsimple_entry->wgt = weight;
-	gsimple_entry->vtxx = x/100.; // in m
-	gsimple_entry->vtxy = y/100.;
-	gsimple_entry->vtxz = z/100.;
+	gsimple_entry->vtxx = x*ShipUnit::cm/ShipUnit::m; // in m
+	gsimple_entry->vtxy = y*ShipUnit::cm/ShipUnit::m;
+	gsimple_entry->vtxz = z*ShipUnit::cm/ShipUnit::m;
 	gsimple_entry->dist = 0.; // Distance from hadron decay point to neutrino "vertex", to use for oscillations, for example. Don't use.
 
 	// I'm assuming x_cos, y_cos are normalized.
@@ -183,10 +185,10 @@ int main(int argc, char** argv){
   meta_entry->maxWgt = max_weight;
   meta_entry->minWgt = min_weight;
   
-  meta_entry->protons = pp_collision_number; // Placeholder. Can use for number of collisions used to produce file?
-  for (int i = 0; i < 3; i++) meta_entry->windowBase[i] = plane_corner[i]/100.;
-  for (int i = 0; i < 3; i++) meta_entry->windowDir1[i] = plane_dir1[i]/100.;
-  for (int i = 0; i < 3; i++) meta_entry->windowDir2[i] = plane_dir2[i]/100.;
+  meta_entry->protons = pp_collision_number; // Number of pp collisions.
+  for (int i = 0; i < 3; i++) meta_entry->windowBase[i] = plane_corner[i]*ShipUnit::cm/ShipUnit::m;
+  for (int i = 0; i < 3; i++) meta_entry->windowDir1[i] = plane_dir1[i]*ShipUnit::cm/ShipUnit::m;
+  for (int i = 0; i < 3; i++) meta_entry->windowDir2[i] = plane_dir2[i]*ShipUnit::cm/ShipUnit::m;
   
   meta_entry->infiles.push_back(inFileName);
   meta_entry->seed = ran->GetSeed();
