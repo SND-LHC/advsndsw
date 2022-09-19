@@ -377,7 +377,6 @@ class Tracking(ROOT.FairTask):
       if theTrack.GetUniqueID()>1: return False # for the moment, only the scifi is time calibrated
       fitStatus   = theTrack.getFitStatus()
       if not fitStatus.isFitConverged() : return [100,-100]
-      if theTrack.getFitStatus().getNumIterations()>19: return [100,-100]
       state = theTrack.getFittedState(0)
       pos = state.getPos()
 # start with first measurement
@@ -396,7 +395,12 @@ class Tracking(ROOT.FairTask):
       Z0track = pos[2]
       self.Tline = ROOT.TGraph()
       for nM in range(theTrack.getNumPointsWithMeasurement()):
-            state   = theTrack.getFittedState(nM)
+            rep = theTrack.getCardinalRep()
+            point = theTrack.getPointWithMeasurementAndFitterInfo(nM, rep)
+            if point:
+                state   = point.getFitterInfo(rep).getFittedState(True)
+            else:
+                continue
             posM   = state.getPos()
             M = theTrack.getPointWithMeasurement(nM)
             W = M.getRawMeasurement()
