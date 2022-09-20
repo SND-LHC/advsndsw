@@ -7,6 +7,8 @@
 #include "TMath.h"
 #include "TRandom3.h"
 
+#include "ShipUnit.h"
+
 #include "Tools/Flux/GSimpleNtpFlux.h"
 
 /*
@@ -40,11 +42,11 @@ int main(int argc, char** argv){
   // Scoring plane info
   // Plane z in FLUKA coordinates: 48386 cm
   // FLUKA z = 0 in sndsw coordinates : -48000 cm
-  double z = (48386-48000)/100.; // In m!
+  double z = (48386-48000); // In cm for consistency with the FLUKA file.
   
-  double plane_corner[] = {-70/100., 5/100., z};
-  double plane_dir1[] = {140/100., 0, 0};
-  double plane_dir2[] = {0, 65/100., 0};
+  double plane_corner[] = {-70., 5., z};
+  double plane_dir1[] = {140., 0, 0};
+  double plane_dir2[] = {0, 65., 0};
 
   // Set up input file
   std::ifstream in_file(inFileName);
@@ -139,9 +141,9 @@ int main(int argc, char** argv){
 	gsimple_entry->metakey = metakey;
 	gsimple_entry->pdg = FLUKAtoPDG[FlukaID];
 	gsimple_entry->wgt = weight;
-	gsimple_entry->vtxx = x/100.; // in m
-	gsimple_entry->vtxy = y/100.;
-	gsimple_entry->vtxz = z/100.;
+	gsimple_entry->vtxx = x*ShipUnit::cm/ShipUnit::m; // in m
+	gsimple_entry->vtxy = y*ShipUnit::cm/ShipUnit::m;
+	gsimple_entry->vtxz = z*ShipUnit::cm/ShipUnit::m;
 	gsimple_entry->dist = 0.; // Distance from hadron decay point to neutrino "vertex", to use for oscillations, for example. Don't use.
 
 	// I'm assuming x_cos, y_cos are normalized.
@@ -183,10 +185,10 @@ int main(int argc, char** argv){
   meta_entry->maxWgt = max_weight;
   meta_entry->minWgt = min_weight;
   
-  meta_entry->protons = pp_collision_number; // Placeholder. Can use for number of collisions used to produce file?
-  for (int i = 0; i < 3; i++) meta_entry->windowBase[i] = plane_corner[i];
-  for (int i = 0; i < 3; i++) meta_entry->windowDir1[i] = plane_dir1[i];
-  for (int i = 0; i < 3; i++) meta_entry->windowDir2[i] = plane_dir2[i];
+  meta_entry->protons = pp_collision_number; // Number of pp collisions.
+  for (int i = 0; i < 3; i++) meta_entry->windowBase[i] = plane_corner[i]*ShipUnit::cm/ShipUnit::m;
+  for (int i = 0; i < 3; i++) meta_entry->windowDir1[i] = plane_dir1[i]*ShipUnit::cm/ShipUnit::m;
+  for (int i = 0; i < 3; i++) meta_entry->windowDir2[i] = plane_dir2[i]*ShipUnit::cm/ShipUnit::m;
   
   meta_entry->infiles.push_back(inFileName);
   meta_entry->seed = ran->GetSeed();
