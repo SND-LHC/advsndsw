@@ -3,6 +3,24 @@ from array import array
 import shipunit as u
 A,B = ROOT.TVector3(),ROOT.TVector3()
 
+ROOT.gInterpreter.Declare("""
+#include <KalmanFitterInfo.h>
+#include <Track.h>
+#include <MeasuredStateOnPlane.h>
+#include <stddef.h>     
+
+const genfit::MeasuredStateOnPlane& getFittedState(genfit::Track* theTrack, int nM){
+      try{
+        return theTrack->getFittedState(nM);
+      }
+      catch(genfit::Exception& e){
+        std::cerr<<"Exception "<< e.what() <<std::endl;
+        const genfit::MeasuredStateOnPlane* state(NULL);
+        return *state;
+      }
+}
+""")
+
 class Tracking(ROOT.FairTask):
  " Tracking "
  def Init(self,online=False):
@@ -377,7 +395,7 @@ class Tracking(ROOT.FairTask):
       if theTrack.GetUniqueID()>1: return False # for the moment, only the scifi is time calibrated
       fitStatus   = theTrack.getFitStatus()
       if not fitStatus.isFitConverged() : return [100,-100]
-      state = theTrack.getFittedState(0)
+      state = ROOT.getFittedState(theTrack,0)
       pos = state.getPos()
 # start with first measurement
       M = theTrack.getPointWithMeasurement(0)
@@ -395,12 +413,8 @@ class Tracking(ROOT.FairTask):
       Z0track = pos[2]
       self.Tline = ROOT.TGraph()
       for nM in range(theTrack.getNumPointsWithMeasurement()):
-            rep = theTrack.getCardinalRep()
-            point = theTrack.getPointWithMeasurementAndFitterInfo(nM, rep)
-            if point:
-                state   = point.getFitterInfo(rep).getFittedState(True)
-            else:
-                continue
+            state = ROOT.getFittedState(theTrack,nM)
+            if not state: continue
             posM   = state.getPos()
             M = theTrack.getPointWithMeasurement(nM)
             W = M.getRawMeasurement()
