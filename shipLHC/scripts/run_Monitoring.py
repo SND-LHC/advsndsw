@@ -204,10 +204,12 @@ if not options.auto:   # default online/offline mode
           pid,exit_code = os.wait()
           if pid == 0: time.sleep(100)
           else: 
-                print('child process has finished',pid,exit_code)
+                print('child process has finished',len(process)-1,pid,exit_code)
                 process.remove(pid)
      for i in range(options.parallel):
-        ut.readHists(M.h,'tmp'+str(options.runNumber)+'p'+str(i))
+        tmp = 'tmp'+str(options.runNumber)+'p'+str(i)
+        if tmp in os.listdir('.'):         ut.readHists(M.h,tmp)
+        else: print('file missing ',tmp)
      M.presenterFile.Close()
      M.presenterFile = ROOT.TFile('run'+M.runNr+'.root','update')
 
