@@ -83,9 +83,8 @@ class Time_evolution(ROOT.FairTask):
        self.xing = {'all':True,'B1only':False,'B2noB1':False,'noBeam':False}
        for x in self.xing:
            ut.bookHist(h,'bnr'+x,'bunch number; ',3564,-0.5,3564-0.5)
-
-       ut.bookHist(h,'trackDir','track direction;',300,-0.5,0.25)
-       ut.bookHist(h,'trackDirSig','track direction significance;',100,-20,10)
+           ut.bookHist(h,'trackDir'+x,'track direction;',300,-0.5,0.25)
+           ut.bookHist(h,'trackDirSig'+x,'track direction significance;',100,-20,10)
 # get filling scheme
        fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
        pkl = Unpickler(fg)
@@ -128,6 +127,7 @@ class Time_evolution(ROOT.FairTask):
        direction = 0
        DStrack = False
        SFtrack = False
+       SL = False
        for theTrack in self.M.Reco_MuonTracks:
             if not theTrack.getFitStatus().isFitConverged() and theTrack.GetUniqueID()==1: continue
             if theTrack.GetUniqueID()!=1: 
@@ -136,15 +136,16 @@ class Time_evolution(ROOT.FairTask):
             SL = trackTask.trackDir(theTrack)
             if not SL: continue
             SFtrack = True
-            rc = h['trackDir'].Fill(SL[0])
-            rc = h['trackDirSig'].Fill(SL[1])
             if abs(SL[0])<0.03:  direction = 1
             elif SL[0]<-0.07:     direction = -1
        bn = (T%(4*3564))/4
        rc = h['bnr'].Fill( bn )
        for x in xing:
-            if xing[x]: 
+            if xing[x]:
                  if x=='all' or (DStrack or SFtrack):  rc = h['bnr'+x].Fill( bn )
+            if not SL: continue
+            rc = h['trackDir'+x].Fill(SL[0])
+            rc = h['trackDirSig'+x].Fill(SL[1])
 
        if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4)
        elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4)
@@ -425,11 +426,20 @@ class Time_evolution(ROOT.FairTask):
             h['Txing'].Update()
             self.M.myPrint(h['Txing'],"RatesXing",subdir='daq')
 
-       ut.bookCanvas(h,'TD',' ',1024,768,2,1)
-       h['TD'].cd(1)
-       h['trackDir'].Draw()
-       h['TD'].cd(2)
-       h['trackDirSig'].Draw()
+       if self.fsdict:
+          ut.bookCanvas(h,'TD',' ',1024,768,4,2)
+          j=1
+          for x in self.xing:
+              h['TD'].cd(j)
+              h['trackDir'+x].Draw()
+              h['TD'].cd(4+j)
+              h['trackDir'+x].Draw()
+       else:
+          ut.bookCanvas(h,'TD',' ',1024,768,2,1)
+          h['TD'].cd(1)
+          h['trackDirall'].Draw()
+          h['TD'].cd(2)
+          h['trackDirSigall'].Draw()
        self.M.myPrint(h['TD'],'trackdirections',subdir='daq')
 
        ut.bookCanvas(h,'bunchNumber','bunch nr',2048,1600,1,3)
