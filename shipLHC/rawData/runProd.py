@@ -93,6 +93,7 @@ class prodManager():
       lpruns = self.list_of_runs('run_Monitoring')
       print(lpruns)
       print(self.runNrs)
+      self.getRunNrFromOffline(latest)
       for x in orderedCDF:
           r = x//10000
           if  (r in self.runNrs) or (r in lpruns): continue
@@ -111,7 +112,7 @@ class prodManager():
                         -b 100000 -p "+pathConv+" -g GGGG "\
                         +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
       if len(runNrs) ==0:
-         getRunNrFromOffline(self,rMin,rMax)
+         self.getRunNrFromOffline(rMin,rMax)
          runNrs = self.dqDataFiles
       for r in runNrs:
            print('executing DQ for run %i'%(r))
