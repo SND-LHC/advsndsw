@@ -88,17 +88,23 @@ class Mufi_hitMaps(ROOT.FairTask):
        withDSTrack = False
        for aTrack in self.M.Reco_MuonTracks:
            if aTrack.GetUniqueID()==3: withDSTrack = True
+
        for aHit in event.Digi_MuFilterHits:
-           if not aHit.isValid(): continue
            Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
            s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
+           nSiPMs = aHit.GetnSiPMs()
+           nSides  = aHit.GetnSides()
+           for c in aHit.GetAllSignals(False,False):
+                if aHit.isMasked(c.first):
+                     channel = bar*nSiPMs*nSides + c.first
+                     rc = h[detector+'Xhit_'+str(s)+str(l)].Fill( channel )
+
+           if not aHit.isValid(): continue
            mult[s*10+l]+=1
            key = s*100+l
            if not key in planes: planes[key] = {}
            sumSignal = self.M.map2Dict(aHit,'SumOfSignals')
            planes[key][bar] = [sumSignal['SumL'],sumSignal['SumR']]
-           nSiPMs = aHit.GetnSiPMs()
-           nSides  = aHit.GetnSides()
 # check left/right
            allChannels = self.M.map2Dict(aHit,'GetAllSignals')
            for c in allChannels:
@@ -141,10 +147,6 @@ class Mufi_hitMaps(ROOT.FairTask):
        if len(onePlane)==1:
            rc = h[detector+'Noise'].Fill(onePlane[0])
 
-       for aHit in event.Digi_MuFilterHits:
-           if aHit.isValid(): continue
-           for c in aHit.GetAllSignals(False):
-                rc = h[detector+'Xhit_'+str(s)+str(l)].Fill( int(c.first()))
 #
        for s in self.listOfHits:
            nhits = len(self.listOfHits[s])
