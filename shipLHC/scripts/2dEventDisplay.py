@@ -32,9 +32,8 @@ parser.add_argument("-P", "--partition", dest="partition", help="partition of da
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 
 parser.add_argument("-H", "--houghTransform", dest="houghTransform", help="do not use hough transform for track reco", action='store_false',default=True)
-parser.add_argument("-t", "--tolerance", dest="tolerance",  type=float, help="How far away from Hough line hits assigned to the muon can be. In cm.", default=0.)
-parser.add_argument("--hits_to_fit", dest = "hits_to_fit", type=str, help="Which detectors to use in the fit, in the format: vesfusds, where [ve] is veto, [sf] is Scifi, [us] is Upstream muon filter, and [ds] is downstream muon filter", default = "sfusds")
-parser.add_argument("--hits_for_triplet", dest = "hits_for_triplet", type=str, help="Which detectors to use for the triplet condition. In the same format as --hits_to_fit", default = "ds")
+parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", required=False, default=os.environ['SNDSW_ROOT']+"/python/TrackingParams.xml")
+parser.add_argument("-c", "--case", dest="trackingCase", help="type of tracks to build. Should match the 'tracking_case' name in parFile, use quotes", required=True)
 
 options = parser.parse_args()
 
@@ -95,17 +94,18 @@ xrdb = ROOT.FairRuntimeDb.instance()
 xrdb.getContainer("FairBaseParSet").setStatic()
 xrdb.getContainer("FairGeoParSet").setStatic()
 
+if options.houghTransform:
+  muon_reco_task.SetParFile(options.parFile)
+  muon_reco_task.SetTrackingCase(options.trackingCase)
+  # force the output of reco task to genfit::Track
+  # as the display code looks for such output
+  muon_reco_task.ForceGenfitTrackFormat()
+
 run.Init()
 eventTree = ioman.GetInTree()
 # backward compatbility for early converted events
 eventTree.GetEvent(0)
 if eventTree.GetBranch('Digi_MuFilterHit'): eventTree.Digi_MuFilterHits = eventTree.Digi_MuFilterHit
-
-if options.houghTransform:
-# prepare track reco with hough transform
-  muon_reco_task.SetTolerance(options.tolerance)
-  muon_reco_task.SetHitsToFit(options.hits_to_fit)
-  muon_reco_task.SetHitsForTriplet(options.hits_for_triplet)
 
 nav = ROOT.gGeoManager.GetCurrentNavigator()
 

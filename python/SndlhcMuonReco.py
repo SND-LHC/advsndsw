@@ -156,20 +156,22 @@ class MuonReco(ROOT.FairTask) :
         if self.ScifiHits == None :
             raise RuntimeException("Digi_ScifiHits not found in input file.")
         
-        # Initialize hough transform - reading parameter xml file
-        tree = ET.parse(self.par_file)
-        root = tree.getroot()        
-        
-        # Run reconstruction once for a randomly selected event in every [Scale] events.
-        self.scale = int(root[0].text)
+        # Initialize event counters in case scaling of events is required
+        self.scale = 1
         self.current_event = -1
         self.events_run = 0
         
-        # Output trakc in genfit::Track or sndRecoTrack format
-        self.genfitTrack = int(root[1].text)
+        # Initialize hough transform - reading parameter xml file
+        tree = ET.parse(self.par_file)
+        root = tree.getroot()
+        
+        # Output track in genfit::Track or sndRecoTrack format
+        # Check if genfit::Track format is already forced
+        if hasattr(self, "genfitTrack"): pass
+        else: self.genfitTrack = int(root[0].text)
         
         # Use SciFi hits or clusters
-        self.Scifi_meas = int(root[2].text)
+        self.Scifi_meas = int(root[1].text)
         
         track_case_exists = False
         for case in root.findall('tracking_case'):
@@ -273,12 +275,18 @@ class MuonReco(ROOT.FairTask) :
         # Init() MUST return int
         return 0
     
+    def SetScaleFactor(self, scale):
+        self.scale = scale
+        
     def SetParFile(self, file_name):
         self.par_file = file_name
     
     def SetTrackingCase(self, case):
         self.tracking_case = case
 
+    def ForceGenfitTrackFormat(self):
+        self.genfitTrack = 1        
+    
     def Passthrough(self) :
         T = self.ioman.GetInTree()
         

@@ -9,10 +9,11 @@ parser.add_argument("-f", "--inputFile", dest="inputFile", help="single input fi
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=True)
 parser.add_argument("-o", "--withOutput", dest="withOutput", help="persistent output", action='store_true',default=False)
 parser.add_argument("-s", "--saveTo", dest="outPath", help="output storage path", type=str,default="",required=False)
-parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", required=False, default="${SNDSW_ROOT}/python/TrackingParams.xml")
+parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", required=False, default=os.environ['SNDSW_ROOT']+"/python/TrackingParams.xml")
 parser.add_argument("-c", "--case", dest="trackingCase", help="type of tracks to build. Should match the 'tracking_case' name in parFile, use quotes", required=True)
 parser.add_argument("-n", "--nEvents", dest="nEvents",  type=int, help="number of events to process", default=1100000)
 parser.add_argument("-i", "--firstEvent",dest="firstEvent",  help="First event of input file to use", required=False,  default=0, type=int)
+parser.add_argument("-sc", "--scale",dest="scaleFactor",  help="Run reconstruction once for a randomly selected event in every [scaleFactor] events.", required=False,  default=1, type=int)
 
 options = parser.parse_args()
 
@@ -60,9 +61,13 @@ run.SetSource(source)
 
 sink = ROOT.FairRootFileSink(outFile)
 run.SetSink(sink)
+# Don't use FairRoot's default event header settings
+run.SetEventHeaderPersistence(False)
 
 muon_reco_task = SndlhcMuonReco.MuonReco()
 run.AddTask(muon_reco_task)
+
+# Start timer
 w = ROOT.TStopwatch()
 
 # Set the parameter file - must be called before Init()
@@ -71,9 +76,12 @@ muon_reco_task.SetTrackingCase(options.trackingCase)
 
 run.Init()
 
+# Set the scale factor - must be after Init()
+print("Setting a scale factor to:", options.scaleFactor)
+muon_reco_task.SetScaleFactor(options.scaleFactor)
+
 # Set number of events to process
 nEvents = min( options.nEvents, source.GetEntries())
-print('Number of events for task', nEvents)
 
 run.Run(options.firstEvent, options.firstEvent + nEvents)
 w.Stop()

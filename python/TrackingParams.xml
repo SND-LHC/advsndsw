@@ -12,9 +12,6 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:noNamespaceSchemaLocation='./TrackingParams.xsd'>
 
-  <!--  A scale factor, 
-        run reconstruction once for a randomly selected event in every [scale] events. -->
-  <scale> 10 </scale>
   <!--  Tracks stored in genfit::Track format, value 1,
         or sndRecoTrack class, value 0  -->
   <genfitTrack> 0 </genfitTrack>
