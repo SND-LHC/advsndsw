@@ -86,12 +86,16 @@ class Time_evolution(ROOT.FairTask):
            ut.bookHist(h,'trackDir'+x,'track direction;',300,-0.5,0.25)
            ut.bookHist(h,'trackDirSig'+x,'track direction significance;',100,-20,10)
 # get filling scheme
-       fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
-       pkl = Unpickler(fg)
-       FSdict = pkl.load('FSdict')
-       fg.Close()
-       if options.runNumber in FSdict: self.fsdict = FSdict[options.runNumber]
-       else:  self.fsdict = False
+       try:
+           fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
+           pkl = Unpickler(fg)
+           FSdict = pkl.load('FSdict')
+           fg.Close()
+           if options.runNumber in FSdict: self.fsdict = FSdict[options.runNumber]
+           else:  self.fsdict = False
+       except:
+           print('continue without knowing filling scheme')
+           self.fsdict = False
 
        self.boardsVsTime = {}
                        
@@ -143,9 +147,9 @@ class Time_evolution(ROOT.FairTask):
        for x in xing:
             if xing[x]:
                  if x=='all' or (DStrack or SFtrack):  rc = h['bnr'+x].Fill( bn )
-            if not SL: continue
-            rc = h['trackDir'+x].Fill(SL[0])
-            rc = h['trackDirSig'+x].Fill(SL[1])
+                 if not SL: continue
+                 rc = h['trackDir'+x].Fill(SL[0])
+                 rc = h['trackDirSig'+x].Fill(SL[1])
 
        if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4)
        elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4)
@@ -434,6 +438,7 @@ class Time_evolution(ROOT.FairTask):
               h['trackDir'+x].Draw()
               h['TD'].cd(4+j)
               h['trackDir'+x].Draw()
+              j+=1
        else:
           ut.bookCanvas(h,'TD',' ',1024,768,2,1)
           h['TD'].cd(1)
