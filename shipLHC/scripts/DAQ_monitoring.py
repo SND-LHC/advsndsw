@@ -404,7 +404,7 @@ class Time_evolution(ROOT.FairTask):
                      mx = h['time'+ty+x].GetMaximum()
                      if mx>hmax: hmax = mx
                  for ty in ['','Wt','WtDS']:
-                     h['time'+ty+x].SetMaximum(mx)
+                     h['time'+ty+x].SetMaximum(hmax)
                      h['time'+ty+x].SetStats(0)
                  h['time'+x].Draw()
                  h['timeWt'+x].SetLineColor(ROOT.kRed)
