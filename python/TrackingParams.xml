@@ -16,7 +16,7 @@
         or sndRecoTrack class, value 0  -->
   <genfitTrack> 0 </genfitTrack>
   <!--  Use SciFi hits, value 0, or clusters, value 1  -->
-  <Scifi_meas> 1 </Scifi_meas>
+  <Scifi_meas> 0 </Scifi_meas>
 
   <tracking_case name = "nu_interaction_products">     
      <!--  Which detectors to use in the tracks fit, in the format: vesfusds, 
@@ -72,7 +72,7 @@
            (+/- 1 rad is the maximum angle to form a triplet in the SciFi) -->
      <max_angle unit="rad"> 1. </max_angle>
      <!--  Number of random throws per measurement  -->
-     <n_random> 1 </n_random>
+     <n_random> 0 </n_random>
      <!--  How many more times muon filter hits are thrown compared to SciFi measurements?  -->
      <mufi_weight> 1 </mufi_weight>
      <!-- How far away from Hough line hits assigned to the muon can be.  -->

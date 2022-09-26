@@ -420,6 +420,8 @@ class MuonReco(ROOT.FairTask) :
                      hit_collection["system"].append(0)
             
                      hit_collection["detectorID"].append(scifiHit.GetDetectorID())
+
+                     hit_collection["tdc"].append(scifiHit.GetTime()*6.25) # Using the same conversion factor as in the sndCluster.cxx class. Shouldn't it be the same as in the muon system?!
     
         # Make the hit collection numpy arrays.
         for key, item in hit_collection.items() :
@@ -530,7 +532,6 @@ class MuonReco(ROOT.FairTask) :
                                                   hit_collection["pos"][0][hit_collection["vert"]]]), 
                                        np.dstack([hit_collection["d"][2][hit_collection["vert"]], 
                                                   hit_collection["d"][0][hit_collection["vert"]]]), tol = self.tolerance)
-
             # Onto Kalman fitter (based on SndlhcTracking.py)
             posM    = ROOT.TVector3(0, 0, 0.)
             momM = ROOT.TVector3(0,0,100.)  # default track with high momentum
@@ -585,10 +586,10 @@ class MuonReco(ROOT.FairTask) :
                                               (hit_collection["d"][2][~hit_collection["vert"]][track_hits_ZY]/2.)**2)**0.5])
             
             hitID = 0 # Does it matter? We don't have a global hit ID.
-            
+
             hit_tdc = np.concatenate([hit_collection["tdc"][hit_collection["vert"]][track_hits_ZX],
                                       hit_collection["tdc"][~hit_collection["vert"]][track_hits_ZY]])
-            
+
             for i_z_sorted in hit_z.argsort() :
                 tp = ROOT.genfit.TrackPoint()
                 hitCov = ROOT.TMatrixDSym(7)
