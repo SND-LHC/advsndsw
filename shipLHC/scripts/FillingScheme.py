@@ -10,6 +10,9 @@ from rootpyPickler import Unpickler
 
 fromElog = {4361:7902,4362: 7921, 4363: 7921, 4364: 7921, 4365: 7921, 4366: 7922, 4367: 7923, 4368: 7923, 4369: 7923, 4370: 7924, 4371: 7924, 4372: 7925, 4373: 7926, 4374: 7927, 4375: 7928, 4376: 7929, 4377: 7930, 4378: 7931, 4379: 7931, 4380: 7932, 4381: 7933, 4382: 7934, 4383: 7935, 4384: 7936, 4385: 7937, 4386: 7938, 4387: 7939, 4388: 7940, 4389: 7941, 4390: 7942, 4391: 7943, 4392: 7944, 4393: 7945, 4394: 7946, 4395: 7947, 4396: 7948, 4397: 7949, 4398: 7950, 4399: 7951, 4400: 7952, 4401: 7953, 4402: 7954, 4403: 7955, 4404: 7956, 4405: 7957, 4406: 7958, 4407: 7959, 4408: 7959, 4409: 7960, 4410: 7960, 4411: 7961, 4412: 7961, 4413: 7962, 4414: 7963, 4415: 7963, 4416: 7964, 4418: 7964, 4419: 7965, 4420: 7966, 4421: 7966, 4422: 7967, 4423: 7967, 4424: 7967, 4425: 7967, 4426: 7968, 4427: 7969, 4428: 7969, 4429: 7970, 4430: 7971, 4431: 7971, 4432: 7972, 4433: 7973, 4434: 7974, 4435: 7974, 4436: 7975, 4437: 7976, 4438: 7976, 4440: 7977, 4441: 7977, 4443: 7977, 4446: 7977, 4447: 7977, 4448: 7977, 4449: 7978, 4450: 7979, 4451: 7979, 4452: 7979, 4461: 7979, 4462: 7982, 4463: 7983, 4464: 7984, 4465: 7985, 4466: 7986, 4467: 7987, 4468: 7988, 4469: 7989, 4470: 7990, 4471: 7991, 4472: 7992, 4473: 7993, 4474: 7994, 4475: 7995, 4476: 7996, 4477: 7997, 4478: 7998, 4479: 7999, 4480: 7999, 4481: 8000, 4482: 8001, 4483: 8002, 4484: 8003, 4485: 8004, 4486: 8005, 4487: 8006, 4488: 8007, 4489: 8008, 4493: 8008, 4494: 8008, 4495: 8009, 4496: 8010, 4497: 8010, 4498: 8011, 4499: 8012, 4500: 8013, 4501: 8014, 4503: 8016, 4504: 8017, 4505: 8018, 4506: 8018, 4507: 8019, 4508: 8019, 4509: 8020, 4510: 8021, 4511: 8021, 4512: 8022, 4513: 8022, 4514: 8023, 4515: 8023, 4516: 8024, 4523: 8025, 4524: 8025, 4525: 8025, 4526: 8026, 4527: 8027, 4528: 8028, 4529: 8028, 4530: 8029, 4531: 8029, 4532: 8030, 4533: 8031, 4534: 8032, 4535: 8032, 4536: 8033, 4537: 8033, 4539: 8033, 4540: 8033, 4541: 8033, 4542: 8034, 4543: 8034, 4544: 8034, 4557: 8035, 4558: 8035, 4559: 8036, 4561: 8038, 4562: 8039, 4563: 8040, 4564: 8041, 4568: 8043, 4569: 8044, 4570: 8044, 4571: 8045, 4572: 8046, 4573: 8047, 4574: 8047, 4575: 8047, 4578: 8047, 4579: 8047, 4580: 8050, 4581: 8051, 4582: 8052, 4583: 8052, 4585: 8053, 4586: 8053, 4587: 8054, 4588: 8055, 4589: 8056, 4590: 8056, 4591: 8057, 4592: 8058, 4593: 8058, 4594: 8059, 4595: 8059, 4598: 8061, 4601: 8061, 4602: 8061, 4603: 8061, 4604: 8062, 4606: 8063, 4612: 8063, 4613: 8064, 4614: 8064, 4615: 8065, 4616: 8066, 4617: 8067, 4619: 8068, 4620: 8069, 4621: 8069, 4622: 8070, 4623: 8071, 4624: 8071, 4625: 8072, 4626: 8072, 4627: 8073, 4628: 8073, 4629: 8073, 4630: 8073, 4631: 8073, 4632: 8073, 4635: 8073, 4636: 8074, 4637: 8075, 4638: 8076, 4639: 8076, 4641: 8076, 4642: 8076, 4643: 8076, 4644: 8076, 4645: 8076, 4646: 8076, 4647: 8076, 4648: 8077, 4649: 8078, 4650: 8079, 4653: 8080, 4654: 8081, 4657: 8082, 4658: 8082, 4659: 8082, 4660: 8082, 4662: 8083, 4665: 8083, 4666: 8083, 4667: 8083, 4669: 8084, 4670: 8084, 4672: 8084, 4673: 8084, 4675: 8084, 4676: 8084, 4677: 8084, 4678: 8084, 4679: 8084, 4680: 8084, 4681: 8084, 4682: 8084, 4684: 8084, 4686: 8084, 4687: 8084, 4688: 8084, 4689: 8084, 4690: 8084, 4693: 8084, 4560: 8037, 4661: 8083}
 
+emulsionReplacements = {0:1,4622:2,4859:3}   # first runs with new emulsion
+
+www =os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/"
 
 class fillingScheme():
 
@@ -41,6 +44,10 @@ class fillingScheme():
 
      self.startTimes = { }
      self.date = {}
+
+   def myPrint(self,tname,oname):
+          for t in ['.root','.pdf','.png']:
+               self.h[tname].Print(self.options.path+oname+t)
 
    def readStartTimes(self):
        months = {'Jan.':'01-','Feb.':'02-','Mar.':'03-','Apr.':'04-','May.':'05-','Jun.':'06-','Jul.':'07-','Aug.':'08-','Sep-':'09-','Oct.':'10-','Nov.':'11-','Dec.':'12-'}
@@ -132,7 +139,7 @@ class fillingScheme():
             [1660892004.2119756, 1.0, 9907.5947265625, 0.0, 3.2100153151839246e-22, 0.0]
             time.ctime(1660892004.2119756)   -> 'Fri Aug 19 08:53:24 2022'
        """
-       self.lumiAtIP1 = {'startTime':self.content['data']['fillData']['data'][0][0],'lumiTime':ROOT.TGraph()}
+       self.lumiAtIP1 = {'startTime':self.content['data']['fillData']['data'][0][0],'lumiTime':ROOT.TGraph(),'fillingScheme':''}
        X = self.content['data']['fillData']['data']
        t0 =  self.lumiAtIP1['startTime']
        for n in range(len(X)):
@@ -146,22 +153,28 @@ class fillingScheme():
        except:
            print('Lumi information not found in nxcals ',fillnr)
            return -1
+
+       if not fill.LuminosityIP1.Get('ATLAS_OFFLINE_LUMI_TOT_INST'):
+           print('Lumi information not found in nxcals ',fillnr)
+           return -1
+
        LtreeOff = fill.LuminosityIP1.ATLAS_OFFLINE_LUMI_TOT_INST
 # other useful info
-       fillingScheme = " "
+       fillScheme = " "
        if fill.LHC.FindObjectAny('LHC_STATS_LHC_INJECTION_SCHEME'):
           rc = fill.LHC.LHC_STATS_LHC_INJECTION_SCHEME.GetEvent(0)
-          fillingScheme = fill.LHC.LHC_STATS_LHC_INJECTION_SCHEME.var
+          fillScheme = str(fill.LHC.LHC_STATS_LHC_INJECTION_SCHEME.var)
 
        rc = LtreeOff.GetEvent(0)
-       self.lumiAtIP1 = {'startTime':LtreeOff.unix_timestamp,'lumiTime':ROOT.TGraph(),'fillingScheme':fillingScheme}
+       self.lumiAtIP1 = {'startTime':LtreeOff.unix_timestamp,'lumiTime':ROOT.TGraph(),'fillingScheme':fillScheme}
        t0 =  self.lumiAtIP1['startTime']
        for e in LtreeOff:
             self.lumiAtIP1['lumiTime'].AddPoint(e.unix_timestamp-t0,e.var)
+
        return 0
 
    def drawLumi(self,runNumber):
-       R = ROOT.TFile.Open(os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/offline/run"+str(runNumber).zfill(6)+".root")
+       R = ROOT.TFile.Open(www+"offline/run"+str(runNumber).zfill(6)+".root")
        ROOT.gROOT.cd()
        bCanvas = R.daq.Get('T')
        Xt = {'time':None,'timeWtDS':None,'timeWt':None}
@@ -217,9 +230,7 @@ class fillingScheme():
        self.h['timeWt10'].Draw('histsame')
        self.h['timeWtDS10'].Draw('histsame')
        self.h['c1'].Update()
-       self.h['c1'].Print(options.path+'noLumi-run'+str(runNumber).zfill(6)+'.root')
-       self.h['c1'].Print(options.path+'noLumi-run'+str(runNumber).zfill(6)+'.pdf')
-       self.h['c1'].Print(options.path+'noLumi-run'+str(runNumber).zfill(6)+'.png')
+       self.myPrint('c1',options.path+'noLumi-run'+str(runNumber).zfill(6))
 
        nbins = self.h['time'].GetNbinsX()
        endTime = self.h['time'].GetBinCenter(nbins)  # in seconds
@@ -227,9 +238,11 @@ class fillingScheme():
           rc = -1
        else:
           rc = self.getLumiAtIP1(fillnr=fillNumber,fromnxcals=True)
-       if rc < 0: 
+          if FS.lumiAtIP1['lumiTime'].GetN()<2: rc = -1
+       if rc < 0:
            rc = self.getLumiAtIP1(fillnr=fillNumber,fromnxcals=False)
            if rc<0: return
+
        self.lumiAtlas = ROOT.TGraph()
        deltaT = self.lumiAtIP1['startTime']  - self.startTime # account for timezone/summertime
        self.Lmax = 0
@@ -278,9 +291,7 @@ class fillingScheme():
        self.h['ax1'].SetTextColor(ROOT.kMagenta)
        self.h['ax1'].Draw()
        self.h['time10'].Draw('histsame')
-       self.h['c1'].Print(options.path+'Lumi-run'+str(runNumber).zfill(6)+'.root')
-       self.h['c1'].Print(options.path+'Lumi-run'+str(runNumber).zfill(6)+'.pdf')
-       self.h['c1'].Print(options.path+'Lumi-run'+str(runNumber).zfill(6)+'.png')
+       self.myPrint('c1',options.path+'Lumi-run'+str(runNumber).zfill(6))
 
    def extractFillingScheme(self,fillNr):
        alternative = None
@@ -354,7 +365,7 @@ class fillingScheme():
                    fsdict['B2'][(x.B1-1)/10]={'IP1':x.IP1>0,'IP2':x.IP2>0}
               else:
                    fsdict['B1'][(x.B1-1)/10]={'IP1':x.IP1>0,'IP2':x.IP2>0}
-         R = ROOT.TFile.Open(os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/offline/run"+str(runNumber).zfill(6)+".root")
+         R = ROOT.TFile.Open(www+"offline/run"+str(runNumber).zfill(6)+".root")
          ROOT.gROOT.cd()
          self.h['bnr'] = R.daq.Get('bunchNumber').FindObject('bnr').Clone('bnr')
          R.Close()
@@ -408,7 +419,7 @@ class fillingScheme():
          h['IP1z'].SetStats(0)
          h['IP2z'].SetStats(0)
 
-         R = ROOT.TFile.Open(os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/offline/run"+str(runNumber).zfill(6)+".root")
+         R = ROOT.TFile.Open(www+"offline/run"+str(runNumber).zfill(6)+".root")
          ROOT.gROOT.cd()
          bCanvas = R.daq.Get('bunchNumber')
          h['bnr']= bCanvas.FindObject('bnr').Clone('bnr')
@@ -453,9 +464,7 @@ class fillingScheme():
                  self.extractPhaseShift(self.options.fillNumbers,self.options.runNumbers)
                  r = int(self.options.runNumbers)
                  self.plotBunchStructure(self.options.fillNumbers,r)
-                 self.h['c1'].Print(self.options.path+'FS-run'+str(r).zfill(6)+'.root')
-                 self.h['c1'].Print(self.options.path+'FS-run'+str(r).zfill(6)+'.pdf')
-                 self.h['c1'].Print(self.options.path+'FS-run'+str(r).zfill(6)+'.png')
+                 self.myPrint('c1',options.path+'FS-run'+str(r).zfill(6))
         else:
            for r in options.fillNumbers.split(','):
               self.extractFillingScheme(r)
@@ -511,6 +520,147 @@ class fillingScheme():
             nb2 = ( 3564 + b - fsdict['phaseShift1'] - fsdict['phaseShift2'])%3564
             print('b1 bunch number',nb1,nb2)
 
+   def FwBw(self,runNumber):
+# analyze run for forward / backward tracks per bunch type
+       h = self.h
+       offline = www+"offline/"
+       self.F = ROOT.TFile.Open(offline+"run"+str(runNumber).zfill(6)+".root")
+       self.B = ROOT.TFile.Open(offline+"BunchStructure.root")
+       self.L = ROOT.TFile.Open(offline+"Lumi.root")
+       xing = {'B1only':False,'B2noB1':False,'noBeam':False}
+                
+       for T in ['Txing','TD','T']:
+          h[T] = self.F.daq.Get(T).Clone(T)
+       for X in ['timeWt','timeWtDS']:
+            h[X] = h['T'].FindObject(X).Clone(X)
+       for t in ['time','timeWt','timeWtDS','bnr']:
+         for x in xing:
+           X = t+x
+           h[X] = h['Txing'].FindObject(X).Clone(X)
+       for x in xing:
+           X = 'trackDir'+x
+           h[X] = h['TD'].FindObject(X).Clone(X)
+       h['BunchStructure'] = self.B.Get("run"+str(runNumber).zfill(6)).Clone("run"+str(runNumber).zfill(6))
+       h['Lumi'] = self.L.Get("run"+str(runNumber).zfill(6)).Clone("run"+str(runNumber).zfill(6))
+       for x in h['Lumi'].GetListOfPrimitives(): 
+         if x.ClassName() == "TGraph": break
+       h['LumiT'] = x.Clone()
+       Lmax = 0
+       for n in range(h['LumiT'].GetN()):
+               l = h['LumiT'].GetPointY(n)
+               if l>Lmax: Lmax = l
+
+       for x in ['IP1z','b1z','b2z']:      
+             h[x] = h['BunchStructure'].FindObject(x)
+       ROOT.gROOT.cd()
+       ut.bookCanvas(h,'dirRes','',1600,900,2,1)
+       tc = h['dirRes'].cd(1)
+       rc = h['trackDirB2noB1'].Fit('gaus','QS')
+       rc = h['trackDirB1only'].Fit('gaus','QS')
+       h['trackDirB2noB1'].GetXaxis().SetTitle("1/v-1/c  [ns/cm]")
+       h['trackDirB1only'].GetXaxis().SetTitle("1/v-1/c  [ns/cm]")
+       h['trackDirB2noB1'].Draw()
+       tc.Update()
+       stats = h['trackDirB2noB1'].FindObject('stats')
+       stats.SetOptFit(1111111)
+       stats.SetX1NDC(0.15)
+       stats.SetY1NDC(0.5)
+       stats.SetX2NDC(0.52)
+       stats.SetY2NDC(0.86)
+       tc.Update()
+       tc = h['dirRes'].cd(2)
+       h['trackDirB1only'].Draw()
+       tc.Update()
+       stats = h['trackDirB1only'].FindObject('stats')
+       stats.SetOptFit(1111111)
+       stats.SetX1NDC(0.15)
+       stats.SetY1NDC(0.5)
+       stats.SetX2NDC(0.52)
+       stats.SetY2NDC(0.86)
+       tc.Update()
+       h['dirRes'].Update()
+       self.myPrint('dirRes','dirRes-'+str(runNumber).zfill(6))
+
+# stats:
+       norm = {}
+       for x in xing:
+             y = h['bnr'+x]
+             norm[x]=0
+             for i in range(y.GetNbinsX()+1):
+                 if y.GetBinContent(i)>0: norm[x]+=1
+       self.stats = {}
+       self.statsPerBunch = {}
+       bunches = {}
+       for x in ['IP1z','b1z','b2z']:
+         bunches[x]=0
+         for b in range(h[x].GetNbinsX()):
+             if h[x].GetBinContent(b+1)>0: bunches[x]+=1
+       print(bunches)
+       print(norm)
+       txt = {'timeWt':'scifi tracks','timeWtDS':'DS tracks'}
+       for t in txt:
+           self.stats[t]={}
+           self.statsPerBunch[t] = {}
+           for x in xing:
+              self.stats[t][x]  =  h[t+x].GetSumOfWeights()
+           c = 'noBeam'
+           self.statsPerBunch[t][c] = self.stats[t][c]/norm[c]
+           c = 'B2noB1'
+           self.statsPerBunch[t][c] = (self.stats[t][c] - self.statsPerBunch[t]['noBeam']*norm[c])/norm[c]
+           c = 'B1only'
+           self.statsPerBunch[t][c] = (self.stats[t][c] - self.statsPerBunch[t]['noBeam']*norm[c])/norm[c]
+           print('events with '+t+'/bunch, noBeam subtracted for run ',runNumber)
+           print('B1 = %5.4F'%(self.statsPerBunch[t]['B1only']))
+           print('B2 = %5.4F'%(self.statsPerBunch[t]['B2noB1']))
+           NIP1 = h[t].GetSumOfWeights() - self.stats[t]['noBeam'] - self.stats[t]['B1only'] - self.stats[t]['B2noB1']
+           frac = {}
+           for c in xing:
+                 frac[c] = self.statsPerBunch[t][c]*bunches['IP1z']/NIP1
+
+           print(txt[t]+' expected B1, B2, noBeam events in IP1: %5.2F%%    %5.2F%%    %5.2F%%'%(
+                 frac['B1only']*100,frac['B2noB1']*100,frac['noBeam']*100))
+
+# plot of B2, B1 and no beam with lumi
+       rebin = {'B2noB1':100,'B1only':1000,'noBeam':1000}
+       rescale = {'B2noB1':[100,5],'B1only':[10,5],'noBeam':[100,10]}
+       for B in ['B2noB1','B1only','noBeam']:
+        ut.bookCanvas(h,B,'',1200,900,1,1)
+        h[B].cd()
+        for j in ['time'+B,'timeWtDS'+B,'timeWt'+B]:
+          h[j+'_100'] = h[j].Clone()
+          h[j+'_100'].Rebin(rebin[B])
+          h[j+'_100'].Scale(1/(rebin[B]*norm[B]))
+
+        h['time'+B+'_100'].SetTitle(';[s];events/s per bunch')
+        h['time'+B+'_100'].Draw()
+        h['timeWt'+B+'_100'].Scale(rescale[B][0])
+        h['timeWtDS'+B+'_100'].Scale(5)
+        h['timeWtDS'+B+'_100'].Draw('same')
+        h['timeWt'+B+'_100'].Draw('same')
+        h[B].Update()
+# work with second axis
+        rightmax = 1.1*Lmax/1000
+        scale = ROOT.gPad.GetUymax()/rightmax
+        h['LumiT'+B] = h['LumiT'].Clone('LumiT'+B)
+        h['LumiT'+B].Scale(scale/1000)
+        h['LumiT'+B].Draw('same')
+        h['ax1'+B] = ROOT.TGaxis(ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymin(),
+                   ROOT.gPad.GetUxmax(), ROOT.gPad.GetUymax(),
+                   0, rightmax, 510, "+L")
+        h['ax1'+B].SetTitle('L [Hz/nb]    ')
+        h['ax1'+B].SetTextFont(42)
+        h['ax1'+B].SetLabelFont(42)
+        h['ax1'+B].SetTextColor(ROOT.kMagenta)
+        h['ax1'+B].Draw()
+        h['l'+B]=ROOT.TLegend(0.44,0.86,0.91,0.98)
+        h['l'+B].AddEntry(h['timeB2noB1_100'],'triggered event rate ',"PL")
+        h['l'+B].AddEntry(h['timeWtB2noB1_100'],'event rate#times'+str(rescale[B][0])+' with Scifi tracks',"PL")
+        h['l'+B].AddEntry(h['timeWtDSB2noB1_100'],'event rate#times'+str(rescale[B][1])+' with DS tracks',"PL")
+        h['l'+B].AddEntry(h['LumiT'],'IP1 instanteous luminosity',"PL")
+        h['l'+B].Draw()
+        h[B].Update()
+        self.myPrint(B,B+'-'+str(runNumber).zfill(6))
+
    def merge(self):
         h = self.h
         for fname in os.listdir():
@@ -525,25 +675,30 @@ class fillingScheme():
         keys.sort(reverse=True)
         for r in keys:
            if r.find('run')==0: h[r].Write()
+        F.Close()
 
    def mergeLumi(self):
         h = self.h
+        Llist = []
         for fname in os.listdir():
-            if fname.find('Lumi')==0 and fname.find('.root')>0 and fname.find('dict')<0:
-                if fname=="Lumi.root" or fname=='Lumi-tracks.root': continue
+            if fname.find('Lumi-run')==0 and fname.find('.root')>0:
                 rname = fname.split('-')[1].split('.')[0]
                 F = ROOT.TFile(fname)
                 if not F.Get('c1'):
                    print('error file',fname)
                    continue
+                print(rname,fname,F.c1)
                 h[rname] = F.c1.Clone(rname)
                 h[rname].SetName(rname)
                 h[rname].SetTitle(rname)
+                Llist.append(rname)
         F = ROOT.TFile('Lumi.root','recreate')
-        keys = list(h.keys())
-        keys.sort(reverse=True)
-        for r in keys:
+        Llist.sort(reverse=True)
+        for r in Llist:
+           print('write 0',r,h[r])
            if r.find('run')==0: h[r].Write()
+           print('write 1',r,h[r])
+        F.Close()
 
    def lhcNumbering(self):
         h = self.h
@@ -633,6 +788,25 @@ class fillingScheme():
         lines.append("\item total number of events: "+nTXT)
         lines.append("\item integrated luminosity (lower limit): $%5.2F\mathrm{fb}^{-1}$"%(L/1E9))
         lines.append("\end{itemize}")
+        lines.append("\\begin{center}")
+        lines.append("\includegraphics[width = 0.7\\textwidth]{Lumi-time.pdf}")
+        lines.append("\end{center}")
+        lines.append("\end{frame}")
+        lines.append("\\begin{frame}{}")
+        lines.append("\\begin{center}")
+        elist = list(emulsionReplacements.values())
+        elist.sort(reverse=True)
+        k=0
+        for emulsionNr in elist:
+           if k==3:
+                k=0
+                lines.append("\end{center}")
+                lines.append("\end{frame}")
+                lines.append("\\begin{frame}{}")
+                lines.append("\\begin{center}")
+           lines.append("\includegraphics[width = 0.5\\textwidth]{ScifitrackDens"+str(emulsionNr)+".pdf}")
+           k+=1
+        lines.append("\end{center}")
         lines.append("\end{frame}")
 
         R = list(self.runInfo.keys())
@@ -744,9 +918,7 @@ class fillingScheme():
         h['ILumiT'].SetLineColor(ROOT.kRed)
         h['ILumiT'].SetLineWidth(3)
         h['ILumiT'].Draw('same')
-        h['c1'].Print('Lumi-time.root')
-        h['c1'].Print('Lumi-time.pdf')
-        h['c1'].Print('Lumi-run-time.png')
+        self.myPrint('c1','Lumi-time.root')
 
    def LumiIntegral(self,rmin,rmax):
         L = 0
@@ -766,7 +938,7 @@ class fillingScheme():
    def runsWithBeam(self):
 # potential runs with beam selected by looking for daq rate > cosmics
            self.listOfRuns = {}
-           offline =os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/offline.html"
+           offline =www + "offline.html"
            with client.File() as f:
                f.open(offline)
                status, L = f.read()
@@ -779,7 +951,7 @@ class fillingScheme():
                 if ir<0: continue
                 k = x[ir:].find(" ")
                 runNumber = int(x[ir+4:ir+4+k+1])
-                R = ROOT.TFile.Open(os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/offline/run"+str(runNumber).zfill(6)+".root")
+                R = ROOT.TFile.Open(www+"offline/run"+str(runNumber).zfill(6)+".root")
                 bCanvas = R.daq.Get('T')
                 if not bCanvas:
                        print('Error with root file',runNumber)
@@ -802,7 +974,7 @@ class fillingScheme():
    def tracksPerLumi(self):
         h=self.h
         pol1 = ROOT.TF1('pol1','[0]+[1]*x',0,1E7)
-        self.F = ROOT.TFile.Open(os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/offline/Lumi.root")
+        self.F = ROOT.TFile.Open(www+"offline/Lumi.root")
         ROOT.gROOT.cd()
         for k in self.F.GetListOfKeys():
              nm = k.GetName()
@@ -843,30 +1015,61 @@ class fillingScheme():
              h[nm+'timeWtDS100'].SetMaximum(0.08)
              h[nm+'timeWtDS100'].SetMinimum(0.0)
              h[nm+'timeWtDS100'].Draw()
+             textInfo = ROOT.TLatex()
              if  h[nm+'timeWt100'].GetEntries()>0:
                  h[nm+'timeWt100'].Draw('same')
-                 rc = h[nm+'timeWt100'].Fit('pol1','q','',tMin,tMax)
-                 textInfo = ROOT.TLatex()
-                 fun = h[nm+'timeWt100'].GetFunction('pol1')
-                 try:
-                    b,m = fun.GetParameter(0),fun.GetParameter(1)
-                    meanV = m*(tMin+tMax)/2+b
-                    txtScifi = "Scifi tracks per nb mean:%4.3F  slope: %5.1G per hour"%(meanV,fun.GetParameter(1)*3600)
-                    textInfo.DrawLatexNDC(0.2, 0.85,txtScifi)
-                 except:
-                    pass 
-             rc = h[nm+'timeWtDS100'].Fit('pol1','q','',tMin,tMax)
-             fun = h[nm+'timeWtDS100'].GetFunction('pol1')
-             try:
+                 rc = h[nm+'timeWt100'].Fit('pol1','qS','',tMin,tMax)
+                 res = rc.Get()
+                 if res:
+                   chi2 = res.Chi2()/(tMax-tMin)
+                   fun = h[nm+'timeWt100'].GetFunction('pol1')
+                   if chi2<1 and abs(fun.GetParameter(1))<0.01 :
+                     b,m = fun.GetParameter(0),fun.GetParameter(1)
+                     meanV = m*(tMin+tMax)/2+b
+                     txtScifi = "Scifi tracks per nb mean:%4.3F  slope: %5.1G per hour  "%(meanV,fun.GetParameter(1)*3600)
+                     textInfo.DrawLatexNDC(0.2, 0.85,txtScifi)
+                   else:
+                     if h[nm+'timeWt100'].GetFunction('pol1'): h[nm+'timeWt100'].GetFunction('pol1').Delete()
+
+             rc = h[nm+'timeWtDS100'].Fit('pol1','Sq','',tMin,tMax)
+             res = rc.Get()
+             if res:
+              chi2 = res.Chi2()/(tMax-tMin)
+              fun = h[nm+'timeWtDS100'].GetFunction('pol1')
+              if chi2<1 and abs(fun.GetParameter(1))<0.01 :
                 b,m = fun.GetParameter(0),fun.GetParameter(1)
                 meanV = m*(tMin+tMax)/2+b
-                txtDS = "   DS tracks per nb mean: %4.3F  slope: %5.1G per hour"%(meanV,fun.GetParameter(1)*3600)
+                txtDS = "   DS tracks per nb mean: %4.3F  slope: %5.1G per hour "%(meanV,m*3600)
                 textInfo.DrawLatexNDC(0.2, 0.8,txtDS)
-             except:
-                pass 
+              else:
+                if h[nm+'timeWtDS100'].GetFunction('pol1'): h[nm+'timeWtDS100'].GetFunction('pol1').Delete()
              tc.Update()
              h['c1'].Print(nm+'Lumi-tracks.root')
              h['c1'].Print(nm+'Lumi-tracks.pdf')
+# integral of tracks per cm2
+             self.R = ROOT.TFile.Open(www+"offline/run"+str(runNumber).zfill(6)+".root")
+             Nevts = self.R.daq.Get('T').FindObject('time').GetEntries()
+             postScale = self.runInfo[runNumber]['Entries']/Nevts
+             T = 'scifi-TtrackPos'
+             h[T] = self.R.scifi.Get(T).FindObject('scifi-trackPosBeam').Clone(T)
+             T = 'mufi-TtrackPos'
+             h[T] = self.R.mufilter.Get(T).FindObject('mufi-trackPosBeam').Clone(T)
+             ROOT.gROOT.cd()
+             rList = list(emulsionReplacements.keys())
+             rList.sort(reverse=True)
+             for runNr in rList:
+                if runNumber >= runNr: 
+                    emulsionNr = emulsionReplacements[runNr]
+                    break
+             for k in [ 'scifi-TtrackPos','mufi-TtrackPos']:
+                 if not 'I'+k+str(emulsionNr) in h:
+                    h['I'+k+str(emulsionNr)] = h[k].Clone('I'+k)
+                    h['I'+k+str(emulsionNr)].Scale(postScale)
+                    if k=='scifi-TtrackPos': h['emulsionILumi'+str(emulsionNr)] =  self.runInfo[runNumber]['lumiAtIP1withSNDLHC']
+                 else: 
+                    h['I'+k+str(emulsionNr)].Add(h[k],postScale)
+                    if k=='scifi-TtrackPos': h['emulsionILumi'+str(emulsionNr)] +=  self.runInfo[runNumber]['lumiAtIP1withSNDLHC']
+
 # merge
         for k in self.F.GetListOfKeys():
              nm = k.GetName()
@@ -882,9 +1085,53 @@ class fillingScheme():
         keys.sort(reverse=True)
         for r in keys:
            if r.find('trun')==0: h[r].Write()
+        elist = list(emulsionReplacements.values())
+        for emulsionNr in elist:
+            if not 'Iscifi-TtrackPos'+str(emulsionNr) in h: continue
+            ut.bookCanvas(h,'ScifitrackDens'+str(emulsionNr),'',900,900,1,1)
+            tc = h['ScifitrackDens'+str(emulsionNr)].cd()
+            histo = h['Iscifi-TtrackPos'+str(emulsionNr)]
+            histo.SetTitle(histo.GetTitle()+' emulsion Nr '+str(emulsionNr)+" #int L=%5.2Ffb^{-1} "%(h['emulsionILumi'+str(emulsionNr)]/1E9))
+            histo.GetZaxis().SetTitle(' N/cm^{2} ')
+            histo.Draw('colz')
+            ROOT.gPad.SetRightMargin(0.13)
+            zaxis = histo.GetZaxis()
+            zaxis.SetMaxDigits(3)
+            zaxis.SetTitleOffset(1.4)
+            pal = histo.FindObject('palette')
+            pal.SetX1NDC(0.86)
+            pal.SetX2NDC(0.89)
 
-
-
+            tc.Update()
+            stats = histo.FindObject('stats')
+            stats.SetX1NDC(0.11)
+            stats.SetY1NDC(0.57)
+            stats.SetX2NDC(0.31)
+            stats.SetY2NDC(0.81)
+            tc.Update()
+            ut.bookCanvas(h,'MufitrackDens'+str(emulsionNr),'',900,900,1,1)
+            tc = h['MufitrackDens'+str(emulsionNr)].cd()
+            histo = h['Imufi-TtrackPos'+str(emulsionNr)]
+            histo.SetTitle(histo.GetTitle()+' emulsion Nr '+str(emulsionNr)+" #int Ldt=%5.2Ffb^{-1} "%(h['emulsionILumi'+str(emulsionNr)]/1E9))
+            histo.GetZaxis().SetTitle(' N/cm^{2} ')
+            histo.Draw('colz')
+            ROOT.gPad.SetRightMargin(0.13)
+            zaxis = histo.GetZaxis()
+            zaxis.SetMaxDigits(3)
+            zaxis.SetTitleOffset(1.4)
+            pal = histo.FindObject('palette')
+            pal.SetX1NDC(0.86)
+            pal.SetX2NDC(0.89)
+            tc.Update()
+            stats = histo.FindObject('stats')
+            stats.SetX1NDC(0.11)
+            stats.SetY1NDC(0.57)
+            stats.SetX2NDC(0.31)
+            stats.SetY2NDC(0.81)
+            tc.Update()
+            h['ScifitrackDens'+str(emulsionNr)].Print(options.path+'ScifitrackDens'+str(emulsionNr)+'.pdf')
+            h['MufitrackDens'+str(emulsionNr)].Print(options.path+'MufitrackDens'+str(emulsionNr)+'.pdf')
+ 
 if __name__ == '__main__':
 
     from argparse import ArgumentParser
@@ -910,7 +1157,7 @@ if __name__ == '__main__':
         FS.plotBunchStructure(options.fillNumbers,int(options.runNumbers))
     elif options.command == "makeAll":
            problems = {}
-           offline =os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/offline.html"
+           offline =www+"offline.html"
            with client.File() as f:
                f.open(offline)
                status, L = f.read()
@@ -945,10 +1192,11 @@ if __name__ == '__main__':
                  FS.drawLumi(r)
 # fill dictionary with useful info
                  Nevts = FS.getEntriesPerRun(r)
-                 fillingScheme = "unknown"
+                 fillScheme = "unknown"
                  if hasattr(FS,"lumiAtIP1"):
                     if 'fillingScheme' in FS.lumiAtIP1:
-                        fillingScheme = FS.lumiAtIP1['fillingScheme']
+                        fillScheme = FS.lumiAtIP1['fillingScheme']
+                 print('and ?',fillScheme)
 # cross check
                  postScale = Nevts/FS.h['time'].GetEntries()
                  problems[r]={}
@@ -963,11 +1211,15 @@ if __name__ == '__main__':
                         FS.LumiInt[r]= [0,0]
                  if not r in FS.FSdict:
                         FS.FSdict[r]={'phaseShift1':0,'phaseShift2':0}
+                 N_ScifiTracks = FS.h['timeWt'].GetEntries()
+                 N_DSTracks   = FS.h['timeWtDS'].GetEntries()
                  FS.runInfo[r] = {'Fillnumber':FS.options.fillNumbers,'phaseShift1':FS.FSdict[r]['phaseShift1'],'phaseShift2':FS.FSdict[r]['phaseShift2'],
                                           'StartTime':FS.startTime,'StartTimeC':time.ctime(FS.startTime),'Entries':Nevts,
+                                          'N_scifiTracks':N_ScifiTracks*postScale,'N_DSTracks':N_DSTracks*postScale,
                                           'lumiAtIP1':FS.LumiInt[r][0],'lumiAtIP1withSNDLHC':FS.LumiInt[r][1],
                                           'OfflineMonitoring':"https://snd-lhc-monitoring.web.cern.ch/offline/run.html?file=run"+str(r).zfill(6)+".root&lastcycle",
-                                          'FillingScheme':fillingScheme}
+                                          'FillingScheme':fillScheme}
+
            FS.merge()
            fp = ROOT.TFile.Open('FSdict.root','recreate')
            pkl = Pickler(fp)
