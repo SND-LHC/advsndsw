@@ -106,10 +106,13 @@ class Scifi_residuals(ROOT.FairTask):
                ut.bookHist(h,'resC'+proj+'_Scifi'+str(s*10+o),'residual '+proj+str(s*10+o)+'; [#mum]',NbinsRes,xmin,xmax,128*4*3,-0.5,128*4*3-0.5)
                ut.bookHist(h,'track_Scifi'+str(s*10+o),'track x/y '+str(s*10+o)+'; x [cm]; y [cm]',80,-70.,10.,80,0.,80.)
        ut.bookHist(h,detector+'trackChi2/ndof','track chi2/ndof vs ndof; #chi^{2}/Ndof; Ndof',100,0,100,20,0,20)
-       ut.bookHist(h,detector+'trackSlopes','track slope; x/z [mrad]; y/z [mrad]',1000,-100,100,1000,-100,100)
-       ut.bookHist(h,detector+'trackSlopesXL','track slope; x/z [rad]; y/z [rad]',120,-1.1,1.1,120,-1.1,1.1)
-       ut.bookHist(h,detector+'trackPos','track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
-       ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+# type of crossing, check for b1only,b2nob1,nobeam
+       self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
+       for x in self.xing:
+          ut.bookHist(h,detector+'trackSlopes'+x,'track slope; x/z [mrad]; y/z [mrad]',1000,-100,100,1000,-100,100)
+          ut.bookHist(h,detector+'trackSlopesXL'+x,'track slope; x/z [rad]; y/z [rad]',120,-1.1,1.1,120,-1.1,1.1)
+          ut.bookHist(h,detector+'trackPos'+x,'track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+          ut.bookHist(h,detector+'trackPosBeam'+x,'beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
 
        if alignPar:
             for x in alignPar:
@@ -135,10 +138,18 @@ class Scifi_residuals(ROOT.FairTask):
                  slopeX = mom.X()/mom.Z()
                  slopeY = mom.Y()/mom.Z()
                  rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
-                 rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
-                 rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
-                 rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
-                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+                 for x in self.xing:
+                    if x=='':  
+                       rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
+                       rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
+                       rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+                       if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+                    elif self.M.xing[x]:
+                       rc = h[detector+'trackSlopes'+x].Fill(slopeX*1000,slopeY*1000)
+                       rc = h[detector+'trackSlopesXL'+x].Fill(slopeX,slopeY)
+                       rc = h[detector+'trackPos'+x].Fill(pos.X(),pos.Y())
+                       if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'+x].Fill(pos.X(),pos.Y())
+
 
        if not self.unbiased and not theTrack: return
 
@@ -292,23 +303,27 @@ class Scifi_residuals(ROOT.FairTask):
        for proj in P: T.append('scifiRes'+proj)
        for canvas in T:
            self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas,subdir='scifi')
-       ut.bookCanvas(h,detector+'trackDir',"track directions",1600,1800,3,2)
-       h[detector+'trackDir'].cd(1)
-       rc = h[detector+'trackSlopes'].Draw('colz')
-       h[detector+'trackDir'].cd(2)
-       rc = h[detector+'trackSlopes'].ProjectionX("slopeX").Draw()
-       h[detector+'trackDir'].cd(3)
-       rc = h[detector+'trackSlopes'].ProjectionY("slopeY").Draw()
-       h[detector+'trackDir'].cd(4)
-       rc = h[detector+'trackSlopesXL'].Draw('colz')
-       h[detector+'trackDir'].cd(5)
-       rc = h[detector+'trackSlopesXL'].ProjectionX("slopeXL").Draw()
-       h[detector+'trackDir'].cd(6)
-       rc = h[detector+'trackSlopesXL'].ProjectionY("slopeYL").Draw()
-       self.M.myPrint(self.M.h[detector+'trackDir'],detector+'trackDir',subdir='scifi')
-       ut.bookCanvas(h,detector+'TtrackPos',"track position first state",1200,800,1,2)
-       h[detector+'TtrackPos'].cd(1)
-       rc = h[detector+'trackPosBeam'].Draw('colz')
-       h[detector+'TtrackPos'].cd(2)
-       rc = h[detector+'trackPos'].Draw('colz')
-       self.M.myPrint(self.M.h[detector+'TtrackPos'],detector+'trackPos',subdir='scifi')
+       for x in self.xing:
+           if not self.M.fsdict and x!='': continue
+           tname = detector+'trackDir'+x
+           ut.bookCanvas(h,tname,"track directions",1600,1800,3,2)
+           h[tname].cd(1)
+           rc = h[detector+'trackSlopes'+x].Draw('colz')
+           h[tname].cd(2)
+           rc = h[detector+'trackSlopes'+x].ProjectionX("slopeX"+x).Draw()
+           h[tname].cd(3)
+           rc = h[detector+'trackSlopes'+x].ProjectionY("slopeY"+x).Draw()
+           h[tname].cd(4)
+           rc = h[detector+'trackSlopesXL'+x].Draw('colz')
+           h[tname].cd(5)
+           rc = h[detector+'trackSlopesXL'+x].ProjectionX("slopeXL"+x).Draw()
+           h[tname].cd(6)
+           rc = h[detector+'trackSlopesXL'+x].ProjectionY("slopeYL"+x).Draw()
+           self.M.myPrint(self.M.h[tname],tname,subdir='scifi')
+           tname = detector+'TtrackPos'+x
+           ut.bookCanvas(h,tname,"track position first state",1200,800,1,2)
+           h[tname].cd(1)
+           rc = h[detector+'trackPosBeam'+x].Draw('colz')
+           h[tname].cd(2)
+           rc = h[detector+'trackPos'+x].Draw('colz')
+           self.M.myPrint(self.M.h[tname],detector+'trackPos'+x,subdir='scifi')
