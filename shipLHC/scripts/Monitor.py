@@ -9,6 +9,7 @@ import shipunit as u
 import SndlhcGeo
 from XRootD import client
 from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
+from rootpyPickler import Unpickler
 
 A,B=ROOT.TVector3(),ROOT.TVector3()
 ROOT.gInterpreter.Declare("""
@@ -105,6 +106,18 @@ class Monitoring():
         self.FairTasks = {}
         for x in FairTasks:   #  keeps extended methods if from python class
                  self.FairTasks[x.GetName()] = x
+
+# get filling scheme
+        try:
+           fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
+           pkl = Unpickler(fg)
+           FSdict = pkl.load('FSdict')
+           fg.Close()
+           if options.runNumber in FSdict: self.fsdict = FSdict[options.runNumber]
+           else:  self.fsdict = False
+        except:
+           print('continue without knowing filling scheme',options.server+options.path)
+           self.fsdict = False
 
 # setup input
         if options.online:
@@ -251,6 +264,7 @@ class Monitoring():
 
    def GetEvent(self,n):
       if not self.options.online:   # offline, FairRoot in charge
+
          if self.eventTree.GetBranchStatus('Reco_MuonTracks'):
             for aTrack in self.eventTree.Reco_MuonTracks:
                 if aTrack: aTrack.Delete()
@@ -270,6 +284,32 @@ class Monitoring():
             self.eventTree.GetEvent(n)
             for t in self.FairTasks: self.FairTasks[t].ExecuteTask()
       self.EventNumber = n
+
+# check for bunch xing type
+      self.xing = {'all':True,'B1only':False,'B2noB1':False,'noBeam':False}
+      if self.fsdict:
+             T   = self.eventTree.EventHeader.GetEventTime()
+             bunchNumber = int(T%(4*3564)/4+0.5)
+             nb1 = (3564 + bunchNumber - self.fsdict['phaseShift1'])%3564
+             nb2 = (3564 + bunchNumber - self.fsdict['phaseShift1']- self.fsdict['phaseShift2'])%3564
+             b1 = nb1 in self.fsdict['B1']
+             b2 = nb2 in self.fsdict['B2']
+             IP1 = False
+             IP2 = False
+             if b1:
+                IP1 =  self.fsdict['B1'][nb1]['IP1']
+             if b2:
+                IP2 =  self.fsdict['B2'][nb2]['IP2']
+             self.xing['IP1']  = IP1
+             self.xing['IP2']  = IP2
+             self.xing['B1']   = b1
+             self.xing['B2']   = b2
+             self.xing['B1only']   = b1 and not IP1 and not b2
+             self.xing['B2noB1']  = b2 and not b1
+             self.xing['noBeam'] = not b1 and not b2
+             if self.xing['B1only']  and self.xing['B2noB1']  or self.xing['B1only'] and self.xing['noBeam'] : print('error with b1only assignment',self.xing)
+             if self.xing['B2noB1']  and self.xing['noBeam'] : print('error with b2nob1 assignment',self.xing)
+
       return self.eventTree
 
    def publishRootFile(self):
