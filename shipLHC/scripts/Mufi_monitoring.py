@@ -59,9 +59,13 @@ class Mufi_hitMaps(ROOT.FairTask):
 
                   ut.bookHist(h,detector+'bs','beam spot; x[cm]; y[cm]',100,-100.,10.,100,0.,80.)
                   ut.bookHist(h,detector+'bsDS','beam spot, #bar X, #bar Y',60,-0.5,59.5,60,-0.5,59.5)
-                  ut.bookHist(h,detector+'slopes','muon DS track slopes; slope X [rad]; slope Y [rad]',150,-1.5,1.5,150,-1.5,1.5)
-                  ut.bookHist(h,detector+'trackPos','muon DS track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
-                  ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+# type of crossing, check for b1only,b2nob1,nobeam
+                  self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
+                  for x in self.xing:
+                      ut.bookHist(h,detector+'slopes'+x,'muon DS track slopes; slope X [rad]; slope Y [rad]',150,-1.5,1.5,150,-1.5,1.5)
+                      ut.bookHist(h,detector+'trackPos'+x,'muon DS track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+                      ut.bookHist(h,detector+'trackPosBeam'+x,'beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+
                   for bar in range(monitor.systemAndBars[s]):
                      ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)+'; #channels',20,-0.5,19.5)
 #
@@ -196,11 +200,19 @@ class Mufi_hitMaps(ROOT.FairTask):
          mom = state.getMom()
          slopeX= mom.X()/mom.Z()
          slopeY= mom.Y()/mom.Z()
-         h[detector+'slopes'].Fill(slopeX,slopeY)
-         if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h[detector+'bsDS'].Fill(Xbar,Ybar)
          pos = state.getPos()
-         rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
-         if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+
+         for x in self.xing:
+             if x=='':  
+                 rc = h[detector+'slopes'].Fill(slopeX,slopeY)
+                 rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+             elif self.M.xing[x]:
+                 rc = h[detector+'slopes'+x].Fill(slopeX,slopeY)
+                 rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'+x].Fill(pos.X(),pos.Y())
+
+         if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h[detector+'bsDS'].Fill(Xbar,Ybar)
 
    def Plot(self):
        h = self.M.h
@@ -383,20 +395,23 @@ class Mufi_hitMaps(ROOT.FairTask):
                   self.M.myPrint(h[canvas+sdict[s]],canvas+sdict[s],subdir='mufilter')
 
 # tracking
-       ut.bookCanvas(h,"muonDSTracks",' ',1200,1200,3,1)
-       tc = h["muonDSTracks"].cd(1)
-       h[detector+'slopes'].Draw('colz')
-       tc = h["muonDSTracks"].cd(2)
-       h[detector+'slopes'].ProjectionX("slopeX").Draw()
-       tc = h["muonDSTracks"].cd(3)
-       h[detector+'slopes'].ProjectionY("slopeY").Draw()
-       self.M.myPrint(h["muonDSTracks"],"muonDSTrackdirection",subdir='mufilter')
-       ut.bookCanvas(h,detector+'TtrackPos',"track position first state",1200,800,1,2)
-       h[detector+'TtrackPos'].cd(1)
-       rc = h[detector+'trackPosBeam'].Draw('colz')
-       h[detector+'TtrackPos'].cd(2)
-       rc = h[detector+'trackPos'].Draw('colz')
-       self.M.myPrint(self.M.h[detector+'TtrackPos'],detector+'trackPos',subdir='mufilter')
+       for x in self.xing:
+           if not self.M.fsdict and x!='': continue
+           ut.bookCanvas(h,"muonDSTracks"+x,' ',1200,1200,3,1)
+           tc = h["muonDSTracks"+x].cd(1)
+           h[detector+'slopes'+x].Draw('colz')
+           tc = h["muonDSTracks"+x].cd(2)
+           h[detector+'slopes'+x].ProjectionX("slopeX"+x).Draw()
+           tc = h["muonDSTracks"+x].cd(3)
+           h[detector+'slopes'+x].ProjectionY("slopeY"+x).Draw()
+           self.M.myPrint(h["muonDSTracks"+x],"muonDSTrackdirection"+x,subdir='mufilter')
+
+           ut.bookCanvas(h,detector+'TtrackPos'+x,"track position first state",1200,800,1,2)
+           h[detector+'TtrackPos'+x].cd(1)
+           rc = h[detector+'trackPosBeam'+x].Draw('colz')
+           h[detector+'TtrackPos'+x].cd(2)
+           rc = h[detector+'trackPos'+x].Draw('colz')
+           self.M.myPrint(self.M.h[detector+'TtrackPos'+x],detector+'trackPos'+x,subdir='mufilter')
 # residuals
        ut.bookCanvas(h,detector+"residualsVsX",'residualsVsX ',1200,1200,2,7)
        ut.bookCanvas(h,detector+"residualsVsY",'residualsVsY ',1200,1200,2,7)
