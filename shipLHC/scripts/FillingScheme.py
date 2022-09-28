@@ -7,10 +7,16 @@ import subprocess
 from XRootD import client
 from rootpyPickler import Pickler
 from rootpyPickler import Unpickler
+import atexit
+
+def pyExit():
+       print("Make suicide until solution found for freezing")
+       os.system('kill '+str(os.getpid()))
+atexit.register(pyExit)
 
 fromElog = {4361:7902,4362: 7921, 4363: 7921, 4364: 7921, 4365: 7921, 4366: 7922, 4367: 7923, 4368: 7923, 4369: 7923, 4370: 7924, 4371: 7924, 4372: 7925, 4373: 7926, 4374: 7927, 4375: 7928, 4376: 7929, 4377: 7930, 4378: 7931, 4379: 7931, 4380: 7932, 4381: 7933, 4382: 7934, 4383: 7935, 4384: 7936, 4385: 7937, 4386: 7938, 4387: 7939, 4388: 7940, 4389: 7941, 4390: 7942, 4391: 7943, 4392: 7944, 4393: 7945, 4394: 7946, 4395: 7947, 4396: 7948, 4397: 7949, 4398: 7950, 4399: 7951, 4400: 7952, 4401: 7953, 4402: 7954, 4403: 7955, 4404: 7956, 4405: 7957, 4406: 7958, 4407: 7959, 4408: 7959, 4409: 7960, 4410: 7960, 4411: 7961, 4412: 7961, 4413: 7962, 4414: 7963, 4415: 7963, 4416: 7964, 4418: 7964, 4419: 7965, 4420: 7966, 4421: 7966, 4422: 7967, 4423: 7967, 4424: 7967, 4425: 7967, 4426: 7968, 4427: 7969, 4428: 7969, 4429: 7970, 4430: 7971, 4431: 7971, 4432: 7972, 4433: 7973, 4434: 7974, 4435: 7974, 4436: 7975, 4437: 7976, 4438: 7976, 4440: 7977, 4441: 7977, 4443: 7977, 4446: 7977, 4447: 7977, 4448: 7977, 4449: 7978, 4450: 7979, 4451: 7979, 4452: 7979, 4461: 7979, 4462: 7982, 4463: 7983, 4464: 7984, 4465: 7985, 4466: 7986, 4467: 7987, 4468: 7988, 4469: 7989, 4470: 7990, 4471: 7991, 4472: 7992, 4473: 7993, 4474: 7994, 4475: 7995, 4476: 7996, 4477: 7997, 4478: 7998, 4479: 7999, 4480: 7999, 4481: 8000, 4482: 8001, 4483: 8002, 4484: 8003, 4485: 8004, 4486: 8005, 4487: 8006, 4488: 8007, 4489: 8008, 4493: 8008, 4494: 8008, 4495: 8009, 4496: 8010, 4497: 8010, 4498: 8011, 4499: 8012, 4500: 8013, 4501: 8014, 4503: 8016, 4504: 8017, 4505: 8018, 4506: 8018, 4507: 8019, 4508: 8019, 4509: 8020, 4510: 8021, 4511: 8021, 4512: 8022, 4513: 8022, 4514: 8023, 4515: 8023, 4516: 8024, 4523: 8025, 4524: 8025, 4525: 8025, 4526: 8026, 4527: 8027, 4528: 8028, 4529: 8028, 4530: 8029, 4531: 8029, 4532: 8030, 4533: 8031, 4534: 8032, 4535: 8032, 4536: 8033, 4537: 8033, 4539: 8033, 4540: 8033, 4541: 8033, 4542: 8034, 4543: 8034, 4544: 8034, 4557: 8035, 4558: 8035, 4559: 8036, 4561: 8038, 4562: 8039, 4563: 8040, 4564: 8041, 4568: 8043, 4569: 8044, 4570: 8044, 4571: 8045, 4572: 8046, 4573: 8047, 4574: 8047, 4575: 8047, 4578: 8047, 4579: 8047, 4580: 8050, 4581: 8051, 4582: 8052, 4583: 8052, 4585: 8053, 4586: 8053, 4587: 8054, 4588: 8055, 4589: 8056, 4590: 8056, 4591: 8057, 4592: 8058, 4593: 8058, 4594: 8059, 4595: 8059, 4598: 8061, 4601: 8061, 4602: 8061, 4603: 8061, 4604: 8062, 4606: 8063, 4612: 8063, 4613: 8064, 4614: 8064, 4615: 8065, 4616: 8066, 4617: 8067, 4619: 8068, 4620: 8069, 4621: 8069, 4622: 8070, 4623: 8071, 4624: 8071, 4625: 8072, 4626: 8072, 4627: 8073, 4628: 8073, 4629: 8073, 4630: 8073, 4631: 8073, 4632: 8073, 4635: 8073, 4636: 8074, 4637: 8075, 4638: 8076, 4639: 8076, 4641: 8076, 4642: 8076, 4643: 8076, 4644: 8076, 4645: 8076, 4646: 8076, 4647: 8076, 4648: 8077, 4649: 8078, 4650: 8079, 4653: 8080, 4654: 8081, 4657: 8082, 4658: 8082, 4659: 8082, 4660: 8082, 4662: 8083, 4665: 8083, 4666: 8083, 4667: 8083, 4669: 8084, 4670: 8084, 4672: 8084, 4673: 8084, 4675: 8084, 4676: 8084, 4677: 8084, 4678: 8084, 4679: 8084, 4680: 8084, 4681: 8084, 4682: 8084, 4684: 8084, 4686: 8084, 4687: 8084, 4688: 8084, 4689: 8084, 4690: 8084, 4693: 8084, 4560: 8037, 4661: 8083}
 
-emulsionReplacements = {0:1,4622:2,4859:3}   # first runs with new emulsion
+emulsionReplacements = {0:1,4573:2,4859:3}   # first runs with new emulsion
 
 www =os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/"
 
@@ -230,7 +236,7 @@ class fillingScheme():
        self.h['timeWt10'].Draw('histsame')
        self.h['timeWtDS10'].Draw('histsame')
        self.h['c1'].Update()
-       self.myPrint('c1',options.path+'noLumi-run'+str(runNumber).zfill(6))
+       self.myPrint('c1','noLumi-run'+str(runNumber).zfill(6))
 
        nbins = self.h['time'].GetNbinsX()
        endTime = self.h['time'].GetBinCenter(nbins)  # in seconds
@@ -291,7 +297,7 @@ class fillingScheme():
        self.h['ax1'].SetTextColor(ROOT.kMagenta)
        self.h['ax1'].Draw()
        self.h['time10'].Draw('histsame')
-       self.myPrint('c1',options.path+'Lumi-run'+str(runNumber).zfill(6))
+       self.myPrint('c1','Lumi-run'+str(runNumber).zfill(6))
 
    def extractFillingScheme(self,fillNr):
        alternative = None
@@ -392,10 +398,16 @@ class fillingScheme():
                       self.matches[phase2]+=self.h['bnr'].GetBinContent(j)
          self.phaseShift2 = max(self.matches,key=self.matches.get)
          print('phaseShift2 found:',self.phaseShift2,3564-self.phaseShift2)
-         fsdict['phaseShift1'] = self.phaseShift1
-         fsdict['phaseShift2'] = self.phaseShift2
          if not (3564-self.phaseShift2) == 129:
             print('There is a problem with phaseshift2 for run',runNumber,3564-self.phaseShift2)
+            if self.phaseShift2 == 129:
+                     print("!!! Probably beam 1 and beam 2 are interchanged. Try reverse")
+                     self.phaseShift1 = FS.phaseShift1 +129
+         if fillNr=="8178":
+                print('special LHCf run. Phaseshift determined by hand: 430-1017+3564')
+                self.phaseShift1 = 430-1017+3564
+
+         fsdict['phaseShift1'] = self.phaseShift1
          fsdict['phaseShift2'] = 3564 - 129
          self.phaseShift2 = fsdict['phaseShift2']
 
@@ -440,6 +452,7 @@ class fillingScheme():
          h['b2z'].Scale(norm*0.5)
          h['IP2z'].Scale(norm*0.3)
          h['bnr'].SetStats(0)
+         h['bnr'].SetFillColor(17)
          h['bnr'].SetLineColor(ROOT.kBlack)
          h['b1z'].Draw('hist')
          h['bnr'].Draw('histsame')
@@ -464,7 +477,7 @@ class fillingScheme():
                  self.extractPhaseShift(self.options.fillNumbers,self.options.runNumbers)
                  r = int(self.options.runNumbers)
                  self.plotBunchStructure(self.options.fillNumbers,r)
-                 self.myPrint('c1',options.path+'FS-run'+str(r).zfill(6))
+                 self.myPrint('c1','FS-run'+str(r).zfill(6))
         else:
            for r in options.fillNumbers.split(','):
               self.extractFillingScheme(r)
@@ -714,7 +727,7 @@ class fillingScheme():
         F.Close()
         F = ROOT.TFile('BunchStructureLHC.root','recreate')
         for newname in h:
-                if not newname.find('lhc-') == 0:continue
+                if not newname.find('lhc-') == 0:continuee
                 X = {}
                 for p in h[newname].GetListOfPrimitives():
                    X[p.GetName()] = p
@@ -774,15 +787,15 @@ class fillingScheme():
         lines.append("\\usepackage[latin1]{inputenc}")
         lines.append("\\usepackage[T1]{fontenc}")
         lines.append("\\title[Short Paper Title] % (optional, use only with long paper titles)")
-        lines.append("{SND@LHC Run Summary July - August 2022}")
+        lines.append("{SND@LHC Run Summary July - September 2022}")
         lines.append("\date[Short Occasion] % (optional)")
-        lines.append("{ 1 September 2022}")
+        lines.append("{ 28 September 2022}")
         lines.append("\\begin{document}")
         lines.append("\\begin{frame}{}")
-        lines.append("1 September 2022")
+        lines.append("28 September 2022")
         lines.append("\\newline  ")
         lines.append("\\newline  ")
-        lines.append("Run Summary for July - August 2022")
+        lines.append("Run Summary for July - September 2022")
         nTXT = "$%5.2F\\times 10^9 $"%(N/1E9)
         lines.append("\\begin{itemize}")
         lines.append("\item total number of events: "+nTXT)
@@ -798,14 +811,15 @@ class fillingScheme():
         elist.sort(reverse=True)
         k=0
         for emulsionNr in elist:
-           if k==3:
+           if k==6:
                 k=0
                 lines.append("\end{center}")
                 lines.append("\end{frame}")
                 lines.append("\\begin{frame}{}")
                 lines.append("\\begin{center}")
-           lines.append("\includegraphics[width = 0.5\\textwidth]{ScifitrackDens"+str(emulsionNr)+".pdf}")
-           k+=1
+           if "ScifitrackDens"+str(emulsionNr)+".pdf" in os.listdir('.'):
+              lines.append("\includegraphics[width = 0.45\\textwidth]{ScifitrackDens"+str(emulsionNr)+".pdf}")
+              k+=1
         lines.append("\end{center}")
         lines.append("\end{frame}")
 
@@ -1196,7 +1210,6 @@ if __name__ == '__main__':
                  if hasattr(FS,"lumiAtIP1"):
                     if 'fillingScheme' in FS.lumiAtIP1:
                         fillScheme = FS.lumiAtIP1['fillingScheme']
-                 print('and ?',fillScheme)
 # cross check
                  postScale = Nevts/FS.h['time'].GetEntries()
                  problems[r]={}
@@ -1242,6 +1255,9 @@ if __name__ == '__main__':
               L+=FS.runInfo[r]['lumiAtIP1withSNDLHC']
               N+=FS.runInfo[r]['Entries']
            print('total nr of events',N,'  integrated luminosity ',L/1E9,'fb')
+           print('run tracks per Lumi')   # do not forget xrdcp -f Lumi.root $EOSSHIP/eos/experiment/sndlhc/www/offline/
+           FS.tracksPerLumi()
+           print('make Latex')
            FS.makeLatex()
 
           # fg  = ROOT.TFile.Open(options.path+'FSdict.root')
