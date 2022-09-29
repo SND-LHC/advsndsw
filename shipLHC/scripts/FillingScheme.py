@@ -727,7 +727,7 @@ class fillingScheme():
         F.Close()
         F = ROOT.TFile('BunchStructureLHC.root','recreate')
         for newname in h:
-                if not newname.find('lhc-') == 0:continuee
+                if not newname.find('lhc-') == 0:continue
                 X = {}
                 for p in h[newname].GetListOfPrimitives():
                    X[p.GetName()] = p
