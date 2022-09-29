@@ -209,7 +209,7 @@ class Mufi_hitMaps(ROOT.FairTask):
                  if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
              elif self.M.xing[x]:
                  rc = h[detector+'slopes'+x].Fill(slopeX,slopeY)
-                 rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
+                 rc = h[detector+'trackPos'+x].Fill(pos.X(),pos.Y())
                  if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'+x].Fill(pos.X(),pos.Y())
 
          if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h[detector+'bsDS'].Fill(Xbar,Ybar)
