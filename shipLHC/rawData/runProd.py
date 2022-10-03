@@ -38,14 +38,20 @@ class prodManager():
          if not x.find(macroName)<0 and not x.find('python') <0: n+=1
       return n
    def list_of_runs(self,macroName):
-      lpruns = []
+      lpruns = [[],[]]
       username = pwd.getpwuid(os.getuid()).pw_name
       callstring = "ps -f -u " + username
       status = subprocess.check_output(callstring,shell=True)
       for x in status.decode().split('\n'):
          if not x.find(macroName)<0 and not x.find('python') <0: 
             i = x.find('-r')
-            lpruns.append(int(x[i+3:].split(' ')[0]))
+            k = x.find('-P')
+            if i > 0:  
+               r = int(x[i+3:].split(' ')[0])
+               lpruns[0].append(r)
+               if k>0: 
+                  p = int(x[k+3:].split(' ')[0])
+                  lpruns[1].append(r*10000+p)
       return lpruns
 
    def getPartitions(self,runList,path):
@@ -91,12 +97,11 @@ class prodManager():
 
       orderedCDF = list(convDataFiles.keys())
       lpruns = self.list_of_runs('run_Monitoring')
-      print(lpruns)
-      print(self.runNrs)
+
       self.getRunNrFromOffline(latest)
       for x in orderedCDF:
           r = x//10000
-          if  (r in self.runNrs) or (r in lpruns): continue
+          if  (r in self.runNrs) or (r in lpruns[0]): continue
           if r in self.dqDataFiles: continue
           self.runNrs.append(r)
           
@@ -131,7 +136,7 @@ class prodManager():
 
       for x in orderedRDF: 
            if x in orderedCDF: continue
-           lpruns = self.list_of_runs('convertRawData')
+           lpruns = self.list_of_runs('convertRawData')[1]
            if x in lpruns: continue
            r = x//10000 
            p = x%10000
