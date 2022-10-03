@@ -124,7 +124,7 @@ class Tracking(ROOT.FairTask):
       trackCandidates.append(hitlist)
     return trackCandidates
 
- def Scifi_track(self,nPlanes = 3, nClusters = 20,sigma=150*u.um,maxRes=50):
+ def Scifi_track(self,nPlanes = 3, nClusters = 20,sigma=150*u.um,maxRes=50,maskPlane=-1):
 # check for low occupancy and enough hits in Scifi
         event = self.event
         trackCandidates = []
@@ -139,9 +139,10 @@ class Tracking(ROOT.FairTask):
             detID = cl.GetFirst()
             s  = detID//1000000
             o = (detID//100000)%10
-            stations[s*10+o].append(detID)
-            projClusters[o][detID] = [cl,k]
-            k+=1
+            if maskPlane != s:
+                stations[s*10+o].append(detID)
+                projClusters[o][detID] = [cl,k]
+                k+=1
         nclusters = 0
         check = {}
         for o in range(2):
