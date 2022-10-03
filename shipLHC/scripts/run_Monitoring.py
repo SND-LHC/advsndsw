@@ -71,11 +71,18 @@ if (options.auto and not options.interactive) or options.batch: ROOT.gROOT.SetBa
 if options.runNumber < 0  and not options.geoFile: 
      print('No run number given and no geoFile. Do not know what to do. Exit.')
      exit()
+#RUN0: 7 Apr 2022 - 26 Jul 2022   (Run 4575 started -  test run after replacing emulsions -Ettore)
+#RUN1: 26 Jul 2022 - 13 Sept 2022 (Run 4855 September 14)
+#RUN2: 13 Sept 2022 -
+
 if not options.geoFile:
-     if options.runNumber < 4620:
+     if options.runNumber < 4575:
            geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
-     if options.runNumber > 4619:
+     elif options.runNumber < 4855:
           geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+     else:
+          geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"   # waiting for new alignment
+
 # to be extended for future new alignments.
 
 def currentRun():
@@ -184,18 +191,32 @@ if not options.auto:   # default online/offline mode
          if i==(options.parallel-1): nstop = options.nEvents
    if pid == 0:
     print('start ',i,nstart,nstop)
+    Tcounter = {'Monitor':0}
+    for m in monitorTasks:
+       Tcounter[m] = 0
+
     for n in range(nstart,nstop):
      if options.postScale>1:
         if ROOT.gRandom.Rndm()>1./options.postScale: continue
+     tic = time.perf_counter_ns()
      event = M.GetEvent(n)
+     toc = time.perf_counter_ns()
+     Tcounter['Monitor']+=toc-tic
+     
      if not options.online:
         if n%options.heartBeat == 0:
             print("--> run/event nr: %i %i %5.2F%%"%(M.eventTree.EventHeader.GetRunId(),n,(n-nstart)/(nstop-nstart)*100))
 # assume for the moment file does not contain fitted tracks
      for m in monitorTasks:
+        tic = time.perf_counter_ns()
         monitorTasks[m].ExecuteEvent(M.eventTree)
+        toc = time.perf_counter_ns()
+        Tcounter[m]+=toc-tic
     for m in monitorTasks:
           monitorTasks[m].Plot()
+    txt = ''
+    for x in Tcounter: txt+=x+':%5.1Fs '%(Tcounter[x]/1E9)
+    print('timing performance:',txt)
     if options.parallel>1: # save partitions
            ut.writeHists(M.h,'tmp'+str(options.runNumber)+'p'+str(i))
            exit(0)

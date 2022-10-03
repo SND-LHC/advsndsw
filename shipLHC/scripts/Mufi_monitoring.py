@@ -82,6 +82,7 @@ class Mufi_hitMaps(ROOT.FairTask):
        systemAndPlanes =self.M.systemAndPlanes
        sdict = self.M.sdict
        h = self.M.h
+       W = self.M.Weight
        mult = {}
        planes = {}
        for i in self.listOfHits:  self.listOfHits[i].clear()
@@ -101,7 +102,7 @@ class Mufi_hitMaps(ROOT.FairTask):
            for c in aHit.GetAllSignals(False,False):
                 if aHit.isMasked(c.first):
                      channel = bar*nSiPMs*nSides + c.first
-                     rc = h[detector+'Xhit_'+str(s)+str(l)].Fill( channel )
+                     rc = h[detector+'Xhit_'+str(s)+str(l)].Fill( channel,W)
 
            if not aHit.isValid(): continue
            mult[s*10+l]+=1
@@ -121,27 +122,27 @@ class Mufi_hitMaps(ROOT.FairTask):
               else:
                     Nright+=1
                     Sright+=allChannels[c]
-           rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(Nleft)
-           rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(10+Nright)
+           rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(Nleft,W)
+           rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(10+Nright,W)
            if not aHit.isVertical():  # vertical DS plane is read out only on one side
-              rc = h[detector+'leftvsright_'+str(s)].Fill(Nleft,Nright)
-              rc = h[detector+'leftvsright_signal_'+str(s)].Fill(Sleft,Sright)
+              rc = h[detector+'leftvsright_'+str(s)].Fill(Nleft,Nright,W)
+              rc = h[detector+'leftvsright_signal_'+str(s)].Fill(Sleft,Sright,W)
 #
            for c in allChannels:
                channel = bar*nSiPMs*nSides + c
-               rc = h[detector+'hit_'+str(s)+str(l)].Fill( int(channel))
-               rc = h[detector+'bar_'+str(s)+str(l)].Fill(bar)
+               rc = h[detector+'hit_'+str(s)+str(l)].Fill( int(channel),W)
+               rc = h[detector+'bar_'+str(s)+str(l)].Fill(bar,W)
                if s==2 and self.M.smallSiPMchannel(c) : 
-                     rc  = h[detector+'sigS_'+str(s)+str(l)].Fill(allChannels[c])
-                     if withDSTrack: rc  = h[detector+'TsigS_'+str(s)+str(l)].Fill(allChannels[c])
+                     rc  = h[detector+'sigS_'+str(s)+str(l)].Fill(allChannels[c],W)
+                     if withDSTrack: rc  = h[detector+'TsigS_'+str(s)+str(l)].Fill(allChannels[c],W)
                elif c<nSiPMs: 
-                     rc  = h[detector+'sigL_'+str(s)+str(l)].Fill(allChannels[c])
-                     if withDSTrack: rc  = h[detector+'TsigL_'+str(s)+str(l)].Fill(allChannels[c])
+                     rc  = h[detector+'sigL_'+str(s)+str(l)].Fill(allChannels[c],W)
+                     if withDSTrack: rc  = h[detector+'TsigL_'+str(s)+str(l)].Fill(allChannels[c],W)
                else             :             
-                     rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c])
-                     if withDSTrack: rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c])
-               rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c])
-               if withDSTrack:  rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c])
+                     rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c],W)
+                     if withDSTrack: rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c],W)
+               rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c],W)
+               if withDSTrack:  rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c],W)
            allChannels.clear()
 #
        # noise event with many hits in one plane
@@ -149,17 +150,17 @@ class Mufi_hitMaps(ROOT.FairTask):
        for x in mult:
            if mult[x]>3: onePlane.append(x)
        if len(onePlane)==1:
-           rc = h[detector+'Noise'].Fill(onePlane[0])
+           rc = h[detector+'Noise'].Fill(onePlane[0],W)
 
 #
        for s in self.listOfHits:
            nhits = len(self.listOfHits[s])
            qcdsum = 0
            for i in range(nhits):
-               rc = h[sdict[s]+'Mult'].Fill(nhits, self.listOfHits[s][i])
+               rc = h[sdict[s]+'Mult'].Fill(nhits, self.listOfHits[s][i],W)
        for s in systemAndPlanes:
           for l in range(systemAndPlanes[s]):   
-             rc = h[detector+'hitmult_'+str(s*10+l)].Fill(mult[s*10+l])
+             rc = h[detector+'hitmult_'+str(s*10+l)].Fill(mult[s*10+l],W)
 # mufi residuals with scifi tracks
        for aTrack in self.M.Reco_MuonTracks:
            if not aTrack.GetUniqueID()==1: continue
@@ -184,19 +185,20 @@ class Mufi_hitMaps(ROOT.FairTask):
               pq = A-pos
               uCrossv= (B-A).Cross(mom)
               doca = pq.Dot(uCrossv)/uCrossv.Mag()
-              rc = h[detector+'resX_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,xEx)
-              rc = h[detector+'resY_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,yEx)
+              rc = h[detector+'resX_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,xEx,W)
+              rc = h[detector+'resY_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,yEx,W)
 
    def beamSpot(self,event):
       if not self.trackTask: return
       h = self.M.h
+      W = self.M.Weight
       Xbar = -10
       Ybar = -10
       for aTrack in self.M.Reco_MuonTracks:
          if not aTrack.GetUniqueID()==3: continue
          state = aTrack.getFittedState()
          pos    = state.getPos()
-         rc = h[detector+'bs'].Fill(pos.x(),pos.y())
+         rc = h[detector+'bs'].Fill(pos.x(),pos.y(),W)
          mom = state.getMom()
          slopeX= mom.X()/mom.Z()
          slopeY= mom.Y()/mom.Z()
@@ -204,15 +206,15 @@ class Mufi_hitMaps(ROOT.FairTask):
 
          for x in self.xing:
              if x=='':  
-                 rc = h[detector+'slopes'].Fill(slopeX,slopeY)
-                 rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
-                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+                 rc = h[detector+'slopes'].Fill(slopeX,slopeY,W)
+                 rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y(),W)
+                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y(),W)
              elif self.M.xing[x]:
-                 rc = h[detector+'slopes'+x].Fill(slopeX,slopeY)
-                 rc = h[detector+'trackPos'+x].Fill(pos.X(),pos.Y())
-                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'+x].Fill(pos.X(),pos.Y())
+                 rc = h[detector+'slopes'+x].Fill(slopeX,slopeY,W)
+                 rc = h[detector+'trackPos'+x].Fill(pos.X(),pos.Y(),W)
+                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'+x].Fill(pos.X(),pos.Y(),W)
 
-         if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h[detector+'bsDS'].Fill(Xbar,Ybar)
+         if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h[detector+'bsDS'].Fill(Xbar,Ybar,W)
 
    def Plot(self):
        h = self.M.h
@@ -472,6 +474,7 @@ class Mufi_largeVSsmall(ROOT.FairTask):
                               ut.bookHist(h,sdict[S]+'cor'+tag+'_'+side+str(l)+str(bar),'QDC channel i vs channel j',200,0.,200.,200,0.,200.)
 
    def ExecuteEvent(self,event):
+      W = self.M.Weight
       M = self.M
       h = self.M.h
       sdict = self.M.sdict
@@ -495,8 +498,8 @@ class Mufi_largeVSsmall(ROOT.FairTask):
                   nL+=1
           if nL>0: SumL=sumL/nL
           if nS>0: SumS=sumS/nS
-          rc = h['sVSl_'+str(l)].Fill(SumS,SumL)
-          rc = h['SVSl_'+str(l)].Fill(sumS/4.,sumL/12.)
+          rc = h['sVSl_'+str(l)].Fill(SumS,SumL,W)
+          rc = h['SVSl_'+str(l)].Fill(sumS/4.,sumL/12.,W)
 #
           for side in ['L','R']:
             offset = 0
@@ -511,8 +514,8 @@ class Mufi_largeVSsmall(ROOT.FairTask):
                  if s==2 and self.M.smallSiPMchannel(i2): tag += 's'+str(i2-offset)
                  else: tag += 'l'+str(i2-offset)
                  qdc2 = allChannels[i2]
-                 rc = h[sdict[s]+'cor'+tag+'_'+side+str(l)].Fill(qdc1,qdc2)
-                 rc = h[sdict[s]+'cor'+tag+'_'+side+str(l)+str(bar)].Fill(qdc1,qdc2)
+                 rc = h[sdict[s]+'cor'+tag+'_'+side+str(l)].Fill(qdc1,qdc2,W)
+                 rc = h[sdict[s]+'cor'+tag+'_'+side+str(l)+str(bar)].Fill(qdc1,qdc2,W)
           allChannels.clear()
 
    def Plot(self):

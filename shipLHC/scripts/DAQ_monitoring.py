@@ -2,7 +2,6 @@
 import ROOT,os,sys
 import rootUtils as ut
 import reverseMapping
-from rootpyPickler import Unpickler
 
 class DAQ_boards(ROOT.FairTask):
    " produce hitmaps as function of boards"
@@ -21,6 +20,7 @@ class DAQ_boards(ROOT.FairTask):
           self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/data/run_"+runNr+'/')
    def ExecuteEvent(self,event):
        h = self.M.h
+       W = self.M.Weight
        mult = {'scifi': [0]*100,'mufi': [0]*100}
        for aHit in event.Digi_ScifiHits:
           daq = self.R.daqChannel(aHit)
@@ -43,7 +43,7 @@ class DAQ_boards(ROOT.FairTask):
        for x in mult:
             for b in range(len(mult[x])):
                rc = h[x+'board'].Fill(b,mult[x][b])
-               if trigger >0 and not b==trigger:  rc = h[x+'board0'].Fill(b,mult[x][b])
+               if trigger >0 and not b==trigger:  rc = h[x+'board0'].Fill(b,mult[x][b],W)
 
    def Plot(self):
        h = self.M.h
@@ -85,46 +85,16 @@ class Time_evolution(ROOT.FairTask):
            ut.bookHist(h,'bnr'+x,'bunch number; ',3564,-0.5,3564-0.5)
            ut.bookHist(h,'trackDir'+x,'track direction;',300,-0.5,0.25)
            ut.bookHist(h,'trackDirSig'+x,'track direction significance;',100,-20,10)
-# get filling scheme
-       try:
-           fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
-           pkl = Unpickler(fg)
-           FSdict = pkl.load('FSdict')
-           fg.Close()
-           if options.runNumber in FSdict: self.fsdict = FSdict[options.runNumber]
-           else:  self.fsdict = False
-       except:
-           print('continue without knowing filling scheme')
-           self.fsdict = False
 
        self.boardsVsTime = {}
                        
        self.Nevent = -1
        self.Tprev = [-1]*1700
    def ExecuteEvent(self,event):
-       xing = self.xing
+       xing = self.M.xing
        self.Nevent +=1
        h = self.M.h
        T   = event.EventHeader.GetEventTime()
-       xing = {'all':True,'B1only':False,'B2noB1':False,'noBeam':False}
-       if self.fsdict:
-             bunchNumber = int(T%(4*3564)/4+0.5)
-             nb1 = (3564 + bunchNumber - self.fsdict['phaseShift1'])%3564
-             nb2 = (3564 + bunchNumber - self.fsdict['phaseShift1']- self.fsdict['phaseShift2'])%3564
-             b1 = nb1 in self.fsdict['B1']
-             b2 = nb2 in self.fsdict['B2']
-             IP1 = False
-             IP2 = False
-             if b1:
-                IP1 =  self.fsdict['B1'][nb1]['IP1']
-             if b2:
-                IP2 =  self.fsdict['B2'][nb2]['IP2']
-             xing['B1only']   = b1 and not IP1 and not b2
-             xing['B2noB1']  = b2 and not b1
-             xing['noBeam'] = not b1 and not b2
-
-       if xing['B1only']  and xing['B2noB1']  or xing['B1only'] and xing['noBeam'] : print('error with b1only assignment',xing)
-       if xing['B2noB1']  and xing['noBeam'] : print('error with b2nob1 assignment',xing)
        Tsec = int(T/self.M.freq)
 
        trackTask = self.M.FairTasks['simpleTracking']
@@ -143,16 +113,16 @@ class Time_evolution(ROOT.FairTask):
             if abs(SL[0])<0.03:  direction = 1
             elif SL[0]<-0.07:     direction = -1
        bn = (T%(4*3564))/4
-       rc = h['bnr'].Fill( bn )
+       rc = h['bnr'].Fill( bn ,W)
        for x in xing:
             if xing[x]:
-                 if x=='all' or (DStrack or SFtrack):  rc = h['bnr'+x].Fill( bn )
+                 if x=='all' or (DStrack or SFtrack):  rc = h['bnr'+x].Fill( bn ,W)
                  if not SL: continue
-                 rc = h['trackDir'+x].Fill(SL[0])
-                 rc = h['trackDirSig'+x].Fill(SL[1])
+                 rc = h['trackDir'+x].Fill(SL[0],W)
+                 rc = h['trackDirSig'+x].Fill(SL[1],W)
 
-       if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4)
-       elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4)
+       if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4,W)
+       elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4,W)
        for x in xing:
           if xing[x]:
              self.gtime[x][0].append(T/self.M.freq)
@@ -175,10 +145,10 @@ class Time_evolution(ROOT.FairTask):
              if self.Tprev[cNr]>0:
                 dT = (T - self.Tprev[cNr])/self.M.freq
                 if dT<5E-9: print('something wrong',self.Nevent,s,p,b,c,dT,T,self.Tprev[cNr])
-                rc = h['ctimeZ'].Fill(dT*1E6,cNr)
-                rc = h['btime'].Fill(T-self.Tprev[cNr],cNr)
-                rc = h['ctimeM'].Fill(dT*1E3,cNr)
-                rc = h['ctime'].Fill(dT,cNr)
+                rc = h['ctimeZ'].Fill(dT*1E6,cNr,W)
+                rc = h['btime'].Fill(T-self.Tprev[cNr],cNr,W)
+                rc = h['ctimeM'].Fill(dT*1E3,cNr,W)
+                rc = h['ctime'].Fill(dT,cNr,W)
              nb = aHit.GetBoardID(c)
              if not nb in self.boardsVsTime: self.boardsVsTime[nb]={}
              if not Tsec in self.boardsVsTime[nb]: self.boardsVsTime[nb][Tsec]=0

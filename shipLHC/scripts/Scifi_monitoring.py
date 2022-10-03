@@ -31,19 +31,20 @@ class Scifi_hitMaps(ROOT.FairTask):
           ut.bookHist(h,detector+'tdc_'+str(mat),'tdc '+str(s)+p+' mat '+str(m)+'; timestamp [LHC clock cycles]',200,-1.,4.)
    def ExecuteEvent(self,event):
        h = self.M.h
+       W = self.M.Weight
        mult = [0]*10
        for aHit in event.Digi_ScifiHits:
           if not aHit.isValid(): continue
           X =  self.M.Scifi_xPos(aHit.GetDetectorID())
-          rc = h[detector+'mat_'+str(X[0]*3+X[1])].Fill(X[2])
-          rc = h[detector+'sig_'+str(X[0]*3+X[1])].Fill(aHit.GetSignal(0))
-          rc = h[detector+'tdc_'+str(X[0]*3+X[1])].Fill(aHit.GetTime(0))
+          rc = h[detector+'mat_'+str(X[0]*3+X[1])].Fill(X[2],W)
+          rc = h[detector+'sig_'+str(X[0]*3+X[1])].Fill(aHit.GetSignal(0),W)
+          rc = h[detector+'tdc_'+str(X[0]*3+X[1])].Fill(aHit.GetTime(0),W)
           self.M.Scifi.GetSiPMPosition(aHit.GetDetectorID(),A,B)
-          if aHit.isVertical(): rc = h[detector+'posX_'+str(X[0])].Fill(A[0])
-          else:                     rc = h[detector+'posY_'+str(X[0])].Fill(A[1])
+          if aHit.isVertical(): rc = h[detector+'posX_'+str(X[0])].Fill(A[0],W)
+          else:                     rc = h[detector+'posY_'+str(X[0])].Fill(A[1],W)
           mult[X[0]]+=1
        for s in range(10):
-          rc = h[detector+'mult_'+str(s)].Fill(mult[s])
+          rc = h[detector+'mult_'+str(s)].Fill(mult[s],W)
    def Plot(self):
        h = self.M.h
        ut.bookCanvas(h,detector+'hitmaps',' ',1024,768,6,5)
@@ -120,6 +121,7 @@ class Scifi_residuals(ROOT.FairTask):
 
    def ExecuteEvent(self,event):
        h = self.M.h
+       W = self.M.Weight
        nav = self.nav
        if not hasattr(event,"Cluster_Scifi"):
                self.trackTask.scifiCluster()
@@ -137,18 +139,18 @@ class Scifi_residuals(ROOT.FairTask):
                  mom = state.getMom()
                  slopeX = mom.X()/mom.Z()
                  slopeY = mom.Y()/mom.Z()
-                 rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf() )
+                 rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf(),W)
                  for x in self.xing:
                     if x=='':  
-                       rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000)
-                       rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY)
-                       rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
-                       if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+                       rc = h[detector+'trackSlopes'].Fill(slopeX*1000,slopeY*1000,W)
+                       rc = h[detector+'trackSlopesXL'].Fill(slopeX,slopeY,W)
+                       rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y(),W)
+                       if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y(),W)
                     elif self.M.xing[x]:
-                       rc = h[detector+'trackSlopes'+x].Fill(slopeX*1000,slopeY*1000)
-                       rc = h[detector+'trackSlopesXL'+x].Fill(slopeX,slopeY)
-                       rc = h[detector+'trackPos'+x].Fill(pos.X(),pos.Y())
-                       if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'+x].Fill(pos.X(),pos.Y())
+                       rc = h[detector+'trackSlopes'+x].Fill(slopeX*1000,slopeY*1000,W)
+                       rc = h[detector+'trackSlopesXL'+x].Fill(slopeX,slopeY,W)
+                       rc = h[detector+'trackPos'+x].Fill(pos.X(),pos.Y(),W)
+                       if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'+x].Fill(pos.X(),pos.Y(),W)
 
 
        if not self.unbiased and not theTrack: return
@@ -207,7 +209,7 @@ class Scifi_residuals(ROOT.FairTask):
                 rep.extrapolateToPlane(state, NewPosition, parallelToZ )
                 pos = state.getPos()
                 xEx,yEx = pos.x(),pos.y()
-                rc = h['track_Scifi'+str(testPlane)].Fill(xEx,yEx)
+                rc = h['track_Scifi'+str(testPlane)].Fill(xEx,yEx,W)
                 for aCl in sortedClusters[testPlane]:
                    aCl.GetPosition(A,B)
                    detID = aCl.GetFirst()
@@ -216,10 +218,10 @@ class Scifi_residuals(ROOT.FairTask):
                    pq = A-pos
                    uCrossv= (B-A).Cross(mom)
                    doca = pq.Dot(uCrossv)/uCrossv.Mag()
-                   rc = h['resC'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,channel)
-                   rc = h['res'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um)
-                   rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,xEx)
-                   rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,yEx)
+                   rc = h['resC'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,channel,W)
+                   rc = h['res'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,W)
+                   rc = h['resX'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,xEx,W)
+                   rc = h['resY'+self.projs[o]+'_Scifi'+str(testPlane)].Fill(doca/u.um,yEx,W)
 
             if self.unbiased: theTrack.Delete()
 

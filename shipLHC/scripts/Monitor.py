@@ -132,6 +132,8 @@ class Monitoring():
             self.eventTree = options.online.fSink.GetOutTree()
             self.Nkeys = 38   # need to find a way to get this number automatically
             if self.converter.newFormat: self.Nkeys = 1
+            self.MonteCarlo = False
+            self.Weight = 1
             for t in self.FairTasks:
                T = self.FairTasks[t]
                self.converter.run.AddTask(T)
@@ -148,7 +150,9 @@ class Monitoring():
             if options.fname:
                 f=ROOT.TFile.Open(options.fname)
                 eventChain = f.Get('rawConv')
-                if not eventChain:   eventChain = f.cbmsim
+                if not eventChain:   
+                    eventChain = f.cbmsim
+                    if eventChain.GetBranch('MCTrack'): self.MonteCarlo = True
                 partitions = []
             else:
               partitions = 0
@@ -282,6 +286,7 @@ class Monitoring():
             self.eventTree = self.options.online.sTree
       else: 
             self.eventTree.GetEvent(n)
+            if self.MonteCarlo: self.Weight = self.eventTree.MCTrack[0].GetWeight()
             for t in self.FairTasks: self.FairTasks[t].ExecuteTask()
       self.EventNumber = n
 
