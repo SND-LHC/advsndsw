@@ -55,6 +55,11 @@ class Tracking(ROOT.FairTask):
    # offline read only:   converted data in, no output
    # offline read/write:  converted data in, converted data out
 
+   self.nPlanes = 3
+   self.nClusters = 5
+   self.sigma=150*u.um
+   self.maxRes=50
+   self.maskPlane=-1
 
    if online:
       self.event = self.sink.GetOutTree()
@@ -124,7 +129,7 @@ class Tracking(ROOT.FairTask):
       trackCandidates.append(hitlist)
     return trackCandidates
 
- def Scifi_track(self,nPlanes = 3, nClusters = 20,sigma=150*u.um,maxRes=50,maskPlane=-1):
+ def Scifi_track(self):
 # check for low occupancy and enough hits in Scifi
         event = self.event
         trackCandidates = []
@@ -139,44 +144,59 @@ class Tracking(ROOT.FairTask):
             detID = cl.GetFirst()
             s  = detID//1000000
             o = (detID//100000)%10
-            if maskPlane != s:
+            if self.maskPlane != s:
                 stations[s*10+o].append(detID)
                 projClusters[o][detID] = [cl,k]
                 k+=1
         nclusters = 0
         check = {}
+        ignore = []
         for o in range(2):
             check[o]={}
             for s in range(1,6):
-                if len(stations[s*10+o]) > 0: check[o][s]=1
-                nclusters+=len(stations[s*10+o])
-        if len(check[0])<nPlanes or len(check[1])<nPlanes or nclusters > nClusters: return trackCandidates
+                if len(stations[s*10+o]) > self.nClusters: 
+                  ignore.append(s*10+o)
+                elif len(stations[s*10+o]) > 0 : 
+                  check[o][s] = 1
+                  nclusters+=len(stations[s*10+o])
+        
+        if len(check[0])<self.nPlanes or len(check[1])<self.nPlanes: return trackCandidates
 # build trackCandidate
 # PR logic, fit straight line in x/y projection, remove outliers. Ignore tilt.
         hitlist = {}
         sortedClusters = {}
-        masked = {}
         check[0]=0
         check[1]=0
-        for o in range(2): 
+        for o in range(2):
            sortedClusters[o]=sorted(projClusters[o])
            g = ROOT.TGraph()
            n = 0
+           mean = {}
+           points = {}
            for detID in sortedClusters[o]:
+               s  = detID//1000000
+               if  (s*10+o) in ignore: continue
+               if not s in mean: 
+                  mean[s]=[0,0,0]
                projClusters[o][detID][0].GetPosition(A,B)
                z = (A[2]+B[2])/2.
                if o==0: y = (A[1]+B[1])/2.
                else: y = (A[0]+B[0])/2.
-               g.SetPoint(n,z,y)
-               n+=1
+               points[detID] = [z,y]
+               mean[s][0]+=z
+               mean[s][1]+=y
+               mean[s][2]+=1
+           for s in mean:
+              for n in range(2):
+                 mean[s][n]=mean[s][n]/mean[s][2]
+              g.AddPoint(mean[s][0],mean[s][1])
            rc = g.Fit('pol1','SQ')
            fun = g.GetFunction('pol1')
-           masked[o] = []
-           for i in range(n):
-               z = g.GetPointX(i)
-               res = abs(g.GetPointY(i)-fun.Eval(z))/sigma
-               if res < maxRes:
-                 detID = sortedClusters[o][i]
+           for detID in points:
+               z = points[detID][0]
+               y = points[detID][1]
+               res = abs(y-fun.Eval(z))/self.sigma
+               if res < self.maxRes:
                  k = projClusters[o][detID][1]
                  hitlist[k] = projClusters[o][detID][0]
                  check[o]+=1
