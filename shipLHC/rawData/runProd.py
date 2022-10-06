@@ -99,6 +99,7 @@ class prodManager():
       lpruns = self.list_of_runs('run_Monitoring')
 
       self.getRunNrFromOffline(latest)
+      self.runNrs = []
       for x in orderedCDF:
           r = x//10000
           if  (r in self.runNrs) or (r in lpruns[0]): continue
@@ -387,7 +388,7 @@ if __name__ == '__main__':
     if options.command == "DQ":
       while 1 > 0:
          M.runDataQuality(options.latest)  
-         time.sleep(3600)
+         time.sleep(36)
       exit(0)
     elif options.command == "rerunDQ":
         runList = []
