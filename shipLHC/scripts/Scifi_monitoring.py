@@ -111,7 +111,7 @@ class Scifi_residuals(ROOT.FairTask):
        self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
        for x in self.xing:
           ut.bookHist(h,detector+'trackSlopes'+x,'track slope; x/z [mrad]; y/z [mrad]',1000,-100,100,1000,-100,100)
-          ut.bookHist(h,detector+'trackSlopesXL'+x,'track slope; x/z [rad]; y/z [rad]',120,-1.1,1.1,120,-1.1,1.1)
+          ut.bookHist(h,detector+'trackSlopesXL'+x,'track slope; x/z [rad]; y/z [rad]',2200,-1.1,1.1,2200,-1.1,1.1)
           ut.bookHist(h,detector+'trackPos'+x,'track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
           ut.bookHist(h,detector+'trackPosBeam'+x,'beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
 
