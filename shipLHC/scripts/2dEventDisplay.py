@@ -25,7 +25,7 @@ from argparse import ArgumentParser
 parser = ArgumentParser()
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,required=False)
 parser.add_argument("-p", "--path", dest="path", help="run number",required=False,default="")
-parser.add_argument("-f", "--inputFile", dest="inputFile", help="input file MC",default="",required=False)
+parser.add_argument("-f", "--inputFile", dest="inputFile", help="input file data and MC",default="",required=False)
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=True)
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
@@ -106,6 +106,15 @@ if options.houghTransform:
 
 nav = ROOT.gGeoManager.GetCurrentNavigator()
 
+fsdict = False
+if "FSdict.pkl" in os.listdir('.'):
+  import pickle
+  p = open("FSdict.pkl",'rb')
+  FSdict = pickle.load(p)
+  if options.runNumber in FSdict: fsdict = FSdict[options.runNumber]
+
+
+
 startTimeOfRun = {}
 def getStartTime(runNumber):
       if runNumber in startTimeOfRun : return startTimeOfRun[runNumber]
@@ -142,6 +151,24 @@ def goodEvent(event):
            if onlyScifi and len(stations['Scifi'])>Nlimit: return True
            elif not onlyScifi  and totalN >  Nlimit: return True
            else: return False
+def bunchXtype():
+# check for b1,b2,IP1,IP2
+        if fsdict:
+             bunchNumber = eventTree.EventHeader.GetEventTime()%(4*3564)//4
+             nb1 = (3564 + bunchNumber - fsdict['phaseShift1'])%3564
+             nb2 = (3564 + bunchNumber - fsdict['phaseShift1']- fsdict['phaseShift2'])%3564
+             b1 = nb1 in fsdict['B1']
+             b2 = nb2 in fsdict['B2']
+             IP1 = False
+             IP2 = False
+             if b1:
+                IP1 =  fsdict['B1'][nb1]['IP1']
+             if b2:
+                IP2 =  fsdict['B2'][nb2]['IP2']
+             if b2 and not b1:
+                b2Only = True
+             if b1 and not b2 and not IP1:
+                b1Only = True
 
 def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSipmMult=1, Setup='',verbose=0):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
@@ -274,6 +301,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    if qdc < 0 and qdc > -900:  h[F][systems[system]][1]+=1
                    elif not qdc<0:   
                        h[F][systems[system]][0]+=1
+                       if not 2+side in h[F][systems[system]]: continue
                        h[F][systems[system]][2+side]+=qdc
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
@@ -310,7 +338,9 @@ def addTrack(OT,scifi=False):
    nTrack = 0
    for   aTrack in OT.Reco_MuonTracks:
       trackColor = ROOT.kRed
-      if aTrack.GetUniqueID()==1: trackColor = ROOT.kBlue+2
+      if aTrack.GetUniqueID()==1: 
+          trackColor = ROOT.kBlue+2
+          print(trackTask.trackDir(aTrack))
       if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlack
       S = aTrack.getFitStatus()
       if not S.isFitConverged() and scifi:
@@ -347,6 +377,94 @@ def addTrack(OT,scifi=False):
              tc.Update()
              h[ 'simpleDisplay'].Update()
       nTrack+=1
+
+def twoTrackEvent(sMin=10,dClMin=7,minDistance=1.5,sepDistance=0.5):
+        trackTask.clusScifi.Clear()
+        trackTask.scifiCluster()
+        clusters = trackTask.clusScifi
+        sortedClusters={}
+        for aCl in clusters:
+           so = aCl.GetFirst()//100000
+           if not so in sortedClusters: sortedClusters[so]=[]
+           sortedClusters[so].append(aCl)
+        if len(sortedClusters)<sMin: return
+        M=0
+        for x in sortedClusters:
+           if len(sortedClusters[x]) == 2:  M+=1
+        if M < dClMin: return
+        seeds = {}
+        S = [-1,-1]
+        for o in range(0,2):
+# same procedure for both projections
+# take seeds from from first station with 2 clusters
+             for s in range(1,6):
+                 x = 10*s+o
+                 if x in sortedClusters:
+                    if len(sortedClusters[x])==2:
+                       sortedClusters[x][0].GetPosition(A,B)
+                       if o%2==1: pos0 = (A[0]+B[0])/2
+                       else: pos0 = (A[1]+B[1])/2
+                       sortedClusters[x][1].GetPosition(A,B)
+                       if o%2==1: pos1 = (A[0]+B[0])/2
+                       else: pos1 = (A[1]+B[1])/2
+                       if abs(pos0-pos1) > minDistance:
+                         S[o] = s
+                         break
+             if S[o]<0: break  # no seed found
+             seeds[o]={}
+             k = -1
+             for c in sortedClusters[S[o]*10+o]:
+                 k += 1
+                 c.GetPosition(A,B)
+                 if o%2==1: pos = (A[0]+B[0])/2
+                 else: pos = (A[1]+B[1])/2
+                 seeds[o][k] = [[c,pos]]
+             if k!=1: continue
+             if abs(seeds[o][0][0][1] - seeds[o][1][0][1]) < sepDistance: continue
+             for s in range(1,6):
+               if s==S[o]: continue
+               for c in sortedClusters[s*10+o]:
+                   c.GetPosition(A,B)
+                   if o%2==1: pos = (A[0]+B[0])/2
+                   else: pos = (A[1]+B[1])/2
+                   for k in range(2):
+                        if  abs(seeds[o][k][0][1] - pos) < sepDistance:
+                           seeds[o][k].append([c,pos])
+        print(S,seeds)
+        if S[0]<0 or S[1]<0:
+            passed = False
+        else:
+           passed = True
+           for o in range(0,2):
+              for k in range(2):
+                  print( len(seeds[o][k]) )
+                  if len(seeds[o][k])<3:
+                      passed = False
+                      break
+        print(passed)
+        if passed:
+           tracks = []
+           for k in range(2):
+             # arbitrarly combine X and Y of combination 0
+               n = 0
+               hitlist = {}
+               for o in range(0,2):
+                   for X in seeds[o][k]:
+                      hitlist[n] = X[0]
+                      n+=1
+               theTrack = trackTask.fitTrack(hitlist)
+               if not hasattr(theTrack,"getFittedState"):
+                    validTrack = False
+                    continue
+               fitStatus = theTrack.getFitStatus()
+               if not fitStatus.isFitConverged():
+                    theTrack.Delete()
+               else: 
+                    tracks.append(theTrack)
+           if len(tracks)==2:
+                 OT = sink.GetOutTree()
+                 OT.Reco_MuonTracks = tracks
+                 addTrack(OT,True) 
 
 def drawDetectors():
    nodes = {'volMuFilter_1/volFeBlockEnd_1':ROOT.kGreen-6}
@@ -615,8 +733,11 @@ def drawInfo(pad, k, run, event, timestamp):
 
    if drawText:
       runNumber = eventTree.EventHeader.GetRunId()
-      timestamp_start = getStartTime(runNumber)
-      if  timestamp_start:
+      if eventTree.GetBranch('MCTrack'):
+        timestamp_start = False
+      else:
+        timestamp_start = getStartTime(runNumber)
+        if  timestamp_start:
            TDC2ns = 6.23768   #conversion factor from 160MHz clock to ns
            timestamp_s = timestamp * TDC2ns * 1E-9
            timestamp_event = int(timestamp_start + timestamp_s)
@@ -630,7 +751,9 @@ def drawInfo(pad, k, run, event, timestamp):
       textInfo.SetTextFont(42)
       textInfo.SetTextSize(.15)
       textInfo.DrawLatex(0, 0.6, 'SND@LHC Experiment, CERN')
-      textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(event))
+      if hasattr(event.EventHeader,'GetEventNumber'): N = eventTree.EventHeader.GetEventNumber()
+      else: N = event
+      textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(N))
       if timestamp_start:
            textInfo.DrawLatex(0, 0.2, 'Time (GMT): {}'.format(time_event))
       pad.cd(k)
