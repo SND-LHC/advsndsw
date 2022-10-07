@@ -751,7 +751,7 @@ def drawInfo(pad, k, run, event, timestamp):
       textInfo.SetTextFont(42)
       textInfo.SetTextSize(.15)
       textInfo.DrawLatex(0, 0.6, 'SND@LHC Experiment, CERN')
-      if hasattr(event.EventHeader,'GetEventNumber'): N = eventTree.EventHeader.GetEventNumber()
+      if hasattr(eventTree.EventHeader,'GetEventNumber'): N = eventTree.EventHeader.GetEventNumber()
       else: N = event
       textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(N))
       if timestamp_start:
