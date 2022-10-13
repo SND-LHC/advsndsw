@@ -68,7 +68,8 @@ class Monitoring():
         self.EventNumber = -1
         self.TStart = -1
         self.TEnd   = -1
-
+        self.MonteCarlo = False
+        self.Weight = 1
 # MuFilter mapping of planes and bars 
         self.systemAndPlanes  = {1:2,2:5,3:7}
         self.systemAndBars     = {1:7,2:10,3:60}
@@ -132,8 +133,6 @@ class Monitoring():
             self.eventTree = options.online.fSink.GetOutTree()
             self.Nkeys = 38   # need to find a way to get this number automatically
             if self.converter.newFormat: self.Nkeys = 1
-            self.MonteCarlo = False
-            self.Weight = 1
             for t in self.FairTasks:
                T = self.FairTasks[t]
                self.converter.run.AddTask(T)
