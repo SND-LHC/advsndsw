@@ -170,7 +170,7 @@ def bunchXtype():
              if b1 and not b2 and not IP1:
                 b1Only = True
 
-def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSipmMult=1, Setup='',verbose=0):
+def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSipmMult=1, option=None,Setup='',verbose=0,auto=False):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
  h['simpleDisplay'].cd(1)
  zStart = 250. # TI18 coordinate system
@@ -301,7 +301,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    if qdc < 0 and qdc > -900:  h[F][systems[system]][1]+=1
                    elif not qdc<0:   
                        h[F][systems[system]][0]+=1
-                       if not 2+side in h[F][systems[system]]: continue
+                       if len(h[F][systems[system]]) < 2+side: continue
                        h[F][systems[system]][2+side]+=qdc
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
@@ -327,10 +327,20 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
 
     if withTrack == 2: addTrack(OT,True)  #withTrack=2 scifi, =3 DS
     elif not withTrack<0:  addTrack(OT)
+
+    if option == "2tracks": 
+          rc = twoTrackEvent(sMin=10,dClMin=7,minDistance=0.5,sepDistance=0.5)
+          if not rc: rc = twoTrackEvent(sMin=10,dClMin=7,minDistance=0.5,sepDistance=0.75)
+          if not rc: rc = twoTrackEvent(sMin=10,dClMin=7,minDistance=0.5,sepDistance=1.0)
+          if not rc: rc = twoTrackEvent(sMin=10,dClMin=7,minDistance=0.5,sepDistance=1.75)
+          if not rc: rc = twoTrackEvent(sMin=10,dClMin=7,minDistance=0.5,sepDistance=2.5)
+          if not rc: rc = twoTrackEvent(sMin=10,dClMin=7,minDistance=0.5,sepDistance=3.0)
+
     if verbose>0: dumpChannels()
     if save: h['simpleDisplay'].Print('{:0>2d}-event_{:04d}'.format(runId,N)+'.png')
-    rc = input("hit return for next event or q for quit: ")
-    if rc=='q': break
+    if not auto:
+       rc = input("hit return for next event or q for quit: ")
+       if rc=='q': break
  if save: os.system("convert -delay 60 -loop 0 event*.png animated.gif")
 
 def addTrack(OT,scifi=False):
@@ -387,11 +397,11 @@ def twoTrackEvent(sMin=10,dClMin=7,minDistance=1.5,sepDistance=0.5):
            so = aCl.GetFirst()//100000
            if not so in sortedClusters: sortedClusters[so]=[]
            sortedClusters[so].append(aCl)
-        if len(sortedClusters)<sMin: return
+        if len(sortedClusters)<sMin: return False
         M=0
         for x in sortedClusters:
            if len(sortedClusters[x]) == 2:  M+=1
-        if M < dClMin: return
+        if M < dClMin: return False
         seeds = {}
         S = [-1,-1]
         for o in range(0,2):
@@ -430,14 +440,12 @@ def twoTrackEvent(sMin=10,dClMin=7,minDistance=1.5,sepDistance=0.5):
                    for k in range(2):
                         if  abs(seeds[o][k][0][1] - pos) < sepDistance:
                            seeds[o][k].append([c,pos])
-        print(S,seeds)
         if S[0]<0 or S[1]<0:
             passed = False
         else:
            passed = True
            for o in range(0,2):
               for k in range(2):
-                  print( len(seeds[o][k]) )
                   if len(seeds[o][k])<3:
                       passed = False
                       break
@@ -465,6 +473,7 @@ def twoTrackEvent(sMin=10,dClMin=7,minDistance=1.5,sepDistance=0.5):
                  OT = sink.GetOutTree()
                  OT.Reco_MuonTracks = tracks
                  addTrack(OT,True) 
+        return passed
 
 def drawDetectors():
    nodes = {'volMuFilter_1/volFeBlockEnd_1':ROOT.kGreen-6}
