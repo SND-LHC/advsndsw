@@ -66,6 +66,7 @@ class Time_evolution(ROOT.FairTask):
    " time evolution of run"
    def Init(self,options,monitor):
        self.M = monitor
+       self.fsdict = self.M.fsdict
        h = self.M.h
        self.gtime = {'all':{0:[],1:[],3:[]}, 'B1only':{0:[],1:[],3:[]}, 'B2noB1':{0:[],1:[],3:[]}, 'noBeam':{0:[],1:[],3:[]}}
        self.QDCtime = {0:ROOT.TGraph(),1:ROOT.TGraph(),2:ROOT.TGraph(),3:ROOT.TGraph()}
@@ -91,9 +92,9 @@ class Time_evolution(ROOT.FairTask):
        self.Nevent = -1
        self.Tprev = [-1]*1700
    def ExecuteEvent(self,event):
-       xing = self.M.xing
        self.Nevent +=1
        h = self.M.h
+       W = self.M.Weight
        T   = event.EventHeader.GetEventTime()
        Tsec = int(T/self.M.freq)
 
@@ -114,8 +115,8 @@ class Time_evolution(ROOT.FairTask):
             elif SL[0]<-0.07:     direction = -1
        bn = (T%(4*3564))/4
        rc = h['bnr'].Fill( bn ,W)
-       for x in xing:
-            if xing[x]:
+       for x in self.xing:
+            if self.M.xing[x]:
                  if x=='all' or (DStrack or SFtrack):  rc = h['bnr'+x].Fill( bn ,W)
                  if not SL: continue
                  rc = h['trackDir'+x].Fill(SL[0],W)
@@ -123,8 +124,8 @@ class Time_evolution(ROOT.FairTask):
 
        if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4,W)
        elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4,W)
-       for x in xing:
-          if xing[x]:
+       for x in self.xing:
+          if self.M.xing[x]:
              self.gtime[x][0].append(T/self.M.freq)
              if DStrack: self.gtime[x][3].append(T/self.M.freq)
              if SFtrack: self.gtime[x][1].append(T/self.M.freq)
