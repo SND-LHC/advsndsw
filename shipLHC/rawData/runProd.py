@@ -87,29 +87,41 @@ class prodManager():
    def runDataQuality(self,latest):
       monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
                         -b 100000 -p "+pathConv+" -g GGGG "\
-                        +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
-
+                        +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo  "
+      if options.parallel>1: monitorCommand += " --postscale "+str(options.parallel)
       convDataFiles = self.getFileList(pathConv,latest,minSize=0)
-      self.checkEOS(copy=False)
-      # remove directories which are not complete
+      self.checkEOS(copy=False,latest=latest)
+      # remove directories which are not completely copied
       for r in self.missing:
              if r in convDataFiles: convDataFiles.pop(r)
+      # remove directories which are not fully converted
+      rawDataFiles = self.getFileList(path,latest,minSize=10E6)
+      self.RawrunNrs = {}
+      for x in rawDataFiles:
+             r =  x//10000
+             if not r in self.RawrunNrs: self.RawrunNrs[r] = []
+             self.RawrunNrs[r].append(x)
 
       orderedCDF = list(convDataFiles.keys())
       lpruns = self.list_of_runs('run_Monitoring')
 
       self.getRunNrFromOffline(latest)
-      self.runNrs = []
+      self.runNrs = {}
       for x in orderedCDF:
           r = x//10000
-          if  (r in self.runNrs) or (r in lpruns[0]): continue
+          if  r in self.runNrs:
+              self.runNrs[r].append(x)
+              continue
+          if r in lpruns[0]: continue
           if r in self.dqDataFiles: continue
-          self.runNrs.append(r)
+          self.runNrs[r] = [x]
           
       for r in self.runNrs:
+           if len(self.runNrs[r]) != len(self.RawrunNrs[r]): continue  # not all files converted.
            print('executing DQ for run %i'%(r))
-           if r  < 4620:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
-           if r > 4619:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+           if   r  < 4575:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
+           elif r  < 4855:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+           else: geoFile =  "../geofile_sndlhc_TI18_V6_08October2022.root "
            os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
            while self.count_python_processes('run_Monitoring')>(ncpus-2) or psutil.virtual_memory()[2]>90 : time.sleep(1800)
 
@@ -117,13 +129,15 @@ class prodManager():
       monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
                         -b 100000 -p "+pathConv+" -g GGGG "\
                         +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
+      if options.parallel>1: monitorCommand += " --postscale "+str(options.parallel)
       if len(runNrs) ==0:
          self.getRunNrFromOffline(rMin,rMax)
          runNrs = self.dqDataFiles
       for r in runNrs:
            print('executing DQ for run %i'%(r))
-           if r  < 4620:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
-           if r > 4619:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+           if   r  < 4575:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
+           elif r  < 4855:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+           else: geoFile =  "../geofile_sndlhc_TI18_V6_08October2022.root "
            os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
            time.sleep(20)
            while self.count_python_processes('run_Monitoring')>(ncpus-5) or psutil.virtual_memory()[2]>90 : time.sleep(300)
@@ -278,11 +292,11 @@ class prodManager():
                 eventChain.Add(options.server+pathConv+'run_'+str(r).zfill(6)+'/'+p)
            return eventChain.GetEntries()
 
-   def checkEOS(self,copy=False):
-       self.eosInventory = self.getFileList('/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/',4361)
+   def checkEOS(self,copy=False,latest=4361):
+       self.eosInventory = self.getFileList('/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/',latest)
        tmp = self.options.server 
        self.options.server = "root://snd-server-1.cern.ch/"
-       self.daqInventory = self.getFileList('/mnt/raid1/data_online/',4361)
+       self.daqInventory = self.getFileList('/mnt/raid1/data_online/',latest)
        self.options.server = tmp
        self.missing = {}
        for r in self.daqInventory:
@@ -348,6 +362,7 @@ if __name__ == '__main__':
     parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
     parser.add_argument("-g", dest="geofile", help="geometry and alignment",default="geofile_sndlhc_TI18.root")
     parser.add_argument("--postScale", dest="postScale",help="post scale events, 1..10..100", default=-1,type=int)
+    parser.add_argument("--parallel", dest="parallel",default=1,type=int)
     parser.add_argument("-rMin", dest="rMin",help="first run to process", default=-1,type=int)
     parser.add_argument("-rMax", dest="rMax",help="last run to process", default=9999,type=int)
 
