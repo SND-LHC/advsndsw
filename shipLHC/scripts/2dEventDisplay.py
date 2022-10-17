@@ -255,9 +255,9 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     for p in proj:
        rc = h[ 'simpleDisplay'].cd(p)
        h[proj[p]].Draw('b')
-    start_time=time.time()
+
     drawDetectors()
-    print('Elapsed time: '+str((time.time()-start_time))+' sec')
+    
     for D in digis:
       for digi in D:
          detID = digi.GetDetectorID()
