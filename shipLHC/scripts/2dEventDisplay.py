@@ -34,6 +34,7 @@ parser.add_argument("--server", dest="server", help="xrootd server",default=os.e
 parser.add_argument("-H", "--houghTransform", dest="houghTransform", help="do not use hough transform for track reco", action='store_false',default=True)
 parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", required=False, default=os.environ['SNDSW_ROOT']+"/python/TrackingParams.xml")
 parser.add_argument("-c", "--case", dest="trackingCase", help="type of tracks to build. Should match the 'tracking_case' name in parFile, use quotes", required=True)
+parser.add_argument("-hf", "--HoughSpaceFormat", dest="HspaceFormat", help="Hough space representation. Should match the 'Hough_space_format' name in parFile, use quotes", required=True)
 
 options = parser.parse_args()
 
@@ -97,6 +98,7 @@ xrdb.getContainer("FairGeoParSet").setStatic()
 if options.houghTransform:
   muon_reco_task.SetParFile(options.parFile)
   muon_reco_task.SetTrackingCase(options.trackingCase)
+  muon_reco_task.SetHoughSpaceFormat(options.HspaceFormat)
   # force the output of reco task to genfit::Track
   # as the display code looks for such output
   muon_reco_task.ForceGenfitTrackFormat()

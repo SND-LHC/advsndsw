@@ -11,6 +11,7 @@ parser.add_argument("-o", "--withOutput", dest="withOutput", help="persistent ou
 parser.add_argument("-s", "--saveTo", dest="outPath", help="output storage path", type=str,default="",required=False)
 parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", required=False, default=os.environ['SNDSW_ROOT']+"/python/TrackingParams.xml")
 parser.add_argument("-c", "--case", dest="trackingCase", help="type of tracks to build. Should match the 'tracking_case' name in parFile, use quotes", required=True)
+parser.add_argument("-hf", "--HoughSpaceFormat", dest="HspaceFormat", help="Hough space representation. Should match the 'Hough_space_format' name in parFile, use quotes", required=True)
 parser.add_argument("-n", "--nEvents", dest="nEvents",  type=int, help="number of events to process", default=1100000)
 parser.add_argument("-i", "--firstEvent",dest="firstEvent",  help="First event of input file to use", required=False,  default=0, type=int)
 parser.add_argument("-sc", "--scale",dest="scaleFactor",  help="Run reconstruction once for a randomly selected event in every [scaleFactor] events.", required=False,  default=1, type=int)
@@ -73,7 +74,7 @@ w = ROOT.TStopwatch()
 # Set the parameter file - must be called before Init()
 muon_reco_task.SetParFile(options.parFile)
 muon_reco_task.SetTrackingCase(options.trackingCase)
-
+muon_reco_task.SetHoughSpaceFormat(options.HspaceFormat)
 run.Init()
 
 # Set the scale factor - must be after Init()

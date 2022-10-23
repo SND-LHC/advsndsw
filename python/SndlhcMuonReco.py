@@ -4,6 +4,8 @@ import scipy.ndimage
 import warnings
 from array import array
 import xml.etree.ElementTree as ET
+import matplotlib.pyplot as plt
+import shipunit as unit
 
 def hit_finder(slope, intercept, box_centers, box_ds, tol = 0.) :
     """ Finds hits intersected by Hough line """
@@ -24,40 +26,51 @@ def hit_finder(slope, intercept, box_centers, box_ds, tol = 0.) :
 class hough() :
     """ Hough transform implementation """
 
-    def __init__(self, n_r, r_range, n_theta, theta_range, squaretheta = False, smooth = True) :
+    def __init__(self, n_yH, yH_range, n_xH, xH_range, z_offset, Hformat, det_Zlen, squaretheta = False, smooth = True) :
 
-        self.n_r = n_r
-        self.n_theta = n_theta
+        self.n_yH = n_yH
+        self.n_xH = n_xH
 
-        self.r_range = r_range
-        self.theta_range = theta_range
+        self.yH_range = yH_range
+        self.xH_range = xH_range
+        
+        self.z_offset = z_offset
+        self.HoughSpace_format = Hformat
+        
+        self.det_Zlen = det_Zlen
 
         self.smooth = smooth
 
-        self.r_bins = np.linspace(self.r_range[0], self.r_range[1], n_r)
+        self.yH_bins = np.linspace(self.yH_range[0], self.yH_range[1], n_yH)
         if not squaretheta :
-            self.theta_bins = np.linspace(self.theta_range[0], self.theta_range[1], n_theta)
+            self.xH_bins = np.linspace(self.xH_range[0], self.xH_range[1], n_xH)
         else :
-            self.theta_bins = np.linspace(np.sign(self.theta_range[0])*(self.theta_range[0]**0.5), np.sign(self.theta_range[1])*(self.theta_range[1]**0.5), n_theta)
-            self.theta_bins = np.sign(self.theta_bins)*np.square(self.theta_bins)
+            self.xH_bins = np.linspace(np.sign(self.xH_range[0])*(self.xH_range[0]**0.5), np.sign(self.xH_range[1])*(self.xH_range[1]**0.5), n_xH)
+            self.xH_bins = np.sign(self.xH_bins)*np.square(self.xH_bins)
         
-        self.cos_thetas = np.cos(self.theta_bins)
-        self.sin_thetas = np.sin(self.theta_bins)
+        self.cos_thetas = np.cos(self.xH_bins)
+        self.sin_thetas = np.sin(self.xH_bins)
         
-        self.theta_i = np.array(list(range(n_theta)))
+        self.xH_i = np.array(list(range(n_xH)))
 
     def fit(self, hit_collection, draw = False, weights = None) :
 
-        self.accumulator = np.zeros((self.n_r, self.n_theta))
+        self.accumulator = np.zeros((self.n_yH, self.n_xH))
         for i_hit, hit in enumerate(hit_collection) :
-            hit_r = hit[0]*self.cos_thetas + hit[1]*self.sin_thetas
-            out_of_range = np.logical_and(hit_r > self.r_range[0], hit_r < self.r_range[1]) 
-            hit_r_i = np.floor((hit_r[out_of_range] - self.r_range[0])/(self.r_range[1] - self.r_range[0])*self.n_r).astype(np.int)
+            shifted_hitZ = hit[0] - self.z_offset
+            if self.HoughSpace_format == 'normal':
+                 hit_yH = shifted_hitZ*self.cos_thetas + hit[1]*self.sin_thetas
+            elif self.HoughSpace_format == 'linearSlopeIntercept':
+                 hit_yH = hit[1] - shifted_hitZ*self.xH_bins
+            elif self.HoughSpace_format== 'linearIntercepts':
+                 hit_yH = (self.det_Zlen*hit[1] - shifted_hitZ*self.xH_bins)/(self.det_Zlen-shifted_hitZ)
+            out_of_range = np.logical_and(hit_yH > self.yH_range[0], hit_yH < self.yH_range[1]) 
+            hit_yH_i = np.floor((hit_yH[out_of_range] - self.yH_range[0])/(self.yH_range[1] - self.yH_range[0])*self.n_yH).astype(np.int)
 
             if weights is not None :
-                self.accumulator[hit_r_i, self.theta_i[out_of_range]] += weights[i_hit]
+                self.accumulator[hit_yH_i, self.xH_i[out_of_range]] += weights[i_hit]
             else :
-                self.accumulator[hit_r_i, self.theta_i[out_of_range]] += 1
+                self.accumulator[hit_yH_i, self.xH_i[out_of_range]] += 1
 
         # Smooth accumulator
         if self.smooth :
@@ -66,20 +79,38 @@ class hough() :
         # This might be useful for debugging, but leave out for now.
         if draw :
             pass
-#            plt.figure()
-#            plt.imshow(self.accumulator, origin = "lower", extent = [self.theta_range[0], self.theta_range[-1], self.r_range[0], self.r_range[-1]], aspect = "auto")
-#            plt.xlabel(r"$\theta$ [rad]")
-#            plt.ylabel("r [cm]")
-#            plt.tight_layout()
+            '''
+            plt.figure()
+            plt.imshow(self.accumulator, origin = "lower", extent = [self.xH_range[0], self.xH_range[-1], self.yH_range[0], self.yH_range[-1]], aspect = "auto")
+            if self.HoughSpace_format == 'normal':
+               plt.xlabel(r"$\theta$ [rad]")
+               plt.ylabel("r [cm]")
+            elif self.HoughSpace_format == 'linearSlopeIntercept':
+               plt.xlabel("slope")
+               plt.ylabel("intercept @ 1st plane [cm]")
+            elif self.HoughSpace_format == 'linearIntercepts':
+               plt.xlabel("intercept @ last plane [cm]")
+               plt.ylabel("intercept @ 1st plane [cm]")
+            plt.tight_layout()
+            plt.show()
+            '''
         
         i_max = np.unravel_index(self.accumulator.argmax(), self.accumulator.shape)
 
-        found_r = self.r_bins[i_max[0]]
-        found_theta = self.theta_bins[i_max[1]]
+        found_yH = self.yH_bins[i_max[0]]
+        found_xH = self.xH_bins[i_max[1]]
 
-        slope = -1./np.tan(found_theta)
-        intercept = found_r/np.sin(found_theta)
-    
+        if self.HoughSpace_format == 'normal':
+           slope = -1./np.tan(found_xH)
+           interceptShift = found_yH/np.sin(found_xH)
+           intercept = (np.tan(found_xH)*interceptShift + self.z_offset)/np.tan(found_xH)
+        elif self.HoughSpace_format == 'linearSlopeIntercept':
+           slope = found_xH
+           intercept = found_yH - slope*self.z_offset
+        elif self.HoughSpace_format == 'linearIntercepts':
+           slope = (found_xH - found_yH)/self.det_Zlen
+           intercept = found_yH - slope*self.z_offset
+        
         return (slope, intercept)
 
     def fit_randomize(self, hit_collection, hit_d, n_random, draw = False, weights = None) :
@@ -120,7 +151,7 @@ def numPlanesHit(systems, detector_ids) :
 class MuonReco(ROOT.FairTask) :
     " Muon reconstruction "
 
-    def Init(self) :        
+    def Init(self) :
         
         print("Initializing muon reconstruction task!")
         self.lsOfGlobals  = ROOT.gROOT.GetListOfGlobals()
@@ -169,27 +200,38 @@ class MuonReco(ROOT.FairTask) :
         # Check if genfit::Track format is already forced
         if hasattr(self, "genfitTrack"): pass
         else: self.genfitTrack = int(root[0].text)
-        
-        # Use SciFi hits or clusters
-        self.Scifi_meas = int(root[1].text)
-        
+                
         track_case_exists = False
         for case in root.findall('tracking_case'):
-            if case.get('name') == self.tracking_case:            
+            if case.get('name') == self.tracking_case:
                track_case_exists = True
+               # Use SciFi hits or clusters
+               self.Scifi_meas = int(case.find('use_Scifi_clust').text)
                # Maximum absolute value of reconstructed angle (+/- 1 rad is the maximum angle to form a triplet in the SciFi)
                max_angle = float(case.find('max_angle').text)
-
-               # Number of bins per Hough accumulator axis and range
-               n_accumulator_rho = int(case.find('N_rho_bins').text)
-               rho_min_xz = float(case.find('rho_min_xz').text)
-               rho_max_xz = float(case.find('rho_max_xz').text)
-               rho_min_yz = float(case.find('rho_min_yz').text)
-               rho_max_yz = float(case.find('rho_max_yz').text)
-               n_accumulator_angle = int(case.find('N_theta_bins').text)
-               theta_min = float(case.find('theta_min').text)
-               theta_max = float(case.find('theta_max').text)
-  
+               
+               # Hough space representation
+               Hspace_format_exists = False
+               for rep in root.findall('./tracking_case/Hough_space_format'):
+                   if rep.get('name') == self.Hough_space_format:
+                      Hspace_format_exists = True
+                      # Number of bins per Hough accumulator axes and range
+                      ''' xH and yH are the abscissa and ordinate of the Hough parameter space
+                          xz and yz represent horizontal and vertical projections 
+                          in the SNDLHC physics coord. system '''
+                      n_accumulator_yH = int(rep.find('N_yH_bins').text)
+                      yH_min_xz = float(rep.find('yH_min_xz').text)
+                      yH_max_xz = float(rep.find('yH_max_xz').text)
+                      yH_min_yz = float(rep.find('yH_min_yz').text)
+                      yH_max_yz = float(rep.find('yH_max_yz').text)
+                      n_accumulator_xH = int(rep.find('N_xH_bins').text)
+                      xH_min_xz = float(rep.find('xH_min_xz').text)
+                      xH_max_xz = float(rep.find('xH_max_xz').text)
+                      xH_min_yz = float(rep.find('xH_min_yz').text)
+                      xH_max_yz = float(rep.find('xH_max_yz').text)                      
+                   else: continue
+               if not Hspace_format_exists:
+                  raise RuntimeException("Unknown Hough space format, check naming in parameter xml file.") 
                # Number of random throws per hit
                self.n_random = int(case.find('n_random').text)
                # MuFilter weight. Muon filter hits are thrown more times than scifi
@@ -207,9 +249,11 @@ class MuonReco(ROOT.FairTask) :
                self.hits_to_fit = case.find('hits_to_fit').text.strip()
                # Which hits to use for triplet condition. By default use only downstream muon system hits.
                self.hits_for_triplet = case.find('hits_for_hough').text.strip()
+               # Z offset used to shift detector hits in Z so to have smaller Hough parameter space
+               z_offset = float(case.find('z_offset').text)
             else: continue
         if not track_case_exists:
-           raise RuntimeException("Unknown tracking case, check parameter xml file.")
+           raise RuntimeException("Unknown tracking case, check naming in parameter xml file.")
                 
         # Get sensor dimensions from geometry
         self.MuFilter_ds_dx = self.mufiDet.GetConfParF("MuFilter/DownstreamBarY") # Assume y dimensions in vertical bars are the same as x dimensions in horizontal bars.
@@ -223,10 +267,25 @@ class MuonReco(ROOT.FairTask) :
         self.Scifi_dx = self.scifiDet.GetConfParF("Scifi/channel_width")
         self.Scifi_dy = self.scifiDet.GetConfParF("Scifi/channel_width")
         self.Scifi_dz = self.scifiDet.GetConfParF("Scifi/epoxymat_z") # From Scifi.cxx This is the variable used to define the z dimension of SiPM channels, so seems like the right dimension to use.
-
+        
+        # get the distance between 1st and last detector planes to be used in the track fit.
+        # Using geometers measurements!, but should be ok for detector sizes along beamline
+        if self.hits_for_triplet == 'sf':
+           det_Zlen = (self.scifiDet.GetConfParF("Scifi/Ypos4") - self.scifiDet.GetConfParF("Scifi/Ypos0"))*unit.cm
+        elif self.hits_for_triplet == 'ds':
+           det_Zlen = (self.mufiDet.GetConfParF("MuFilter/Muon9Dy") - self.mufiDet.GetConfParF("MuFilter/Muon6Dy"))*unit.cm
+        elif self.hits_for_triplet.find('sf') and self.hits_for_triplet.find('ds'):
+           det_Zlen = (self.mufiDet.GetConfParF("MuFilter/Muon9Dy") - self.scifiDet.GetConfParF("Scifi/Ypos0"))*unit.cm
+        #other use cases come here if ever added
+        
         # Initialize Hough transforms for both views:
-        self.h_ZX = hough(n_accumulator_rho, [rho_min_xz, rho_max_xz], n_accumulator_angle, [-max_angle+np.pi/2., max_angle+np.pi/2.])
-        self.h_ZY = hough(n_accumulator_rho, [rho_min_yz, rho_max_yz], n_accumulator_angle, [-max_angle+np.pi/2., max_angle+np.pi/2.])
+        if self.Hough_space_format == 'normal':
+            # rho-theta representation - must exclude theta range for tracks passing < 3 det. planes
+            self.h_ZX = hough(n_accumulator_yH, [yH_min_xz, yH_max_xz], n_accumulator_xH, [-max_angle+np.pi/2., max_angle+np.pi/2.], z_offset, self.Hough_space_format, det_Zlen)
+            self.h_ZY = hough(n_accumulator_yH, [yH_min_yz, yH_max_yz], n_accumulator_xH, [-max_angle+np.pi/2., max_angle+np.pi/2.], z_offset, self.Hough_space_format, det_Zlen)
+        else:
+            self.h_ZX = hough(n_accumulator_yH, [yH_min_xz, yH_max_xz], n_accumulator_xH, [xH_min_xz, xH_max_xz], z_offset, self.Hough_space_format, det_Zlen)
+            self.h_ZY = hough(n_accumulator_yH, [yH_min_yz, yH_max_yz], n_accumulator_xH, [xH_min_xz, xH_max_xz], z_offset, self.Hough_space_format, det_Zlen)
 
         # If only Scifi hits used, no need for accumulator smoothing.
         if self.hits_to_fit == "sf" :
@@ -284,8 +343,11 @@ class MuonReco(ROOT.FairTask) :
     def SetTrackingCase(self, case):
         self.tracking_case = case
 
+    def SetHoughSpaceFormat(self, Hspace_format):
+        self.Hough_space_format = Hspace_format
+        
     def ForceGenfitTrackFormat(self):
-        self.genfitTrack = 1        
+        self.genfitTrack = 1
     
     def Passthrough(self) :
         T = self.ioman.GetInTree()
@@ -305,11 +367,11 @@ class MuonReco(ROOT.FairTask) :
               self.event_to_process = int(ROOT.gRandom.Rndm()*self.scale)
            if not self.current_event == self.event_to_process: 
               if self.current_event == self.scale - 1:
-                 self.current_event = -1                 
+                 self.current_event = -1
               return
            else:
                 if self.current_event == self.scale - 1:
-                   self.current_event = -1                
+                   self.current_event = -1
 
         self.events_run += 1
         hit_collection = {"pos" : [[], [], []], 
@@ -397,7 +459,7 @@ class MuonReco(ROOT.FairTask) :
                    hit_collection["system"].append(0)
                    hit_collection["detectorID"].append(scifiCl.GetFirst())
                    hit_collection["tdc"].append(scifiCl.GetTime())
-                              
+
             else:
                  # Loop through scifi hits
                  for i_hit, scifiHit in enumerate(self.ScifiHits) :
@@ -630,12 +692,12 @@ class MuonReco(ROOT.FairTask) :
             if self.genfitTrack: self.kalman_tracks.Add(theTrack)
             else :            
                 # Load items into snd track class object
-                this_track = ROOT.sndRecoTrack(theTrack)            
-                pointTimes = []              
-                for i_z_sorted in hit_z.argsort() :              
+                this_track = ROOT.sndRecoTrack(theTrack)
+                pointTimes = []
+                for i_z_sorted in hit_z.argsort() :
                     pointTimes.append(hit_tdc[i_z_sorted])
                 this_track.setRawMeasTimes(pointTimes)
-                this_track.setTrackType(self.track_type)                
+                this_track.setTrackType(self.track_type)
                 # Save the track in sndRecoTrack format
                 self.kalman_tracks[i_muon] = this_track
             
@@ -701,6 +763,6 @@ class MuonReco(ROOT.FairTask) :
                             aCluster = ROOT.sndCluster(c,1,hitvector,self.scifiDet,False)
                             clusters.append(aCluster)
                    cprev = c
-       self.clusScifi.Delete()            
+       self.clusScifi.Delete()
        for c in clusters:  
             self.clusScifi.Add(c)
