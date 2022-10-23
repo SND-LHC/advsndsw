@@ -42,7 +42,7 @@ else:
   outFile = ROOT.TMemFile(outFileName,'CREATE')
 
 treename = None
-for test_treename in ["cbmsim", "rawConv"] :
+for test_treename in ["rawConv", "cbmsim"] :
      if hasattr(F, test_treename) :
           treename = test_treename
           break
