@@ -291,7 +291,7 @@ if inactivateMuonProcesses :
  mygMC = ROOT.TGeant4.GetMC()
  mygMC.ProcessGeantCommand("/process/inactivate muPairProd")
  mygMC.ProcessGeantCommand("/process/inactivate muBrems")
- mygMC.ProcessGeantCommand("/process/inactivate muIoni")
+ #mygMC.ProcessGeantCommand("/process/inactivate muIoni")  Temporary fix for DIS Simulations (incoming and outgoing muon hits)
  mygMC.ProcessGeantCommand("/process/inactivate muonNuclear")
  mygMC.ProcessGeantCommand("/particle/select mu+")
  mygMC.ProcessGeantCommand("/particle/process/dump")
