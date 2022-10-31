@@ -87,6 +87,9 @@ class Time_evolution(ROOT.FairTask):
            ut.bookHist(h,'trackDir'+x,'track direction;',300,-0.5,0.25)
            ut.bookHist(h,'trackDirSig'+x,'track direction significance;',100,-20,10)
 
+       ut.bookHist(h,'Tboard','hit time per board',70,0.5,70.5,100,-5.,5.)
+       self.board0 = 40
+
        self.boardsVsTime = {}
                        
        self.Nevent = -1
@@ -164,6 +167,26 @@ class Time_evolution(ROOT.FairTask):
           self.boardsVsTime[nb][Tsec]+=1
        for s in range(4):
           self.QDCtime[s].SetPoint(self.Nevent,self.Nevent,qdc[s])
+
+       boards = {}
+       for aHit in event.Digi_MuFilterHits:
+             for x in aHit.GetAllTimes():
+                bid = aHit.GetBoardID(x.first)
+                if not bid in boards:  boards[bid]=[]
+                boards[bid].append(x.second)
+       for aHit in event.Digi_ScifiHits:
+                bid = aHit.GetBoardID(0)
+                if not bid in boards:  boards[bid]=[]
+                boards[bid].append(aHit.GetTime())
+# times relative to board 40
+       if self.board0 in boards:
+          boards[self.board0].sort()
+          T0 = 0
+          for x in boards[self.board0]: T0+=x
+          T0 = T0/len(boards[self.board0])
+          for b in boards:
+             for x in boards[b]:
+                rc = h['Tboard'].Fill(b,x-T0)
 
    def Plot(self):
        h = self.M.h
@@ -441,7 +464,6 @@ class Time_evolution(ROOT.FairTask):
        h['btime'].Draw('colz')
        self.M.myPrint(h['channels'],"mufilter channel dT",subdir='daq')
 
-
-
-
-
+       ut.bookCanvas(h,'boards','',2400,1800,1,1)
+       h['Tboard'].Draw('lego')
+       self.M.myPrint(h['boards'],"board time diff",subdir='daq')
