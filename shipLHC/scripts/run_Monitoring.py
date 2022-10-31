@@ -77,11 +77,11 @@ if options.runNumber < 0  and not options.geoFile:
 
 if not options.geoFile:
      if options.runNumber < 4575:
-           geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
+           options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
      elif options.runNumber < 4855:
-          geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+          options.geoFile =  "geofile_sndlhc_TI18_V5_14August2022.root"
      else:
-          geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"   # waiting for new alignment
+          options.geoFile =  "geofile_sndlhc_TI18_V6_08October2022.root"
 
 # to be extended for future new alignments.
 
