@@ -112,8 +112,8 @@ pair<int, float> sndRecoTrack::TrackDirection()
 
 pair<float, float> sndRecoTrack::Velocity()
 {
-   /* Extract velocity along z based on timing
-      measurements as slope of linear fit of (dT,dZ)
+   /* Extract particle velocity based on timing
+      measurements as slope of linear fit of (dT,dL)
       Reference T0 is 1st measurement in z */
 
    // Account for signal propagation in detectors
@@ -121,7 +121,7 @@ pair<float, float> sndRecoTrack::Velocity()
 
    MuFilter *MuFilterDet = dynamic_cast<MuFilter*> (gROOT->GetListOfGlobals()->FindObject("MuFilter") );
    Scifi *ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
-   TGraph *gr = new TGraph();
+   TGraph gr;
    double resol{}, delta_T{};
    for (int i = 1;  i < fTrackPoints.size(); i++){
      if (fRawMeasDetID[i] >= 100000) {
@@ -131,22 +131,22 @@ pair<float, float> sndRecoTrack::Velocity()
      delta_T = corr_times[i]-corr_times[0];
      // Use current track point measurement only if time difference is above resolution
      if (fabs(delta_T) < resol*sqrt(2)) continue;
-     gr->AddPoint(delta_T, fTrackPoints[i].Z()-fTrackPoints[0].Z());
+     gr.AddPoint(delta_T, (fTrackPoints[i]-fTrackPoints[0]).Mag());
    }
-   TF1 *line = new TF1("line", "pol1");
+   TF1 line("line", "pol1");
    // A single entry in the graph - no fit
-   if (gr->GetN() < 2)
+   if (gr.GetN() < 2)
      return make_pair(9999.,999.);
    else
-     gr->Fit("line", "SQ");
-     return make_pair(line->GetParameter(1), line->GetParError(1));
+     gr.Fit("line", "SQ");
+     return make_pair(line.GetParameter(1), line.GetParError(1));
 }
 
 pair<float, float> sndRecoTrack::trackDir()
 {
    /* Based on the same function in SndlhcTracking.py!
-      Extract direction along z based on timing
-      measurements as slope of linear fit of (dT,dZ)
+      Extract direction based on timing
+      measurements as slope of linear fit of (dT,dL)
       Featuring time-of-flight correction btw measurements.
       Reference T0 is 1st measurement in z */
 
@@ -155,8 +155,8 @@ pair<float, float> sndRecoTrack::trackDir()
 
    MuFilter *MuFilterDet = dynamic_cast<MuFilter*> (gROOT->GetListOfGlobals()->FindObject("MuFilter") );
    Scifi *ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
-   TGraph *gr = new TGraph();
-   double resol{}, dist_Z{}, delta_T{};
+   TGraph gr;
+   double resol{}, dist{}, delta_T{};
    for (int i = 1;  i < fTrackPoints.size(); i++){
      if (fRawMeasDetID[i] >= 100000) {
          resol = ScifiDet->GetConfParF("Scifi/timeResol");
@@ -165,37 +165,37 @@ pair<float, float> sndRecoTrack::trackDir()
      delta_T = corr_times[i]-corr_times[0];
      // Use current track point measurement only if time difference is above resolution
      if (fabs(delta_T) < resol*sqrt(2)) continue;
-     dist_Z = fTrackPoints[i].Z()-fTrackPoints[0].Z();
-     gr->AddPoint(dist_Z, delta_T - dist_Z/ShipUnit::c_light);
+     dist= (fTrackPoints[i]-fTrackPoints[0]).Mag();
+     gr.AddPoint(dist, delta_T - dist/ShipUnit::c_light);
    }
-   TF1 *line = new TF1("line", "pol1");
+   TF1 line("line", "pol1");
    // A single entry in the graph - no fit
-   if (gr->GetN() < 2)
+   if (gr.GetN() < 2)
      return make_pair(9999.,999.);
    else
-     gr->Fit("line", "SQ");
-     return make_pair(line->GetParameter(1),
-                      line->GetParameter(1)/(line->GetParError(1)+1E-13));
+     gr.Fit("line", "SQ");
+     return make_pair(line.GetParameter(1),
+                      line.GetParameter(1)/(line.GetParError(1)+1E-13));
 }
 
 TVector3 sndRecoTrack::extrapolateToPlaneAtZ(float z)
 {
    /* Set mandatory items for genfit::Extrapolate* methods
       No magnetic field and assuming no (negligible) multiple scattering */
-   ConstField *bfield = new ConstField(0, 0, 0);
+   ConstField bfield = ConstField(0, 0, 0);
    FieldManager *fM = (FieldManager*)fM->getInstance();
-   fM->init(bfield);
-   TGeoMaterialInterface *geoMat = new TGeoMaterialInterface();
+   fM->init(&bfield);
+   TGeoMaterialInterface geoMat = TGeoMaterialInterface();
    MaterialEffects *matEff = (MaterialEffects*)matEff->getInstance();
-   matEff->init(geoMat);
+   matEff->init(&geoMat);
    matEff->setNoEffects();
    
    TVector3 NewPosition = TVector3(0., 0., z);
    /* line below assumes that plane in global coordinates
       is perpendicular to z-axis, which is not true for TI18 geometry. */
    TVector3 parallelToZ = TVector3(0., 0., 1.);
-   RKTrackRep *rep = new RKTrackRep(13);
-   StateOnPlane state = StateOnPlane(rep);
+   RKTrackRep rep = RKTrackRep(13);
+   StateOnPlane state = StateOnPlane(&rep);
    // find index(!) of track point closest in z
    float zMin = 9999;
    int index;
@@ -203,8 +203,8 @@ TVector3 sndRecoTrack::extrapolateToPlaneAtZ(float z)
       if ( fabs(zMin - fTrackPoints[i].Z()) < zMin ) index = i;
    }
    TVector3 Closest_pos = fTrackPoints[index];
-   rep->setPosMom(state, Closest_pos, fTrackMom);
-   rep->extrapolateToPlane(state, NewPosition, parallelToZ);
+   rep.setPosMom(state, Closest_pos, fTrackMom);
+   rep.extrapolateToPlane(state, NewPosition, parallelToZ);
 
    return state.getPos();
 }
