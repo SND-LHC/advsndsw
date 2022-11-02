@@ -41,14 +41,13 @@
      <!--  How many more times muon filter hits are thrown compared to SciFi measurements?  -->
      <mufi_weight> 100 </mufi_weight>
      <!-- How far away from Hough line hits assigned to the muon can be.  -->
-     <tolerance unit="cm"> 0. </tolerance>    
+     <tolerance unit="cm"> 0. </tolerance>
      <!--  Choose parametrization. Options are
            normal (rho, theta) representation - 1, or
            linear (slope, intecept) - 2, or
            linear (intercept@1st, intercept@last syb-system plane) - 3  -->
      <Hough_space_format> 1 </Hough_space_format>
      <!--  Z offset for detector mapping into Hough space  -->
-     <z_offset unit="cm"> 0. </z_offset>
      <!--  Define the chosen Hough parameter space -->
      <!-- FIXME TO BE TUNED for this tracking case! -->
      <Hough_space name = "normal"> 
@@ -58,34 +57,34 @@
            <yH_min_yz unit="cm">  0.  </yH_min_yz>
            <yH_max_yz unit="cm">  80. </yH_max_yz>
            <N_xH_bins> 2500 </N_xH_bins>
-           <xH_min_xz unit="cm"> -1.57 </xH_min_xz>
-           <xH_max_xz unit="cm">  1.57 </xH_max_xz>
-           <xH_min_yz unit="cm"> -1.57 </xH_min_yz>
-           <xH_max_yz unit="cm">  1.57 </xH_max_yz>
+           <xH_min_xz unit="rad"> -1.57 </xH_min_xz>
+           <xH_max_xz unit="rad">  1.57 </xH_max_xz>
+           <xH_min_yz unit="rad"> -1.57 </xH_min_yz>
+           <xH_max_yz unit="rad">  1.57 </xH_max_yz>
      </Hough_space>
      <Hough_space name = "linearSlopeIntercept">
-           <N_yH_bins> 6000 </N_yH_bins>
+           <N_yH_bins> 610 </N_yH_bins>
            <yH_min_xz unit="cm"> -105. </yH_min_xz>
-           <yH_max_xz unit="cm">  45.  </yH_max_xz>
-           <yH_min_yz unit="cm"> -40.  </yH_min_yz>
-           <yH_max_yz unit="cm">  110. </yH_max_yz>
+           <yH_max_xz unit="cm">  17.  </yH_max_xz>
+           <yH_min_yz unit="cm">  0.  </yH_min_yz>
+           <yH_max_yz unit="cm">  122. </yH_max_yz>
            <N_xH_bins> 2000 </N_xH_bins>
-           <xH_min_xz unit="cm"> -1.1 </xH_min_xz>
-           <xH_max_xz unit="cm">  1.1 </xH_max_xz>
-           <xH_min_yz unit="cm"> -1.1 </xH_min_yz>
-           <xH_max_yz unit="cm">  1.1 </xH_max_yz>
+           <xH_min_xz unit="rad"> -1.1 </xH_min_xz>
+           <xH_max_xz unit="rad">  1.1 </xH_max_xz>
+           <xH_min_yz unit="rad"> -1.1 </xH_min_yz>
+           <xH_max_yz unit="rad">  1.1 </xH_max_yz>
      </Hough_space>
-     <Hough_space name = "linearIntercepts"> 
-           <N_yH_bins> 6000 </N_yH_bins>
+     <Hough_space name = "linearIntercepts">
+           <N_yH_bins> 610 </N_yH_bins>
            <yH_min_xz unit="cm"> -105. </yH_min_xz>
-           <yH_max_xz unit="cm">  45.  </yH_max_xz>
-           <yH_min_yz unit="cm"> -40.  </yH_min_yz>
-           <yH_max_yz unit="cm">  110. </yH_max_yz>
-           <N_xH_bins> 6000 </N_xH_bins>
+           <yH_max_xz unit="cm">  17.  </yH_max_xz>
+           <yH_min_yz unit="cm">  0.  </yH_min_yz>
+           <yH_max_yz unit="cm">  122. </yH_max_yz>
+           <N_xH_bins> 610 </N_xH_bins>
            <xH_min_xz unit="cm"> -105. </xH_min_xz>
-           <xH_max_xz unit="cm">  45.  </xH_max_xz>
-           <xH_min_yz unit="cm"> -40.  </xH_min_yz>
-           <xH_max_yz unit="cm">  110. </xH_max_yz>
+           <xH_max_xz unit="cm">  17.  </xH_max_xz>
+           <xH_min_yz unit="cm">  0.  </xH_min_yz>
+           <xH_max_yz unit="cm">  122. </xH_max_yz>
      </Hough_space>     
   </tracking_case>
 
@@ -98,7 +97,7 @@
            Detectors specified here are automatically used in the cathegory above. -->
      <hits_for_hough> sf </hits_for_hough>
      <!--  Use SciFi hits, value 0, or clusters, value 1  -->
-     <use_Scifi_clust> 0 </use_Scifi_clust>     
+     <use_Scifi_clust> 0 </use_Scifi_clust>
      <!--  Minumum number of planes with measurement
            to start pattern recognition.
            Also, the required minimum number of planes intersected by
@@ -115,48 +114,46 @@
      <mufi_weight> 1 </mufi_weight>
      <!-- How far away from Hough line hits assigned to the muon can be.  -->
      <tolerance unit="cm"> 0.1 </tolerance>
-     <!--  Z offset for detector mapping into Hough space  -->
-     <z_offset unit="cm"> 295. </z_offset>
      <!--  Define the chosen Hough parameter space -->
      <!--  Choose parametrization. Options are
            normal (rho, theta) representation - 1, or
            linear (slope, intecept) - 2, or
-           linear (intercept@1st, intercept@last syb-system plane) - 3  -->  
-     <Hough_space_format name = "normal"> 
+           linear (intercept@1st, intercept@last syb-system plane) - 3  -->
+     <Hough_space_format name = "normal">
            <N_yH_bins> 10000 </N_yH_bins>
            <yH_min_xz unit="cm"> -85. </yH_min_xz>
            <yH_max_xz unit="cm">  85. </yH_max_xz>
            <yH_min_yz unit="cm"> -85. </yH_min_yz>
            <yH_max_yz unit="cm">  85. </yH_max_yz>
            <N_xH_bins> 10000 </N_xH_bins>
-           <xH_min_xz unit="cm"> -1.57 </xH_min_xz>
-           <xH_max_xz unit="cm">  1.57 </xH_max_xz>
-           <xH_min_yz unit="cm"> -1.57 </xH_min_yz>
-           <xH_max_yz unit="cm">  1.57 </xH_max_yz>
+           <xH_min_xz unit="rad"> -1.57 </xH_min_xz>
+           <xH_max_xz unit="rad">  1.57 </xH_max_xz>
+           <xH_min_yz unit="rad"> -1.57 </xH_min_yz>
+           <xH_max_yz unit="rad">  1.57 </xH_max_yz>
      </Hough_space_format>
-     <Hough_space_format name = "linearSlopeIntercept"> 
-           <N_yH_bins> 6000 </N_yH_bins>
-           <yH_min_xz unit="cm"> -105. </yH_min_xz>
-           <yH_max_xz unit="cm">  45.  </yH_max_xz>
-           <yH_min_yz unit="cm"> -40.  </yH_min_yz>
-           <yH_max_yz unit="cm">  110. </yH_max_yz>
+     <Hough_space_format name = "linearSlopeIntercept">
+           <N_yH_bins> 5600 </N_yH_bins>
+           <yH_min_xz unit="cm"> -100. </yH_min_xz>
+           <yH_max_xz unit="cm">  40.  </yH_max_xz>
+           <yH_min_yz unit="cm"> -35.  </yH_min_yz>
+           <yH_max_yz unit="cm">  105. </yH_max_yz>
            <N_xH_bins> 2000 </N_xH_bins>
-           <xH_min_xz unit="cm"> -1.1 </xH_min_xz>
-           <xH_max_xz unit="cm">  1.1 </xH_max_xz>
-           <xH_min_yz unit="cm"> -1.1 </xH_min_yz>
-           <xH_max_yz unit="cm">  1.1 </xH_max_yz>
+           <xH_min_xz unit="rad"> -1.1 </xH_min_xz>
+           <xH_max_xz unit="rad">  1.1 </xH_max_xz>
+           <xH_min_yz unit="rad"> -1.1 </xH_min_yz>
+           <xH_max_yz unit="rad">  1.1 </xH_max_yz>
      </Hough_space_format>
-     <Hough_space_format name = "linearIntercepts"> 
-           <N_yH_bins> 6000 </N_yH_bins>
-           <yH_min_xz unit="cm"> -105. </yH_min_xz>
-           <yH_max_xz unit="cm">  45.  </yH_max_xz>
-           <yH_min_yz unit="cm"> -40.  </yH_min_yz>
-           <yH_max_yz unit="cm">  110. </yH_max_yz>
-           <N_xH_bins> 6000 </N_xH_bins>
-           <xH_min_xz unit="cm"> -105. </xH_min_xz>
-           <xH_max_xz unit="cm">  45.  </xH_max_xz>
-           <xH_min_yz unit="cm"> -40.  </xH_min_yz>
-           <xH_max_yz unit="cm">  110. </xH_max_yz>
+     <Hough_space_format name = "linearIntercepts">
+           <N_yH_bins> 5600 </N_yH_bins>
+           <yH_min_xz unit="cm"> -100. </yH_min_xz>
+           <yH_max_xz unit="cm">  40.  </yH_max_xz>
+           <yH_min_yz unit="cm"> -35.  </yH_min_yz>
+           <yH_max_yz unit="cm">  105. </yH_max_yz>
+           <N_xH_bins> 5600 </N_xH_bins>
+           <xH_min_xz unit="cm"> -100. </xH_min_xz>
+           <xH_max_xz unit="cm">  40.  </xH_max_xz>
+           <xH_min_yz unit="cm"> -35.  </xH_min_yz>
+           <xH_max_yz unit="cm">  105. </xH_max_yz>
      </Hough_space_format>
   </tracking_case>
 
@@ -176,12 +173,12 @@
            the Hough line prediction to proceed to track fitting. -->
      <min_planes_hit> 3 </min_planes_hit>
      <!--  Maximum number of fitted tracks per event  -->
-     <max_reco_muons> 5 </max_reco_muons>
+     <max_reco_muons> 1 </max_reco_muons>
      <!--  Maximum absolute value of reconstructed angle 
            (+/- 1 rad is the maximum angle to form a triplet in the SciFi) -->
      <max_angle unit="rad"> 1. </max_angle>
      <!--  Number of random throws per measurement  -->
-     <n_random> 5 </n_random>
+     <n_random> 0 </n_random>
      <!--  How many more times muon filter hits are thrown compared to SciFi measurements?  -->
      <mufi_weight> 1 </mufi_weight>
      <!-- How far away from Hough line hits assigned to the muon can be.  -->
@@ -191,10 +188,7 @@
            linear (slope, intecept) - 2, or
            linear (intercept@1st, intercept@last syb-system plane) - 3  -->
      <Hough_space_format> 1 </Hough_space_format>
-     <!--  Z offset for detector mapping into Hough space  -->
-     <z_offset unit="cm"> 0. </z_offset>
      <!--  Define the chosen Hough parameter space -->
-     <!-- FIXME TO BE TUNED for this tracking case! -->
      <Hough_space name = "normal"> 
            <N_yH_bins> 1152 </N_yH_bins>
            <yH_min_xz unit="cm"> -576. </yH_min_xz>
@@ -202,34 +196,34 @@
            <yH_min_yz unit="cm"> -576. </yH_min_yz>
            <yH_max_yz unit="cm">  576. </yH_max_yz>
            <N_xH_bins> 2500 </N_xH_bins>
-           <xH_min_xz unit="cm"> -1.57 </xH_min_xz>
-           <xH_max_xz unit="cm">  1.57 </xH_max_xz>
-           <xH_min_yz unit="cm"> -1.57 </xH_min_yz>
-           <xH_max_yz unit="cm">  1.57 </xH_max_yz>
+           <xH_min_xz unit="rad"> -1.57 </xH_min_xz>
+           <xH_max_xz unit="rad">  1.57 </xH_max_xz>
+           <xH_min_yz unit="rad"> -1.57 </xH_min_yz>
+           <xH_max_yz unit="rad">  1.57 </xH_max_yz>
      </Hough_space>
-     <Hough_space name = "linearSlopeIntercept"> 
-           <N_yH_bins> 6000 </N_yH_bins>
+     <Hough_space name = "linearSlopeIntercept">
+           <N_yH_bins> 610 </N_yH_bins>
            <yH_min_xz unit="cm"> -105. </yH_min_xz>
-           <yH_max_xz unit="cm">  45.  </yH_max_xz>
-           <yH_min_yz unit="cm"> -40.  </yH_min_yz>
-           <yH_max_yz unit="cm">  110. </yH_max_yz>
+           <yH_max_xz unit="cm">  17.  </yH_max_xz>
+           <yH_min_yz unit="cm">  0.  </yH_min_yz>
+           <yH_max_yz unit="cm">  122. </yH_max_yz>
            <N_xH_bins> 2000 </N_xH_bins>
-           <xH_min_xz unit="cm"> -1.1 </xH_min_xz>
-           <xH_max_xz unit="cm">  1.1 </xH_max_xz>
-           <xH_min_yz unit="cm"> -1.1 </xH_min_yz>
-           <xH_max_yz unit="cm">  1.1 </xH_max_yz>
+           <xH_min_xz unit="rad"> -1.1 </xH_min_xz>
+           <xH_max_xz unit="rad">  1.1 </xH_max_xz>
+           <xH_min_yz unit="rad"> -1.1 </xH_min_yz>
+           <xH_max_yz unit="rad">  1.1 </xH_max_yz>
      </Hough_space>
-     <Hough_space name = "linearIntercepts"> 
-           <N_yH_bins> 6000 </N_yH_bins>
+     <Hough_space name = "linearIntercepts">
+           <N_yH_bins> 610 </N_yH_bins>
            <yH_min_xz unit="cm"> -105. </yH_min_xz>
-           <yH_max_xz unit="cm">  45.  </yH_max_xz>
-           <yH_min_yz unit="cm"> -40.  </yH_min_yz>
-           <yH_max_yz unit="cm">  110. </yH_max_yz>
-           <N_xH_bins> 6000 </N_xH_bins>
+           <yH_max_xz unit="cm">  17.  </yH_max_xz>
+           <yH_min_yz unit="cm">  0.  </yH_min_yz>
+           <yH_max_yz unit="cm">  122. </yH_max_yz>
+           <N_xH_bins> 610 </N_xH_bins>
            <xH_min_xz unit="cm"> -105. </xH_min_xz>
-           <xH_max_xz unit="cm">  45.  </xH_max_xz>
-           <xH_min_yz unit="cm"> -40.  </xH_min_yz>
-           <xH_max_yz unit="cm">  110. </xH_max_yz>
+           <xH_max_xz unit="cm">  17.  </xH_max_xz>
+           <xH_min_yz unit="cm">  0.  </xH_min_yz>
+           <xH_max_yz unit="cm">  122. </xH_max_yz>
      </Hough_space>
   </tracking_case>
 

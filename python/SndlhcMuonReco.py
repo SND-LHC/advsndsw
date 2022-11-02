@@ -63,7 +63,7 @@ class hough() :
             elif self.HoughSpace_format == 'linearSlopeIntercept':
                  hit_yH = hit[1] - shifted_hitZ*self.xH_bins
             elif self.HoughSpace_format== 'linearIntercepts':
-                 hit_yH = (self.det_Zlen*hit[1] - shifted_hitZ*self.xH_bins)/(self.det_Zlen-shifted_hitZ)
+                 hit_yH = (self.det_Zlen*hit[1] - shifted_hitZ*self.xH_bins)/(self.det_Zlen - shifted_hitZ)
             out_of_range = np.logical_and(hit_yH > self.yH_range[0], hit_yH < self.yH_range[1]) 
             hit_yH_i = np.floor((hit_yH[out_of_range] - self.yH_range[0])/(self.yH_range[1] - self.yH_range[0])*self.n_yH).astype(np.int)
 
@@ -211,7 +211,7 @@ class MuonReco(ROOT.FairTask) :
                max_angle = float(case.find('max_angle').text)
                
                # Hough space representation
-               Hspace_format_exists = False
+               Hspace_format_exists = False 
                for rep in root.findall('./tracking_case/Hough_space_format'):
                    if rep.get('name') == self.Hough_space_format:
                       Hspace_format_exists = True
@@ -228,7 +228,7 @@ class MuonReco(ROOT.FairTask) :
                       xH_min_xz = float(rep.find('xH_min_xz').text)
                       xH_max_xz = float(rep.find('xH_max_xz').text)
                       xH_min_yz = float(rep.find('xH_min_yz').text)
-                      xH_max_yz = float(rep.find('xH_max_yz').text)                      
+                      xH_max_yz = float(rep.find('xH_max_yz').text)
                    else: continue
                if not Hspace_format_exists:
                   raise RuntimeException("Unknown Hough space format, check naming in parameter xml file.") 
@@ -249,8 +249,6 @@ class MuonReco(ROOT.FairTask) :
                self.hits_to_fit = case.find('hits_to_fit').text.strip()
                # Which hits to use for triplet condition. By default use only downstream muon system hits.
                self.hits_for_triplet = case.find('hits_for_hough').text.strip()
-               # Z offset used to shift detector hits in Z so to have smaller Hough parameter space
-               z_offset = float(case.find('z_offset').text)
             else: continue
         if not track_case_exists:
            raise RuntimeException("Unknown tracking case, check naming in parameter xml file.")
@@ -269,14 +267,21 @@ class MuonReco(ROOT.FairTask) :
         self.Scifi_dz = self.scifiDet.GetConfParF("Scifi/epoxymat_z") # From Scifi.cxx This is the variable used to define the z dimension of SiPM channels, so seems like the right dimension to use.
         
         # get the distance between 1st and last detector planes to be used in the track fit.
-        # Using geometers measurements!, but should be ok for detector sizes along beamline
-        if self.hits_for_triplet == 'sf':
-           det_Zlen = (self.scifiDet.GetConfParF("Scifi/Ypos4") - self.scifiDet.GetConfParF("Scifi/Ypos0"))*unit.cm
+        # a z_offset is used to shift detector hits so to have smaller Hough parameter space
+        # Using geometers measurements! For safety, add a 5-cm-buffer in detector lengths and a 2.5-cm one to z_offset.
+        # This is done to account for possible det. position shifts/mismatches going from geom. measurements and sndsw physics CS.
+        if self.hits_for_triplet.find('sf') >= 0 and self.hits_for_triplet.find('ds') >= 0:
+           det_Zlen = (self.mufiDet.GetConfParF("MuFilter/Muon9Dy") - self.scifiDet.GetConfParF("Scifi/Ypos0"))*unit.cm + 5.0*unit.cm
+           z_offset = self.scifiDet.GetConfParF("Scifi/Ypos0")*unit.cm - 2.5*unit.cm        
+        elif self.hits_for_triplet == 'sf':
+           det_Zlen = (self.scifiDet.GetConfParF("Scifi/Ypos4") - self.scifiDet.GetConfParF("Scifi/Ypos0"))*unit.cm + 5.0*unit.cm
+           z_offset = self.scifiDet.GetConfParF("Scifi/Ypos0")*unit.cm - 2.5*unit.cm
         elif self.hits_for_triplet == 'ds':
-           det_Zlen = (self.mufiDet.GetConfParF("MuFilter/Muon9Dy") - self.mufiDet.GetConfParF("MuFilter/Muon6Dy"))*unit.cm
-        elif self.hits_for_triplet.find('sf') and self.hits_for_triplet.find('ds'):
-           det_Zlen = (self.mufiDet.GetConfParF("MuFilter/Muon9Dy") - self.scifiDet.GetConfParF("Scifi/Ypos0"))*unit.cm
-        #other use cases come here if ever added
+           det_Zlen = (self.mufiDet.GetConfParF("MuFilter/Muon9Dy") - self.mufiDet.GetConfParF("MuFilter/Muon6Dy"))*unit.cm + 5.0*unit.cm
+           z_offset = self.mufiDet.GetConfParF("MuFilter/Muon6Dy")*unit.cm - 2.5*unit.cm
+        # this use case is not tested with an z offset yet
+        if self.tracking_case.find('nu_') >= 0: z_offset = 0*unit.cm 
+        #other use cases come here if ever added        
         
         # Initialize Hough transforms for both views:
         if self.Hough_space_format == 'normal':
@@ -285,7 +290,7 @@ class MuonReco(ROOT.FairTask) :
             self.h_ZY = hough(n_accumulator_yH, [yH_min_yz, yH_max_yz], n_accumulator_xH, [-max_angle+np.pi/2., max_angle+np.pi/2.], z_offset, self.Hough_space_format, det_Zlen)
         else:
             self.h_ZX = hough(n_accumulator_yH, [yH_min_xz, yH_max_xz], n_accumulator_xH, [xH_min_xz, xH_max_xz], z_offset, self.Hough_space_format, det_Zlen)
-            self.h_ZY = hough(n_accumulator_yH, [yH_min_yz, yH_max_yz], n_accumulator_xH, [xH_min_xz, xH_max_xz], z_offset, self.Hough_space_format, det_Zlen)
+            self.h_ZY = hough(n_accumulator_yH, [yH_min_yz, yH_max_yz], n_accumulator_xH, [xH_min_yz, xH_max_yz], z_offset, self.Hough_space_format, det_Zlen)
 
         # If only Scifi hits used, no need for accumulator smoothing.
         if self.hits_to_fit == "sf" :
