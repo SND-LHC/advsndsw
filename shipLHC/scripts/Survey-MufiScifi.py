@@ -8,6 +8,24 @@ import pickle
 from array import array
 # for fixing a root bug,  will be solved in the forthcoming 6.26 release.
 ROOT.gInterpreter.Declare("""
+#include <KalmanFitterInfo.h>
+#include <Track.h>
+#include <MeasuredStateOnPlane.h>
+#include <stddef.h>     
+
+const genfit::MeasuredStateOnPlane& getFittedState(genfit::Track* theTrack, int nM){
+      try{
+        return theTrack->getFittedState(nM);
+      }
+      catch(genfit::Exception& e){
+        std::cerr<<"Exception,e.what() "<<std::endl;
+        const genfit::MeasuredStateOnPlane* state(NULL);
+        return *state;
+      }
+}
+""")
+
+ROOT.gInterpreter.Declare("""
 #include "MuFilterHit.h"
 #include "AbsMeasurement.h"
 #include "TrackPoint.h"
@@ -1151,8 +1169,11 @@ def USDSEnergy(Nev=options.nEvents,nproc=15):
        ut.bookHist(h,'Tenergy23'+b,'tot energy in DS vs US with scifi track; US tot.QDC;DS tot.QDC',300,0.,15000,250,0.,20000.)
        ut.bookHist(h,'Denergy23'+b,'tot energy in DS vs US with DS track; US tot.QDC;DS tot.QDC',300,0.,15000,250,0.,20000.)
 #
-    p = open("FSdict.pkl",'rb')
-    FSdict = pickle.load(p)
+    fg  = ROOT.TFile.Open(options.path+'FSdict.root')
+    pkl = Unpickler(fg)
+    FSdict = pkl.load('FSdict')
+    fg.Close()
+
     if options.runNumber in FSdict: fsdict = FSdict[options.runNumber]
     else:  fsdict = False
 
@@ -1248,7 +1269,7 @@ def USDSEnergy(Nev=options.nEvents,nproc=15):
     for i in range(nproc):
       ut.readHists(h,'tmp_'+str(i))
     print('i am finished')
-    ut.writeHists(h,"USDSEnergy-"+str(options.runNumber+".root"))
+    ut.writeHists(h,"USDSEnergy-"+str(options.runNumber)+".root")
 # plot
     for b in ['','lb1','lip1','lb2']:
        ut.bookCanvas(h,'tc1'+b,'USDS Energy',2400,1800,3,2)
@@ -3237,6 +3258,110 @@ def scifi_beamSpot():
             w+=1
         rc = h['bs'].Fill(xMean/w,yMean/w)
 
+def TwoTrackFinder(nstart=0,Nev=-1,sMin=10,dClMin=7,minDistance=1.5,sepDistance=0.5,debug=False):
+    if Nev < 0 :
+          nstop = eventTree.GetEntries() - nstart
+    for ecounter in range(nstart,nstop):
+        event = eventTree
+        rc = eventTree.GetEvent(ecounter)
+        E = eventTree.EventHeader
+        if ecounter%1000000==0: print('still here',ecounter)
+        trackTask.clusScifi.Clear()
+        trackTask.scifiCluster()
+        clusters = trackTask.clusScifi
+        sortedClusters={}
+        for aCl in clusters:
+           so = aCl.GetFirst()//100000
+           if not so in sortedClusters: sortedClusters[so]=[]
+           sortedClusters[so].append(aCl)
+        if len(sortedClusters)<sMin: continue
+        M=0
+        for x in sortedClusters:
+           if len(sortedClusters[x]) == 2:  M+=1
+        if M < dClMin: continue
+        seeds = {}
+        S = [-1,-1]
+        for o in range(0,2):
+# same procedure for both projections
+# take seeds from from first station with 2 clusters
+             for s in range(1,6):
+                 x = 10*s+o
+                 if x in sortedClusters:
+                    if len(sortedClusters[x])==2:
+                       sortedClusters[x][0].GetPosition(A,B)
+                       if o%2==1: pos0 = (A[0]+B[0])/2
+                       else: pos0 = (A[1]+B[1])/2
+                       sortedClusters[x][1].GetPosition(A,B)
+                       if o%2==1: pos1 = (A[0]+B[0])/2
+                       else: pos1 = (A[1]+B[1])/2
+                       if abs(pos0-pos1) > minDistance:
+                         S[o] = s
+                         break
+             if S[o]<0: break  # no seed found
+             seeds[o]={}
+             k = -1
+             for c in sortedClusters[S[o]*10+o]:
+                 k += 1
+                 c.GetPosition(A,B)
+                 if o%2==1: pos = (A[0]+B[0])/2
+                 else: pos = (A[1]+B[1])/2
+                 seeds[o][k] = [[c,pos]]
+             if k!=1: continue
+             if abs(seeds[o][0][0][1] - seeds[o][1][0][1]) < sepDistance: continue
+             for s in range(1,6):
+               if s==S[o]: continue
+               for c in sortedClusters[s*10+o]:
+                   c.GetPosition(A,B)
+                   if o%2==1: pos = (A[0]+B[0])/2
+                   else: pos = (A[1]+B[1])/2
+                   for k in range(2):
+                        if  abs(seeds[o][k][0][1] - pos) < sepDistance:
+                           seeds[o][k].append([c,pos])
+        if S[0]<0 or S[1]<0:
+            passed = False
+        else:
+           passed = True
+           if debug:
+               print('-----',E.GetEventNumber(),'------')
+               clusPos = {}
+               for x in sortedClusters:
+                   clusPos[x] = []
+                   for c in sortedClusters[x]:
+                       c.GetPosition(A,B)
+                       if x%2==1: pos = (A[0]+B[0])/2
+                       else: pos = (A[1]+B[1])/2
+                       clusPos[x].append(pos)
+                   for x in sortedClusters:     print(x,clusPos[x])
+
+           for o in range(0,2):
+              for k in range(2):
+                  if len(seeds[o][k])<3:
+                      passed = False
+                      break
+        if passed:
+           tracks = []
+           for k in range(2):
+             # arbitrarly combine X and Y of combination 0
+               n = 0
+               hitlist = {}
+               for o in range(0,2):
+                   for X in seeds[o][k]:
+                      hitlist[n] = X[0]
+                      n+=1
+               theTrack = trackTask.fitTrack(hitlist)
+               if not hasattr(theTrack,"getFittedState"):
+                    validTrack = False
+                    continue
+               fitStatus = theTrack.getFitStatus()
+               if not fitStatus.isFitConverged():
+                    theTrack.Delete()
+               else: 
+                    tracks.append(theTrack)
+
+           if len(tracks)==2:
+               print('another 2track event',ecounter,E.GetEventNumber(),E.GetRunId(),E.GetFillNumber())
+           for t in tracks: t.Delete()
+
 def Scifi_residuals(Nev=options.nEvents,NbinsRes=100,xmin=-2000.,alignPar=False,unbiased = True,minEnergy=False,remakeClusters=options.remakeScifiClusters,nproc=1):
     projs = {1:'V',0:'H'}
     for s in range(1,6):
@@ -3693,7 +3818,7 @@ def minimizeAlignScifi(first=True,level=1,migrad=False):
              name = "Scifi/LocM"
              for m in range(3):
                  gMinuit.mnparm(p, name+str(s*100+m*10+o), vstart[p], err, 0.,0.,ierflg)
-                 variables +=name.replace('/','')+":"
+                 variables +=name.replace('/','')+str(k)+":"
                  p+=1
     for s in range(1,6):    
         for r in ["RotPhiS","RotPsiS", "RotThetaS"]:   

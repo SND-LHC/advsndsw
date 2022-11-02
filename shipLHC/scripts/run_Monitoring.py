@@ -1,6 +1,7 @@
 
 #!/usr/bin/env python
 import ROOT,os,sys,subprocess,atexit,time
+import rootUtils as ut
 from XRootD import client
 from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
 import Monitor
@@ -54,6 +55,8 @@ parser.add_argument("--nTracks", dest="nTracks",default=0,type=int)
 parser.add_argument("--save", dest="save", action='store_true',default=False)
 parser.add_argument("--interactive", dest="interactive", action='store_true',default=False)
 
+parser.add_argument("--parallel", dest="parallel",default=1,type=int)
+
 parser.add_argument("--postScale", dest="postScale",help="post scale events, 1..10..100", default=-1,type=int)
 
 options = parser.parse_args()
@@ -68,11 +71,18 @@ if (options.auto and not options.interactive) or options.batch: ROOT.gROOT.SetBa
 if options.runNumber < 0  and not options.geoFile: 
      print('No run number given and no geoFile. Do not know what to do. Exit.')
      exit()
+#RUN0: 7 Apr 2022 - 26 Jul 2022   (Run 4575 started -  test run after replacing emulsions -Ettore)
+#RUN1: 26 Jul 2022 - 13 Sept 2022 (Run 4855 September 14)
+#RUN2: 13 Sept 2022 -
+
 if not options.geoFile:
-     if options.runNumber < 4620:
-           geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
-     if options.runNumber > 4619:
-          geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+     if options.runNumber < 4575:
+           options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
+     elif options.runNumber < 4855:
+          options.geoFile =  "geofile_sndlhc_TI18_V5_14August2022.root"
+     else:
+          options.geoFile =  "geofile_sndlhc_TI18_V6_08October2022.root"
+
 # to be extended for future new alignments.
 
 def currentRun():
@@ -161,25 +171,79 @@ for m in monitorTasks:
     monitorTasks[m].Init(options,M)
 
 if not options.auto:   # default online/offline mode
-   for n in range(options.nStart,options.nStart+options.nEvents):
+ process = []
+ pid = 0
+ for i in range(options.parallel):
+   if options.parallel==1:
+     nstart,nstop = options.nStart,options.nStart+options.nEvents
+   else:
+     try:
+       pid = os.fork()
+     except OSError:
+       print("Could not create a child process")
+     print('pid',pid,i)
+     if pid!=0:
+          process.append(pid)
+     else:
+         dN = options.nEvents//options.parallel
+         nstart = i*dN
+         nstop =  nstart + dN
+         if i==(options.parallel-1): nstop = options.nEvents
+   if pid == 0:
+    print('start ',i,nstart,nstop)
+    Tcounter = {'Monitor':0}
+    for m in monitorTasks:
+       Tcounter[m] = 0
+
+    for n in range(nstart,nstop):
      if options.postScale>1:
         if ROOT.gRandom.Rndm()>1./options.postScale: continue
+     tic = time.perf_counter_ns()
      event = M.GetEvent(n)
+     toc = time.perf_counter_ns()
+     Tcounter['Monitor']+=toc-tic
+     
      if not options.online:
         if n%options.heartBeat == 0:
-            print("--> run/event nr: %i %i %5.2F%%"%(M.eventTree.EventHeader.GetRunId(),n,n/options.nEvents*100))
+            print("--> run/event nr: %i %i %5.2F%%"%(M.eventTree.EventHeader.GetRunId(),n,(n-nstart)/(nstop-nstart)*100))
 # assume for the moment file does not contain fitted tracks
      for m in monitorTasks:
+        tic = time.perf_counter_ns()
         monitorTasks[m].ExecuteEvent(M.eventTree)
-
-   if options.nEvents>0:
-       for m in monitorTasks:
+        toc = time.perf_counter_ns()
+        Tcounter[m]+=toc-tic
+    for m in monitorTasks:
           monitorTasks[m].Plot()
-   M.publishRootFile()
-   if options.sudo:
-       print(options.runNumber,options.startTime)
-       options.startTime += " #events="+str(options.nEvents)
-       M.updateHtml()
+    txt = ''
+    for x in Tcounter: txt+=x+':%5.1Fs '%(Tcounter[x]/1E9)
+    print('timing performance:',txt)
+    if options.parallel>1: # save partitions
+           ut.writeHists(M.h,'tmp'+str(options.runNumber)+'p'+str(i))
+           exit(0)
+ if options.parallel>1: 
+     while process:
+          pid,exit_code = os.wait()
+          if pid == 0: time.sleep(100)
+          else: 
+                print('child process has finished',len(process)-1,pid,exit_code)
+                process.remove(pid)
+     for i in range(options.parallel):
+        tmp = 'tmp'+str(options.runNumber)+'p'+str(i)
+        if tmp in os.listdir('.'):         ut.readHists(M.h,tmp)
+        else: print('file missing ',tmp)
+     M.presenterFile.Close()
+     M.presenterFile = ROOT.TFile('run'+M.runNr+'.root','update')
+
+     for m in monitorTasks:
+          monitorTasks[m].Plot()
+     print('i am finished')
+     M.presenterFile.daq.ls()
+
+ M.publishRootFile()
+ if options.sudo:
+     print(options.runNumber,options.startTime)
+     options.startTime += " #events="+str(options.nEvents)
+     M.updateHtml()
 else: 
    """ auto mode
        check for open data file on the online machine

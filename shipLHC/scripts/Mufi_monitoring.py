@@ -59,9 +59,13 @@ class Mufi_hitMaps(ROOT.FairTask):
 
                   ut.bookHist(h,detector+'bs','beam spot; x[cm]; y[cm]',100,-100.,10.,100,0.,80.)
                   ut.bookHist(h,detector+'bsDS','beam spot, #bar X, #bar Y',60,-0.5,59.5,60,-0.5,59.5)
-                  ut.bookHist(h,detector+'slopes','muon DS track slopes; slope X [rad]; slope Y [rad]',150,-1.5,1.5,150,-1.5,1.5)
-                  ut.bookHist(h,detector+'trackPos','muon DS track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
-                  ut.bookHist(h,detector+'trackPosBeam','beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+# type of crossing, check for b1only,b2nob1,nobeam
+                  self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
+                  for x in self.xing:
+                      ut.bookHist(h,detector+'slopes'+x,'muon DS track slopes; slope X [rad]; slope Y [rad]',150,-1.5,1.5,150,-1.5,1.5)
+                      ut.bookHist(h,detector+'trackPos'+x,'muon DS track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+                      ut.bookHist(h,detector+'trackPosBeam'+x,'beam track pos slopes<0.1rad; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
+
                   for bar in range(monitor.systemAndBars[s]):
                      ut.bookHist(h,detector+'chanmult_'+str(s*1000+100*l+bar),'channel mult / bar '+sdict[s]+str(l)+"-"+str(bar)+'; #channels',20,-0.5,19.5)
 #
@@ -78,6 +82,7 @@ class Mufi_hitMaps(ROOT.FairTask):
        systemAndPlanes =self.M.systemAndPlanes
        sdict = self.M.sdict
        h = self.M.h
+       W = self.M.Weight
        mult = {}
        planes = {}
        for i in self.listOfHits:  self.listOfHits[i].clear()
@@ -88,17 +93,23 @@ class Mufi_hitMaps(ROOT.FairTask):
        withDSTrack = False
        for aTrack in self.M.Reco_MuonTracks:
            if aTrack.GetUniqueID()==3: withDSTrack = True
+
        for aHit in event.Digi_MuFilterHits:
-           if not aHit.isValid(): continue
            Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
            s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
+           nSiPMs = aHit.GetnSiPMs()
+           nSides  = aHit.GetnSides()
+           for c in aHit.GetAllSignals(False,False):
+                if aHit.isMasked(c.first):
+                     channel = bar*nSiPMs*nSides + c.first
+                     rc = h[detector+'Xhit_'+str(s)+str(l)].Fill( channel,W)
+
+           if not aHit.isValid(): continue
            mult[s*10+l]+=1
            key = s*100+l
            if not key in planes: planes[key] = {}
            sumSignal = self.M.map2Dict(aHit,'SumOfSignals')
            planes[key][bar] = [sumSignal['SumL'],sumSignal['SumR']]
-           nSiPMs = aHit.GetnSiPMs()
-           nSides  = aHit.GetnSides()
 # check left/right
            allChannels = self.M.map2Dict(aHit,'GetAllSignals')
            for c in allChannels:
@@ -111,27 +122,27 @@ class Mufi_hitMaps(ROOT.FairTask):
               else:
                     Nright+=1
                     Sright+=allChannels[c]
-           rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(Nleft)
-           rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(10+Nright)
+           rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(Nleft,W)
+           rc = h[detector+'chanmult_'+str(s*1000+100*l+bar)].Fill(10+Nright,W)
            if not aHit.isVertical():  # vertical DS plane is read out only on one side
-              rc = h[detector+'leftvsright_'+str(s)].Fill(Nleft,Nright)
-              rc = h[detector+'leftvsright_signal_'+str(s)].Fill(Sleft,Sright)
+              rc = h[detector+'leftvsright_'+str(s)].Fill(Nleft,Nright,W)
+              rc = h[detector+'leftvsright_signal_'+str(s)].Fill(Sleft,Sright,W)
 #
            for c in allChannels:
                channel = bar*nSiPMs*nSides + c
-               rc = h[detector+'hit_'+str(s)+str(l)].Fill( int(channel))
-               rc = h[detector+'bar_'+str(s)+str(l)].Fill(bar)
+               rc = h[detector+'hit_'+str(s)+str(l)].Fill( int(channel),W)
+               rc = h[detector+'bar_'+str(s)+str(l)].Fill(bar,W)
                if s==2 and self.M.smallSiPMchannel(c) : 
-                     rc  = h[detector+'sigS_'+str(s)+str(l)].Fill(allChannels[c])
-                     if withDSTrack: rc  = h[detector+'TsigS_'+str(s)+str(l)].Fill(allChannels[c])
+                     rc  = h[detector+'sigS_'+str(s)+str(l)].Fill(allChannels[c],W)
+                     if withDSTrack: rc  = h[detector+'TsigS_'+str(s)+str(l)].Fill(allChannels[c],W)
                elif c<nSiPMs: 
-                     rc  = h[detector+'sigL_'+str(s)+str(l)].Fill(allChannels[c])
-                     if withDSTrack: rc  = h[detector+'TsigL_'+str(s)+str(l)].Fill(allChannels[c])
+                     rc  = h[detector+'sigL_'+str(s)+str(l)].Fill(allChannels[c],W)
+                     if withDSTrack: rc  = h[detector+'TsigL_'+str(s)+str(l)].Fill(allChannels[c],W)
                else             :             
-                     rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c])
-                     if withDSTrack: rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c])
-               rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c])
-               if withDSTrack:  rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c])
+                     rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c],W)
+                     if withDSTrack: rc  = h[detector+'sigR_'+str(s)+str(l)].Fill(allChannels[c],W)
+               rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c],W)
+               if withDSTrack:  rc  = h[detector+'sig_'+str(s)+str(l)].Fill(allChannels[c],W)
            allChannels.clear()
 #
        # noise event with many hits in one plane
@@ -139,21 +150,17 @@ class Mufi_hitMaps(ROOT.FairTask):
        for x in mult:
            if mult[x]>3: onePlane.append(x)
        if len(onePlane)==1:
-           rc = h[detector+'Noise'].Fill(onePlane[0])
+           rc = h[detector+'Noise'].Fill(onePlane[0],W)
 
-       for aHit in event.Digi_MuFilterHits:
-           if aHit.isValid(): continue
-           for c in aHit.GetAllSignals(False):
-                rc = h[detector+'Xhit_'+str(s)+str(l)].Fill( int(c.first()))
 #
        for s in self.listOfHits:
            nhits = len(self.listOfHits[s])
            qcdsum = 0
            for i in range(nhits):
-               rc = h[sdict[s]+'Mult'].Fill(nhits, self.listOfHits[s][i])
+               rc = h[sdict[s]+'Mult'].Fill(nhits, self.listOfHits[s][i],W)
        for s in systemAndPlanes:
           for l in range(systemAndPlanes[s]):   
-             rc = h[detector+'hitmult_'+str(s*10+l)].Fill(mult[s*10+l])
+             rc = h[detector+'hitmult_'+str(s*10+l)].Fill(mult[s*10+l],W)
 # mufi residuals with scifi tracks
        for aTrack in self.M.Reco_MuonTracks:
            if not aTrack.GetUniqueID()==1: continue
@@ -178,27 +185,36 @@ class Mufi_hitMaps(ROOT.FairTask):
               pq = A-pos
               uCrossv= (B-A).Cross(mom)
               doca = pq.Dot(uCrossv)/uCrossv.Mag()
-              rc = h[detector+'resX_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,xEx)
-              rc = h[detector+'resY_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,yEx)
+              rc = h[detector+'resX_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,xEx,W)
+              rc = h[detector+'resY_'+sdict[s]+str(s*10+l)].Fill(doca/u.cm,yEx,W)
 
    def beamSpot(self,event):
       if not self.trackTask: return
       h = self.M.h
+      W = self.M.Weight
       Xbar = -10
       Ybar = -10
       for aTrack in self.M.Reco_MuonTracks:
          if not aTrack.GetUniqueID()==3: continue
          state = aTrack.getFittedState()
          pos    = state.getPos()
-         rc = h[detector+'bs'].Fill(pos.x(),pos.y())
+         rc = h[detector+'bs'].Fill(pos.x(),pos.y(),W)
          mom = state.getMom()
          slopeX= mom.X()/mom.Z()
          slopeY= mom.Y()/mom.Z()
-         h[detector+'slopes'].Fill(slopeX,slopeY)
-         if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h[detector+'bsDS'].Fill(Xbar,Ybar)
          pos = state.getPos()
-         rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y())
-         if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y())
+
+         for x in self.xing:
+             if x=='':  
+                 rc = h[detector+'slopes'].Fill(slopeX,slopeY,W)
+                 rc = h[detector+'trackPos'].Fill(pos.X(),pos.Y(),W)
+                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'].Fill(pos.X(),pos.Y(),W)
+             elif self.M.xing[x]:
+                 rc = h[detector+'slopes'+x].Fill(slopeX,slopeY,W)
+                 rc = h[detector+'trackPos'+x].Fill(pos.X(),pos.Y(),W)
+                 if abs(slopeX)<0.1 and abs(slopeY)<0.1:  rc = h[detector+'trackPosBeam'+x].Fill(pos.X(),pos.Y(),W)
+
+         if not Ybar<0 and not Xbar<0 and abs(slopeY)<0.01: rc = h[detector+'bsDS'].Fill(Xbar,Ybar,W)
 
    def Plot(self):
        h = self.M.h
@@ -381,20 +397,23 @@ class Mufi_hitMaps(ROOT.FairTask):
                   self.M.myPrint(h[canvas+sdict[s]],canvas+sdict[s],subdir='mufilter')
 
 # tracking
-       ut.bookCanvas(h,"muonDSTracks",' ',1200,1200,3,1)
-       tc = h["muonDSTracks"].cd(1)
-       h[detector+'slopes'].Draw('colz')
-       tc = h["muonDSTracks"].cd(2)
-       h[detector+'slopes'].ProjectionX("slopeX").Draw()
-       tc = h["muonDSTracks"].cd(3)
-       h[detector+'slopes'].ProjectionY("slopeY").Draw()
-       self.M.myPrint(h["muonDSTracks"],"muonDSTrackdirection",subdir='mufilter')
-       ut.bookCanvas(h,detector+'TtrackPos',"track position first state",1200,800,1,2)
-       h[detector+'TtrackPos'].cd(1)
-       rc = h[detector+'trackPosBeam'].Draw('colz')
-       h[detector+'TtrackPos'].cd(2)
-       rc = h[detector+'trackPos'].Draw('colz')
-       self.M.myPrint(self.M.h[detector+'TtrackPos'],detector+'trackPos',subdir='mufilter')
+       for x in self.xing:
+           if not self.M.fsdict and x!='': continue
+           ut.bookCanvas(h,"muonDSTracks"+x,' ',1200,1200,3,1)
+           tc = h["muonDSTracks"+x].cd(1)
+           h[detector+'slopes'+x].Draw('colz')
+           tc = h["muonDSTracks"+x].cd(2)
+           h[detector+'slopes'+x].ProjectionX("slopeX"+x).Draw()
+           tc = h["muonDSTracks"+x].cd(3)
+           h[detector+'slopes'+x].ProjectionY("slopeY"+x).Draw()
+           self.M.myPrint(h["muonDSTracks"+x],"muonDSTrackdirection"+x,subdir='mufilter')
+
+           ut.bookCanvas(h,detector+'TtrackPos'+x,"track position first state",1200,800,1,2)
+           h[detector+'TtrackPos'+x].cd(1)
+           rc = h[detector+'trackPosBeam'+x].Draw('colz')
+           h[detector+'TtrackPos'+x].cd(2)
+           rc = h[detector+'trackPos'+x].Draw('colz')
+           self.M.myPrint(self.M.h[detector+'TtrackPos'+x],detector+'trackPos'+x,subdir='mufilter')
 # residuals
        ut.bookCanvas(h,detector+"residualsVsX",'residualsVsX ',1200,1200,2,7)
        ut.bookCanvas(h,detector+"residualsVsY",'residualsVsY ',1200,1200,2,7)
@@ -455,6 +474,7 @@ class Mufi_largeVSsmall(ROOT.FairTask):
                               ut.bookHist(h,sdict[S]+'cor'+tag+'_'+side+str(l)+str(bar),'QDC channel i vs channel j',200,0.,200.,200,0.,200.)
 
    def ExecuteEvent(self,event):
+      W = self.M.Weight
       M = self.M
       h = self.M.h
       sdict = self.M.sdict
@@ -478,8 +498,8 @@ class Mufi_largeVSsmall(ROOT.FairTask):
                   nL+=1
           if nL>0: SumL=sumL/nL
           if nS>0: SumS=sumS/nS
-          rc = h['sVSl_'+str(l)].Fill(SumS,SumL)
-          rc = h['SVSl_'+str(l)].Fill(sumS/4.,sumL/12.)
+          rc = h['sVSl_'+str(l)].Fill(SumS,SumL,W)
+          rc = h['SVSl_'+str(l)].Fill(sumS/4.,sumL/12.,W)
 #
           for side in ['L','R']:
             offset = 0
@@ -494,8 +514,8 @@ class Mufi_largeVSsmall(ROOT.FairTask):
                  if s==2 and self.M.smallSiPMchannel(i2): tag += 's'+str(i2-offset)
                  else: tag += 'l'+str(i2-offset)
                  qdc2 = allChannels[i2]
-                 rc = h[sdict[s]+'cor'+tag+'_'+side+str(l)].Fill(qdc1,qdc2)
-                 rc = h[sdict[s]+'cor'+tag+'_'+side+str(l)+str(bar)].Fill(qdc1,qdc2)
+                 rc = h[sdict[s]+'cor'+tag+'_'+side+str(l)].Fill(qdc1,qdc2,W)
+                 rc = h[sdict[s]+'cor'+tag+'_'+side+str(l)+str(bar)].Fill(qdc1,qdc2,W)
           allChannels.clear()
 
    def Plot(self):
@@ -541,3 +561,220 @@ class Mufi_largeVSsmall(ROOT.FairTask):
                       else: h[sdict[S]+'cor'+tag+'_'+side+str(l)+str(bar)].Draw('colzsame')
                   k+=1
              self.M.myPrint(h[sdict[S]+'cor'+side+str(l)],'QDCcor'+side+str(l),subdir='mufilter')
+
+class Veto_Efficiency(ROOT.FairTask):
+   " calculate Veto efficiency against Scifi tracks "
+   def Init(self,options,monitor):
+       self.M = monitor
+       sdict = self.M.sdict
+       self.eventBefore={'T':-1,'N':-1,'hits':{1:0,0:0,'0L':0,'0R':0,'1L':0,'1R':0}}
+       h = self.M.h
+       run = ROOT.FairRunAna.Instance()
+       self.trackTask = run.GetTask('simpleTracking')
+       if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
+       ioman = ROOT.FairRootManager.Instance()
+       self.OT = ioman.GetSink().GetOutTree()
+       s = 1
+       self.noiseCuts = [1,5,10,12]
+       for noiseCut in self.noiseCuts:
+        for c in ['','prev']:
+         for b in ['','beam']:
+          nc = 'T'+c+str(noiseCut)+b
+          for l in range(monitor.systemAndPlanes[s]):
+           ut.bookHist(h,nc+'PosVeto_'+str(l),'track pos at veto'+str(l)+' with hit '+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+           ut.bookHist(h,nc+'XPosVeto_'+str(l),'track pos at veto'+str(l)+' no hit'+str(l)+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          ut.bookHist(h,nc+'PosVeto_11','track pos at veto AND hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          ut.bookHist(h,nc+'PosVeto_00','track pos at veto OR hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          ut.bookHist(h,nc+'XPosVeto_11','track pos at veto no hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          for x in [nc+'XPosVeto_11',nc+'PosVeto_00',nc+'PosVeto_11',nc+'PosVeto_1',
+                      nc+'PosVeto_0',nc+'XPosVeto_1',nc+'XPosVeto_0']: h[x].SetStats(0)
+
+       ut.bookHist(h,'hitVeto_0','nr hits L vs R;n sipm; n sipm',25,-0.5,24.5,25,-0.5,24.5)
+       ut.bookHist(h,'hitVeto_1','nr hits L vs R;n sipm; n sipm',25,-0.5,24.5,25,-0.5,24.5)
+       ut.bookHist(h,'hitVeto_01','nr hits 0 vs 1;n sipm; n sipm',25,-0.5,24.5,25,-0.5,24.5)
+       ut.bookHist(h,'hitVeto_prev01','nr hits 0 vs 1;n sipm; n sipm',25,-0.5,24.5,25,-0.5,24.5)
+
+   def ExecuteEvent(self,event):
+       systemAndPlanes = self.M.systemAndPlanes
+       sdict = self.M.sdict
+       s = 1
+       h = self.M.h
+       W = self.M.Weight
+       nSiPMs = 8
+       hits = {1:0,0:0,'0L':0,'0R':0,'1L':0,'1R':0}
+       for aHit in event.Digi_MuFilterHits:
+           if not aHit.isValid(): continue
+           Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
+           s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
+           if s>1: continue
+           allChannels = self.M.map2Dict(aHit,'GetAllSignals')
+           hits[l]+=len(allChannels)
+           for c in allChannels:
+              if  nSiPMs > c:  # left side
+                 hits[str(l)+'L']+=1
+              else:
+                    hits[str(l)+'R']+=1
+           allChannels.clear()
+       prevEvent = False
+       if hits[0] == 0 and hits[1] == 0 and abs(event.EventHeader.GetEventTime()-self.eventBefore['T']) < 7:
+# try event before if close in time
+               prevEvent = True
+               rc = h['hitVeto_prev01'].Fill(self.eventBefore['hits'][0],self.eventBefore['hits'][1])
+               for x in self.eventBefore['hits']:
+                     hits[x] = self.eventBefore['hits'][x]
+                     self.eventBefore['hits'][x]=0
+       else:
+          for x in hits:  self.eventBefore['hits'][x] = hits[x]
+       self.eventBefore['T'] = event.EventHeader.GetEventTime()
+       self.eventBefore['N'] = event.EventHeader.GetEventNumber()
+
+       if self.M.Reco_MuonTracks.GetEntries()<1: return
+# check that track has scifi cluster in station 1
+       scifi_1 = False
+       for aTrack in self.M.Reco_MuonTracks:
+           if not aTrack.GetUniqueID()==1: continue
+           for nM in range(aTrack.getNumPointsWithMeasurement()):
+              M = aTrack.getPointWithMeasurement(nM)
+              W = M.getRawMeasurement()
+              detID = W.getDetId()
+              if detID//1000000 == 1: 
+                  scifi_1 = True
+                  break
+       if not scifi_1: return
+
+       for l in range(2):
+          rc = h['hitVeto_'+str(l)].Fill(hits[str(l)+'L'],hits[str(l)+'R'])
+       rc = h['hitVeto_01'].Fill(hits[0],hits[1])
+
+       for aTrack in self.M.Reco_MuonTracks:
+           if not aTrack.GetUniqueID()==1: continue
+           fitStatus = aTrack.getFitStatus()
+           if not fitStatus.isFitConverged(): continue
+           fstate =  aTrack.getFittedState()
+           pos,mom = [fstate.getPos(),fstate.getMom()]
+           beam = False
+           if abs(mom.x()/mom.z())<0.1 and abs(mom.y()/mom.z())<0.1: beam = True
+# extrapolate to veto
+           s = 1
+           for l in range(2):
+              zEx = self.M.zPos['MuFilter'][s*10+l]
+              lam = (zEx-pos.z())/mom.z()
+              xEx,yEx = pos.x()+lam*mom.x(),pos.y()+lam*mom.y()
+              for noiseCut in self.noiseCuts:
+                 c=''
+                 if prevEvent: c='prev'
+                 nc = 'T'+c+str(noiseCut)
+                 if hits[l] > noiseCut: 
+                      rc = h[nc+'PosVeto_'+str(l)].Fill(xEx,yEx)
+                      if beam: rc = h[nc+'beamPosVeto_'+str(l)].Fill(xEx,yEx)
+                 else:                        
+                      rc = h[nc+'XPosVeto_'+str(l)].Fill(xEx,yEx)
+                      if beam: rc = h[nc+'beamXPosVeto_'+str(l)].Fill(xEx,yEx)
+                 if l==0:
+                    if hits[0] > noiseCut and hits[1] > noiseCut: 
+                      rc = h[nc+'PosVeto_11'].Fill(xEx,yEx)
+                      if beam: rc = h[nc+'beamPosVeto_11'].Fill(xEx,yEx)
+                    if hits[0] > noiseCut or hits[1] > noiseCut:    
+                      rc = h[nc+'PosVeto_00'].Fill(xEx,yEx)
+                      if beam: rc = h[nc+'beamPosVeto_00'].Fill(xEx,yEx)
+                    else:
+                        if -45<xEx and xEx<-10 and 27<yEx and yEx<54  and beam:
+                             print('no hits',noiseCut,prevEvent,event.EventHeader.GetEventNumber(),xEx,yEx,pos,mom,zEx,mom.x()/mom.z(),mom.y()/mom.z())
+                        rc = h[nc+'XPosVeto_11'].Fill(xEx,yEx)
+                        if beam: rc = h[nc+'beamXPosVeto_11'].Fill(xEx,yEx)
+
+   def Plot(self,inclPrev=False,beamOnly=False):
+     h = self.M.h
+     if beamOnly: b='beam'
+     else: b=''
+     allTracks = h['T1PosVeto_0'].Clone('tmp')
+     allTracks.Add(h['T1XPosVeto_0'])
+     if inclPrev:
+       for noiseCut in self.noiseCuts:
+         c = 'prev'
+         nc = 'T'+str(noiseCut)+b
+         for x in [nc+'XPosVeto_11',nc+'PosVeto_00',nc+'PosVeto_11',nc+'PosVeto_1',
+                      nc+'PosVeto_0',nc+'XPosVeto_1',nc+'XPosVeto_0']:
+                      h[x].Add(h[x.replace('T','T'+c)])
+
+     for noiseCut in self.noiseCuts:
+       nc = 'T'+str(noiseCut)+b
+       h[nc+'XPosVeto_00']=allTracks.Clone(nc+'XPosVeto_00')
+       h[nc+'XPosVeto_00'].Add(h[nc+'PosVeto_00'],-1)
+       for l in ['0','1','00','11']:
+           h[nc+'Veto_ineff'+l] = h[nc+'PosVeto_'+l].Clone(nc+'Veto_ineff'+l)
+           h[nc+'Veto_ineff'+l].SetTitle('Veto inefficiency '+l+' noise cut='+str(noiseCut))
+           h[nc+'Veto_ineff'+l].SetMinimum(0)
+           h[nc+'Veto_ineff'+l].SetMaximum(1)
+       for ix in range(allTracks.GetNbinsX()):
+          for iy in range(allTracks.GetNbinsY()):
+              for l in ['0','1','00','11']:
+                 bc = allTracks.GetBinContent(ix,iy)
+                 if bc < 100:
+                    h[nc+'Veto_ineff'+l].SetBinContent(ix,iy,-1)
+                    h[nc+'Veto_ineff'+l].SetBinError(ix,iy,0)
+                 else:
+                    h[nc+'Veto_ineff'+l].SetBinContent(ix,iy,max(h[nc+'XPosVeto_'+l].GetBinContent(ix+1,iy+1)/bc, 2.7/bc))
+                    h[nc+'Veto_ineff'+l].SetBinError(ix,iy,h[nc+'XPosVeto_'+l].GetBinError(ix+1,iy+1)/bc)
+       ut.bookCanvas(h,nc+'VetoEff','',1800,1400,4,2)
+       tc = h[nc+'VetoEff'].cd(1)
+       h[nc+'PosVeto_0'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(2)
+       h[nc+'PosVeto_1'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(3)
+       h[nc+'PosVeto_11'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(5)
+       h[nc+'XPosVeto_0'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(6)
+       h[nc+'XPosVeto_1'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(7)
+       h[nc+'XPosVeto_11'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(8)
+       h[nc+'PosVeto_00'].Draw('colz')
+       ut.bookCanvas(h,nc+'VetoInEff','',1800,1400,2,2)
+       tc = h[nc+'VetoInEff'].cd(1)
+       tc.SetLogz(1)
+       h[nc+'Veto_ineff0'].Draw('colz')
+       tc = h[nc+'VetoInEff'].cd(2)
+       tc.SetLogz(1)
+       h[nc+'Veto_ineff1'].Draw('colz')
+       tc = h[nc+'VetoInEff'].cd(3)
+       tc.SetLogz(1)
+       h[nc+'Veto_ineff11'].Draw('colz')
+       tc = h[nc+'VetoInEff'].cd(4)
+       tc.SetLogz(1)
+       h[nc+'Veto_ineff00'].Draw('colz')
+# make some printout
+       Ntot = h[nc+'PosVeto_0'].Clone('Ntot')
+       Ntot.Add(h[nc+'XPosVeto_0'])
+       ineff0 =  h[nc+'XPosVeto_0'].GetEntries()/Ntot.GetEntries()
+       ineff1 = h[nc+'XPosVeto_1'].GetEntries()/Ntot.GetEntries()
+       ineffOR =  h[nc+'XPosVeto_11'].GetEntries()/Ntot.GetEntries()
+       ineffAND = 1.-h[nc+'PosVeto_11'].GetEntries()/Ntot.GetEntries()
+       region = [21,91,34,89]
+       xax = h[nc+'PosVeto_0'].GetXaxis()
+       yax = h[nc+'PosVeto_0'].GetYaxis()
+       Ntot_r = Ntot.Integral(region[0],region[1],region[2],region[3])
+       ineff0_r = h[nc+'XPosVeto_0'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
+       ineff1_r = h[nc+'XPosVeto_1'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
+       ineffOR_r =  h[nc+'XPosVeto_11'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
+       ineffAND_r = 1.-h[nc+'PosVeto_11'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
+       print('noise cut = ',noiseCut)
+       print('global inefficiency veto0: %5.2F%% veto1: %5.2F%% veto0AND1: %5.2F%% veto0OR1: %5.2F%%'%(
+        ineff0*100,ineff1*100,ineffAND*100,ineffOR*100))
+       print('region %5.2F < X < %5.2F and %5.2F < Y < %5.2F '%(xax.GetBinCenter(region[0]),
+          xax.GetBinCenter(region[1]),yax.GetBinCenter(region[1]),yax.GetBinCenter(region[1])))
+       print('veto0: %5.2F%% veto1: %5.2F%% veto0AND1: %5.2F%% veto0OR1: %5.2F%%'%( ineff0_r*100,ineff1_r*100,ineffAND_r*100,ineffOR_r*100))
+#
+     h['hitVeto_0'] = h['hitVeto_01'].ProjectionX('hitVeto_0')
+     h['hitVeto_1'] = h['hitVeto_01'].ProjectionY('hitVeto_1')
+     h['hitVeto_0'].SetStats(0)
+     h['hitVeto_0'].SetLineColor(ROOT.kGreen)
+     h['hitVeto_1'].SetLineColor(ROOT.kBlue)
+     h['hitVeto_1'].SetStats(0)
+     ut.bookCanvas(h,'hitVeto','',900,600,1,1)
+     tc = h['hitVeto'].cd()
+     tc.SetLogy(1)
+     h['hitVeto_0'].Draw('hist')
+     h['hitVeto_1'].Draw('histsame')
+

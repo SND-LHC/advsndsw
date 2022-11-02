@@ -268,12 +268,9 @@ void ConvRawData::Process0()
          {
            TDC = bt->GetLeaf("timestamp")->GetValue(n);
            QDC = bt->GetLeaf("value")->GetValue(n);
-           Chi2ndof = 1;
-           satur = 0.;
-           //Chi2ndof = max(bt->GetLeaf("timestampCalChi2")->GetValue(n)/bt->GetLeaf("timestampCalDof")->GetValue(n),
-           //               bt->GetLeaf("valueCalChi2")->GetValue(n)/bt->GetLeaf("valueCalDof")->GetValue(n));
-           // FIXME, valueCalDof is a boolean that is true if v_fine/par[d] is above saturationLimit              
-           //satur = (bt->GetLeaf("valueCalDof")->GetValue(n) == 1) ? 1.1*saturationLimit : 0.9*saturationLimit;    
+           Chi2ndof = max(bt->GetLeaf("timestampCalChi2")->GetValue(n)/bt->GetLeaf("timestampCalDof")->GetValue(n),
+                          	bt->GetLeaf("valueCalChi2")->GetValue(n)/bt->GetLeaf("valueCalDof")->GetValue(n));
+           satur = bt->GetLeaf("valueSaturation")->GetValue(n);
          }
          
          // Print a warning if TDC or QDC is nan.        
@@ -548,12 +545,9 @@ void ConvRawData::Process1()
        {
          TDC = fEventTree->GetLeaf("timestamp")->GetValue(n);
          QDC = fEventTree->GetLeaf("value")->GetValue(n);
-         Chi2ndof = 1;
-         satur = 0.;
-         //Chi2ndof = max(fEventTree->GetLeaf("timestampCalChi2")->GetValue(n)/fEventTree->GetLeaf("timestampCalDof")->GetValue(n),
-         //               fEventTree->GetLeaf("valueCalChi2")->GetValue(n)/fEventTree->GetLeaf("valueCalDof")->GetValue(n));
-         // FIXME, valueCalDof is a boolean that is true if v_fine/par[d] is above saturationLimit              
-         //satur = (fEventTree->GetLeaf("valueCalDof")->GetValue(n) == 1) ? 1.1*saturationLimit : 0.9*saturationLimit;    
+         Chi2ndof = max(fEventTree->GetLeaf("timestampCalChi2")->GetValue(n)/fEventTree->GetLeaf("timestampCalDof")->GetValue(n),
+                        fEventTree->GetLeaf("valueCalChi2")->GetValue(n)/fEventTree->GetLeaf("valueCalDof")->GetValue(n));
+         satur = fEventTree->GetLeaf("valueSaturation")->GetValue(n);
        }
   
        // Print a warning if TDC or QDC is nan.        
