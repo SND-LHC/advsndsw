@@ -37,7 +37,7 @@ class MuFilterHit : public SndlhcHit
     bool isMasked(Int_t i) const {return fMasked[i];}
     void SetMasked(Int_t i) {fMasked[i]=kTRUE;}
     int GetSystem(){return floor(fDetectorID/10000);}
-    int GetStation(){return floor(fDetectorID/1000)+1;}
+    int GetStation(){return int(fDetectorID/1000)%10+1;}
     bool isVertical();
     bool isShort(Int_t);
   private:
