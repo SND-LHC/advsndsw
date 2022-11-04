@@ -33,7 +33,7 @@ class hough() :
 
         self.yH_range = yH_range
         self.xH_range = xH_range
-        
+                       
         self.z_offset = z_offset
         self.HoughSpace_format = Hformat
         
@@ -212,7 +212,7 @@ class MuonReco(ROOT.FairTask) :
                
                # Hough space representation
                Hspace_format_exists = False 
-               for rep in root.findall('./tracking_case/Hough_space_format'):
+               for rep in case.findall('Hough_space_format'):
                    if rep.get('name') == self.Hough_space_format:
                       Hspace_format_exists = True
                       # Number of bins per Hough accumulator axes and range
@@ -468,6 +468,7 @@ class MuonReco(ROOT.FairTask) :
             else:
                  # Loop through scifi hits
                  for i_hit, scifiHit in enumerate(self.ScifiHits) :
+                     if not scifiHit.isValid(): continue 
                      self.scifiDet.GetSiPMPosition(scifiHit.GetDetectorID(), self.a, self.b)
                      hit_collection["pos"][0].append(self.a.X())
                      hit_collection["pos"][1].append(self.a.Y())
@@ -735,7 +736,7 @@ class MuonReco(ROOT.FairTask) :
        hitDict = {}
        for k in range(self.ScifiHits.GetEntries()):
             d = self.ScifiHits[k]
-            if not d.isValid(): continue 
+            if not d.isValid(): continue
             hitDict[d.GetDetectorID()] = k
        hitList = list(hitDict.keys())
        if len(hitList)>0:
