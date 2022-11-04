@@ -161,6 +161,10 @@ class MuonReco(ROOT.FairTask) :
 
         # Pass input data through to output.
         # self.Passthrough()
+        
+        # MC or data - needed for hit timing unit
+        if self.ioman.GetInTree().GetName() == 'cbmsim': self.isMC = True
+        else: self.isMC = False
 
         # Fetch digi hit collections from online if exist
         sink = self.ioman.GetSink()
@@ -386,7 +390,7 @@ class MuonReco(ROOT.FairTask) :
                           "system" : [],
                           "detectorID" : [],
                           "B" : [[], [], []],
-                          "tdc": []}
+                          "time": []}
 
         if ("us" in self.hits_to_fit) or ("ds" in self.hits_to_fit) or ("ve" in self.hits_to_fit) :
             # Loop through muon filter hits
@@ -427,11 +431,20 @@ class MuonReco(ROOT.FairTask) :
                 # Downstream
                 if muFilterHit.GetSystem() == 3 :
                     hit_collection["d"][1].append(self.MuFilter_ds_dx)
-                    hit_collection["tdc"].append(muFilterHit.GetImpactT()) #already in ns
+                    if muFilterHit.isVertical(): 
+                        if self.isMC:
+                           hit_collection["time"].append(muFilterHit.GetAllTimes()[0]) #already in ns
+                        else: hit_collection["time"].append(muFilterHit.GetAllTimes()[0]*6.25) #tdc2ns
+                    else:
+                        if self.isMC:
+                           hit_collection["time"].append(-1) # FIXME - don't know what is best here
+                        else: hit_collection["time"].append(muFilterHit.GetImpactT()) #already in ns
                 # Upstream
                 else :
                     hit_collection["d"][1].append(self.MuFilter_us_dy)
-                    hit_collection["tdc"].append(muFilterHit.GetAllTimes()[0]*6.23768) #tdc2ns
+                    if self.isMC:
+                           hit_collection["time"].append(-1) # FIXME - don't know what is best here
+                    else: hit_collection["time"].append(muFilterHit.GetImpactT()) #already in ns
         
         if "sf" in self.hits_to_fit :
             if self.Scifi_meas:
@@ -463,7 +476,8 @@ class MuonReco(ROOT.FairTask) :
                 
                    hit_collection["system"].append(0)
                    hit_collection["detectorID"].append(scifiCl.GetFirst())
-                   hit_collection["tdc"].append(scifiCl.GetTime())
+                   if self.isMC : hit_collection["time"].append(scifiCl.GetTime()/6.25) # for MC, hit time is in ns. Then for MC Scifi cluster time one has to divide by tdc2ns
+                   else: hit_collection["time"].append(scifiCl.GetTime()) # already in ns
 
             else:
                  # Loop through scifi hits
@@ -489,7 +503,9 @@ class MuonReco(ROOT.FairTask) :
             
                      hit_collection["detectorID"].append(scifiHit.GetDetectorID())
 
-                     hit_collection["tdc"].append(scifiHit.GetTime()*6.25) # Using the same conversion factor as in the sndCluster.cxx class. Shouldn't it be the same as in the muon system?!
+                     if self.isMC : hit_collection["time"].append(scifiHit.GetTime()) # already in ns
+                     else:
+                          hit_collection["time"].append(scifiHit.GetTime()*6.25) #tdc2ns
     
         # Make the hit collection numpy arrays.
         for key, item in hit_collection.items() :
@@ -655,8 +671,8 @@ class MuonReco(ROOT.FairTask) :
             
             hitID = 0 # Does it matter? We don't have a global hit ID.
 
-            hit_tdc = np.concatenate([hit_collection["tdc"][hit_collection["vert"]][track_hits_ZX],
-                                      hit_collection["tdc"][~hit_collection["vert"]][track_hits_ZY]])
+            hit_time = np.concatenate([hit_collection["time"][hit_collection["vert"]][track_hits_ZX],
+                                      hit_collection["time"][~hit_collection["vert"]][track_hits_ZY]])
 
             for i_z_sorted in hit_z.argsort() :
                 tp = ROOT.genfit.TrackPoint()
@@ -701,7 +717,7 @@ class MuonReco(ROOT.FairTask) :
                 this_track = ROOT.sndRecoTrack(theTrack)
                 pointTimes = []
                 for i_z_sorted in hit_z.argsort() :
-                    pointTimes.append(hit_tdc[i_z_sorted])
+                    pointTimes.append(hit_time[i_z_sorted])
                 this_track.setRawMeasTimes(pointTimes)
                 this_track.setTrackType(self.track_type)
                 # Save the track in sndRecoTrack format
