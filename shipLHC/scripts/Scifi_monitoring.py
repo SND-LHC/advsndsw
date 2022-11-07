@@ -329,3 +329,77 @@ class Scifi_residuals(ROOT.FairTask):
            h[tname].cd(2)
            rc = h[detector+'trackPos'+x].Draw('colz')
            self.M.myPrint(self.M.h[tname],detector+'trackPos'+x,subdir='scifi')
+           
+class Scifi_trackEfficiency(ROOT.FairTask):
+   " track efficiency tag with DS track"
+   def Init(self,options,monitor):
+       self.M = monitor
+       h = self.M.h
+       ut.bookHist(h,'DStag','DS track X/Y at scifi 1; X[cm]; Y[cm]',100,-50,0.,100,10,60)
+       ut.bookHist(h,'dx','DS track X - scifi X; X[cm]',100,-20.,20.)
+       ut.bookHist(h,'dy','DS track Y - scifi Y; Y[cm]',100,-20.,20.)
+       ut.bookHist(h,'scifiTrack','scifi track X/Y at scifi 1; X[cm]; Y[cm]',100,-50,0.,100,10,60)
+       self.zEx = self.M.zPos['Scifi'][10]
+       self.res = 10.
+
+   def ExecuteEvent(self,event):
+       h = self.M.h
+       W = self.M.Weight
+       MufiTracks    = []
+       ScifiTracks = []
+       k = -1
+       for theTrack in self.M.Reco_MuonTracks:
+          k+=1
+          fitStatus = theTrack.getFitStatus()
+          if not fitStatus.isFitConverged(): continue
+          if theTrack.GetUniqueID()==1:   ScifiTracks.append(k)
+          if theTrack.GetUniqueID()==3:   MufiTracks.append(k)
+       if len(MufiTracks)==0: return
+       for kMu in MufiTracks:
+          theTrack = self.M.Reco_MuonTracks[kMu]
+          fstate =  theTrack.getFittedState()
+          posT,momT  = fstate.getPos(),fstate.getMom()
+          slopeXT = momT.X()/momT.Z()
+          slopeYT = momT.Y()/momT.Z()
+          if not abs(slopeXT)<0.1 or not abs(slopeYT)<0.1: continue
+          lam      = (self.zEx-posT.z())/momT.z()
+          yExTag      = posT.y()+lam*momT.y()
+          xExTag      = posT.x()+lam*momT.x()
+          rc = h['DStag'].Fill(xExTag,yExTag)
+          for kSc in ScifiTracks:
+             scifiTrack = self.M.Reco_MuonTracks[kSc]
+             fstate =  scifiTrack.getFittedState()
+             pos,mom  = fstate.getPos(),fstate.getMom()
+             lam      = (self.zEx-pos.z())/mom.z()
+             yEx      = pos.y()+lam*mom.y()
+             xEx      = pos.x()+lam*mom.x()
+             dx = xExTag-xEx
+             dy = yExTag-yEx
+             rc = h['dx'].Fill(dx)
+             rc = h['dy'].Fill(dy)
+             if abs(dy)<self.res and abs(dx)<self.res:
+                  rc = h['scifiTrack'].Fill(xExTag,yExTag)
+
+# analysis and plots 
+   def Plot(self):
+       h = self.M.h
+       ut.bookCanvas(h,'dxdy','',1200,1200,2,1)
+       tc = h['dxdy'].cd(1)
+       h['dx'].Draw()
+       tc = h['dxdy'].cd(2)
+       h['dy'].Draw()
+       self.M.myPrint(h['dxdy'],'ScifiMufiPulls',subdir='scifi')
+       ut.bookCanvas(h,'scifiEff','',1600,800,3,1)
+       tc = h['scifiEff'].cd(1)
+       h['DStag'].Draw('colz')
+       tc = h['scifiEff'].cd(2)
+       h['scifiTrack'].Draw('colz')
+       h['eff']=h['scifiTrack'].Clone('eff')
+       h['eff'].Divide(h['DStag'])
+       tc = h['scifiEff'].cd(3)
+       h['eff'].Draw('colz')
+       self.M.myPrint(h['scifiEff'],'ScifiTrackEfficiency',subdir='scifi')
+
+       
+       
+       
