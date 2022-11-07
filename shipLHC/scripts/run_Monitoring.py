@@ -73,7 +73,8 @@ if options.runNumber < 0  and not options.geoFile:
      exit()
 #RUN0: 7 Apr 2022 - 26 Jul 2022   (Run 4575 started -  test run after replacing emulsions -Ettore)
 #RUN1: 26 Jul 2022 - 13 Sept 2022 (Run 4855 September 14)
-#RUN2: 13 Sept 2022 -
+#RUN2: 13 Sept 2022 - 4 Nov 2022 (Run 5172 test run after emulsion replacement)
+#RUN3: 4 Nov 2022  -  
 
 if not options.geoFile:
      if options.runNumber < 4575:
