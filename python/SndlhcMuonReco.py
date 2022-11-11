@@ -108,25 +108,24 @@ class hough() :
           if len(maxima) == 1:
             i_max = maxima[0]
           else:
-            mult = 0
-            a_start = 5
+            sigma = 1
+            truncate = 4
             maxima_smooth = []
-            while not len(maxima_smooth) == 1 and len(maxima_smooth) <= len(maxima) and mult < 6:
-                 #print('mult', mult)
+            while not len(maxima_smooth) == 1 and len(maxima_smooth) <= len(maxima) and sigma < 6:
                  smooth_max = []
                  maxima_smooth = []
-                 at  = a_start*mult
+                 at  = 2*int(sigma*truncate+0.5)+1
                  up  = at + 1
                  low = at - 1
                  for item in maxima:
                      if item[0] > low and item[1] > low:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[item[0]-at:item[0]+up,item[1]-at:item[1]+up], 3)
+                        subset = scipy.ndimage.gaussian_filter(self.accumulator[item[0]-at:item[0]+up,item[1]-at:item[1]+up], sigma)
                      elif item[0] < at and item[1] > low:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[0:item[0]+up,item[1]-at:item[1]+up], 3)
+                        subset = scipy.ndimage.gaussian_filter(self.accumulator[0:item[0]+up,item[1]-at:item[1]+up], sigma)
                      elif item[0] > low and item[1] < at:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[item[0]-at:item[0]+up,0:item[1]+up], 3)
+                        subset = scipy.ndimage.gaussian_filter(self.accumulator[item[0]-at:item[0]+up,0:item[1]+up], sigma)
                      else:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[0:item[0]+up,0:item[1]+up], 3)
+                        subset = scipy.ndimage.gaussian_filter(self.accumulator[0:item[0]+up,0:item[1]+up], sigma)
                      smooth_max.append(np.amax(subset))
                  smooth_max = np.asarray(smooth_max)
                  many = np.argwhere(smooth_max == np.amax(smooth_max))
@@ -136,7 +135,7 @@ class hough() :
                    maxima_smooth.append(maxima[i])
                  #print(len(maxima_smooth), maxima_smooth)
                  if len(maxima_smooth) > 1:
-                    mult += 1
+                    sigma += 1
             # In case there are still more than 1 bins with the maximal Nentries, choose the one closest to middle in xH axis
             # i.e. the bin corresponding to the smallest abs(track_slope), thus enhancing track reconstruction for IP1 origin
             if len(maxima_smooth) > 1:
@@ -669,10 +668,12 @@ class MuonReco(ROOT.FairTask) :
             ZX_hough = self.h_ZX.fit_randomize(ZX, d_ZX, self.n_random)
 
             tol = self.tolerance
-            # Special treatment for events with low hit occupancy -  increase tolerance
+            # Special treatment for events with low hit occupancy - increase tolerance
             # For Scifi-only tracks
             if len(hit_collection["detectorID"]) < 31 and self.hits_for_triplet == 'sf' and self.hits_to_fit == 'sf' :
-               if max(N_plane_ZX.values()) < 4 and max(N_plane_ZY.values()) < 4: 
+               # as there are masked Scifi planes, make sure to use hit counts before the masking
+               # make requirement on hits per plane consistent with plane mask one
+               if max(N_plane_ZX.values()) < 5 and max(N_plane_ZY.values()) < 5:
                   tol = 5*self.tolerance
             # for DS-only tracks
             if len(hit_collection["detectorID"]) < 22 and self.hits_for_triplet == 'ds' and self.hits_to_fit == 'ds' :
@@ -682,7 +683,7 @@ class MuonReco(ROOT.FairTask) :
                for item in range(len(hit_collection["detectorID"])):
                    if hit_collection["vert"][item]: N_plane_ZX[(hit_collection["detectorID"][item]%10000)//1000] += 1
                    else: N_plane_ZY[(hit_collection["detectorID"][item]%10000)//1000] += 1
-               if max(N_plane_ZX.values()) < 4 and max(N_plane_ZY.values()) < 4: 
+               if max(N_plane_ZX.values()) < 4 and max(N_plane_ZY.values()) < 4:
                   tol = 3*self.tolerance
 
             # Check if track intersects minimum number of hits in each plane.
