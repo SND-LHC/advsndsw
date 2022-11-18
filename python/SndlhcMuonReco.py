@@ -111,7 +111,7 @@ class hough() :
             sigma = 1
             truncate = 4
             maxima_smooth = []
-            while not len(maxima_smooth) == 1 and len(maxima_smooth) <= len(maxima) and sigma < 6:
+            while not len(maxima_smooth) == 1 and len(maxima_smooth) <= len(maxima) and sigma < 4:
                  smooth_max = []
                  maxima_smooth = []
                  at  = 2*int(sigma*truncate+0.5)+1
@@ -133,7 +133,6 @@ class hough() :
                    for items in maxima[i]:
                      i_max = items
                    maxima_smooth.append(maxima[i])
-                 #print(len(maxima_smooth), maxima_smooth)
                  if len(maxima_smooth) > 1:
                     sigma += 1
             # In case there are still more than 1 bins with the maximal Nentries, choose the one closest to middle in xH axis
@@ -551,13 +550,19 @@ class MuonReco(ROOT.FairTask) :
                    # count planes with hits
                    n_zx = self.Scifi_nPlanes - list(N_plane_ZX.values()).count(0)
                    n_zy = self.Scifi_nPlanes - list(N_plane_ZY.values()).count(0)
-                   # mask busiest planes until there are at least 3 planes with hits left
-                   for ii in range(n_zx-self.min_planes_hit):
-                      if list(N_plane_ZX.values())[ii] > 4:
-                         mask_plane_ZX.append(list(N_plane_ZX.keys())[ii])
-                   for ii in range(n_zy-self.min_planes_hit):
-                      if list(N_plane_ZY.values())[ii] > 4:
-                         mask_plane_ZY.append(list(N_plane_ZY.keys())[ii])
+                   # always use the 2 least busy planes for Hough transform(HT).
+                   # Addition to the HT pool of other more busy planes depends on number of hits per plane and hit ratio wrt the previous less-busy plane
+                   # If a plane is to be masked, all other planes having higher hit occupancy are masked too.
+                   for ii in range(n_zx-self.min_planes_hit, -1, -1):
+                      if list(N_plane_ZX.values())[ii]/list(N_plane_ZX.values())[ii+1] > 3 and list(N_plane_ZX.values())[ii] > 10:
+                         for iii in range(ii, -1, -1):
+                           mask_plane_ZX.append(list(N_plane_ZX.keys())[iii])
+                         break
+                   for ii in range(n_zy-self.min_planes_hit, -1, -1):
+                      if list(N_plane_ZY.values())[ii]/list(N_plane_ZY.values())[ii+1] > 3 and list(N_plane_ZY.values())[ii] > 10:
+                         for iii in range(ii, -1, -1):
+                           mask_plane_ZY.append(list(N_plane_ZY.keys())[iii]) 
+                         break
                  
                  # Loop through scifi hits
                  for i_hit, scifiHit in enumerate(self.ScifiHits) :
