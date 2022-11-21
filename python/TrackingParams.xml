@@ -15,13 +15,15 @@
   <!--  Tracks stored in genfit::Track format, value 1,
         or sndRecoTrack class, value 0  -->
   <genfitTrack> 0 </genfitTrack>
+  <!--  Enable option to visualize the polulated Hough space. Usefull for tests -->
+  <draw> 0 </draw> 
   
   <tracking_case name = "nu_interaction_products">
      <!--  Which detectors to use in the tracks fit, in the format: vesfusds, 
            where [ve] is Veto, [sf] is SciFi, [us] is Upstream Muon Filter,
            and [ds] is Downstream Muon Filter. -->
      <hits_to_fit> sfusds </hits_to_fit>
-     <!--  Which detectors to use for the Hough transform. Format as above.
+     <!--  Which detectors to use for the Hough transform(HT). Format as above.
            Detectors specified here are automatically used in the cathegory above. -->
      <hits_for_hough> ds </hits_for_hough>
      <!--  Use SciFi hits, value 0, or clusters, value 1  -->
@@ -42,6 +44,18 @@
      <mufi_weight> 100 </mufi_weight>
      <!-- How far away from Hough line hits assigned to the muon can be.  -->
      <tolerance unit="cm"> 0. </tolerance>
+     <!-- Enable Gaussian smoothing of the Hough-space image. 
+          Two cases are forseen - smoothing over the full accumulator space 
+          or locally around found maxima. If smooth_full is enabled, 
+          local filtering is not performed, regardless of smooth_local flag.. -->
+     <!-- For 'ds' HT prediction, do a full accumulator smoothing. -->
+     <smooth_full> 1 </smooth_full>
+     <smooth_local> 0 </smooth_local>
+     <!-- Gaussian filtering parameters. 
+          The kernel size is determined as 2*int(truncate*sigma+0.5)+1.
+          Application of smoothing depends on the flags above! -->
+     <sigma> 3 </sigma>
+     <truncate> 4 </truncate>
      <!--  Define the chosen Hough parameter space -->
      <!--  Choose parametrization. Options are
            normal (rho, theta) representation, or
@@ -66,7 +80,7 @@
            <yH_max_xz unit="cm">  17.  </yH_max_xz>
            <yH_min_yz unit="cm">  0.  </yH_min_yz>
            <yH_max_yz unit="cm">  122. </yH_max_yz>
-           <N_xH_bins> 2000 </N_xH_bins>
+           <N_xH_bins> 220 </N_xH_bins>
            <xH_min_xz unit="rad"> -1.1 </xH_min_xz>
            <xH_max_xz unit="rad">  1.1 </xH_max_xz>
            <xH_min_yz unit="rad"> -1.1 </xH_min_yz>
@@ -83,7 +97,7 @@
            <xH_max_xz unit="cm">  17.  </xH_max_xz>
            <xH_min_yz unit="cm">  0.  </xH_min_yz>
            <xH_max_yz unit="cm">  122. </xH_max_yz>
-     </Hough_space_format>     
+     </Hough_space_format>
   </tracking_case>
 
   <tracking_case name = "passing_mu_Sf">
@@ -94,7 +108,7 @@
      <!--  Which detectors to use for the Hough transform. Format as above.
            Detectors specified here are automatically used in the cathegory above. -->
      <hits_for_hough> sf </hits_for_hough>
-     <!--  Use SciFi hits, value 0, or clusters, value 1  -->
+     <!--  Use SciFi hits, value 0, or clusters, value 1 -->
      <use_Scifi_clust> 0 </use_Scifi_clust>
      <!--  Minumum number of planes with measurement
            to start pattern recognition.
@@ -112,6 +126,18 @@
      <mufi_weight> 1 </mufi_weight>
      <!-- How far away from Hough line hits assigned to the muon can be.  -->
      <tolerance unit="cm"> 0.1 </tolerance>
+     <!-- Enable Gaussian smoothing of the Hough-space image. 
+          Two cases are forseen - smoothing over the full accumulator space 
+          or locally around found maxima. If smooth_full is enabled, 
+          local filtering is not performed, regardless of smooth_local flag.. -->
+     <!-- For 'sf' HT prediction, do a local accumulator smoothing as Nbins(given below) is large. -->
+     <smooth_full> 0 </smooth_full>
+     <smooth_local> 1 </smooth_local>
+     <!-- Gaussian filtering parameters. 
+          The kernel size is determined as 2*int(truncate*sigma+0.5)+1.
+          Application of smoothing depends on the flags above! -->
+     <sigma> 1 </sigma>
+     <truncate> 4 </truncate>
      <!--  Define the chosen Hough parameter space -->
      <!--  Choose parametrization. Options are
            normal (rho, theta) representation, or
@@ -181,6 +207,18 @@
      <mufi_weight> 1 </mufi_weight>
      <!-- How far away from Hough line hits assigned to the muon can be.  -->
      <tolerance unit="cm"> 1. </tolerance>
+     <!-- Enable Gaussian smoothing of the Hough-space image. 
+          Two cases are forseen - smoothing over the full accumulator space 
+          or locally around found maxima. If smooth_full is enabled, 
+          local filtering is not performed, regardless of smooth_local flag.. -->
+     <!-- For 'ds' HT prediction, do a full accumulator smoothing. -->
+     <smooth_full> 1 </smooth_full>
+     <smooth_local> 0 </smooth_local>
+     <!-- Gaussian filtering parameters. 
+          The kernel size is determined as 2*int(truncate*sigma+0.5)+1.
+          Application of smoothing depends on the flags above! -->
+     <sigma> 3 </sigma>
+     <truncate> 4 </truncate>
      <!--  Define the chosen Hough parameter space -->
      <!--  Choose parametrization. Options are
            normal (rho, theta) representation, or

@@ -53,7 +53,7 @@ class hough() :
         
         self.xH_i = np.array(list(range(n_xH)))
 
-    def fit(self, hit_collection, draw = False, weights = None) :
+    def fit(self, hit_collection, draw, weights = None) :
 
         self.accumulator = np.zeros((self.n_yH, self.n_xH))
         for i_hit, hit in enumerate(hit_collection) :
@@ -73,13 +73,11 @@ class hough() :
                 self.accumulator[hit_yH_i, self.xH_i[out_of_range]] += 1
 
         # Smooth accumulator
-        if self.smooth :
-            self.accumulator = scipy.ndimage.gaussian_filter(self.accumulator, 3)
+        if self.smooth_full :
+            self.accumulator = scipy.ndimage.gaussian_filter(self.accumulator, self.sigma, truncate=self.truncate)
 
         # This might be useful for debugging, but leave out for now.
         if draw :
-            pass
-            '''
             plt.figure()
             plt.imshow(self.accumulator, origin = "lower", extent = [self.xH_range[0], self.xH_range[-1], self.yH_range[0], self.yH_range[-1]], aspect = "auto")
             if self.HoughSpace_format == 'normal':
@@ -93,14 +91,13 @@ class hough() :
                plt.ylabel("intercept @ 1st plane [cm]")
             plt.tight_layout()
             plt.show()
-            '''
-        
-        if self.smooth == True:
+
+        if self.smooth_full or not self.smooth_local:
           # In case of multiple occurrences of the maximum values, argmax returns
           # the indices corresponding to the first occurrence(along 1st axis).
           # With smootihg it is very unlikely to have 2 bins with same Nentries
           i_max = np.unravel_index(self.accumulator.argmax(), self.accumulator.shape)
-        else:
+        else: # local smoothing
           # In case there are more than 1 bins with the maximal Nentries, choose the one having most entries
           # after smoothing in an sub-area of the found max. This approach is choosen since
           # smoothing the whole accumulator array is time consuming for large Nbins
@@ -108,24 +105,23 @@ class hough() :
           if len(maxima) == 1:
             i_max = maxima[0]
           else:
-            sigma = 1
-            truncate = 4
+            sigma = self.sigma
             maxima_smooth = []
-            while not len(maxima_smooth) == 1 and len(maxima_smooth) <= len(maxima) and sigma < 4:
+            while not len(maxima_smooth) == 1 and len(maxima_smooth) <= len(maxima) and sigma < 6:
                  smooth_max = []
                  maxima_smooth = []
-                 at  = 2*int(sigma*truncate+0.5)+1
+                 at  = 2*int(sigma*self.truncate+0.5)+1
                  up  = at + 1
                  low = at - 1
                  for item in maxima:
                      if item[0] > low and item[1] > low:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[item[0]-at:item[0]+up,item[1]-at:item[1]+up], sigma)
+                        subset = scipy.ndimage.gaussian_filter(self.accumulator[item[0]-at:item[0]+up,item[1]-at:item[1]+up], sigma, truncate=self.truncate)
                      elif item[0] < at and item[1] > low:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[0:item[0]+up,item[1]-at:item[1]+up], sigma)
+                        subset = scipy.ndimage.gaussian_filter(self.accumulator[0:item[0]+up,item[1]-at:item[1]+up], sigma, truncate=self.truncate)
                      elif item[0] > low and item[1] < at:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[item[0]-at:item[0]+up,0:item[1]+up], sigma)
+                        subset = scipy.ndimage.gaussian_filter(self.accumulator[item[0]-at:item[0]+up,0:item[1]+up], sigma, truncate=self.truncate)
                      else:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[0:item[0]+up,0:item[1]+up], sigma)
+                        subset = scipy.ndimage.gaussian_filter(self.accumulator[0:item[0]+up,0:item[1]+up], sigma, truncate=self.truncate)
                      smooth_max.append(np.amax(subset))
                  smooth_max = np.asarray(smooth_max)
                  many = np.argwhere(smooth_max == np.amax(smooth_max))
@@ -159,7 +155,7 @@ class hough() :
         
         return (slope, intercept)
 
-    def fit_randomize(self, hit_collection, hit_d, n_random, draw = False, weights = None) :
+    def fit_randomize(self, hit_collection, hit_d, n_random, draw, weights = None) :
         success = True
         if not len(hit_collection) :
             return (-1, -1, [[],[]], [], False)
@@ -250,7 +246,9 @@ class MuonReco(ROOT.FairTask) :
         # Check if genfit::Track format is already forced
         if hasattr(self, "genfitTrack"): pass
         else: self.genfitTrack = int(root[0].text)
-                
+        
+        self.draw = int(root[1].text)
+
         track_case_exists = False
         for case in root.findall('tracking_case'):
             if case.get('name') == self.tracking_case:
@@ -299,10 +297,19 @@ class MuonReco(ROOT.FairTask) :
                self.hits_to_fit = case.find('hits_to_fit').text.strip()
                # Which hits to use for triplet condition. By default use only downstream muon system hits.
                self.hits_for_triplet = case.find('hits_for_hough').text.strip()
+
+               # Enable Gaussian smoothing. 
+               # Two cases - smoothing over the full accumulator space or locally around found maxima.
+               self.smooth_full  = int(case.find('smooth_full').text)
+               self.smooth_local = int(case.find('smooth_local').text)
+               # Gaussian smoothing parameters. The kernel size is determined as 2*int(truncate*sigma+0.5)+1
+               self.sigma = int(case.find('sigma').text)               
+               self.truncate = int(case.find('truncate').text)
+
             else: continue
         if not track_case_exists:
            raise RuntimeException("Unknown tracking case, check naming in parameter xml file.")
-                
+
         # Get sensor dimensions from geometry
         self.MuFilter_ds_dx = self.mufiDet.GetConfParF("MuFilter/DownstreamBarY") # Assume y dimensions in vertical bars are the same as x dimensions in horizontal bars.
         self.MuFilter_ds_dy = self.mufiDet.GetConfParF("MuFilter/DownstreamBarY") # Assume y dimensions in vertical bars are the same as x dimensions in horizontal bars.
@@ -324,7 +331,7 @@ class MuonReco(ROOT.FairTask) :
         # This is done to account for possible det. position shifts/mismatches going from geom. measurements and sndsw physics CS.
         if self.hits_for_triplet.find('sf') >= 0 and self.hits_for_triplet.find('ds') >= 0:
            det_Zlen = (self.mufiDet.GetConfParF("MuFilter/Muon9Dy") - self.scifiDet.GetConfParF("Scifi/Ypos0"))*unit.cm + 5.0*unit.cm
-           z_offset = self.scifiDet.GetConfParF("Scifi/Ypos0")*unit.cm - 2.5*unit.cm        
+           z_offset = self.scifiDet.GetConfParF("Scifi/Ypos0")*unit.cm - 2.5*unit.cm
         elif self.hits_for_triplet == 'sf':
            det_Zlen = (self.scifiDet.GetConfParF("Scifi/Ypos4") - self.scifiDet.GetConfParF("Scifi/Ypos0"))*unit.cm + 5.0*unit.cm
            z_offset = self.scifiDet.GetConfParF("Scifi/Ypos0")*unit.cm - 2.5*unit.cm
@@ -333,7 +340,7 @@ class MuonReco(ROOT.FairTask) :
            z_offset = self.mufiDet.GetConfParF("MuFilter/Muon6Dy")*unit.cm - 2.5*unit.cm
         # this use case is not tested with an z offset yet
         if self.tracking_case.find('nu_') >= 0: z_offset = 0*unit.cm 
-        #other use cases come here if ever added        
+        #other use cases come here if ever added
         
         # Initialize Hough transforms for both views:
         if self.Hough_space_format == 'normal':
@@ -344,11 +351,17 @@ class MuonReco(ROOT.FairTask) :
             self.h_ZX = hough(n_accumulator_yH, [yH_min_xz, yH_max_xz], n_accumulator_xH, [xH_min_xz, xH_max_xz], z_offset, self.Hough_space_format, det_Zlen)
             self.h_ZY = hough(n_accumulator_yH, [yH_min_yz, yH_max_yz], n_accumulator_xH, [xH_min_yz, xH_max_yz], z_offset, self.Hough_space_format, det_Zlen)
 
-        # If only Scifi hits used, no need for accumulator smoothing.
-        if self.hits_to_fit == "sf" :
-            self.h_ZX.smooth = False
-            self.h_ZY.smooth = False
-            self.track_type = 11
+        # If full space smoothing is enabled, local one is not performed, regardless of smooth_local flag.
+        self.h_ZX.smooth_full = self.smooth_full
+        self.h_ZY.smooth_full = self.smooth_full
+        self.h_ZX.smooth_local = self.smooth_local
+        self.h_ZY.smooth_local = self.smooth_local
+        self.h_ZX.sigma = self.sigma
+        self.h_ZX.truncate = self.truncate
+        self.h_ZY.sigma = self.sigma
+        self.h_ZY.truncate = self.truncate
+
+        if self.hits_to_fit == "sf" : self.track_type = 11
         elif self.hits_to_fit == "ds": self.track_type = 13
         else : self.track_type = 15
         
@@ -357,10 +370,9 @@ class MuonReco(ROOT.FairTask) :
         self.b = ROOT.TVector3()
 
         # check if track container exists
-        sink = self.ioman.GetSink()
-        self.event = sink.GetOutTree()
-        if self.event:
-            self.kalman_tracks = sink.GetOutTree().Reco_MuonTracks 
+        if self.ioman.GetObject('Reco_MuonTracks') != None:
+             self.kalman_tracks = self.ioman.GetObject('Reco_MuonTracks')
+             print('Branch activated by another task!')
         else:
         # Now initialize output in genfit::track or sndRecoTrack format
            if self.genfitTrack:
@@ -416,8 +428,11 @@ class MuonReco(ROOT.FairTask) :
              self.ioman.Register(obj_name, self.ioman.GetFolderName(), self.ioman.GetObject(obj_name), ROOT.kTRUE) 
 
     def Exec(self, opt) :
-        self.kalman_tracks.Clear('C')
-                
+        if len(self.kalman_tracks)!= 0:
+           if ( (self.genfitTrack and self.track_type == self.kalman_tracks.Last().GetUniqueID()) or
+                (not self.genfitTrack and self.track_type == self.kalman_tracks.Last().getTrackType()) ):
+              self.kalman_tracks.Clear('C')
+
         if self.scale>1:
            self.current_event += 1
            if self.current_event == 0: 
@@ -550,16 +565,23 @@ class MuonReco(ROOT.FairTask) :
                    # count planes with hits
                    n_zx = self.Scifi_nPlanes - list(N_plane_ZX.values()).count(0)
                    n_zy = self.Scifi_nPlanes - list(N_plane_ZY.values()).count(0)
+                   # check with min number of hit planes
+                   if n_zx < self.min_planes_hit or n_zy < self.min_planes_hit: return
                    # always use the 2 least busy planes for Hough transform(HT).
                    # Addition to the HT pool of other more busy planes depends on number of hits per plane and hit ratio wrt the previous less-busy plane
+                   # To set a limit on the ratio, check the ratio btw the 2 least busy planes first.
                    # If a plane is to be masked, all other planes having higher hit occupancy are masked too.
+                   ratio_prim_ZX = list(N_plane_ZX.values())[n_zx-2]/list(N_plane_ZX.values())[n_zx-1]
+                   ratio_prim_ZY = list(N_plane_ZY.values())[n_zy-2]/list(N_plane_ZY.values())[n_zy-1]
+                   ratio_prim_ZX = max(ratio_prim_ZX, 2)
+                   ratio_prim_ZY = max(ratio_prim_ZY, 2)
                    for ii in range(n_zx-self.min_planes_hit, -1, -1):
-                      if list(N_plane_ZX.values())[ii]/list(N_plane_ZX.values())[ii+1] > 3 and list(N_plane_ZX.values())[ii] > 10:
+                      if (list(N_plane_ZX.values())[ii]/list(N_plane_ZX.values())[ii+1] > ratio_prim_ZX and list(N_plane_ZX.values())[ii] > 15) or list(N_plane_ZX.values())[ii] > 100:
                          for iii in range(ii, -1, -1):
                            mask_plane_ZX.append(list(N_plane_ZX.keys())[iii])
                          break
                    for ii in range(n_zy-self.min_planes_hit, -1, -1):
-                      if list(N_plane_ZY.values())[ii]/list(N_plane_ZY.values())[ii+1] > 3 and list(N_plane_ZY.values())[ii] > 10:
+                      if (list(N_plane_ZY.values())[ii]/list(N_plane_ZY.values())[ii+1] > ratio_prim_ZY and list(N_plane_ZY.values())[ii] > 15) or list(N_plane_ZY.values())[ii] > 100:
                          for iii in range(ii, -1, -1):
                            mask_plane_ZY.append(list(N_plane_ZY.keys())[iii]) 
                          break
@@ -669,16 +691,15 @@ class MuonReco(ROOT.FairTask) :
                               np.concatenate([np.tile(hit_collection["d"][0][muon_hits_vertical], self.muon_weight),
                                               hit_collection["d"][0][scifi_hits_vertical]])])[0]
 
-            ZY_hough = self.h_ZY.fit_randomize(ZY, d_ZY, self.n_random)
-            ZX_hough = self.h_ZX.fit_randomize(ZX, d_ZX, self.n_random)
+            ZY_hough = self.h_ZY.fit_randomize(ZY, d_ZY, self.n_random, self.draw)
+            ZX_hough = self.h_ZX.fit_randomize(ZX, d_ZX, self.n_random, self.draw)
 
             tol = self.tolerance
             # Special treatment for events with low hit occupancy - increase tolerance
             # For Scifi-only tracks
             if len(hit_collection["detectorID"]) < 31 and self.hits_for_triplet == 'sf' and self.hits_to_fit == 'sf' :
                # as there are masked Scifi planes, make sure to use hit counts before the masking
-               # make requirement on hits per plane consistent with plane mask one
-               if max(N_plane_ZX.values()) < 5 and max(N_plane_ZY.values()) < 5:
+               if max(N_plane_ZX.values()) < 4 and max(N_plane_ZY.values()) < 4:
                   tol = 5*self.tolerance
             # for DS-only tracks
             if len(hit_collection["detectorID"]) < 22 and self.hits_for_triplet == 'ds' and self.hits_to_fit == 'ds' :
@@ -823,8 +844,9 @@ class MuonReco(ROOT.FairTask) :
                 raise RuntimeException("Kalman fit did not converge.")
             
             # Now save the track!
+            theTrack.SetUniqueID(self.track_type)
             if self.genfitTrack: self.kalman_tracks.Add(theTrack)
-            else :            
+            else :
                 # Load items into snd track class object
                 this_track = ROOT.sndRecoTrack(theTrack)
                 pointTimes = []
