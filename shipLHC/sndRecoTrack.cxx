@@ -179,17 +179,7 @@ pair<float, float> sndRecoTrack::trackDir()
 }
 
 TVector3 sndRecoTrack::extrapolateToPlaneAtZ(float z)
-{
-   /* Set mandatory items for genfit::Extrapolate* methods
-      No magnetic field and assuming no (negligible) multiple scattering */
-   ConstField bfield = ConstField(0, 0, 0);
-   FieldManager *fM = (FieldManager*)fM->getInstance();
-   fM->init(&bfield);
-   TGeoMaterialInterface geoMat = TGeoMaterialInterface();
-   MaterialEffects *matEff = (MaterialEffects*)matEff->getInstance();
-   matEff->init(&geoMat);
-   matEff->setNoEffects();
-   
+{   
    TVector3 NewPosition = TVector3(0., 0., z);
    /* line below assumes that plane in global coordinates
       is perpendicular to z-axis, which is not true for TI18 geometry. */
