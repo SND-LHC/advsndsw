@@ -33,7 +33,6 @@ parser.add_argument("--server", dest="server", help="xrootd server",default=os.e
 
 parser.add_argument("-H", "--houghTransform", dest="houghTransform", help="do not use hough transform for track reco", action='store_false',default=True)
 parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", default=os.environ['SNDSW_ROOT']+"/python/TrackingParams.xml")
-parser.add_argument("-c", "--case", dest="trackingCase", help="type of tracks to build. Should match the 'tracking_case' name in parFile, use quotes", default='passing_mu_Sf')
 parser.add_argument("-hf", "--HoughSpaceFormat", dest="HspaceFormat", help="Hough space representation. Should match the 'Hough_space_format' name in parFile, use quotes", default='linearSlopeIntercept')
 
 options = parser.parse_args()
@@ -80,8 +79,12 @@ sink = ROOT.FairRootFileSink(outFile)
 run.SetSink(sink)
 
 if options.houghTransform:
-  muon_reco_task = SndlhcMuonReco.MuonReco()
-  run.AddTask(muon_reco_task)
+  muon_reco_task_Sf = SndlhcMuonReco.MuonReco()
+  muon_reco_task_DS = SndlhcMuonReco.MuonReco()
+  muon_reco_task_nuInt = SndlhcMuonReco.MuonReco()
+  HT_tasks = [muon_reco_task_Sf, muon_reco_task_DS, muon_reco_task_nuInt]
+  for ht_task in HT_tasks:
+      run.AddTask(ht_task)
 else:
   import SndlhcTracking
   trackTask = SndlhcTracking.Tracking() 
@@ -96,12 +99,15 @@ xrdb.getContainer("FairBaseParSet").setStatic()
 xrdb.getContainer("FairGeoParSet").setStatic()
 
 if options.houghTransform:
-  muon_reco_task.SetParFile(options.parFile)
-  muon_reco_task.SetTrackingCase(options.trackingCase)
-  muon_reco_task.SetHoughSpaceFormat(options.HspaceFormat)
-  # force the output of reco task to genfit::Track
-  # as the display code looks for such output
-  muon_reco_task.ForceGenfitTrackFormat()
+  for ht_task in HT_tasks:
+      ht_task.SetParFile(options.parFile)
+      ht_task.SetHoughSpaceFormat(options.HspaceFormat)
+      # force the output of reco task to genfit::Track
+      # as the display code looks for such output
+      ht_task.ForceGenfitTrackFormat()
+  muon_reco_task_Sf.SetTrackingCase('passing_mu_Sf')
+  muon_reco_task_DS.SetTrackingCase('passing_mu_DS')
+  muon_reco_task_nuInt.SetTrackingCase('nu_interaction_products')
 
 run.Init()
 eventTree = ioman.GetInTree()
@@ -213,7 +219,15 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
        if options.houghTransform:
           OT.Reco_MuonTracks.Delete()
           rc = source.GetInTree().GetEvent(N)
-          muon_reco_task.Exec(0)
+          if withTrack==1:
+              muon_reco_task_Sf.Exec(0)
+              muon_reco_task_DS.Exec(0)
+          elif withTrack==2:
+              muon_reco_task_Sf.Exec(0)
+          elif withTrack==3:
+              muon_reco_task_DS.Exec(0)
+          elif withTrack==4:
+              muon_reco_task_nuInt.Exec(0)
           ntracks = OT.Reco_MuonTracks.GetEntries()
           uniqueTracks = cleanTracks()
           if len(uniqueTracks)<nTracks: continue
@@ -315,7 +329,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    elif not qdc<0:   
                        h[F][systems[system]][0]+=1
                        if len(h[F][systems[system]]) < 2+side: continue
-                       h[F][systems[system]][2+side]+=qdc
+                       #h[F][systems[system]][2+side]+=qdc
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     k = 1
@@ -361,11 +375,14 @@ def addTrack(OT,scifi=False):
    nTrack = 0
    for   aTrack in OT.Reco_MuonTracks:
       trackColor = ROOT.kRed
-      if aTrack.GetUniqueID()==1: 
+      if aTrack.GetUniqueID()==1:
           trackColor = ROOT.kBlue+2
           flightDir = trackTask.trackDir(aTrack)
           print('flight direction: %5.3F  significance: %5.3F'%(flightDir[0],flightDir[1]))
       if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlack
+      if aTrack.GetUniqueID()==11: trackColor = ROOT.kAzure-2
+      if aTrack.GetUniqueID()==13: trackColor = ROOT.kGray+3
+      if aTrack.GetUniqueID()==15: trackColor = ROOT.kOrange+7
       S = aTrack.getFitStatus()
       if not S.isFitConverged() and scifi:
          print('not converge')
