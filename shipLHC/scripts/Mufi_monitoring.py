@@ -561,3 +561,220 @@ class Mufi_largeVSsmall(ROOT.FairTask):
                       else: h[sdict[S]+'cor'+tag+'_'+side+str(l)+str(bar)].Draw('colzsame')
                   k+=1
              self.M.myPrint(h[sdict[S]+'cor'+side+str(l)],'QDCcor'+side+str(l),subdir='mufilter')
+
+class Veto_Efficiency(ROOT.FairTask):
+   " calculate Veto efficiency against Scifi tracks "
+   def Init(self,options,monitor):
+       self.M = monitor
+       sdict = self.M.sdict
+       self.eventBefore={'T':-1,'N':-1,'hits':{1:0,0:0,'0L':0,'0R':0,'1L':0,'1R':0}}
+       h = self.M.h
+       run = ROOT.FairRunAna.Instance()
+       self.trackTask = run.GetTask('simpleTracking')
+       if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
+       ioman = ROOT.FairRootManager.Instance()
+       self.OT = ioman.GetSink().GetOutTree()
+       s = 1
+       self.noiseCuts = [1,5,10,12]
+       for noiseCut in self.noiseCuts:
+        for c in ['','prev']:
+         for b in ['','beam']:
+          nc = 'T'+c+str(noiseCut)+b
+          for l in range(monitor.systemAndPlanes[s]):
+           ut.bookHist(h,nc+'PosVeto_'+str(l),'track pos at veto'+str(l)+' with hit '+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+           ut.bookHist(h,nc+'XPosVeto_'+str(l),'track pos at veto'+str(l)+' no hit'+str(l)+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          ut.bookHist(h,nc+'PosVeto_11','track pos at veto AND hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          ut.bookHist(h,nc+'PosVeto_00','track pos at veto OR hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          ut.bookHist(h,nc+'XPosVeto_11','track pos at veto no hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          for x in [nc+'XPosVeto_11',nc+'PosVeto_00',nc+'PosVeto_11',nc+'PosVeto_1',
+                      nc+'PosVeto_0',nc+'XPosVeto_1',nc+'XPosVeto_0']: h[x].SetStats(0)
+
+       ut.bookHist(h,'hitVeto_0','nr hits L vs R;n sipm; n sipm',25,-0.5,24.5,25,-0.5,24.5)
+       ut.bookHist(h,'hitVeto_1','nr hits L vs R;n sipm; n sipm',25,-0.5,24.5,25,-0.5,24.5)
+       ut.bookHist(h,'hitVeto_01','nr hits 0 vs 1;n sipm; n sipm',25,-0.5,24.5,25,-0.5,24.5)
+       ut.bookHist(h,'hitVeto_prev01','nr hits 0 vs 1;n sipm; n sipm',25,-0.5,24.5,25,-0.5,24.5)
+
+   def ExecuteEvent(self,event):
+       systemAndPlanes = self.M.systemAndPlanes
+       sdict = self.M.sdict
+       s = 1
+       h = self.M.h
+       W = self.M.Weight
+       nSiPMs = 8
+       hits = {1:0,0:0,'0L':0,'0R':0,'1L':0,'1R':0}
+       for aHit in event.Digi_MuFilterHits:
+           if not aHit.isValid(): continue
+           Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
+           s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
+           if s>1: continue
+           allChannels = self.M.map2Dict(aHit,'GetAllSignals')
+           hits[l]+=len(allChannels)
+           for c in allChannels:
+              if  nSiPMs > c:  # left side
+                 hits[str(l)+'L']+=1
+              else:
+                    hits[str(l)+'R']+=1
+           allChannels.clear()
+       prevEvent = False
+       if hits[0] == 0 and hits[1] == 0 and abs(event.EventHeader.GetEventTime()-self.eventBefore['T']) < 7:
+# try event before if close in time
+               prevEvent = True
+               rc = h['hitVeto_prev01'].Fill(self.eventBefore['hits'][0],self.eventBefore['hits'][1])
+               for x in self.eventBefore['hits']:
+                     hits[x] = self.eventBefore['hits'][x]
+                     self.eventBefore['hits'][x]=0
+       else:
+          for x in hits:  self.eventBefore['hits'][x] = hits[x]
+       self.eventBefore['T'] = event.EventHeader.GetEventTime()
+       self.eventBefore['N'] = event.EventHeader.GetEventNumber()
+
+       if self.M.Reco_MuonTracks.GetEntries()<1: return
+# check that track has scifi cluster in station 1
+       scifi_1 = False
+       for aTrack in self.M.Reco_MuonTracks:
+           if not aTrack.GetUniqueID()==1: continue
+           for nM in range(aTrack.getNumPointsWithMeasurement()):
+              M = aTrack.getPointWithMeasurement(nM)
+              W = M.getRawMeasurement()
+              detID = W.getDetId()
+              if detID//1000000 == 1: 
+                  scifi_1 = True
+                  break
+       if not scifi_1: return
+
+       for l in range(2):
+          rc = h['hitVeto_'+str(l)].Fill(hits[str(l)+'L'],hits[str(l)+'R'])
+       rc = h['hitVeto_01'].Fill(hits[0],hits[1])
+
+       for aTrack in self.M.Reco_MuonTracks:
+           if not aTrack.GetUniqueID()==1: continue
+           fitStatus = aTrack.getFitStatus()
+           if not fitStatus.isFitConverged(): continue
+           fstate =  aTrack.getFittedState()
+           pos,mom = [fstate.getPos(),fstate.getMom()]
+           beam = False
+           if abs(mom.x()/mom.z())<0.1 and abs(mom.y()/mom.z())<0.1: beam = True
+# extrapolate to veto
+           s = 1
+           for l in range(2):
+              zEx = self.M.zPos['MuFilter'][s*10+l]
+              lam = (zEx-pos.z())/mom.z()
+              xEx,yEx = pos.x()+lam*mom.x(),pos.y()+lam*mom.y()
+              for noiseCut in self.noiseCuts:
+                 c=''
+                 if prevEvent: c='prev'
+                 nc = 'T'+c+str(noiseCut)
+                 if hits[l] > noiseCut: 
+                      rc = h[nc+'PosVeto_'+str(l)].Fill(xEx,yEx)
+                      if beam: rc = h[nc+'beamPosVeto_'+str(l)].Fill(xEx,yEx)
+                 else:                        
+                      rc = h[nc+'XPosVeto_'+str(l)].Fill(xEx,yEx)
+                      if beam: rc = h[nc+'beamXPosVeto_'+str(l)].Fill(xEx,yEx)
+                 if l==0:
+                    if hits[0] > noiseCut and hits[1] > noiseCut: 
+                      rc = h[nc+'PosVeto_11'].Fill(xEx,yEx)
+                      if beam: rc = h[nc+'beamPosVeto_11'].Fill(xEx,yEx)
+                    if hits[0] > noiseCut or hits[1] > noiseCut:    
+                      rc = h[nc+'PosVeto_00'].Fill(xEx,yEx)
+                      if beam: rc = h[nc+'beamPosVeto_00'].Fill(xEx,yEx)
+                    else:
+                        if -45<xEx and xEx<-10 and 27<yEx and yEx<54  and beam:
+                             print('no hits',noiseCut,prevEvent,event.EventHeader.GetEventNumber(),xEx,yEx,pos,mom,zEx,mom.x()/mom.z(),mom.y()/mom.z())
+                        rc = h[nc+'XPosVeto_11'].Fill(xEx,yEx)
+                        if beam: rc = h[nc+'beamXPosVeto_11'].Fill(xEx,yEx)
+
+   def Plot(self,inclPrev=False,beamOnly=False):
+     h = self.M.h
+     if beamOnly: b='beam'
+     else: b=''
+     allTracks = h['T1PosVeto_0'].Clone('tmp')
+     allTracks.Add(h['T1XPosVeto_0'])
+     if inclPrev:
+       for noiseCut in self.noiseCuts:
+         c = 'prev'
+         nc = 'T'+str(noiseCut)+b
+         for x in [nc+'XPosVeto_11',nc+'PosVeto_00',nc+'PosVeto_11',nc+'PosVeto_1',
+                      nc+'PosVeto_0',nc+'XPosVeto_1',nc+'XPosVeto_0']:
+                      h[x].Add(h[x.replace('T','T'+c)])
+
+     for noiseCut in self.noiseCuts:
+       nc = 'T'+str(noiseCut)+b
+       h[nc+'XPosVeto_00']=allTracks.Clone(nc+'XPosVeto_00')
+       h[nc+'XPosVeto_00'].Add(h[nc+'PosVeto_00'],-1)
+       for l in ['0','1','00','11']:
+           h[nc+'Veto_ineff'+l] = h[nc+'PosVeto_'+l].Clone(nc+'Veto_ineff'+l)
+           h[nc+'Veto_ineff'+l].SetTitle('Veto inefficiency '+l+' noise cut='+str(noiseCut))
+           h[nc+'Veto_ineff'+l].SetMinimum(0)
+           h[nc+'Veto_ineff'+l].SetMaximum(1)
+       for ix in range(allTracks.GetNbinsX()):
+          for iy in range(allTracks.GetNbinsY()):
+              for l in ['0','1','00','11']:
+                 bc = allTracks.GetBinContent(ix,iy)
+                 if bc < 100:
+                    h[nc+'Veto_ineff'+l].SetBinContent(ix,iy,-1)
+                    h[nc+'Veto_ineff'+l].SetBinError(ix,iy,0)
+                 else:
+                    h[nc+'Veto_ineff'+l].SetBinContent(ix,iy,max(h[nc+'XPosVeto_'+l].GetBinContent(ix+1,iy+1)/bc, 2.7/bc))
+                    h[nc+'Veto_ineff'+l].SetBinError(ix,iy,h[nc+'XPosVeto_'+l].GetBinError(ix+1,iy+1)/bc)
+       ut.bookCanvas(h,nc+'VetoEff','',1800,1400,4,2)
+       tc = h[nc+'VetoEff'].cd(1)
+       h[nc+'PosVeto_0'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(2)
+       h[nc+'PosVeto_1'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(3)
+       h[nc+'PosVeto_11'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(5)
+       h[nc+'XPosVeto_0'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(6)
+       h[nc+'XPosVeto_1'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(7)
+       h[nc+'XPosVeto_11'].Draw('colz')
+       tc = h[nc+'VetoEff'].cd(8)
+       h[nc+'PosVeto_00'].Draw('colz')
+       ut.bookCanvas(h,nc+'VetoInEff','',1800,1400,2,2)
+       tc = h[nc+'VetoInEff'].cd(1)
+       tc.SetLogz(1)
+       h[nc+'Veto_ineff0'].Draw('colz')
+       tc = h[nc+'VetoInEff'].cd(2)
+       tc.SetLogz(1)
+       h[nc+'Veto_ineff1'].Draw('colz')
+       tc = h[nc+'VetoInEff'].cd(3)
+       tc.SetLogz(1)
+       h[nc+'Veto_ineff11'].Draw('colz')
+       tc = h[nc+'VetoInEff'].cd(4)
+       tc.SetLogz(1)
+       h[nc+'Veto_ineff00'].Draw('colz')
+# make some printout
+       Ntot = h[nc+'PosVeto_0'].Clone('Ntot')
+       Ntot.Add(h[nc+'XPosVeto_0'])
+       ineff0 =  h[nc+'XPosVeto_0'].GetEntries()/Ntot.GetEntries()
+       ineff1 = h[nc+'XPosVeto_1'].GetEntries()/Ntot.GetEntries()
+       ineffOR =  h[nc+'XPosVeto_11'].GetEntries()/Ntot.GetEntries()
+       ineffAND = 1.-h[nc+'PosVeto_11'].GetEntries()/Ntot.GetEntries()
+       region = [21,91,34,89]
+       xax = h[nc+'PosVeto_0'].GetXaxis()
+       yax = h[nc+'PosVeto_0'].GetYaxis()
+       Ntot_r = Ntot.Integral(region[0],region[1],region[2],region[3])
+       ineff0_r = h[nc+'XPosVeto_0'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
+       ineff1_r = h[nc+'XPosVeto_1'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
+       ineffOR_r =  h[nc+'XPosVeto_11'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
+       ineffAND_r = 1.-h[nc+'PosVeto_11'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
+       print('noise cut = ',noiseCut)
+       print('global inefficiency veto0: %5.2F%% veto1: %5.2F%% veto0AND1: %5.2F%% veto0OR1: %5.2F%%'%(
+        ineff0*100,ineff1*100,ineffAND*100,ineffOR*100))
+       print('region %5.2F < X < %5.2F and %5.2F < Y < %5.2F '%(xax.GetBinCenter(region[0]),
+          xax.GetBinCenter(region[1]),yax.GetBinCenter(region[1]),yax.GetBinCenter(region[1])))
+       print('veto0: %5.2F%% veto1: %5.2F%% veto0AND1: %5.2F%% veto0OR1: %5.2F%%'%( ineff0_r*100,ineff1_r*100,ineffAND_r*100,ineffOR_r*100))
+#
+     h['hitVeto_0'] = h['hitVeto_01'].ProjectionX('hitVeto_0')
+     h['hitVeto_1'] = h['hitVeto_01'].ProjectionY('hitVeto_1')
+     h['hitVeto_0'].SetStats(0)
+     h['hitVeto_0'].SetLineColor(ROOT.kGreen)
+     h['hitVeto_1'].SetLineColor(ROOT.kBlue)
+     h['hitVeto_1'].SetStats(0)
+     ut.bookCanvas(h,'hitVeto','',900,600,1,1)
+     tc = h['hitVeto'].cd()
+     tc.SetLogy(1)
+     h['hitVeto_0'].Draw('hist')
+     h['hitVeto_1'].Draw('histsame')
+

@@ -73,15 +73,16 @@ if options.runNumber < 0  and not options.geoFile:
      exit()
 #RUN0: 7 Apr 2022 - 26 Jul 2022   (Run 4575 started -  test run after replacing emulsions -Ettore)
 #RUN1: 26 Jul 2022 - 13 Sept 2022 (Run 4855 September 14)
-#RUN2: 13 Sept 2022 -
+#RUN2: 13 Sept 2022 - 4 Nov 2022 (Run 5172 test run after emulsion replacement)
+#RUN3: 4 Nov 2022  -  
 
 if not options.geoFile:
      if options.runNumber < 4575:
-           geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
+           options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
      elif options.runNumber < 4855:
-          geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+          options.geoFile =  "geofile_sndlhc_TI18_V5_14August2022.root"
      else:
-          geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"   # waiting for new alignment
+          options.geoFile =  "geofile_sndlhc_TI18_V6_08October2022.root"
 
 # to be extended for future new alignments.
 

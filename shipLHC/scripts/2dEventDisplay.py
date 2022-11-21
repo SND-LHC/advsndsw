@@ -5,6 +5,7 @@ from array import array
 import shipunit as u
 import SndlhcMuonReco
 import json
+from rootpyPickler import Unpickler
 import time
 from XRootD import client
 
@@ -85,6 +86,8 @@ else:
   import SndlhcTracking
   trackTask = SndlhcTracking.Tracking() 
   trackTask.SetName('simpleTracking')
+  trackTask.DSnPlanes = 3  # default is 2, too weak
+  trackTask.DSnHits = 2
   run.AddTask(trackTask)
 
 #avoiding some error messages
@@ -106,12 +109,18 @@ if options.houghTransform:
 
 nav = ROOT.gGeoManager.GetCurrentNavigator()
 
-fsdict = False
-if "FSdict.pkl" in os.listdir('.'):
-  import pickle
-  p = open("FSdict.pkl",'rb')
-  FSdict = pickle.load(p)
-  if options.runNumber in FSdict: fsdict = FSdict[options.runNumber]
+# get filling scheme
+try:
+           runNumber = eventTree.EventHeader.GetRunId()
+           fg  = ROOT.TFile.Open(os.environ['EOSSHIP']+'/eos/experiment/sndlhc/convertedData/commissioning/TI18/FSdict.root')
+           pkl = Unpickler(fg)
+           FSdict = pkl.load('FSdict')
+           fg.Close()
+           if runNumber in FSdict: fsdict = FSdict[runNumber]
+           else:  fsdict = False
+except:
+           print('continue without knowing filling scheme')
+           fsdict = False
 
 startTimeOfRun = {}
 def getStartTime(runNumber):
@@ -151,8 +160,10 @@ def goodEvent(event):
            else: return False
 def bunchXtype():
 # check for b1,b2,IP1,IP2
+        xing = {'all':True,'B1only':False,'B2noB1':False,'noBeam':False}
         if fsdict:
-             bunchNumber = eventTree.EventHeader.GetEventTime()%(4*3564)//4
+             T   = eventTree.EventHeader.GetEventTime()
+             bunchNumber = int(T%(4*3564)/4+0.5)
              nb1 = (3564 + bunchNumber - fsdict['phaseShift1'])%3564
              nb2 = (3564 + bunchNumber - fsdict['phaseShift1']- fsdict['phaseShift2'])%3564
              b1 = nb1 in fsdict['B1']
@@ -164,9 +175,11 @@ def bunchXtype():
              if b2:
                 IP2 =  fsdict['B2'][nb2]['IP2']
              if b2 and not b1:
-                b2Only = True
+                xing['B2noB1'] = True
              if b1 and not b2 and not IP1:
-                b1Only = True
+                xing['B1only'] = True
+             if not b1 and not b2: xing['noBeam'] = True
+        return xing
 
 def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSipmMult=1, option=None,Setup='',verbose=0,auto=False):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
@@ -257,7 +270,6 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
        h[proj[p]].Draw('b')
 
     drawDetectors()
-    
     for D in digis:
       for digi in D:
          detID = digi.GetDetectorID()
@@ -349,7 +361,8 @@ def addTrack(OT,scifi=False):
       trackColor = ROOT.kRed
       if aTrack.GetUniqueID()==1: 
           trackColor = ROOT.kBlue+2
-          print(trackTask.trackDir(aTrack))
+          flightDir = trackTask.trackDir(aTrack)
+          print('flight direction: %5.3F  significance: %5.3F'%(flightDir[0],flightDir[1]))
       if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlack
       S = aTrack.getFitStatus()
       if not S.isFitConverged() and scifi:
