@@ -31,6 +31,10 @@ class sndRecoTrack : public TObject {
   std::pair<float, float> Velocity();
   std::pair<float, float> trackDir();
   std::vector<float> getCorrTimes();
+  float getSlopeXZ() {return fTrackMom.X()/fTrackMom.Z();}
+  float getSlopeYZ() {return fTrackMom.Y()/fTrackMom.Z();}
+  float getAngleXZ() {return atan(fTrackMom.X()/fTrackMom.Z());}
+  float getAngleYZ() {return atan(fTrackMom.Y()/fTrackMom.Z());}
 
  private :
   std::vector<TVector3 > fTrackPoints;
