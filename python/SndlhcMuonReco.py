@@ -106,10 +106,9 @@ class hough() :
             i_max = maxima[0]
           else:
             sigma = self.sigma
-            maxima_smooth = []
+            maxima_smooth = np.zeros((2,2), dtype=int)
             while not len(maxima_smooth) == 1 and len(maxima_smooth) <= len(maxima) and sigma < 6:
                  smooth_max = []
-                 maxima_smooth = []
                  at  = 2*int(sigma*self.truncate+0.5)+1
                  up  = at + 1
                  low = at - 1
@@ -125,22 +124,24 @@ class hough() :
                      smooth_max.append(np.amax(subset))
                  smooth_max = np.asarray(smooth_max)
                  many = np.argwhere(smooth_max == np.amax(smooth_max))
+                 counter = 0
+                 maxima_smooth = np.zeros((len(many),2), dtype=int)
                  for i in many: 
-                   for items in maxima[i]:
-                     i_max = items
-                   maxima_smooth.append(maxima[i])
-                 if len(maxima_smooth) > 1:
-                    sigma += 1
-            # In case there are still more than 1 bins with the maximal Nentries, choose the one closest to middle in xH axis
-            # i.e. the bin corresponding to the smallest abs(track_slope), thus enhancing track reconstruction for IP1 origin
+                   maxima_smooth[counter] = maxima[counter]
+                   counter += 1
+                 sigma += 1
+            if len(maxima_smooth)==1: i_max = maxima_smooth[0] 
+            # In case there are still more than 1 bins with the maximal Nentries, basically, drop the event if spread in angle would be above the resolution
             if len(maxima_smooth) > 1:
                if not self.HoughSpace_format == 'linearIntercepts':
-                  i_x = min([x[1] for x in maxima], key=lambda b: abs(b-self.n_xH/2.))
-                  for im in maxima:
-                      if im[1] == i_x : i_max = im
+                     if abs(min([x[1] for x in maxima_smooth]) - max([x[1] for x in maxima_smooth])) < 20:
+                       i_max = maxima_smooth[0]
+                     else: return (-999,-999)
+               else: return(-999,-999)
+            else: return(-999,-999)
 
-        found_yH = self.yH_bins[i_max[0]]
-        found_xH = self.xH_bins[i_max[1]]
+        found_yH = self.yH_bins[int(i_max[0])]
+        found_xH = self.xH_bins[int(i_max[1])]
         
         if self.HoughSpace_format == 'normal':
            slope = -1./np.tan(found_xH)
@@ -567,25 +568,14 @@ class MuonReco(ROOT.FairTask) :
                    n_zy = self.Scifi_nPlanes - list(N_plane_ZY.values()).count(0)
                    # check with min number of hit planes
                    if n_zx < self.min_planes_hit or n_zy < self.min_planes_hit: return
-                   # always use the 2 least busy planes for Hough transform(HT).
-                   # Addition to the HT pool of other more busy planes depends on number of hits per plane and hit ratio wrt the previous less-busy plane
-                   # To set a limit on the ratio, check the ratio btw the 2 least busy planes first.
-                   # If a plane is to be masked, all other planes having higher hit occupancy are masked too.
-                   ratio_prim_ZX = list(N_plane_ZX.values())[n_zx-2]/list(N_plane_ZX.values())[n_zx-1]
-                   ratio_prim_ZY = list(N_plane_ZY.values())[n_zy-2]/list(N_plane_ZY.values())[n_zy-1]
-                   ratio_prim_ZX = max(ratio_prim_ZX, 2)
-                   ratio_prim_ZY = max(ratio_prim_ZY, 2)
-                   for ii in range(n_zx-self.min_planes_hit, -1, -1):
-                      if (list(N_plane_ZX.values())[ii]/list(N_plane_ZX.values())[ii+1] > ratio_prim_ZX and list(N_plane_ZX.values())[ii] > 15) or list(N_plane_ZX.values())[ii] > 100:
-                         for iii in range(ii, -1, -1):
-                           mask_plane_ZX.append(list(N_plane_ZX.keys())[iii])
-                         break
-                   for ii in range(n_zy-self.min_planes_hit, -1, -1):
-                      if (list(N_plane_ZY.values())[ii]/list(N_plane_ZY.values())[ii+1] > ratio_prim_ZY and list(N_plane_ZY.values())[ii] > 15) or list(N_plane_ZY.values())[ii] > 100:
-                         for iii in range(ii, -1, -1):
-                           mask_plane_ZY.append(list(N_plane_ZY.keys())[iii]) 
-                         break
-                 
+                   # mask busiest planes until there are at least 3 planes with hits left
+                   for ii in range(n_zx-self.min_planes_hit):
+                         if list(N_plane_ZX.values())[ii] > 4:
+                            mask_plane_ZX.append(list(N_plane_ZX.keys())[ii])
+                   for ii in range(n_zy-self.min_planes_hit):
+                         if list(N_plane_ZY.values())[ii] > 4:
+                            mask_plane_ZY.append(list(N_plane_ZY.keys())[ii])
+
                  # Loop through scifi hits
                  for i_hit, scifiHit in enumerate(self.ScifiHits) :
                      if not scifiHit.isValid(): continue 
