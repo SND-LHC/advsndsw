@@ -96,18 +96,6 @@ class Monitoring():
         self.h = {}   # histogram storage
 
         self.runNr   = str(options.runNumber).zfill(6)
-# presenter file
-        name = 'run'+self.runNr+'.root'
-        if options.interactive: name = 'I-'+name
-        self.presenterFile = ROOT.TFile(name,'recreate')
-        self.presenterFile.mkdir('scifi')
-        self.presenterFile.mkdir('mufilter')
-        self.presenterFile.mkdir('daq')
-        self.presenterFile.mkdir('eventdisplay')
-        self.FairTasks = {}
-        for x in FairTasks:   #  keeps extended methods if from python class
-                 self.FairTasks[x.GetName()] = x
-
 # get filling scheme
         try:
            fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
@@ -119,6 +107,21 @@ class Monitoring():
         except:
            print('continue without knowing filling scheme',options.server+options.path)
            self.fsdict = False
+# presenter file
+        name = 'run'+self.runNr+'.root'
+        if options.interactive: name = 'I-'+name
+        self.presenterFile = ROOT.TFile(name,'recreate')
+        self.presenterFile.mkdir('scifi')
+        self.presenterFile.mkdir('mufilter')
+        if self.fsdict:
+           for x in ['B1only','B2noB1','noBeam']:
+             self.presenterFile.mkdir('mufilter/'+x)
+             self.presenterFile.mkdir('scifi/'+x)
+        self.presenterFile.mkdir('daq')
+        self.presenterFile.mkdir('eventdisplay')
+        self.FairTasks = {}
+        for x in FairTasks:   #  keeps extended methods if from python class
+                 self.FairTasks[x.GetName()] = x
 
 # setup input
         if options.online:
@@ -606,6 +609,19 @@ class Monitoring():
          pname = srun+'/'+name+'-'+srun
          tc.Print(pname+'.png')
          tc.Print(pname+'.pdf')
+
+   def fillHist1(self,hname,parx):
+      for x in ['','B1only','B2noB1','noBeam']:
+         if x=='':  
+             rc = self.h[hname].Fill(parx,self.Weight)
+         elif self.xing[x]:
+             rc = self.h[hname+x].Fill(parx,self.Weight)
+   def fillHist2(self,hname,parx,pary):
+      for x in ['','B1only','B2noB1','noBeam']:
+         if x=='':  
+             rc = self.h[hname].Fill(parx,pary,self.Weight)
+         elif self.xing[x]:
+             rc = self.h[hname+x].Fill(parx,pary,self.Weight)
 
 class TrackSelector():
    " run reconstruction, select events with tracks"
