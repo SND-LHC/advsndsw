@@ -5,6 +5,7 @@ from array import array
 import shipunit as u
 import SndlhcMuonReco
 import json
+from rootpyPickler import Unpickler
 import time
 from XRootD import client
 
@@ -85,6 +86,8 @@ else:
   import SndlhcTracking
   trackTask = SndlhcTracking.Tracking() 
   trackTask.SetName('simpleTracking')
+  trackTask.DSnPlanes = 3  # default is 2, too weak
+  trackTask.DSnHits = 2
   run.AddTask(trackTask)
 
 #avoiding some error messages
@@ -106,14 +109,18 @@ if options.houghTransform:
 
 nav = ROOT.gGeoManager.GetCurrentNavigator()
 
-fsdict = False
-if "FSdict.pkl" in os.listdir('.'):
-  import pickle
-  p = open("FSdict.pkl",'rb')
-  FSdict = pickle.load(p)
-  if options.runNumber in FSdict: fsdict = FSdict[options.runNumber]
-
-
+# get filling scheme
+try:
+           runNumber = eventTree.EventHeader.GetRunId()
+           fg  = ROOT.TFile.Open(os.environ['EOSSHIP']+'/eos/experiment/sndlhc/convertedData/commissioning/TI18/FSdict.root')
+           pkl = Unpickler(fg)
+           FSdict = pkl.load('FSdict')
+           fg.Close()
+           if runNumber in FSdict: fsdict = FSdict[runNumber]
+           else:  fsdict = False
+except:
+           print('continue without knowing filling scheme')
+           fsdict = False
 
 startTimeOfRun = {}
 def getStartTime(runNumber):
@@ -153,8 +160,10 @@ def goodEvent(event):
            else: return False
 def bunchXtype():
 # check for b1,b2,IP1,IP2
+        xing = {'all':True,'B1only':False,'B2noB1':False,'noBeam':False}
         if fsdict:
-             bunchNumber = eventTree.EventHeader.GetEventTime()%(4*3564)//4
+             T   = eventTree.EventHeader.GetEventTime()
+             bunchNumber = int(T%(4*3564)/4+0.5)
              nb1 = (3564 + bunchNumber - fsdict['phaseShift1'])%3564
              nb2 = (3564 + bunchNumber - fsdict['phaseShift1']- fsdict['phaseShift2'])%3564
              b1 = nb1 in fsdict['B1']
@@ -166,9 +175,11 @@ def bunchXtype():
              if b2:
                 IP2 =  fsdict['B2'][nb2]['IP2']
              if b2 and not b1:
-                b2Only = True
+                xing['B2noB1'] = True
              if b1 and not b2 and not IP1:
-                b1Only = True
+                xing['B1only'] = True
+             if not b1 and not b2: xing['noBeam'] = True
+        return xing
 
 def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSipmMult=1, option=None,Setup='',verbose=0,auto=False):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
@@ -257,7 +268,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     for p in proj:
        rc = h[ 'simpleDisplay'].cd(p)
        h[proj[p]].Draw('b')
-    emptyNodes()
+
     drawDetectors()
     for D in digis:
       for digi in D:
@@ -307,8 +318,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     k = 1
     for collection in ['hitCollectionX','hitCollectionY']:
-       h[ 'simpleDisplay'].cd(k)
-       drawInfo(h[ 'simpleDisplay'], k, runId, N, T)
+       h['simpleDisplay'].cd(k)
+       drawInfo(h['simpleDisplay'], k, runId, N, T)
        k+=1
        for c in h[collection]:
           F = collection.replace('hitCollection','firedChannels')
@@ -323,7 +334,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
             h[collection][c][1].SetMarkerSize(1.5)
             rc=h[collection][c][1].Draw('sameP')
             h['display:'+c]=h[collection][c][1]
-    h[ 'simpleDisplay'].Update()
+    h['simpleDisplay'].Update()
 
     if withTrack == 2: addTrack(OT,True)  #withTrack=2 scifi, =3 DS
     elif not withTrack<0:  addTrack(OT)
@@ -350,7 +361,8 @@ def addTrack(OT,scifi=False):
       trackColor = ROOT.kRed
       if aTrack.GetUniqueID()==1: 
           trackColor = ROOT.kBlue+2
-          print(trackTask.trackDir(aTrack))
+          flightDir = trackTask.trackDir(aTrack)
+          print('flight direction: %5.3F  significance: %5.3F'%(flightDir[0],flightDir[1]))
       if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlack
       S = aTrack.getFitStatus()
       if not S.isFitConverged() and scifi:
@@ -506,7 +518,13 @@ def drawDetectors():
    for node_ in nodes:
       node = '/cave_1/Detector_0/'+node_
       for p in proj:
-         if node+p not in h:
+         if node+p in h and any(passNode in node for passNode in passNodes):
+            X = h[node+p]
+            c = proj[p]
+            h['simpleDisplay'].cd(c+1)
+            X.Draw('f&&same')
+            X.Draw('same')
+         else:
             nav.cd(node)
             N = nav.GetCurrentNode()
             S = N.GetVolume().GetShape()
@@ -538,17 +556,10 @@ def drawDetectors():
             X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
             X.SetLineColor(nodes[node_])
             X.SetLineWidth(1)
-            h[ 'simpleDisplay'].cd(c+1)
+            h['simpleDisplay'].cd(c+1)
             if any(passNode in node for passNode in passNodes):
                X.SetFillColorAlpha(nodes[node_], 0.5)
                X.Draw('f&&same')
-            X.Draw('same')
-         else:
-            X = h[node+p]
-            c = proj[p]
-            h[ 'simpleDisplay'].cd(c+1)
-            if any(passNode in node for passNode in passNodes):
-               X.Draw('f&&same') 
             X.Draw('same')
 
 def dumpVeto():
@@ -693,37 +704,6 @@ def fillNode(node):
          X.SetLineWidth(thick)
          X.Draw('f&&same')
          X.Draw('same')   
-
-def emptyNodes():
-   nodes = {}
-   for i in range(2):
-      for j in range(7):
-         nodes['volVeto_1/volVetoPlane_{}_{}/volVetoBar_1{}{:0>3d}'.format(i, i, i, j)]=ROOT.kRed
-   for i in range(3):
-      for j in range(60):
-         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_hor_3{}{:0>3d}'.format(i, i+7, i, j)]=ROOT.kBlue+2
-         nodes['volMuFilter_1/volMuDownstreamDet_{}_{}/volMuDownstreamBar_ver_3{}{:0>3d}'.format(i, i+7, i, j+60)]=ROOT.kBlue+2
-   for j in range(60):
-      nodes['volMuFilter_1/volMuDownstreamDet_3_10/volMuDownstreamBar_ver_33{:0>3d}'.format(j+60)]=ROOT.kBlue+2
-   for i in range(5):
-      for j in range(10):
-         nodes['volMuFilter_1/volMuUpstreamDet_{}_{}/volMuUpstreamBar_2{}00{}'.format(i, i+2, i, j)]=ROOT.kBlue+2
-   proj = {'X':0,'Y':1}
-   for node_ in nodes:
-      node = '/cave_1/Detector_0/'+node_
-      for p in proj:
-         try:
-            X = h[node+p]
-            if X.GetFillColor()!=19:
-               c = proj[p]
-               h[ 'simpleDisplay'].cd(c+1)
-               X.SetFillColorAlpha(19, 0)
-               X.SetLineColor(nodes[node_])
-               X.SetLineWidth(1)
-               X.Draw('f&&same')
-               X.Draw('same')
-         except:
-            notFilled = 1
 
 def drawInfo(pad, k, run, event, timestamp):
    drawLogo = True

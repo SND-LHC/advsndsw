@@ -55,11 +55,15 @@ class Tracking(ROOT.FairTask):
    # offline read only:   converted data in, no output
    # offline read/write:  converted data in, converted data out
 
+   # for scifi tracking
    self.nPlanes = 3
    self.nClusters = 5
    self.sigma=150*u.um
    self.maxRes=50
    self.maskPlane=-1
+   # for DS tracking
+   self.DSnPlanes = 2
+   self.DSnHits = 2
 
    if online:
       self.event = self.sink.GetOutTree()
@@ -92,7 +96,7 @@ class Tracking(ROOT.FairTask):
                 if x=='Scifi': rc.SetUniqueID(1)
                 self.fittedTracks.Add(rc)
 
- def DStrack(self,nPlanes = 2, nHits = 2):
+ def DStrack(self):
     event = self.event
     trackCandidates = []
     clusters = self.clusMufi
@@ -116,10 +120,10 @@ class Tracking(ROOT.FairTask):
     pXWithHits = 0
     pYWithHits = 0
     for p in range(30,30+self.systemAndPlanes[s]):
-         if len(stations[p])>nHits or len(stations[p])<1: continue
+         if len(stations[p])>self.DSnHits or len(stations[p])<1: continue
          if p%2==0 and p<36: pYWithHits+=1
          else: pXWithHits+=1
-    if pXWithHits<nPlanes or pYWithHits<nPlanes: success = False
+    if pXWithHits<self.DSnPlanes or pYWithHits<self.DSnPlanes: success = False
     if success:
  # build trackCandidate
       hitlist = {}
