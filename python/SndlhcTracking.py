@@ -87,7 +87,6 @@ class Tracking(ROOT.FairTask):
   pass
 
  def ExecuteTask(self,option='ScifiDS'):
-    self.fittedTracks.Delete()
     self.trackCandidates = {}
     if not option.find('DS')<0:
            self.clusMufi.Delete()
@@ -104,8 +103,6 @@ class Tracking(ROOT.FairTask):
            if type(rc)==type(1):
                 print('trackfit failed',rc,aTrack)
            else:
-                # Don't we want to get rid of failed trackfits staight off?
-                # if not rc.getFitStatus().isFitConverged(): continue
                 i_muon += 1
                 if x=='DS':   rc.SetUniqueID(3)
                 if x=='Scifi': rc.SetUniqueID(1)
@@ -114,9 +111,7 @@ class Tracking(ROOT.FairTask):
                     self.fittedTracks.Add(rc)
                 else:
                     # Load items into snd track class object
-                    # This action would fail if track fit have not converged
-                    # as the constructor accesses FittedStates!
-                    if not rc.getFitStatus().isFitConverged(): continue
+                    #if not rc.getFitStatus().isFitConverged(): continue
                     this_track = ROOT.sndRecoTrack(rc)
                     pointTimes = []
                     if x=='DS':

@@ -743,6 +743,10 @@ class TrackSelector():
 
    def ExecuteEvent(self,event):
            track_container_list = []
+           # Delete SndlhcTracking fitted tracks container
+           if self.options.simpleTracking:
+              self.trackTask.fittedTracks.Delete()
+
            if self.options.trackType == 'ScifiDS':
               if self.options.HoughTracking:
                  self.muon_reco_task_Sf.Exec(0)

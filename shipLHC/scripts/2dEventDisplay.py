@@ -77,10 +77,9 @@ run.SetSource(source)
 sink = ROOT.FairRootFileSink(outFile)
 run.SetSink(sink)
 
-muon_reco_task_Sf = SndlhcMuonReco.MuonReco()
-muon_reco_task_DS = SndlhcMuonReco.MuonReco()
-muon_reco_task_nuInt = SndlhcMuonReco.MuonReco()
-HT_tasks = [muon_reco_task_Sf, muon_reco_task_DS, muon_reco_task_nuInt]
+HT_tasks = {'muon_reco_task_Sf':SndlhcMuonReco.MuonReco(),
+            'muon_reco_task_DS':SndlhcMuonReco.MuonReco(),
+            'muon_reco_task_nuInt':SndlhcMuonReco.MuonReco()}
 for ht_task in HT_tasks:
     run.AddTask(ht_task)
 
@@ -239,6 +238,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
        print('number of tracks by pattern recognition:', nHoughtracks)
 
     if withTrack > 0:
+          # Delete SndlhcTracking fitted tracks container
+          trackTask.fittedTracks.Delete()
           if withTrack==1:
               trackTask.ExecuteTask("ScifiDS")
           elif withTrack==2:
