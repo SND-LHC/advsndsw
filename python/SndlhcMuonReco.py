@@ -92,53 +92,41 @@ class hough() :
             plt.tight_layout()
             plt.show()
 
-        if self.smooth_full or not self.smooth_local:
+        if self.smooth_full:
           # In case of multiple occurrences of the maximum values, argmax returns
-          # the indices corresponding to the first occurrence(along 1st axis).
-          # With smootihg it is very unlikely to have 2 bins with same Nentries
+          # the indices corresponding to the first occurrence(along 1st axis).          
           i_max = np.unravel_index(self.accumulator.argmax(), self.accumulator.shape)
-        else: # local smoothing
-          # In case there are more than 1 bins with the maximal Nentries, choose the one having most entries
-          # after smoothing in an sub-area of the found max. This approach is choosen since
-          # smoothing the whole accumulator array is time consuming for large Nbins
+        else:
+          # In case there are more than 1 bins with the maximal Nentries, check if the n-th quantile of
+          # found peaks along 'slope' axis(yH axis) enloses <n-th quantile> portion of all maxima 'slope' bins
+          # within a specified range. It is advisable that that range is consistent with
+          # the detector angular resolution. 
           maxima = np.argwhere(self.accumulator == np.amax(self.accumulator))
           if len(maxima) == 1:
             i_max = maxima[0]
+          elif len(maxima)==0 or (len(maxima) > 1 and self.HoughSpace_format == 'linearIntercepts'):
+               # if no reasonable way to select btw maxima, force track-build failure
+               # to be decided what to do in 'linearIntercepts' case and multiple maxima
+               return(-999, -999)
+          elif len(maxima) > 1 and abs(min([x[1] for x in maxima]) - max([x[1] for x in maxima])) < self.res:
+               i_max = maxima[0]              
           else:
-            sigma = self.sigma
-            maxima_smooth = np.zeros((2,2), dtype=int)
-            while not len(maxima_smooth) == 1 and len(maxima_smooth) <= len(maxima) and sigma < 6:
-                 smooth_max = []
-                 at  = 2*int(sigma*self.truncate+0.5)+1
-                 up  = at + 1
-                 low = at - 1
-                 for item in maxima:
-                     if item[0] > low and item[1] > low:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[item[0]-at:item[0]+up,item[1]-at:item[1]+up], sigma, truncate=self.truncate)
-                     elif item[0] < at and item[1] > low:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[0:item[0]+up,item[1]-at:item[1]+up], sigma, truncate=self.truncate)
-                     elif item[0] > low and item[1] < at:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[item[0]-at:item[0]+up,0:item[1]+up], sigma, truncate=self.truncate)
-                     else:
-                        subset = scipy.ndimage.gaussian_filter(self.accumulator[0:item[0]+up,0:item[1]+up], sigma, truncate=self.truncate)
-                     smooth_max.append(np.amax(subset))
-                 smooth_max = np.asarray(smooth_max)
-                 many = np.argwhere(smooth_max == np.amax(smooth_max))
-                 counter = 0
-                 maxima_smooth = np.zeros((len(many),2), dtype=int)
-                 for i in many: 
-                   maxima_smooth[counter] = maxima[counter]
-                   counter += 1
-                 sigma += 1
-            if len(maxima_smooth)==1: i_max = maxima_smooth[0] 
-            # In case there are still more than 1 bins with the maximal Nentries, basically, drop the event if spread in angle would be above the resolution
-            if len(maxima_smooth) > 1:
-               if not self.HoughSpace_format == 'linearIntercepts':
-                     if abs(min([x[1] for x in maxima_smooth]) - max([x[1] for x in maxima_smooth])) < 20:
-                       i_max = maxima_smooth[0]
-                     else: return (-999,-999)
-               else: return(-999,-999)
-            else: return(-999,-999)
+            # FIXME: the next two lines can be a single line command for sure
+            maxima_slopesAxis_list = list([x[1] for x in maxima])
+            maxima_slopesAxis_list = np.asarray(maxima_slopesAxis_list)
+            quantile = np.quantile(maxima_slopesAxis_list, self.n_quantile)
+            Nwithin = 0
+            # FIXME: a more elegant 'hidden' loop is maybe possible here too
+            for item in maxima:               
+               if abs(item[1]-quantile)< self.res:
+                 Nwithin += 1                 
+            if Nwithin/len(maxima) > self.n_quantile: 
+               i_x = min([x[1] for x in maxima], key=lambda b: abs(b-quantile))
+               for im in maxima:
+                 if im[1] == i_x : i_max = im
+            else: 
+                 # if no reasonable way to select btw maxima, force track-build failure
+                 return(-999, -999)
 
         found_yH = self.yH_bins[int(i_max[0])]
         found_xH = self.xH_bins[int(i_max[1])]
@@ -236,7 +224,6 @@ class MuonReco(ROOT.FairTask) :
         
         # Initialize event counters in case scaling of events is required
         self.scale = 1
-        self.current_event = -1
         self.events_run = 0
         
         # Initialize hough transform - reading parameter xml file
@@ -294,18 +281,25 @@ class MuonReco(ROOT.FairTask) :
                # How far away from Hough line hits will be assigned to the muon, for Kalman tracking
                self.tolerance = float(case.find('tolerance').text)
 
-               # Which hits to use for track fitting. By default use both scifi and muon filter.
+               # Which hits to use for track fitting.
                self.hits_to_fit = case.find('hits_to_fit').text.strip()
-               # Which hits to use for triplet condition. By default use only downstream muon system hits.
+               # Which hits to use for triplet condition.
                self.hits_for_triplet = case.find('hits_for_hough').text.strip()
+               
+               # Detector plane masking. If flag is active, a plane will be masked if its N_hits > Nhits_per_plane.
+               # In any case, plane masking will only be applied if solely Scifi hits are used in HT as it is
+               # a measure against having many maxima in HT space.
+               self.mask_plane = int(case.find('mask_plane').text)
+               self.Nhits_per_plane = int(case.find('Nhits_per_plane').text)
 
-               # Enable Gaussian smoothing. 
-               # Two cases - smoothing over the full accumulator space or locally around found maxima.
+               # Enable Gaussian smoothing over the full accumulator space.
                self.smooth_full  = int(case.find('smooth_full').text)
-               self.smooth_local = int(case.find('smooth_local').text)
                # Gaussian smoothing parameters. The kernel size is determined as 2*int(truncate*sigma+0.5)+1
-               self.sigma = int(case.find('sigma').text)               
+               self.sigma = int(case.find('sigma').text)
                self.truncate = int(case.find('truncate').text)
+               # Helpers to pick up one of many HT space maxima
+               self.n_quantile = float(case.find('n_quantile').text)
+               self.res = int(case.find('res').text)
 
             else: continue
         if not track_case_exists:
@@ -352,15 +346,17 @@ class MuonReco(ROOT.FairTask) :
             self.h_ZX = hough(n_accumulator_yH, [yH_min_xz, yH_max_xz], n_accumulator_xH, [xH_min_xz, xH_max_xz], z_offset, self.Hough_space_format, det_Zlen)
             self.h_ZY = hough(n_accumulator_yH, [yH_min_yz, yH_max_yz], n_accumulator_xH, [xH_min_yz, xH_max_yz], z_offset, self.Hough_space_format, det_Zlen)
 
-        # If full space smoothing is enabled, local one is not performed, regardless of smooth_local flag.
         self.h_ZX.smooth_full = self.smooth_full
         self.h_ZY.smooth_full = self.smooth_full
-        self.h_ZX.smooth_local = self.smooth_local
-        self.h_ZY.smooth_local = self.smooth_local
         self.h_ZX.sigma = self.sigma
         self.h_ZX.truncate = self.truncate
         self.h_ZY.sigma = self.sigma
         self.h_ZY.truncate = self.truncate
+
+        self.h_ZX.n_quantile = self.n_quantile
+        self.h_ZX.res = self.res
+        self.h_ZY.n_quantile = self.n_quantile
+        self.h_ZY.res = self.res
 
         if self.hits_to_fit == "sf" : self.track_type = 11
         elif self.hits_to_fit == "ds": self.track_type = 13
@@ -378,10 +374,12 @@ class MuonReco(ROOT.FairTask) :
         # Now initialize output in genfit::track or sndRecoTrack format
            if self.genfitTrack:
               self.kalman_tracks = ROOT.TObjArray(self.max_reco_muons)
-              self.ioman.Register("Reco_MuonTracks", self.ioman.GetFolderName(), self.kalman_tracks, ROOT.kTRUE)
+              if hasattr(self, "standalone") and self.standalone:
+                 self.ioman.Register("Reco_MuonTracks", self.ioman.GetFolderName(), self.kalman_tracks, ROOT.kTRUE)
            else:
               self.kalman_tracks = ROOT.TClonesArray("sndRecoTrack", self.max_reco_muons)
-              self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)
+              if hasattr(self, "standalone") and self.standalone:
+                 self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)
 
         # internal storage of clusters
         if self.Scifi_meas: self.clusScifi = ROOT.TObjArray(100)
@@ -418,6 +416,10 @@ class MuonReco(ROOT.FairTask) :
         
     def ForceGenfitTrackFormat(self):
         self.genfitTrack = 1
+
+    # flag showing the task is run seperately from other tracking tasks
+    def SetStandalone(self):
+        self.standalone = 1
     
     def Passthrough(self) :
         T = self.ioman.GetInTree()
@@ -429,22 +431,11 @@ class MuonReco(ROOT.FairTask) :
              self.ioman.Register(obj_name, self.ioman.GetFolderName(), self.ioman.GetObject(obj_name), ROOT.kTRUE) 
 
     def Exec(self, opt) :
-        if len(self.kalman_tracks)!= 0:
-           if ( (self.genfitTrack and self.track_type == self.kalman_tracks.Last().GetUniqueID()) or
-                (not self.genfitTrack and self.track_type == self.kalman_tracks.Last().getTrackType()) ):
-              self.kalman_tracks.Clear('C')
+        self.kalman_tracks.Clear('C')
 
-        if self.scale>1:
-           self.current_event += 1
-           if self.current_event == 0: 
-              self.event_to_process = int(ROOT.gRandom.Rndm()*self.scale)
-           if not self.current_event == self.event_to_process: 
-              if self.current_event == self.scale - 1:
-                 self.current_event = -1
-              return
-           else:
-                if self.current_event == self.scale - 1:
-                   self.current_event = -1
+        # Set scaling in case task is run seperately from other tracking tasks
+        if self.scale>1 and self.standalone:
+           if ROOT.gRandom.Rndm() > 1.0/self.scale: return
 
         self.events_run += 1
         hit_collection = {"pos" : [[], [], []], 
@@ -558,23 +549,24 @@ class MuonReco(ROOT.FairTask) :
                          N_plane_ZX[scifiHit.GetStation()] += 1
                       else:
                          N_plane_ZY[scifiHit.GetStation()] += 1
-                   mask_plane_ZY = []
-                   mask_plane_ZX = []
-                   # sorting
-                   N_plane_ZY = dict(sorted(N_plane_ZY.items(), key=lambda item: item[1], reverse = True))
-                   N_plane_ZX = dict(sorted(N_plane_ZX.items(), key=lambda item: item[1], reverse = True))
-                   # count planes with hits
-                   n_zx = self.Scifi_nPlanes - list(N_plane_ZX.values()).count(0)
-                   n_zy = self.Scifi_nPlanes - list(N_plane_ZY.values()).count(0)
-                   # check with min number of hit planes
-                   if n_zx < self.min_planes_hit or n_zy < self.min_planes_hit: return
-                   # mask busiest planes until there are at least 3 planes with hits left
-                   for ii in range(n_zx-self.min_planes_hit):
-                         if list(N_plane_ZX.values())[ii] > 4:
-                            mask_plane_ZX.append(list(N_plane_ZX.keys())[ii])
-                   for ii in range(n_zy-self.min_planes_hit):
-                         if list(N_plane_ZY.values())[ii] > 4:
-                            mask_plane_ZY.append(list(N_plane_ZY.keys())[ii])
+                   if self.mask_plane:
+                      mask_plane_ZY = []
+                      mask_plane_ZX = []
+                      # sorting
+                      N_plane_ZY = dict(sorted(N_plane_ZY.items(), key=lambda item: item[1], reverse = True))
+                      N_plane_ZX = dict(sorted(N_plane_ZX.items(), key=lambda item: item[1], reverse = True))
+                      # count planes with hits
+                      n_zx = self.Scifi_nPlanes - list(N_plane_ZX.values()).count(0)
+                      n_zy = self.Scifi_nPlanes - list(N_plane_ZY.values()).count(0)
+                      # check with min number of hit planes
+                      if n_zx < self.min_planes_hit or n_zy < self.min_planes_hit: return
+                      # mask busiest planes until there are at least 3 planes with hits left
+                      for ii in range(n_zx-self.min_planes_hit):
+                          if list(N_plane_ZX.values())[ii] > self.Nhits_per_plane:
+                             mask_plane_ZX.append(list(N_plane_ZX.keys())[ii])
+                      for ii in range(n_zy-self.min_planes_hit):
+                          if list(N_plane_ZY.values())[ii] > self.Nhits_per_plane:
+                             mask_plane_ZY.append(list(N_plane_ZY.keys())[ii])
 
                  # Loop through scifi hits
                  for i_hit, scifiHit in enumerate(self.ScifiHits) :
@@ -599,7 +591,7 @@ class MuonReco(ROOT.FairTask) :
             
                      hit_collection["detectorID"].append(scifiHit.GetDetectorID())
                      
-                     if self.hits_for_triplet == 'sf' and self.hits_to_fit == 'sf':
+                     if self.hits_for_triplet == 'sf' and self.hits_to_fit == 'sf' and self.mask_plane:
                        if (scifiHit.isVertical()==0 and scifiHit.GetStation() in mask_plane_ZY) or (scifiHit.isVertical() and scifiHit.GetStation() in mask_plane_ZX):
                           hit_collection["mask"].append(True)
                        else: hit_collection["mask"].append(False)
@@ -833,20 +825,20 @@ class MuonReco(ROOT.FairTask) :
                 theTrack.Delete()
                 raise RuntimeException("Kalman fit did not converge.")
             
-            # Now save the track!
+            # Now save the track if fit converged!
             theTrack.SetUniqueID(self.track_type)
-            if self.genfitTrack: self.kalman_tracks.Add(theTrack)
-            else :
-                # Load items into snd track class object
-                this_track = ROOT.sndRecoTrack(theTrack)
-                pointTimes = []
-                for i_z_sorted in hit_z.argsort() :
-                    pointTimes.append(hit_time[i_z_sorted])
-                this_track.setRawMeasTimes(pointTimes)
-                this_track.setTrackType(self.track_type)
-                # Save the track in sndRecoTrack format
-                self.kalman_tracks[i_muon] = this_track
-            
+            if fitStatus.isFitConverged():
+               if self.genfitTrack: self.kalman_tracks.Add(theTrack)
+               else :
+                  # Load items into snd track class object
+                  this_track = ROOT.sndRecoTrack(theTrack)
+                  pointTimes = []
+                  for i_z_sorted in hit_z.argsort() :
+                      pointTimes.append(hit_time[i_z_sorted])
+                  this_track.setRawMeasTimes(pointTimes)
+                  this_track.setTrackType(self.track_type)
+                  # Save the track in sndRecoTrack format
+                  self.kalman_tracks[i_muon] = this_track
 
             # Remove track hits and try to find an additional track
             # Find array index to be removed
