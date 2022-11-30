@@ -685,22 +685,51 @@ class TrackSelector():
         xrdb.getContainer("FairBaseParSet").setStatic()
         xrdb.getContainer("FairGeoParSet").setStatic()
 
+# init() tracking tasks
+        if self.options.HoughTracking:
+           if self.options.trackType == 'Scifi' or self.options.trackType == 'ScifiDS':
+              self.muon_reco_task_Sf = options.FairTasks["houghTransform_Sf"]
+              self.muon_reco_task_Sf.Init()
+              self.genfitTrack = self.muon_reco_task_Sf.genfitTrack
+           if self.options.trackType == 'DS' or self.options.trackType == 'ScifiDS':
+              self.muon_reco_task_DS = options.FairTasks["houghTransform_DS"]
+              self.muon_reco_task_DS.Init()
+              self.genfitTrack = self.muon_reco_task_DS.genfitTrack
+        if self.options.simpleTracking:
+           self.trackTask = options.FairTasks["simpleTracking"]
+           if not self.options.HoughTracking:
+              self.genfitTrack = self.options.genfitTrack
+           
+           self.trackTask.SetTrackClassType(self.genfitTrack)
+           self.trackTask.Init()
+
 # prepare output tree, same branches as input plus track(s)
         self.outFile = ROOT.TFile(options.oname,'RECREATE')
         self.fSink    = ROOT.FairRootFileSink(self.outFile)
 
         self.outTree = eventChain.CloneTree(0)
         ROOT.gDirectory.pwd()
-        self.kalman_tracks = ROOT.TObjArray(10)
-        self.MuonTracksBranch    = self.outTree.Branch("Reco_MuonTracks",self.kalman_tracks,32000,0)
-        if not eventChain.GetBranch("Cluster_Scifi"):
+        
+        # after track tasks init(), output track format is known
+        if self.genfitTrack:
+                self.fittedTracks = ROOT.TClonesArray("genfit::Track")
+                self.fittedTracks.BypassStreamer(ROOT.kFALSE)
+        else:
+                self.fittedTracks = ROOT.TClonesArray("sndRecoTrack")
+        self.MuonTracksBranch    = self.outTree.Branch("Reco_MuonTracks",self.fittedTracks,32000,0)
+
+        if self.options.simpleTracking and not self.options.trackType.find('Scifi')<0 and not eventChain.GetBranch("Cluster_Scifi"):
            self.clusScifi   = ROOT.TClonesArray("sndCluster")
-           self.clusScifiBranch    = self.outTree.Branch("Cluster_Scifi",self.clusScifi,32000,0)
+           self.clusScifiBranch    = self.outTree.Branch("Cluster_Scifi",self.clusScifi,32000,1)
+        if self.options.simpleTracking and not self.options.trackType.find('DS')<0 and not eventChain.GetBranch("Cluster_Mufi"):
+           self.clusMufi   = ROOT.TClonesArray("sndCluster")
+           self.clusMufiBranch    = self.outTree.Branch("Cluster_Mufi",self.clusMufi,32000,1)
 
         B = ROOT.TList()
         B.SetName('BranchList')
         B.Add(ROOT.TObjString('Reco_MuonTracks'))
-        B.Add(ROOT.TObjString('sndCluster'))
+        B.Add(ROOT.TObjString('Scifi_sndCluster'))
+        B.Add(ROOT.TObjString('Mufi_sndCluster'))
         B.Add(ROOT.TObjString('sndScifiHit'))
         B.Add(ROOT.TObjString('MuFilterHit'))
         B.Add(ROOT.TObjString('FairEventHeader'))
@@ -710,30 +739,69 @@ class TrackSelector():
 
         self.eventTree = eventChain
         self.run.SetSink(self.fSink)
-
-        self.trackTask = options.FairTasks["simpleTracking"]
-        self.trackTask.Init()
         self.OT = ioman.GetSink().GetOutTree()
 
    def ExecuteEvent(self,event):
-           self.trackTask.ExecuteTask(option='ScifiDS')
+           track_container_list = []
+           if self.options.trackType == 'ScifiDS':
+              if self.options.HoughTracking:
+                 self.muon_reco_task_Sf.Exec(0)
+                 self.muon_reco_task_DS.Exec(0)
+                 track_container_list = [self.muon_reco_task_Sf.kalman_tracks,self.muon_reco_task_DS.kalman_tracks]
+              if self.options.simpleTracking:
+                 self.trackTask.ExecuteTask(option='ScifiDS')
+                 track_container_list.append(self.trackTask.fittedTracks)
+
+           elif self.options.trackType == 'Scifi':
+              if self.options.HoughTracking:
+                 self.muon_reco_task_Sf.Exec(0)
+                 track_container_list.append(self.muon_reco_task_Sf.kalman_tracks)
+              if self.options.simpleTracking:
+                 self.trackTask.ExecuteTask(option='Scifi')
+                 track_container_list.append(self.trackTask.fittedTracks)
+                 
+           elif self.options.trackType == 'DS':
+              if self.options.HoughTracking:
+                 self.muon_reco_task_DS.Exec(0)
+                 track_container_list.append(self.muon_reco_task_DS.kalman_tracks)
+              if self.options.simpleTracking:
+                 self.trackTask.ExecuteTask(option='DS')
+                 track_container_list.append(self.trackTask.fittedTracks)
+
+           i_muon = -1
+           for item in track_container_list:
+               for aTrack in item:
+                   i_muon += 1
+                   self.fittedTracks[i_muon] = aTrack
 
    def Execute(self):
       for n in range(self.options.nStart,self.options.nStart+self.options.nEvents):
+
+          if self.options.scaleFactor > 1:
+             if ROOT.gRandom.Rndm() > 1.0/self.options.scaleFactor: continue
+
           self.eventTree.GetEvent(n)
+          # delete track containers
+          self.fittedTracks.Delete()
+
           self.ExecuteEvent(self.eventTree)
-          if self.trackTask.kalman_tracks.GetEntries() == 0: continue
-          if not self.eventTree.GetBranch("Cluster_Scifi"):
+          if self.fittedTracks.GetEntries() == 0: continue
+          if self.options.simpleTracking and not self.options.trackType.find('Scifi')<0:
+             if not self.eventTree.GetBranch("Cluster_Scifi"):
                 self.clusScifi.Delete()
-                index = 0
-                for aCl in self.trackTask.clusScifi:
-                     if  self.clusScifi.GetSize() == index: self.clusScifi.Expand(index+10)
-                     self.clusScifi[index]=aCl
-                     index+=1
-          self.OT.Reco_MuonTracks.Delete()
-          for aTrack in self.trackTask.kalman_tracks:
-                self.OT.Reco_MuonTracks.Add(aTrack)
-          self.OT.EventHeader.SetMCEntryNumber(n)
+                self.clusScifi.Expand(len(self.trackTask.clusScifi))
+                for index, aCl in enumerate(self.trackTask.clusScifi):
+                     self.clusScifi[index] = aCl
+          if self.options.simpleTracking and not self.options.trackType.find('DS')<0:
+             if not self.eventTree.GetBranch("Cluster_Mufi"):
+                self.clusMufi.Delete()
+                self.clusMufi.Expand(len(self.trackTask.clusMufi))
+                for index, aCl in enumerate(self.trackTask.clusMufi):
+                     self.clusMufi[index] = aCl
+
+          # if using FairEventHeader, i.e. before sndlhc header was introduced
+          if hasattr(self.OT.EventHeader, "SetMCEntryNumber"):
+              self.OT.EventHeader.SetMCEntryNumber(n)
           self.fSink.Fill()
 
    def Finalize(self):
