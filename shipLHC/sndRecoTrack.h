@@ -26,6 +26,9 @@ class sndRecoTrack : public TObject {
   void setRawMeasTimes(std::vector<float> l) { fRawMeasTimes = l; }
   void setTrackType(int t) { fTrackType = t; }
 
+  /* extrapolateToPlaneAtZ assumes a plane in the physics coordinate
+     system is perpendicular to z-axis, which is not true for
+     TI18 geometry since detector planes are tilted! */
   TVector3 extrapolateToPlaneAtZ(float z);
   std::pair<int, float> TrackDirection();
   std::pair<float, float> Velocity();

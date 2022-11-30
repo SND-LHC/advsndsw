@@ -24,23 +24,27 @@ using namespace std;
 /* Constructor from genfit::Track object */
 sndRecoTrack::sndRecoTrack(Track* track)
 {
-    for ( auto i = 0; i < track->getNumPoints(); i++ )
-    {
-         auto state = track->getFittedState(i);
-         fTrackPoints.push_back(state.getPos());
-         fRawMeasDetID.push_back(track->getPointWithMeasurement(i)->getRawMeasurement()->getDetId());
-         if (i ==0)
-         {
-             fTrackMom = state.getMom();
-             start = state.getPos();
-         }
-         if (i == track->getNumPoints()-1)
-             stop = state.getPos();
-   }
    FitStatus* fitStatus = track->getFitStatus();
    chi2  = fitStatus->getChi2();
    Ndf   = fitStatus->getNdf();
    fFlag = fitStatus->isFitConverged();
+      
+   if (fFlag)
+   {
+      for ( auto i = 0; i < track->getNumPoints(); i++ )
+      {
+          auto state = track->getFittedState(i);
+          fTrackPoints.push_back(state.getPos());
+          fRawMeasDetID.push_back(track->getPointWithMeasurement(i)->getRawMeasurement()->getDetId());
+          if (i ==0)
+          {
+             fTrackMom = state.getMom();
+             start = state.getPos();
+          }
+          if (i == track->getNumPoints()-1)
+             stop = state.getPos();
+      }
+   }
    // defaults
    fTrackType = 0;
    fRawMeasTimes = {};
