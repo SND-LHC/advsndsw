@@ -31,7 +31,6 @@ parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 
-parser.add_argument("-H", "--houghTransform", dest="houghTransform", help="do not use hough transform for track reco", action='store_false',default=True)
 parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", default=os.environ['SNDSW_ROOT']+"/python/TrackingParams.xml")
 parser.add_argument("-hf", "--HoughSpaceFormat", dest="HspaceFormat", help="Hough space representation. Should match the 'Hough_space_format' name in parFile, use quotes", default='linearSlopeIntercept')
 
@@ -78,36 +77,32 @@ run.SetSource(source)
 sink = ROOT.FairRootFileSink(outFile)
 run.SetSink(sink)
 
-if options.houghTransform:
-  muon_reco_task_Sf = SndlhcMuonReco.MuonReco()
-  muon_reco_task_DS = SndlhcMuonReco.MuonReco()
-  muon_reco_task_nuInt = SndlhcMuonReco.MuonReco()
-  HT_tasks = [muon_reco_task_Sf, muon_reco_task_DS, muon_reco_task_nuInt]
-  for ht_task in HT_tasks:
-      run.AddTask(ht_task)
-else:
-  import SndlhcTracking
-  trackTask = SndlhcTracking.Tracking() 
-  trackTask.SetName('simpleTracking')
-  trackTask.DSnPlanes = 3  # default is 2, too weak
-  trackTask.DSnHits = 2
-  run.AddTask(trackTask)
+muon_reco_task_Sf = SndlhcMuonReco.MuonReco()
+muon_reco_task_DS = SndlhcMuonReco.MuonReco()
+muon_reco_task_nuInt = SndlhcMuonReco.MuonReco()
+HT_tasks = [muon_reco_task_Sf, muon_reco_task_DS, muon_reco_task_nuInt]
+for ht_task in HT_tasks:
+    run.AddTask(ht_task)
+
+import SndlhcTracking
+trackTask = SndlhcTracking.Tracking() 
+trackTask.SetName('simpleTracking')
+run.AddTask(trackTask)
 
 #avoiding some error messages
 xrdb = ROOT.FairRuntimeDb.instance()
 xrdb.getContainer("FairBaseParSet").setStatic()
 xrdb.getContainer("FairGeoParSet").setStatic()
 
-if options.houghTransform:
-  for ht_task in HT_tasks:
-      ht_task.SetParFile(options.parFile)
-      ht_task.SetHoughSpaceFormat(options.HspaceFormat)
-      # force the output of reco task to genfit::Track
-      # as the display code looks for such output
-      ht_task.ForceGenfitTrackFormat()
-  muon_reco_task_Sf.SetTrackingCase('passing_mu_Sf')
-  muon_reco_task_DS.SetTrackingCase('passing_mu_DS')
-  muon_reco_task_nuInt.SetTrackingCase('nu_interaction_products')
+for ht_task in HT_tasks:
+    ht_task.SetParFile(options.parFile)
+    ht_task.SetHoughSpaceFormat(options.HspaceFormat)
+    # force the output of reco task to genfit::Track
+    # as the display code looks for such output
+    ht_task.ForceGenfitTrackFormat()
+muon_reco_task_Sf.SetTrackingCase('passing_mu_Sf')
+muon_reco_task_DS.SetTrackingCase('passing_mu_DS')
+muon_reco_task_nuInt.SetTrackingCase('nu_interaction_products')
 
 run.Init()
 eventTree = ioman.GetInTree()
@@ -189,7 +184,7 @@ def bunchXtype():
              if not b1 and not b2: xing['noBeam'] = True
         return xing
 
-def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSipmMult=1, option=None,Setup='',verbose=0,auto=False):
+def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-1,nTracks=0,minSipmMult=1, option=None,Setup='',verbose=0,auto=False):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
  h['simpleDisplay'].cd(1)
  zStart = 250. # TI18 coordinate system
@@ -211,51 +206,66 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
  text = ROOT.TLatex()
  event = eventTree
  OT = sink.GetOutTree()
- if withTrack==0: OT = eventTree
+ if withTrack==0 or withHoughTrack==0: OT = eventTree
  for N in range(start, event.GetEntries()):
     rc = event.GetEvent(N)
     if goodEvents and not goodEvent(event): continue
-    if not withTrack<-1:
-       if options.houghTransform:
+    nHoughtracks = 0
+    OT.Reco_MuonTracks = ROOT.TObjArray(10)
+    if withHoughTrack > 0:
+       rc = source.GetInTree().GetEvent(N)
+       track_container_list = [muon_reco_task_Sf.kalman_tracks, muon_reco_task_DS.kalman_tracks, muon_reco_task_nuInt.kalman_tracks]
+       # each HT task cleans its own track container. However, when changing tracking option (the withHoughTrack flag)
+       # one has to manually delete track container of the other(previous) HT task.
+       for item in track_container_list:
+           item.Delete()
+       if withHoughTrack==1:
+            muon_reco_task_Sf.Exec(0)
+            muon_reco_task_DS.Exec(0)
+       elif withHoughTrack==2:
+            muon_reco_task_Sf.Exec(0)
+       elif withHoughTrack==3:
+            muon_reco_task_DS.Exec(0)
+       elif withHoughTrack==4:
+            muon_reco_task_nuInt.Exec(0)
+       # Save the tracks in OT.Reco_MuonTracks object
+       for item in track_container_list:
+           for trk in item:
+               OT.Reco_MuonTracks.Add(trk)
+       uniqueTracks = cleanTracks()
+       if len(uniqueTracks)<nTracks:
           OT.Reco_MuonTracks.Delete()
-          rc = source.GetInTree().GetEvent(N)
-          if withTrack==1:
-              muon_reco_task_Sf.Exec(0)
-              muon_reco_task_DS.Exec(0)
-          elif withTrack==2:
-              muon_reco_task_Sf.Exec(0)
-          elif withTrack==3:
-              muon_reco_task_DS.Exec(0)
-          elif withTrack==4:
-              muon_reco_task_nuInt.Exec(0)
-          ntracks = OT.Reco_MuonTracks.GetEntries()
-          uniqueTracks = cleanTracks()
-          if len(uniqueTracks)<nTracks: continue
-       else:
-          OT.Reco_MuonTracks = trackTask.fittedTracks
-          OT.Reco_MuonTracks.Delete()
-          if withTrack==1:  
-              trackTask.ExecuteTask("ScifiDS")
-          elif withTrack==2:  
-              trackTask.ExecuteTask("Scifi")
-          elif withTrack==3:  
-              trackTask.ExecuteTask("DS")
-       ntracks = len(OT.Reco_MuonTracks)
-       if ntracks<nTracks: continue
+       nHoughtracks = OT.Reco_MuonTracks.GetEntries()
+       print('number of tracks by pattern recognition:', nHoughtracks)
 
-       if verbose>0:
-          for aTrack in OT.Reco_MuonTracks:
-             mom    = aTrack.getFittedState().getMom()
-             pos      = aTrack.getFittedState().getPos()
-             mom.Print()
-             pos.Print()
+    if withTrack > 0:
+          if withTrack==1:
+              trackTask.ExecuteTask("ScifiDS")
+          elif withTrack==2:
+              trackTask.ExecuteTask("Scifi")
+          elif withTrack==3:
+              trackTask.ExecuteTask("DS")
+          # Save found tracks
+          for trk in trackTask.fittedTracks:
+              OT.Reco_MuonTracks.Add(trk)
+          ntracks = len(OT.Reco_MuonTracks) - nHoughtracks
+          print('number of tracks by KF-based tracking:', ntracks)
+    nAlltracks = len(OT.Reco_MuonTracks)
+    if nAlltracks<nTracks: continue
+
+    if verbose>0:
+       for aTrack in OT.Reco_MuonTracks:
+           mom    = aTrack.getFittedState().getMom()
+           pos      = aTrack.getFittedState().getPos()
+           mom.Print()
+           pos.Print()
     T,dT = 0,0
     if event.FindBranch("EventHeader"):
        T = event.EventHeader.GetEventTime()
        runId = eventTree.EventHeader.GetRunId()
        if Tprev >0: dT = T-Tprev
        Tprev = T
-    if ntracks > 0: print('number of tracks: ', ntracks)
+    if nAlltracks > 0: print('total number of tracks: ', nAlltracks)
 
     digis = []
     if event.FindBranch("Digi_ScifiHits"): digis.append(event.Digi_ScifiHits)
@@ -329,7 +339,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
                    elif not qdc<0:   
                        h[F][systems[system]][0]+=1
                        if len(h[F][systems[system]]) < 2+side: continue
-                       #h[F][systems[system]][2+side]+=qdc
+                       h[F][systems[system]][2+side]+=qdc
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     k = 1
@@ -352,8 +362,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,nTracks=0,minSip
             h['display:'+c]=h[collection][c][1]
     h['simpleDisplay'].Update()
 
-    if withTrack == 2: addTrack(OT,True)  #withTrack=2 scifi, =3 DS
-    elif not withTrack<0:  addTrack(OT)
+    addTrack(OT)
 
     if option == "2tracks": 
           rc = twoTrackEvent(sMin=10,dClMin=7,minDistance=0.5,sepDistance=0.5)
@@ -380,11 +389,12 @@ def addTrack(OT,scifi=False):
           flightDir = trackTask.trackDir(aTrack)
           print('flight direction: %5.3F  significance: %5.3F'%(flightDir[0],flightDir[1]))
       if aTrack.GetUniqueID()==3: trackColor = ROOT.kBlack
-      if aTrack.GetUniqueID()==11: trackColor = ROOT.kAzure-2
-      if aTrack.GetUniqueID()==13: trackColor = ROOT.kGray+3
+      if aTrack.GetUniqueID()==11: trackColor = ROOT.kAzure-2 # HT scifi track
+      if aTrack.GetUniqueID()==13: trackColor = ROOT.kGray+2 # HT ds track
+      # HT cross-system track fit
       if aTrack.GetUniqueID()==15: trackColor = ROOT.kOrange+7
       S = aTrack.getFitStatus()
-      if not S.isFitConverged() and scifi:
+      if not S.isFitConverged() and (scifi or (aTrack.GetUniqueID()==1 or aTrack.GetUniqueID()==11) ):# scifi trk object ids are 1 or 11(Hough tracking)
          print('not converge')
          continue
       for p in [0,1]:
