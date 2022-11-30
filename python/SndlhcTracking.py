@@ -67,14 +67,10 @@ class Tracking(ROOT.FairTask):
    self.nClusters = 5
    self.sigma=150*u.um
    self.maxRes=50
-<<<<<<< HEAD
    self.maskPlane=-1
    # for DS tracking
    self.DSnPlanes = 2
    self.DSnHits = 2
-=======
-   self.maskPlane=-1     
->>>>>>> 'simple' tracking can now use the sndRecoTrack class or the genfit::Track one.
 
    if online:
       self.event = self.sink.GetOutTree()
