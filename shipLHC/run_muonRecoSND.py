@@ -75,6 +75,9 @@ w = ROOT.TStopwatch()
 muon_reco_task.SetParFile(options.parFile)
 muon_reco_task.SetTrackingCase(options.trackingCase)
 muon_reco_task.SetHoughSpaceFormat(options.HspaceFormat)
+# setting a flag to let the task know which manager called it
+# needed as output handling differs for this manager and run_TrackSelections.
+muon_reco_task.SetStandalone()
 run.Init()
 
 # Set the scale factor - must be after Init()
