@@ -24,8 +24,8 @@ const genfit::MeasuredStateOnPlane& getFittedState(genfit::Track* theTrack, int 
 class Tracking(ROOT.FairTask):
  " Tracking "
  def Init(self,online=False):
-   geoMat =  ROOT.genfit.TGeoMaterialInterface()
-   bfield     = ROOT.genfit.ConstField(0,0,0)   # constant field of zero
+   geoMat = ROOT.genfit.TGeoMaterialInterface()
+   bfield = ROOT.genfit.ConstField(0,0,0)   # constant field of zero
    fM = ROOT.genfit.FieldManager.getInstance()
    fM.init(bfield)
    ROOT.genfit.MaterialEffects.getInstance().init(geoMat)
@@ -33,17 +33,24 @@ class Tracking(ROOT.FairTask):
    lsOfGlobals  = ROOT.gROOT.GetListOfGlobals()
    self.scifiDet = lsOfGlobals.FindObject('Scifi')
    self.mufiDet = lsOfGlobals.FindObject('MuFilter')
-
+   
    # internal storage of clusters
    self.clusScifi   = ROOT.TObjArray(100)
    self.DetID2Key = {}
-   self.clusMufi   = ROOT.TObjArray(100)
+   self.clusMufi  = ROOT.TObjArray(100)
    
    self.fitter = ROOT.genfit.KalmanFitter()
    self.fitter.setMaxIterations(50)
    #internal storage of fitted tracks
-   self.fittedTracks = ROOT.TObjArray(10)
+   # output is in genfit::track or sndRecoTrack format
+   # default is genfit::Track
+   if hasattr(self, "genfitTrack"): pass
+   else: self.genfitTrack = True
    
+   if self.genfitTrack:
+        self.fittedTracks = ROOT.TObjArray(10)
+   else:
+        self.fittedTracks = ROOT.TClonesArray("sndRecoTrack", 10)
    self.sigmaScifi_spatial = 2*150.*u.um
    self.sigmaMufiUS_spatial = 2.*u.cm
    self.sigmaMufiDS_spatial = 0.3*u.cm
@@ -72,7 +79,10 @@ class Tracking(ROOT.FairTask):
 
    self.systemAndPlanes  = {1:2,2:5,3:7}
    return 0
-
+ 
+ def SetTrackClassType(self,genfitTrack):
+     self.genfitTrack = genfitTrack
+ 
  def FinishEvent(self):
   pass
 
@@ -86,15 +96,39 @@ class Tracking(ROOT.FairTask):
            self.clusScifi.Delete()
            self.scifiCluster()
            self.trackCandidates['Scifi'] = self.Scifi_track()
+    i_muon = -1
     for x in self.trackCandidates:
       for aTrack in self.trackCandidates[x]:
            rc = self.fitTrack(aTrack)
            if type(rc)==type(1):
                 print('trackfit failed',rc,aTrack)
            else:
+                i_muon += 1
                 if x=='DS':   rc.SetUniqueID(3)
                 if x=='Scifi': rc.SetUniqueID(1)
-                self.fittedTracks.Add(rc)
+                # add the tracks
+                if self.genfitTrack:
+                    self.fittedTracks.Add(rc)
+                else:
+                    # Load items into snd track class object
+                    #if not rc.getFitStatus().isFitConverged(): continue
+                    this_track = ROOT.sndRecoTrack(rc)
+                    pointTimes = []
+                    if x=='DS':
+                       for pnt in rc.getPointsWithMeasurement():
+                           hitID = pnt.getRawMeasurement().getHitId()
+                           aCl = self.clusMufi[hitID]
+                           pointTimes.append(aCl.GetTime())
+                    if x=='Scifi':
+                       for pnt in rc.getPointsWithMeasurement():
+                           hitID = pnt.getRawMeasurement().getHitId()
+                           aCl = self.clusScifi[hitID]
+                           pointTimes.append(aCl.GetTime())
+                    this_track.setRawMeasTimes(pointTimes)
+                    this_track.setTrackType(rc.GetUniqueID())
+                    # Store the track in sndRecoTrack format
+                    self.fittedTracks[i_muon] = this_track
+            
 
  def DStrack(self):
     event = self.event
