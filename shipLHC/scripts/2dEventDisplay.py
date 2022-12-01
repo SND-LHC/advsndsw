@@ -80,7 +80,7 @@ run.SetSink(sink)
 HT_tasks = {'muon_reco_task_Sf':SndlhcMuonReco.MuonReco(),
             'muon_reco_task_DS':SndlhcMuonReco.MuonReco(),
             'muon_reco_task_nuInt':SndlhcMuonReco.MuonReco()}
-for ht_task in HT_tasks:
+for ht_task in HT_tasks.values():
     run.AddTask(ht_task)
 
 import SndlhcTracking
@@ -93,15 +93,15 @@ xrdb = ROOT.FairRuntimeDb.instance()
 xrdb.getContainer("FairBaseParSet").setStatic()
 xrdb.getContainer("FairGeoParSet").setStatic()
 
-for ht_task in HT_tasks:
+for ht_task in HT_tasks.values():
     ht_task.SetParFile(options.parFile)
     ht_task.SetHoughSpaceFormat(options.HspaceFormat)
     # force the output of reco task to genfit::Track
     # as the display code looks for such output
     ht_task.ForceGenfitTrackFormat()
-muon_reco_task_Sf.SetTrackingCase('passing_mu_Sf')
-muon_reco_task_DS.SetTrackingCase('passing_mu_DS')
-muon_reco_task_nuInt.SetTrackingCase('nu_interaction_products')
+HT_tasks['muon_reco_task_Sf'].SetTrackingCase('passing_mu_Sf')
+HT_tasks['muon_reco_task_DS'].SetTrackingCase('passing_mu_DS')
+HT_tasks['muon_reco_task_nuInt'].SetTrackingCase('nu_interaction_products')
 
 run.Init()
 eventTree = ioman.GetInTree()
@@ -213,23 +213,21 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
     OT.Reco_MuonTracks = ROOT.TObjArray(10)
     if withHoughTrack > 0:
        rc = source.GetInTree().GetEvent(N)
-       track_container_list = [muon_reco_task_Sf.kalman_tracks, muon_reco_task_DS.kalman_tracks, muon_reco_task_nuInt.kalman_tracks]
-       # each HT task cleans its own track container. However, when changing tracking option (the withHoughTrack flag)
-       # one has to manually delete track container of the other(previous) HT task.
-       for item in track_container_list:
-           item.Delete()
+       # Delete SndlhcMuonReco kalman tracks container
+       for ht_task in HT_tasks.values():
+           ht_task.kalman_tracks.Delete()
        if withHoughTrack==1:
-            muon_reco_task_Sf.Exec(0)
-            muon_reco_task_DS.Exec(0)
+            HT_tasks['muon_reco_task_Sf'].Exec(0)
+            HT_tasks['muon_reco_task_DS'].Exec(0)
        elif withHoughTrack==2:
-            muon_reco_task_Sf.Exec(0)
+            HT_tasks['muon_reco_task_Sf'].Exec(0)
        elif withHoughTrack==3:
-            muon_reco_task_DS.Exec(0)
+            HT_tasks['muon_reco_task_DS'].Exec(0)
        elif withHoughTrack==4:
-            muon_reco_task_nuInt.Exec(0)
+            HT_tasks['muon_reco_task_nuInt'].Exec(0)
        # Save the tracks in OT.Reco_MuonTracks object
-       for item in track_container_list:
-           for trk in item:
+       for ht_task in HT_tasks.values():
+           for trk in ht_task.kalman_tracks:
                OT.Reco_MuonTracks.Add(trk)
        uniqueTracks = cleanTracks()
        if len(uniqueTracks)<nTracks:
