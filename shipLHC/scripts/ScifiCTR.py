@@ -1,9 +1,14 @@
+import os,atexit
 import shipunit as u
 import rootUtils as ut
 import ROOT
 import ctypes
 import pickle
 from array import array
+def pyExit():
+       print("Make suicide until solution found for freezing")
+       os.system('kill '+str(os.getpid()))
+atexit.register(pyExit)
 
 A,B=ROOT.TVector3(),ROOT.TVector3()
 
@@ -77,7 +82,7 @@ class Scifi_CTR(ROOT.FairTask):
        for nHit in range(event.Digi_ScifiHits.GetEntries()):
            DetID2Key[event.Digi_ScifiHits[nHit].GetDetectorID()] = nHit
 
-       for aTrack in event.Reco_MuonTracks:
+       for aTrack in self.M.Reco_MuonTracks:
           if not aTrack.GetUniqueID()==1: continue
           fitStatus = aTrack.getFitStatus()
           if not fitStatus.isFitConverged(): continue
@@ -94,7 +99,7 @@ class Scifi_CTR(ROOT.FairTask):
               Meas = aTrack.getPointWithMeasurement(nM)
               W      = Meas.getRawMeasurement()
               clkey = W.getHitId()
-              aCl    = event.Cluster_Scifi[clkey]
+              aCl    = self.M.trackTask.clusScifi[clkey]
               aHit = event.Digi_ScifiHits[DetID2Key[aCl.GetFirst()]]
               s = aCl.GetFirst()//1000000
               aCl.GetPosition(A,B)
@@ -113,7 +118,7 @@ class Scifi_CTR(ROOT.FairTask):
               timeCorr = {}
               for proj in ['V','H']:
                   clkey = sortedClusters[s][proj][0][0]
-                  aCl    = event.Cluster_Scifi[clkey]
+                  aCl    = self.M.trackTask.clusScifi[clkey]
                   L = sortedClusters[s][proj][0][1]
                   rc = h['extrap'+str(s)+proj].Fill(abs(L))
                   time = aCl.GetTime()   # Get time in ns, use fastest TDC of cluster
@@ -141,7 +146,7 @@ class Scifi_CTR(ROOT.FairTask):
                    sTime = 0
                    for proj in ['V','H']:
                       clkey = sortedClusters[s][proj][0][0]
-                      aCl    = event.Cluster_Scifi[clkey]
+                      aCl    = self.M.trackTask.clusScifi[clkey]
                       L = sortedClusters[s][proj][0][1]
                       time =  aCl.GetTime()   # Get time in ns, use fastest TDC of cluster
                       mat  =  sortedClusters[s][proj][0][4]
@@ -326,6 +331,7 @@ class Scifi_TimeOfTracks(ROOT.FairTask):
    " dt versus dz"
    def Init(self,monitor):
        self.M = monitor
+       self.trackTask = self.M.FairTasks['simpleTracking']
        h = self.M.h
        self.V = 15 * u.cm/u.ns
        self.C = 299792458 * u.m/u.s
@@ -336,7 +342,7 @@ class Scifi_TimeOfTracks(ROOT.FairTask):
 
    def ExecuteEvent(self,event):
        h = self.M.h
-       for aTrack in event.Reco_MuonTracks:
+       for aTrack in self.M.Reco_MuonTracks:
           if not aTrack.GetUniqueID()==1: continue
           fitStatus = aTrack.getFitStatus()
           if not fitStatus.isFitConverged(): continue
@@ -356,7 +362,7 @@ class Scifi_TimeOfTracks(ROOT.FairTask):
               Meas = aTrack.getPointWithMeasurement(nM)
               W      = Meas.getRawMeasurement()
               clkey = W.getHitId()
-              aCl    = event.Cluster_Scifi[clkey]
+              aCl   = self.trackTask.clusScifi[clkey]
               aHit = event.Digi_ScifiHits[DetID2Key[aCl.GetFirst()]]
               s = aCl.GetFirst()//1000000
               aCl.GetPosition(A,B)
@@ -374,7 +380,7 @@ class Scifi_TimeOfTracks(ROOT.FairTask):
              sTime = 0
              for proj in ['V','H']:
                 clkey = sortedClusters[s][proj][0][0]
-                aCl    = event.Cluster_Scifi[clkey]
+                aCl    = self.trackTask.clusScifi[clkey]
                 L = sortedClusters[s][proj][0][1]
                 time =  aCl.GetTime()   # Get time in ns, use fastest TDC of cluster
                 mat  =  sortedClusters[s][proj][0][4]
@@ -420,40 +426,53 @@ class histStore():
 
 if __name__ == '__main__':
    import Monitor
+   import SndlhcTracking
    from argparse import ArgumentParser
    parser = ArgumentParser()
-   parser.add_argument("-f", "--inputFile", dest="fname", help="file name", type=str,default='RunWithTracks4208.root',required=False)
+   parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
+   parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,default=-1)
+   parser.add_argument("-p", "--path", dest="path", help="path to data",required=False,default="/eos/experiment/sndlhc/convertedData/commissioning/TI18/")
+   parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
+   parser.add_argument("-f", "--inputFile", dest="fname", help="file name", type=str,default=None,required=False)
    parser.add_argument("-g", "--geoFile", dest="geoFile", help="file name", type=str,default=None,required=False)
    parser.add_argument("-c", "--command", dest="command", help="command",required=False,default="")
-   parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,default=0)
-   parser.add_argument("-p", "--path", dest="path", help="path to file",required=False,default="")
-   parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
    parser.add_argument("-M", "--online", dest="online", help="online mode",default=False,action='store_true')
+   parser.add_argument("--interactive", dest="interactive", action='store_true',default=False)
+   parser.add_argument("-n", "--nEvents", dest="nEvents", help="number of events", default=-1,type=int)
+
    options = parser.parse_args()
+   options.trackType = 'Scifi'
+   if not options.geoFile:
+     if options.runNumber < 4575:
+           options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
+     elif options.runNumber < 4855:
+          options.geoFile =  "geofile_sndlhc_TI18_V5_14August2022.root"
+     elif options.runNumber < 5172:
+          options.geoFile =  "geofile_sndlhc_TI18_V6_08October2022.root"
+     else:
+          options.geoFile =  "geofile_sndlhc_TI18_V7_22November2022.root"
 
-   if options.geoFile:
-        M = Monitor.Monitoring(options,{})
-   else:
-        M = histStore()
-
-   F =  ROOT.TFile(options.fname)
-   eventTree = F.rawConv
-
+   FairTasks = []
+   trackTask = SndlhcTracking.Tracking() 
+   trackTask.SetName('simpleTracking')
+   FairTasks.append(trackTask)
+   M = Monitor.Monitoring(options,FairTasks)
+   if options.nEvents <0: options.nEvents = M.GetEntries()
    if options.command == "full":
        task = Scifi_CTR()
        M.iteration = 'v0'
        task.Init(M)
-       for event in eventTree:
+       for n in range(options.nEvents):
+            event = M.GetEvent(n)
             task.ExecuteEvent(event)
-            event.Reco_MuonTracks.Delete()
        task.Plot()
        task.minimize(b="")   # all tracks, not yet enough stats for beam tracks
 # cross check and station alignment
        M.iteration = 'v1'
        task.Init(M)
-       for event in eventTree:
+       for n in range(options.nEvents):
+            event = M.GetEvent(n)
             task.ExecuteEvent(event)
-            event.Reco_MuonTracks.Delete()
        task.Plot()
 # nw minimize the station alignments
        task.minimizeStation(b="")
@@ -461,9 +480,9 @@ if __name__ == '__main__':
 # cross check
        M.iteration = 'v2'
        task.Init(M)
-       for event in eventTree:
+       for n in range(options.nEvents):
+            event = M.GetEvent(n)
             task.ExecuteEvent(event)
-            event.Reco_MuonTracks.Delete()
        task.Plot()
        ut.writeHists(M.h,'ScifiTimeCalibration.root',plusCanvas=True)
 
@@ -478,7 +497,7 @@ if options.command == "full" or options.command == "check":
 # final test
        taskT = Scifi_TimeOfTracks()
        taskT.Init(M)
-       for event in eventTree:
+       for n in range(options.nEvents):
+            event = M.GetEvent(n)
             taskT.ExecuteEvent(event)
-            event.Reco_MuonTracks.Delete()
        taskT.Plot()
