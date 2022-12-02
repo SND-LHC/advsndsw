@@ -487,10 +487,10 @@ if __name__ == '__main__':
        ut.writeHists(M.h,'ScifiTimeCalibration.root',plusCanvas=True)
 
        for s in range(1,6):
-          C = taskT.tdcScifiStationCalib[s]
+          C = task.tdcScifiStationCalib[s]
           print ("station %1i  %5.2F  H: %5.2F  %5.2F  %5.2F   V:  %5.2F  %5.2F  %5.2F "%( s, C[0],C[1]['H'][0], C[1]['H'][1], C[1]['H'][2],C[1]['V'][0], C[1]['V'][1], C[1]['V'][2] ) )
        for s in range(1,6):
-          C = taskT.tdcScifiStationCalib[s]
+          C = task.tdcScifiStationCalib[s]
           print ("station %1i  %5.3F*u.ns,  %5.3F*u.ns,  %5.3F*u.ns,  %5.3F*u.ns,   %5.3F*u.ns,  %5.3F*u.ns,  %5.3F*u.ns "%( s, C[0],C[1]['H'][0], C[1]['H'][1], C[1]['H'][2],C[1]['V'][0], C[1]['V'][1], C[1]['V'][2] ) )
 
 if options.command == "full" or options.command == "check":
@@ -501,3 +501,10 @@ if options.command == "full" or options.command == "check":
             event = M.GetEvent(n)
             taskT.ExecuteEvent(event)
        taskT.Plot()
+       for s in range(1,6):
+          C = taskT.tdcScifiStationCalib[s]
+          print ("station %1i  %5.2F  H: %5.2F  %5.2F  %5.2F   V:  %5.2F  %5.2F  %5.2F "%( s, C[0],C[1]['H'][0], C[1]['H'][1], C[1]['H'][2],C[1]['V'][0], C[1]['V'][1], C[1]['V'][2] ) )
+       for s in range(1,6):
+          C = taskT.tdcScifiStationCalib[s]
+          print ("station %1i  %5.3F*u.ns,  %5.3F*u.ns,  %5.3F*u.ns,  %5.3F*u.ns,   %5.3F*u.ns,  %5.3F*u.ns,  %5.3F*u.ns "%( s, C[0],C[1]['H'][0], C[1]['H'][1], C[1]['H'][2],C[1]['V'][0], C[1]['V'][1], C[1]['V'][2] ) )
+
