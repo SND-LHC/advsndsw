@@ -190,10 +190,16 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
  if Setup == 'H6': zStart = 60.
  if Setup == 'TP': zStart = -50. # old coordinate system with origin in middle of target
  if 'xz' in h: 
-        h.pop('xz').Delete()
-        h.pop('yz').Delete()
- ut.bookHist(h,'xz','; z [cm]; x [cm]',500,zStart,zStart+350.,100,-100.,10.)
- ut.bookHist(h,'yz','; z [cm]; y [cm]',500,zStart,zStart+350.,100,-30.,80.)
+    h.pop('xz').Delete()
+    h.pop('yz').Delete()
+ else:
+    h['xmin'],h['xmax'] = -100.,10.
+    h['ymin'],h['ymax'] = -30.,80.
+    h['zmin'],h['zmax'] = zStart,zStart+350.
+    for d in ['xmin','xmax','ymin','ymax','zmin','zmax']: h['c'+d]=h[d]
+ ut.bookHist(h,'xz','; z [cm]; x [cm]',500,h['czmin'],h['czmax'],100,h['cxmin'],h['cxmax'])
+ ut.bookHist(h,'yz','; z [cm]; y [cm]',500,h['czmin'],h['czmax'],100,h['cymin'],h['cymax'])
+
  proj = {1:'xz',2:'yz'}
  h['xz'].SetStats(0)
  h['yz'].SetStats(0)
@@ -206,8 +212,15 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
  event = eventTree
  OT = sink.GetOutTree()
  if withTrack==0 or withHoughTrack==0: OT = eventTree
- for N in range(start, event.GetEntries()):
-    rc = event.GetEvent(N)
+ if type(start) == type(1):
+    s = start
+    e = event.GetEntries()
+ else:
+    s = 0
+    e = len(start)
+ for N in range(s,e):
+    if type(start) == type(1): rc = event.GetEvent(N)
+    else: rc = event.GetEvent(start[N])
     if goodEvents and not goodEvent(event): continue
     nHoughtracks = 0
     OT.Reco_MuonTracks = ROOT.TObjArray(10)
@@ -589,6 +602,20 @@ def drawDetectors():
                X.SetFillColorAlpha(nodes[node_], 0.5)
                X.Draw('f&&same')
             X.Draw('same')
+def zoom(xmin=None,xmax=None,ymin=None,ymax=None,zmin=None,zmax=None):
+# zoom() will reset to default setting
+  for d in ['xmin','xmax','ymin','ymax','zmin','zmax']:
+     if eval(d): h['c'+d]=eval(d)
+     else: h['c'+d]=h[d]
+  h['xz'].GetXaxis().SetRangeUser(h['czmin'],h['czmax'])
+  h['yz'].GetXaxis().SetRangeUser(h['czmin'],h['czmax'])
+  h['xz'].GetYaxis().SetRangeUser(h['cxmin'],h['cxmax'])
+  h['yz'].GetYaxis().SetRangeUser(h['cymin'],h['cymax'])
+  h['xz'].Draw('same')
+  h['simpleDisplay'].cd(1).Update()
+  h['yz'].Draw('same')
+  h['simpleDisplay'].cd(2).Update()
+  h['simpleDisplay'].Update()
 
 def dumpVeto():
     muHits = {10:[],11:[]}
