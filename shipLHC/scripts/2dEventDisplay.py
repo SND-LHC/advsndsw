@@ -35,8 +35,15 @@ parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", 
 parser.add_argument("-hf", "--HoughSpaceFormat", dest="HspaceFormat", help="Hough space representation. Should match the 'Hough_space_format' name in parFile, use quotes", default='linearSlopeIntercept')
 
 options = parser.parse_args()
-
+options.storePic = ''
 trans2local = False
+runInfo = False
+try:
+   fg  = ROOT.TFile.Open(options.server+"/eos/experiment/sndlhc/convertedData/commissioning/TI18/RunInfodict.root")
+   pkl = Unpickler(fg)
+   runInfo = pkl.load('runInfo')
+   fg.Close()
+except: pass
 
 import SndlhcGeo
 geo = SndlhcGeo.GeoInterface(options.geoFile)
@@ -387,7 +394,9 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
     if verbose>0: dumpChannels()
     if save: h['simpleDisplay'].Print('{:0>2d}-event_{:04d}'.format(runId,N)+'.png')
     if not auto:
-       rc = input("hit return for next event or q for quit: ")
+       rc = input("hit return for next event or or p for print or q for quit: ")
+       if rc=='p': 
+             h['simpleDisplay'].Print(options.storePic+'{:0>2d}-event_{:07d}'.format(runId,event.EventHeader.GetEventNumber())+'.png')
        if rc=='q': break
  if save: os.system("convert -delay 60 -loop 0 event*.png animated.gif")
 
@@ -611,10 +620,10 @@ def zoom(xmin=None,xmax=None,ymin=None,ymax=None,zmin=None,zmax=None):
   h['yz'].GetXaxis().SetRangeUser(h['czmin'],h['czmax'])
   h['xz'].GetYaxis().SetRangeUser(h['cxmin'],h['cxmax'])
   h['yz'].GetYaxis().SetRangeUser(h['cymin'],h['cymax'])
-  h['xz'].Draw('same')
-  h['simpleDisplay'].cd(1).Update()
-  h['yz'].Draw('same')
-  h['simpleDisplay'].cd(2).Update()
+  tc = h['simpleDisplay'].cd(1)
+  tc.Update()
+  tc = h['simpleDisplay'].cd(2)
+  tc.Update()
   h['simpleDisplay'].Update()
 
 def dumpVeto():
