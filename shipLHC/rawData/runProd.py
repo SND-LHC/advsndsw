@@ -245,8 +245,11 @@ class prodManager():
           fileList = str( subprocess.check_output("xrdfs "+self.options.server+" ls -l "+p+"/"+aDir,shell=True) )
           for z in fileList.split('\\n'):
                jj=0
+               tmp = []
+               for o in z.split(' '):
+                  if not o=='': tmp.append(o)
                if self.options.server.find('snd-server')>0:
-                  jj = 3
+                  jj = 3              # not sure it is still correct with the changes on EOS
                   k = z.rfind('data_')
                   if not k>0: continue
                   if not z[k+9:k+10]=='.': continue
@@ -260,14 +263,10 @@ class prodManager():
                else:
                   k = max(z.find('data_'),z.find('sndsw'))
                   if not k>0: continue
-                  j = z.split(' /eos')[0].rfind(' ')
-                  size = int(z.split(' /eos')[0][j+1:])
+                  size = int(tmp[3+jj])
                if size<minSize: continue
-               tmp = []
-               for o in z.split(' '):
-                  if not o=='': tmp.append(o)
-               theDay = tmp[1+jj] 
-               theTime = tmp[2+jj]
+               theDay = tmp[4+jj] 
+               theTime = tmp[5+jj]
                fname = z[k:]
                run = int(aDir.split('_')[1])
                if run>900000: continue     # not a physical run
