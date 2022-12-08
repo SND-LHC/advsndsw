@@ -791,7 +791,7 @@ class TrackSelector():
           self.fittedTracks.Delete()
           
           self.ExecuteEvent(self.eventTree)
-          #if not self.MonteCarlo and self.fittedTracks.GetEntries() == 0: continue
+          if not self.MonteCarlo and self.fittedTracks.GetEntries() == 0: continue
           if self.options.simpleTracking and not self.options.trackType.find('Scifi')<0:
              if not self.eventTree.GetBranch("Cluster_Scifi"):
                 self.clusScifi.Delete()
