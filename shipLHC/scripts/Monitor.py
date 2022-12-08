@@ -153,7 +153,7 @@ class Monitoring():
                 f=ROOT.TFile.Open(options.fname)
                 eventChain = f.Get('rawConv')
                 if not eventChain:   
-                    eventChain = f.cbmsim
+                    eventChain = f.Get('cbmsim')
                     if eventChain.GetBranch('MCTrack'): self.MonteCarlo = True
                 partitions = []
             else:
@@ -663,8 +663,11 @@ class TrackSelector():
                        eventChain.Add(path+'run_'+self.runNr+'/'+p)
         else:
 # for MC data
+                #eventChain = ROOT.TChain("cbmsim")
+                #eventChain.Add(options.fname)
                 f=ROOT.TFile.Open(options.fname)
                 eventChain = f.cbmsim
+                partitions = []
         rc = eventChain.GetEvent(0)
 # start FairRunAna
         self.run  = ROOT.FairRunAna()
