@@ -117,7 +117,7 @@ pair<int, float> sndRecoTrack::TrackDirection()
 pair<float, float> sndRecoTrack::Velocity()
 {
    /* Extract particle velocity based on timing
-      measurements as slope of linear fit of (dT,dL)
+      measurements as slope of linear fit of (dL,dT)
       Reference T0 is 1st measurement in z */
 
    // Account for signal propagation in detectors
@@ -135,7 +135,7 @@ pair<float, float> sndRecoTrack::Velocity()
      delta_T = corr_times[i]-corr_times[0];
      // Use current track point measurement only if time difference is above resolution
      if (fabs(delta_T) < resol*sqrt(2)) continue;
-     gr.AddPoint(delta_T, (fTrackPoints[i]-fTrackPoints[0]).Mag());
+     gr.AddPoint((fTrackPoints[i]-fTrackPoints[0]).Mag(), delta_T);
    }
    TF1 line("line", "pol1");
    // A single entry in the graph - no fit
@@ -143,15 +143,16 @@ pair<float, float> sndRecoTrack::Velocity()
      return make_pair(9999.,999.);
    else
      gr.Fit("line", "SQ");
-     return make_pair(line.GetParameter(1), line.GetParError(1));
+     // slope of fit is 1/v
+     return make_pair(1./line.GetParameter(1),line.GetParError(1)/pow(line.GetParameter(1),2));
 }
 
 pair<float, float> sndRecoTrack::trackDir()
 {
    /* Based on the same function in SndlhcTracking.py!
       Extract direction based on timing
-      measurements as slope of linear fit of (dT,dL)
-      Featuring time-of-flight correction btw measurements.
+      measurements as slope of linear fit of (dL,dT'),
+      where dT' features time of flight estimation.
       Reference T0 is 1st measurement in z */
 
    // Account for signal propagation in detectors
