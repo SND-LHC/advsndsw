@@ -71,7 +71,7 @@ class Tracking(ROOT.FairTask):
    # for DS tracking
    self.DSnPlanes = 2
    self.DSnHits = 2
-   self.nDSPlanesVert  = self.mufiDet.GetConfParF("MuFilter/NDownstreamPlanes")
+   self.nDSPlanesVert  = self.mufiDet.GetConfParI("MuFilter/NDownstreamPlanes")
    self.nDSPlanesHor = self.nDSPlanesVert-1
 
    if online:
