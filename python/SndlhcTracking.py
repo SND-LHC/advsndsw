@@ -71,6 +71,8 @@ class Tracking(ROOT.FairTask):
    # for DS tracking
    self.DSnPlanes = 2
    self.DSnHits = 2
+   self.nDSPlanesVert  = self.mufiDet.GetConfParF("MuFilter/NDownstreamPlanes")
+   self.nDSPlanesHor = self.nDSPlanesVert-1
 
    if online:
       self.event = self.sink.GetOutTree()
@@ -153,15 +155,36 @@ class Tracking(ROOT.FairTask):
     success = True
     pXWithHits = 0
     pYWithHits = 0
+    clustPer_pX = {}
+    clustPer_pY = {}
+    mask_pX = []
+    mask_pY = []
     for p in range(30,30+self.systemAndPlanes[s]):
+         if p%2==0 and p<36: clustPer_pY[p]=len(stations[p])
+         else: clustPer_pX[p]=len(stations[p])
          if len(stations[p])>self.DSnHits or len(stations[p])<1: continue
          if p%2==0 and p<36: pYWithHits+=1
          else: pXWithHits+=1
     if pXWithHits<self.DSnPlanes or pYWithHits<self.DSnPlanes: success = False
     if success:
  # build trackCandidate
+      # define planes to mask
+      clustPer_pX = dict(sorted(clustPer_pX.items(), key=lambda item: item[1], reverse = True))
+      clustPer_pY = dict(sorted(clustPer_pY.items(), key=lambda item: item[1], reverse = True))
+      # count planes with clusters
+      nX = self.nDSPlanesVert - list(clustPer_pX.values()).count(0)
+      nY = self.nDSPlanesHor - list(clustPer_pY.values()).count(0)
+      # mask busiest planes until there are at least DSnPlanes planes with clusters left
+      for ii in range(nX-self.DSnPlanes):
+        if list(clustPer_pX.values())[ii] >=self.DSnHits:
+           mask_pX.append(list(clustPer_pX.keys())[ii])
+      for ii in range(nY-self.DSnPlanes):
+        if list(clustPer_pY.values())[ii] >=self.DSnHits:
+           mask_pY.append(list(clustPer_pY.keys())[ii])
+
       hitlist = {}
       for p in stations:
+         if p in mask_pX or p in mask_pY: continue
          for k in stations[p]:
              hitlist[k] = stations[p][k]
       trackCandidates.append(hitlist)
