@@ -62,6 +62,14 @@ detSize[3] =[mi.DownstreamBarX_ver/2,mi.DownstreamBarY/2,mi.DownstreamBarZ/2]
 
 mc = False
 
+
+# Initialize FairLogger: set severity and verbosity
+logger = ROOT.FairLogger.GetLogger()
+logger.SetColoredLog(True)
+logger.SetLogVerbosityLevel('low')
+logger.SetLogScreenLevel('WARNING')
+logger.SetLogToScreen(True)
+
 run      = ROOT.FairRunAna()
 ioman = ROOT.FairRootManager.Instance()
 
