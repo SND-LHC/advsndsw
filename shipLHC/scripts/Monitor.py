@@ -628,6 +628,7 @@ class TrackSelector():
    def __init__(self,options):
         self.options = options
         self.EventNumber = -1
+        self.MonteCarlo = False
 
         path     = options.path
         if path.find('eos')>0:
