@@ -226,6 +226,9 @@ if simEngine == "MuonBack":
  else:
   primGen.SetTarget(snd_geo.target.z0+50*u.m,0.)
  #
+ if options.ecut > 0:  
+     modules['Floor'].SetEmin(options.ecut)
+     modules['Floor'].SetZmax(options.zmax)
  MuonBackgen = ROOT.MuonBackGenerator()
  # MuonBackgen.FollowAllParticles() # will follow all particles after hadron absorber, not only muons
  MuonBackgen.Init(inputFile,options.firstEvent,options.phiRandom)
