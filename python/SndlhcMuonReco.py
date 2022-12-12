@@ -213,12 +213,12 @@ class MuonReco(ROOT.FairTask) :
 
         # If that doesn't work, try using standard ROOT
             if self.MuFilterHits == None :
-               if self.logger.IsLogNeeded(ROOT.fair.Severity.warn):
+               if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
                   print("Digi_MuFilterHits not in branch list")
                self.MuFilterHits = self.ioman.GetInTree().Digi_MuFilterHits
             if self.ScifiHits == None :
-               if self.logger.IsLogNeeded(ROOT.fair.Severity.warn):
-                  ("Digi_ScifiHits not in branch list")
+               if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
+                  print("Digi_ScifiHits not in branch list")
                self.ScifiHits = self.ioman.GetInTree().Digi_ScifiHits
         
         if self.MuFilterHits == None :
