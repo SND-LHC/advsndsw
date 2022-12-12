@@ -16,6 +16,8 @@
 #include "sndDSActivityCut.h"
 #include "sndUSQDCCut.h"
 #include "sndEventDeltat.h"
+#include "sndAvgSciFiFiducialCut.h"
+#include "sndAvgDSFiducialCut.h"
 
 int main(int argc, char ** argv) {
 
@@ -56,6 +58,8 @@ int main(int argc, char ** argv) {
   cutFlow.push_back( new sndAnalysis::USQDCCut(600, ch)); // J. Total US QDC > 600
   cutFlow.push_back( new sndAnalysis::eventDeltatCut(-1, 100, ch)); // K. Previous event more than 100 clock cycles away. To avoid deadtime issues.
   cutFlow.push_back( new sndAnalysis::eventDeltatCut(+1, 10, ch)); // L. Next event more than 10 clock cycles away. To avoid event builder issues.
+  cutFlow.push_back( new sndAnalysis::avgSciFiFiducialCut(200, 1200, 300, 128*12, ch)); // M. Average SciFi hit channel number must be within [200, 1200] (ver) and [300, max] (hor)
+  cutFlow.push_back( new sndAnalysis::avgDSFiducialCut(70, 105, 10, 50, ch)); // M. Average SciFi hit channel number must be within [70, 110] (ver) and [10, 50] (hor)
 
   unsigned int n_cuts = cutFlow.size();
 

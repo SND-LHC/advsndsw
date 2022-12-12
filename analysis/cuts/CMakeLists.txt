@@ -9,6 +9,8 @@ sndDSActivityCut.cxx
 sndUSQDCCut.cxx
 sndEventHeaderBaseCut.cxx
 sndEventDeltat.cxx
+sndAvgSciFiFiducialCut.cxx
+sndAvgDSFiducialCut.cxx
 )
 
 set(LINK_DIRECTORIES
