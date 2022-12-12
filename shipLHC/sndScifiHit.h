@@ -30,8 +30,8 @@ class sndScifiHit : public SndlhcHit
 		if ( int(fDetectorID/100000)%10 == 1){return true;}
 		else{return (false);}
 	}
-	Int_t  GetMat(){return ( int(fDetectorID/100000)%10);}
-	Int_t  GetSiPM(){return ( int(fDetectorID/10000)%10);}
+	Int_t  GetMat(){return ( int(fDetectorID/10000)%10);}
+	Int_t  GetSiPM(){return ( int(fDetectorID/1000)%10);}
 	Int_t GetSiPMChan(){return ( fDetectorID%1000);}
 	Int_t GetChannelID(){return fDetectorID;}
 /*  
