@@ -19,7 +19,7 @@ MCTracksWithHitsOrEnergyCut = False # or of above, factor 2 file size increase c
 
 parser = ArgumentParser()
 
-parser.add_argument("--H6",   dest="testbeam",   help="use geometry of H8/H6 testbeam setup", required=False, default = 0, type = int)
+parser.add_argument("--H6",   dest="testbeam",   help="use geometry of H8/H6 testbeam setup", action="store_true")
 parser.add_argument("--Genie",   dest="genie",   help="Genie for reading and processing neutrino interactions (1 standard, 2 FLUKA, 3 Pythia, 4 GENIE geometry driver)", required=False, default = 0, type = int)
 parser.add_argument("--Ntuple",  dest="ntuple",  help="Use ntuple as input", required=False, action="store_true")
 parser.add_argument("--MuonBack",dest="muonback",  help="Generate events from muon background file, --Cosmics=0 for cosmic generator data", required=False, action="store_true")
