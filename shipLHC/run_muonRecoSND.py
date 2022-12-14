@@ -6,15 +6,15 @@ import SndlhcMuonReco
 
 parser = ArgumentParser()
 parser.add_argument("-f", "--inputFile", dest="inputFile", help="single input file", required=True)
-parser.add_argument("-o", "--withOutput", dest="withOutput", help="persistent output", action='store_true',default=False)
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=True)
-parser.add_argument("-n", "--nEvents", dest="nEvents",  type=int, help="number of events to process", default=100000)
+parser.add_argument("-o", "--withOutput", dest="withOutput", help="persistent output", action='store_true',default=False)
+parser.add_argument("-s", "--saveTo", dest="outPath", help="output storage path", type=str,default="",required=False)
+parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", required=False, default=os.environ['SNDSW_ROOT']+"/python/TrackingParams.xml")
+parser.add_argument("-c", "--case", dest="trackingCase", help="type of tracks to build. Should match the 'tracking_case' name in parFile, use quotes", required=True)
+parser.add_argument("-hf", "--HoughSpaceFormat", dest="HspaceFormat", help="Hough space representation. Should match the 'Hough_space_format' name in parFile, use quotes", required=True)
+parser.add_argument("-n", "--nEvents", dest="nEvents",  type=int, help="number of events to process", default=1100000)
 parser.add_argument("-i", "--firstEvent",dest="firstEvent",  help="First event of input file to use", required=False,  default=0, type=int)
-parser.add_argument("-t", "--tolerance", dest="tolerance",  type=float, help="How far away from Hough line hits assigned to the muon can be. In cm.", default=0.)
-parser.add_argument("-s", "--event_skip", dest="event_skip",  type=int, help="Run reconstruction every [event_skip] events.", default=1)
-
-parser.add_argument("--hits_to_fit", dest = "hits_to_fit", type=str, help="Which detectors to use in the fit, in the format: vesfusds, where [ve] is veto, [sf] is Scifi, [us] is Upstream muon filter, and [ds] is downstream muon filter. Default: sfusds", default = "sfusds")
-parser.add_argument("--hits_for_triplet", dest = "hits_for_triplet", type=str, help="Which detectors to use for the triplet condition. In the same format as --hits_to_fit. Default: ds", default = "ds")
+parser.add_argument("-sc", "--scale",dest="scaleFactor",  help="Run reconstruction once for a randomly selected event in every [scaleFactor] events.", required=False,  default=1, type=int)
 
 options = parser.parse_args()
 
@@ -27,7 +27,10 @@ lsOfGlobals.Add(geo.modules['MuFilter'])
 
 x = options.inputFile
 filename = x[x.rfind('/')+1:]
-outFileName = filename.replace('.root','_muonReco.root')
+if x.rfind('/run_')>0:
+   runN = x[x.rfind('/run_')+4:x.rfind('/run_')+11]
+else: runN = ""
+outFileName = options.outPath+filename.replace('.root',runN+'_muonReco.root')
 
 fullPath = options.inputFile
 if options.inputFile.find('/eos')==0:
@@ -40,7 +43,7 @@ else:
   outFile = ROOT.TMemFile(outFileName,'CREATE')
 
 treename = None
-for test_treename in ["cbmsim", "rawConv"] :
+for test_treename in ["rawConv", "cbmsim"] :
      if hasattr(F, test_treename) :
           treename = test_treename
           break
@@ -59,18 +62,33 @@ run.SetSource(source)
 
 sink = ROOT.FairRootFileSink(outFile)
 run.SetSink(sink)
+# Don't use FairRoot's default event header settings
+run.SetEventHeaderPersistence(False)
 
 muon_reco_task = SndlhcMuonReco.MuonReco()
 run.AddTask(muon_reco_task)
 
+# Start timer
+w = ROOT.TStopwatch()
+
+# Set the parameter file - must be called before Init()
+muon_reco_task.SetParFile(options.parFile)
+muon_reco_task.SetTrackingCase(options.trackingCase)
+muon_reco_task.SetHoughSpaceFormat(options.HspaceFormat)
+# setting a flag to let the task know which manager called it
+# needed as output handling differs for this manager and run_TrackSelections.
+muon_reco_task.SetStandalone()
 run.Init()
 
-# The following lines must be *after* run.Init()
-muon_reco_task.SetTolerance(options.tolerance)
-muon_reco_task.SetHitsToFit(options.hits_to_fit)
-muon_reco_task.SetHitsForTriplet(options.hits_for_triplet)
-muon_reco_task.SetEventSkip(options.event_skip)
+# Set the scale factor - must be after Init()
+print("Setting a scale factor to:", options.scaleFactor)
+muon_reco_task.SetScaleFactor(options.scaleFactor)
 
-run.Run(options.firstEvent, options.firstEvent + options.nEvents)
+# Set number of events to process
+nEvents = min( options.nEvents, source.GetEntries())
+
+run.Run(options.firstEvent, options.firstEvent + nEvents)
+w.Stop()
+print('Real Time:', w.RealTime(), ' CPU time: ', w.CpuTime())
 print("Done running")
 

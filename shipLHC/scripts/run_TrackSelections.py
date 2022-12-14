@@ -22,7 +22,9 @@ parser.add_argument("-b", "--heartBeat", dest="heartBeat", help="heart beat", de
 parser.add_argument("-c", "--command", dest="command", help="command", default="")
 parser.add_argument("-n", "--nEvents", dest="nEvents", help="number of events", default=-1,type=int)
 parser.add_argument("-s", "--nStart", dest="nStart", help="first event", default=0,type=int)
-parser.add_argument("-t", "--trackType", dest="trackType", help="DS or Scifi", default="DS")
+parser.add_argument("-st", "--simpleTracking", dest="simpleTracking", action='store_true', default=False)
+parser.add_argument("-genfitFormat", "--genfitFormat", dest='genfitFormat', action='store_true', help="output track format for simple tracking when only it is run", default=False)
+parser.add_argument("-t", "--trackType", dest="trackType", help="DS, Scifi, ScifiDS", default="ScifiDS")
 
 parser.add_argument("--ScifiNbinsRes", dest="ScifiNbinsRes", default=100)
 parser.add_argument("--Scifixmin", dest="Scifixmin", default=-2000.)
@@ -33,20 +35,42 @@ parser.add_argument("--withTrack", dest="withTrack", action='store_true',default
 parser.add_argument("--nTracks", dest="nTracks",default=0,type=int)
 parser.add_argument("--save", dest="save", action='store_true',default=False)
 
+parser.add_argument("-ht", "--HoughTracking", dest="HoughTracking", action='store_true', default=False)
+parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", default=os.environ['SNDSW_ROOT']+"/python/TrackingParams.xml")
+parser.add_argument("-hf", "--HoughSpaceFormat", dest="HspaceFormat", help="Hough space representation. Should match the 'Hough_space_format' name in parFile, use quotes", default='linearSlopeIntercept')
+
+parser.add_argument("-sc", "--scale",dest="scaleFactor",  help="Randomly run reconstruction.", required=False,  default=1, type=int)
+
 options = parser.parse_args()
 
 # prepare tasks:
 options.FairTasks = {}
-houghTransform = False # under construction, not yet tested
-if houghTransform:
-   muon_reco_task = SndlhcMuonReco.MuonReco()
-   muon_reco_task.SetName("houghTransform")
-   options.FairTasks["houghTransform"] = muon_reco_task
-else:
+options.genfitTrack = False
+HT_tasks = []
+if options.HoughTracking:
+   if options.trackType == 'Scifi' or options.trackType == 'ScifiDS':
+      muon_reco_task_Sf = SndlhcMuonReco.MuonReco()
+      muon_reco_task_Sf.SetTrackingCase('passing_mu_Sf')
+      muon_reco_task_Sf.SetName("houghTransform_Sf")
+      options.FairTasks["houghTransform_Sf"] = muon_reco_task_Sf
+      HT_tasks.append(muon_reco_task_Sf)
+   if options.trackType == 'Scifi' or options.trackType == 'ScifiDS':
+      muon_reco_task_DS = SndlhcMuonReco.MuonReco()
+      muon_reco_task_DS.SetTrackingCase('passing_mu_DS')
+      muon_reco_task_DS.SetName("houghTransform_DS")
+      options.FairTasks["houghTransform_DS"] = muon_reco_task_DS
+      HT_tasks.append(muon_reco_task_DS)
+   for ht_task in HT_tasks:
+       ht_task.SetParFile(options.parFile)
+       ht_task.SetHoughSpaceFormat(options.HspaceFormat)
+if options.simpleTracking:
    trackTask = SndlhcTracking.Tracking()
    trackTask.SetName("simpleTracking")
+   # If HT task is also used, pass the track format from its xml
+   # else consult with the command line genfitFormat option
+   if options.HoughTracking: pass
+   else: options.genfitTrack = options.genfitFormat
    options.FairTasks["simpleTracking"] = trackTask
-
 M = Monitor.TrackSelector(options)
 if options.nEvents < 0 : 
     options.nEvents = M.eventTree.GetEntries()

@@ -320,7 +320,8 @@ class Scifi_residuals(ROOT.FairTask):
            rc = h[detector+'trackSlopesXL'+xi].ProjectionX("slopeXL"+xi).Draw()
            h[tname].cd(6)
            rc = h[detector+'trackSlopesXL'+xi].ProjectionY("slopeYL"+xi).Draw()
-           self.M.myPrint(self.M.h[tname],tname,subdir='scifi')
+           if x=='': self.M.myPrint(self.M.h[tname],tname,subdir='scifi')
+           else:     self.M.myPrint(self.M.h[tname],tname,subdir='scifi/'+xi)
            tname = detector+'TtrackPos'+xi
            ut.bookCanvas(h,tname,"track position first state",1200,800,1,2)
            h[tname].cd(1)
@@ -328,7 +329,7 @@ class Scifi_residuals(ROOT.FairTask):
            h[tname].cd(2)
            rc = h[detector+'trackPos'+xi].Draw('colz')
            if x=='': self.M.myPrint(self.M.h[tname],detector+'trackPos'+xi,subdir='scifi')
-           else: self.M.myPrint(self.M.h[tname],detector+'trackPos'+xi,subdir='scifi/'+xi)
+           else:     self.M.myPrint(self.M.h[tname],detector+'trackPos'+xi,subdir='scifi/'+xi)
            
 class Scifi_trackEfficiency(ROOT.FairTask):
    " track efficiency tag with DS track"

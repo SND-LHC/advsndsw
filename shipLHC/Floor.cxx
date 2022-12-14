@@ -101,13 +101,13 @@ void Floor::EndOfEvent()
 }
 
 void Floor::PreTrack(){
-    if (fFastMuon && TMath::Abs(gMC->TrackPid())!=13){
+    TLorentzVector pos;
+    gMC->TrackPosition(pos);
+    if (fFastMuon && pos.Z()<fzPos && TMath::Abs(gMC->TrackPid())!=13){
         gMC->StopTrack();
     }
     TLorentzVector  mom;
-    TLorentzVector pos;
     gMC->TrackMomentum(mom);
-    gMC->TrackPosition(pos);
     if  ( (mom.E()-mom.M() )<fEmin && pos.Z()<fzPos){
       gMC->StopTrack();
       return;
