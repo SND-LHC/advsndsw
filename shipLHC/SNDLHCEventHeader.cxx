@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <bitset>
 
 using namespace std;
 
@@ -36,16 +37,18 @@ SNDLHCEventHeader::SNDLHCEventHeader()
   , fFillNumber(0)
   , fAccMode(0)
   , fBeamMode(0)
+  , fBunchType(0)
 {}
 // -------------------------------------------------------------------------
 
 // -----   Standard constructor   ------------------------------------------
-SNDLHCEventHeader::SNDLHCEventHeader(Int_t runN, uint64_t evtNumber, int64_t timestamp, uint64_t flags)
+SNDLHCEventHeader::SNDLHCEventHeader(Int_t runN, uint64_t evtNumber, int64_t timestamp, uint64_t flags, uint16_t bunchType)
 {
    SetRunId(runN);
    SetEventTime(timestamp);
    SetEventNumber(evtNumber);
    SetFlags(flags);
+   SetBunchType(bunchType);
 }
 
 // -------------------------------------------------------------------------
@@ -129,6 +132,29 @@ vector<string> SNDLHCEventHeader::GetPassedAdvNFCriteria()
   return passed;
 }
 
+bool SNDLHCEventHeader::isB1()
+{
+   bitset<4> bt = fBunchType;
+   return bt[3]==1;
+}
+
+bool SNDLHCEventHeader::isB2()
+{
+   bitset<4> bt = fBunchType;
+   return bt[2]==1;
+}
+
+bool SNDLHCEventHeader::isIP1()
+{
+   bitset<4> bt = fBunchType;
+   return bt[1]==1;
+}
+
+bool SNDLHCEventHeader::isIP2()
+{
+   bitset<4> bt = fBunchType;
+   return bt[0]==1;
+}
 // -----   Public method Print   -------------------------------------------
 void SNDLHCEventHeader::Print(const Option_t* opt) const
 {
