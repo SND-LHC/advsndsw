@@ -40,9 +40,7 @@ class ConvRawDataPY(ROOT.FairTask):
 
 # get filling scheme per run
       try:
-         #FIXME get path to FSdict file
-         #fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
-         fg = ROOT.TFile.Open("/eos/experiment/sndlhc/convertedData/commissioning/TI18/FSdict.root")
+         fg = ROOT.TFile.Open(options.server+"/eos/experiment/sndlhc/convertedData/commissioning/TI18/FSdict.root")
          pkl = Unpickler(fg)
          FSdict = pkl.load('FSdict')
          fg.Close()
@@ -54,8 +52,8 @@ class ConvRawDataPY(ROOT.FairTask):
          self.fsdict = False  
       
       # put the run's FS in format to be passed to FairTasks as input
-      if self.fsdict:
-         self.FSmap = ROOT.TMap()
+      self.FSmap = ROOT.TMap()
+      if self.fsdict:         
          for bunchNumber in range (0, 3564):
              nb1 = (3564 + bunchNumber - self.fsdict['phaseShift1'])%3564
              nb2 = (3564 + bunchNumber - self.fsdict['phaseShift1']- self.fsdict['phaseShift2'])%3564
@@ -67,10 +65,8 @@ class ConvRawDataPY(ROOT.FairTask):
                 IP1 =  self.fsdict['B1'][nb1]['IP1']
              if b2:
                 IP2 =  self.fsdict['B2'][nb2]['IP2']
-             if b1 and not IP1 and not b2: B1only = True
-             if b2 and not b1: B2noB1 = True
-             if not b1 and not b2: noBeam = True
-             self.FSmap.Add(ROOT.TObjString(str(bunchNumber)), ROOT.TObjString(str(int(b1))+str(int(b2))+str(int(IP1))+str(int(IP2))))
+             self.FSmap.Add(ROOT.TObjString(str(bunchNumber)), ROOT.TObjString(str(int(IP2))+str(int(IP1))+str(int(b2))+str(int(b1))))
+      else: self.FSmap.Add(ROOT.TObjString("0"), ROOT.TObjString("-1"))
 
       self.run     = ROOT.FairRunAna()
       self.ioman = ROOT.FairRootManager.Instance()
@@ -410,7 +406,10 @@ class ConvRawDataPY(ROOT.FairTask):
      self.header.SetEventNumber(event.evt_number) #   for new event header
      self.header.SetFlags(event.evt_flags)
      self.header.SetRunId( self.options.runNumber )
-     self.header.SetBunchType(int(str(self.FSmap.GetValue(str( int(event.evt_timestamp%(4*3564)/4+0.5))))))
+     if self.FSmap.GetEntries()>1:
+          self.header.SetBunchType(int(str(self.FSmap.GetValue(str(int((event.evt_timestamp%(4*3564))/4))))))
+     else:
+          self.header.SetBunchType(int(str(self.FSmap.GetValue("0"))))
 
      indexSciFi=0
      self.digiSciFi.Delete()
