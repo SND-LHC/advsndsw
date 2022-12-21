@@ -7,7 +7,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <bitset>
 
 using namespace std;
 
@@ -37,12 +36,12 @@ SNDLHCEventHeader::SNDLHCEventHeader()
   , fFillNumber(0)
   , fAccMode(0)
   , fBeamMode(0)
-  , fBunchType(0)
+  , fBunchType(-1)
 {}
 // -------------------------------------------------------------------------
 
 // -----   Standard constructor   ------------------------------------------
-SNDLHCEventHeader::SNDLHCEventHeader(Int_t runN, uint64_t evtNumber, int64_t timestamp, uint64_t flags, uint16_t bunchType)
+SNDLHCEventHeader::SNDLHCEventHeader(Int_t runN, uint64_t evtNumber, int64_t timestamp, uint64_t flags, int16_t bunchType)
 {
    SetRunId(runN);
    SetEventTime(timestamp);
@@ -132,28 +131,50 @@ vector<string> SNDLHCEventHeader::GetPassedAdvNFCriteria()
   return passed;
 }
 
-bool SNDLHCEventHeader::isB1()
+bool SNDLHCEventHeader::isIP2()
 {
-   bitset<4> bt = fBunchType;
-   return bt[3]==1;
-}
-
-bool SNDLHCEventHeader::isB2()
-{
-   bitset<4> bt = fBunchType;
-   return bt[2]==1;
+   return (fBunchType/1000)%10==1;
 }
 
 bool SNDLHCEventHeader::isIP1()
 {
-   bitset<4> bt = fBunchType;
-   return bt[1]==1;
+   return (fBunchType/100)%10==1;
 }
 
-bool SNDLHCEventHeader::isIP2()
+bool SNDLHCEventHeader::isB2()
 {
-   bitset<4> bt = fBunchType;
-   return bt[0]==1;
+   return (fBunchType/10)%10==1;
+}
+
+bool SNDLHCEventHeader::isB1()
+{
+   return fBunchType%10==1;
+}
+
+bool SNDLHCEventHeader::isB1Only()
+{
+   /* b1 and not IP1 and not b2 */
+   return isB1() && !isIP1() && !isB2();
+}
+
+bool SNDLHCEventHeader::isB2noB1()
+{
+   /* b2 and not b1 */
+   return isB2() && !isB1();
+}
+
+bool SNDLHCEventHeader::isNoBeam()
+{
+   /* not b1 and not b2
+      Also, its return must be False in case
+      no filling scheme data is available (fBunchType=-1) */
+   return fBunchType%10==0 && (fBunchType/10)%10==0;
+}
+
+bool SNDLHCEventHeader::isNoFSData()
+{
+   /* no filling scheme data available (fBunchType=-1) */
+   return fBunchType%10==-1;
 }
 // -----   Public method Print   -------------------------------------------
 void SNDLHCEventHeader::Print(const Option_t* opt) const
