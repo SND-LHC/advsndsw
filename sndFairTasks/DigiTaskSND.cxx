@@ -14,7 +14,6 @@
  #include <iostream>                 // for operator<<, basic_ostream, endl
  #include <algorithm>                // std::sort
  #include <vector>                   // std::vector
- #include "FairEventHeader.h"        // for FairEventHeader
  #include "FairMCEventHeader.h"      // for FairMCEventHeader
  #include "FairLink.h"               // for FairLink
  #include "FairRunSim.h"             // for FairRunSim
@@ -84,10 +83,9 @@ InitStatus DigiTaskSND::Init()
     ioman->Register("EmulsionDetPoint", "EmulsionDetPoints", fvetoPointArray, kTRUE);
     ioman->Register("ScifiPoint", "ScifiPoints", fScifiPointArray, kTRUE);
     ioman->Register("MuFilterPoint", "MuFilterPoints", fMuFilterPointArray, kTRUE);
-    ioman->RegisterAny("MCEventHeader.", fMCEventHeader, kTRUE);
  
     // Event header
-    fEventHeader = new FairEventHeader();
+    fEventHeader = new SNDLHCEventHeader();
     ioman->Register("EventHeader", "sndEventHeader", fEventHeader, kTRUE);
 
     // Create and register output array - for SciFi and MuFilter
@@ -121,9 +119,10 @@ void DigiTaskSND::Exec(Option_t* /*opt*/)
     fMuFilterDigiHitArray->Delete();
     fMuFilterHit2MCPointsArray->Delete();
 
-    // Get event header
+    // Set event header
     fEventHeader->SetRunId(fMCEventHeader->GetRunID());
-    fEventHeader->SetMCEntryNumber(fMCEventHeader->GetEventID());
+    fEventHeader->SetEventNumber(fMCEventHeader->GetEventID());
+    fEventHeader->SetBunchType(101);
 
     // Digitize MC points if any
     if (fMuFilterPointArray) digitizeMuFilter();
