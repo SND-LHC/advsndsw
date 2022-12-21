@@ -628,6 +628,7 @@ class TrackSelector():
    def __init__(self,options):
         self.options = options
         self.EventNumber = -1
+        self.MonteCarlo = False
 
         path     = options.path
         if path.find('eos')>0:
@@ -639,32 +640,34 @@ class TrackSelector():
         self.Scifi       = self.snd_geo.modules['Scifi']
 
         self.runNr   = str(options.runNumber).zfill(6)
-        if options.partition < 0:
-            partitions = []
-            if path.find('eos')>0:
+        if options.runNumber > 0:
+           if options.partition < 0:
+              partitions = []
+              if path.find('eos')>0:
 # check for partitions
-               print("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr)
-               dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
-               for x in dirlist.split('\\n'):
-                  ix = x.find('sndsw_raw-')
-                  if ix<0: continue
-                  partitions.append(x[ix:])
-            else:
+                 print("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr)
+                 dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
+                 for x in dirlist.split('\\n'):
+                     ix = x.find('sndsw_raw-')
+                     if ix<0: continue
+                     partitions.append(x[ix:])
+              else:
 # check for partitions
                  dirlist  = os.listdir(options.path+"run_"+self.runNr)
                  for x in dirlist:
                      if not x.find("sndsw_raw-")<0:
                           partitions.append(x)
-        else:
+           else:
                  partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)+".root"]
-        if options.runNumber>0:
-                eventChain = ROOT.TChain('rawConv')
-                for p in partitions:
-                       eventChain.Add(path+'run_'+self.runNr+'/'+p)
+           eventChain = ROOT.TChain('rawConv')
+           for p in partitions:
+               eventChain.Add(path+'run_'+self.runNr+'/'+p)
         else:
 # for MC data
-                f=ROOT.TFile.Open(options.fname)
-                eventChain = f.cbmsim
+                eventChain = ROOT.TChain("cbmsim")
+                eventChain.Add(options.fname)
+                self.MonteCarlo = True
+                partitions = []
         rc = eventChain.GetEvent(0)
 # start FairRunAna
         self.run  = ROOT.FairRunAna()
@@ -787,9 +790,9 @@ class TrackSelector():
           self.eventTree.GetEvent(n)
           # delete track containers
           self.fittedTracks.Delete()
-
+          
           self.ExecuteEvent(self.eventTree)
-          if self.fittedTracks.GetEntries() == 0: continue
+          if not self.MonteCarlo and self.fittedTracks.GetEntries() == 0: continue
           if self.options.simpleTracking and not self.options.trackType.find('Scifi')<0:
              if not self.eventTree.GetBranch("Cluster_Scifi"):
                 self.clusScifi.Delete()
