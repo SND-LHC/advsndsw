@@ -296,7 +296,7 @@ class Monitoring():
       self.xing = {'all':True,'B1only':False,'B2noB1':False,'noBeam':False}
       if self.fsdict:
              T   = self.eventTree.EventHeader.GetEventTime()
-             bunchNumber = int(T%(4*3564)/4+0.5)
+             bunchNumber = int((T%(4*3564))/4)
              nb1 = (3564 + bunchNumber - self.fsdict['phaseShift1'])%3564
              nb2 = (3564 + bunchNumber - self.fsdict['phaseShift1']- self.fsdict['phaseShift2'])%3564
              b1 = nb1 in self.fsdict['B1']
