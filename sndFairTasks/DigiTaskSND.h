@@ -12,9 +12,10 @@
 #include <RtypesCore.h>         // for Double_t, Int_t, Option_t
 #include <TClonesArray.h> 
 #include "FairTask.h"           // for FairTask, InitStatus
-#include "FairEventHeader.h"    // for FairEventHeader
+//#include "FairEventHeader.h"    // for FairEventHeader
 #include "FairMCEventHeader.h"  // for FairMCEventHeader
 #include "Scifi.h"              // for Scifi detector
+#include "SNDLHCEventHeader.h"  // for EventHeader
 class TBuffer;
 class TClass;
 class TClonesArray;
@@ -55,7 +56,7 @@ class DigiTaskSND : public FairTask
     TClonesArray* fScifiPointArray;
     TClonesArray* fScifiClusterArray;
     // Output
-    FairEventHeader* fEventHeader;
+    SNDLHCEventHeader* fEventHeader;
     TClonesArray* fMuFilterDigiHitArray; // hit class (digitized!)
     TClonesArray* fScifiDigiHitArray;
     TClonesArray* fMuFilterHit2MCPointsArray; // link to MC truth
@@ -72,7 +73,7 @@ class DigiTaskSND : public FairTask
     Float_t MufiLargeThreshold;
     Float_t MufiSmallThreshold;
 
-    ClassDef(DigiTaskSND, 1);
+    ClassDef(DigiTaskSND, 2);
 };
 
 #endif /* DIGITASKSND_H_ */

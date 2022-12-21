@@ -3,6 +3,7 @@
 
 #include <TClonesArray.h>
 #include <TFile.h>
+#include <TMap.h>
 #include "FairTask.h"           // for FairTask, InitStatus
 #include "FairEventHeader.h"    // for FairEventHeader
 #include "SNDLHCEventHeader.h"  // for EventHeader
@@ -95,6 +96,8 @@ class ConvRawData : public FairTask
       int eventNumber;
       double chi2Max, saturationLimit;
       double runStartUTC;
+      /** Filling scheme per run **/
+      TMap* FSmap;
     
       /** Output data **/
       SNDLHCEventHeader* fSNDLHCEventHeader;
@@ -105,6 +108,6 @@ class ConvRawData : public FairTask
       ConvRawData(const ConvRawData&);
       ConvRawData& operator=(const ConvRawData&);
 
-      ClassDef(ConvRawData, 2);
+      ClassDef(ConvRawData, 3);
 };
 #endif /* CONVRAWDATA_H_ */
