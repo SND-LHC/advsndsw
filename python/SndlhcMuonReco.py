@@ -1,7 +1,6 @@
 import ROOT
 import numpy as np
 import scipy.ndimage
-import warnings
 from array import array
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
@@ -183,8 +182,11 @@ class MuonReco(ROOT.FairTask) :
     " Muon reconstruction "
 
     def Init(self) :
-        
-        print("Initializing muon reconstruction task!")
+
+        self.logger = ROOT.FairLogger.GetLogger()
+        if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
+           print("Initializing muon reconstruction task!")
+
         self.lsOfGlobals  = ROOT.gROOT.GetListOfGlobals()
         self.scifiDet = self.lsOfGlobals.FindObject('Scifi')
         self.mufiDet = self.lsOfGlobals.FindObject('MuFilter')
@@ -211,10 +213,12 @@ class MuonReco(ROOT.FairTask) :
 
         # If that doesn't work, try using standard ROOT
             if self.MuFilterHits == None :
-               warnings.warn("Digi_MuFilterHits not in branch list")
+               if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
+                  print("Digi_MuFilterHits not in branch list")
                self.MuFilterHits = self.ioman.GetInTree().Digi_MuFilterHits
             if self.ScifiHits == None :
-               warnings.warn("Digi_ScifiHits not in branch list")
+               if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
+                  print("Digi_ScifiHits not in branch list")
                self.ScifiHits = self.ioman.GetInTree().Digi_ScifiHits
         
         if self.MuFilterHits == None :
@@ -369,7 +373,8 @@ class MuonReco(ROOT.FairTask) :
         # check if track container exists
         if self.ioman.GetObject('Reco_MuonTracks') != None:
              self.kalman_tracks = self.ioman.GetObject('Reco_MuonTracks')
-             print('Branch activated by another task!')
+             if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
+                print('Branch activated by another task!')
         else:
         # Now initialize output in genfit::track or sndRecoTrack format
            if self.genfitTrack:
@@ -462,7 +467,8 @@ class MuonReco(ROOT.FairTask) :
                     if "ds" not in self.hits_to_fit :
                         continue
                 else :
-                    print("WARNING! Unknown MuFilter system!!")
+                    if self.logger.IsLogNeeded(ROOT.fair.Severity.warn):
+                       print("WARNING! Unknown MuFilter system!!")
             
                 self.mufiDet.GetPosition(muFilterHit.GetDetectorID(), self.a, self.b)
             
