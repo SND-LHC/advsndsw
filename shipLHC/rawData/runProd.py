@@ -161,36 +161,38 @@ class prodManager():
 
    def runSinglePartition(self,path,r,p,EOScopy=False,check=True):
        while self.count_python_processes('convertRawData')>ncpus or self.count_python_processes('runProd')>ncpus: time.sleep(300)
+       process = []
+       pid = 0
        try:
            pid = os.fork()
        except OSError:
            print("Could not create a child process")
-       if not pid == 0: return    
-       inFile = self.options.server+path+'run_'+ r+'/data_'+p+'.root'
-       fI = ROOT.TFile.Open(inFile)
-       if not fI:
-         print('file not found',path,r,p)
-         exit()
-       if not fI.Get('event') and not fI.Get('data'):
-         print('file corrupted',path,r,p)
-         exit()
-       command =   "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py  -r "+str(int(r))+ " -b 1000 -p "+path+" --server="+self.options.server
-       if options.FairTask_convRaw:  command+= " -cpp "
-       command += " -P "+str(int(p)) + " >log_"+r+'-'+p    
-       print("execute ",command)
-       os.system(command)
-       if check:
+       if pid!=0:
+          process.append(pid)
+       else:          
+         inFile = self.options.server+path+'run_'+ r+'/data_'+p+'.root'
+         fI = ROOT.TFile.Open(inFile)
+         if not fI:
+           print('file not found',path,r,p)
+           exit()
+         if not fI.Get('event') and not fI.Get('data'):
+           print('file corrupted',path,r,p)
+           exit()
+         command =   "python $SNDSW_ROOT/shipLHC/rawData/convertRawData.py  -r "+str(int(r))+ " -b 1000 -p "+path+" --server="+self.options.server
+         if options.FairTask_convRaw:  command+= " -cpp "
+         command += " -P "+str(int(p)) + " >log_"+r+'-'+p    
+         print("execute ",command)
+         os.system(command)
+         if check:
           rc = self.checkFile(path,r,p)
           if rc<0: 
              print('converting failed',r,p,rc)
              exit()
-       print('finished converting ',r,p)
-       tmp = {int(r):[int(p)]}
-       if EOScopy:  self.copy2EOS(path,tmp,self.options.overwrite)
-
-       if pid == 0:  exit("Child process finished")
-       
-
+         print('finished converting ',r,p)
+         tmp = {int(r):[int(p)]}
+         if EOScopy:  self.copy2EOS(path,tmp,self.options.overwrite)
+         exit(0)
+ 
    def checkFile(self,path,r,p):
       print('checkfile',path,r,p)
       inFile = self.options.server+path+'run_'+ r+'/data_'+p+'.root'
@@ -215,12 +217,11 @@ class prodManager():
        for x in success[i]:
          p = str(x).zfill(4)
          outFile = 'sndsw_raw_'+r+'-'+p+self.Mext+'.root'
-         tmp = path.split('raw_data')[1].replace('data/','')
-         pathConv = os.environ['EOSSHIP']+"/eos/experiment/sndlhc/convertedData/"+tmp+"run_"+r+"/sndsw_raw-"+p+".root"
-         print('copy '+outFile+' to '+tmp+"run_"+r+"/sndsw_raw-"+p+".root")
+         tmpPath = os.environ['EOSSHIP']+pathConv+"run_"+r+"/sndsw_raw-"+p+".root"
+         print('copy '+outFile+'  '+tmpPath)
          command = 'xrdcp '
          if overwrite: command+=' -f '
-         os.system(command+outFile+'  '+pathConv)
+         os.system(command+outFile+'  '+tmpPath)
          os.system('rm '+outFile)
 
    def check(self,path,partitions):
@@ -380,6 +381,9 @@ if __name__ == '__main__':
           runList = [1,6,7,8,16,18,19,20,21,23,24,25,26,27]
           # 6,7,8   14,15,22 corrupted
           # 
+    elif options.prod == "reproc2022":
+       path = "/eos/experiment/sndlhc/raw_data/physics/2022/"
+       pathConv = "/eos/experiment/sndlhc/convertedData/physics/2022/"
     elif options.prod == "H6":
        path     = "/eos/experiment/sndlhc/raw_data/commissioning/TB_H6/data/"
        pathConv = "/eos/experiment/sndlhc/convertedData/commissioning/TB_H6/"
