@@ -39,7 +39,7 @@ class SndlhcHit : public TObject
     Int_t GetnSiPMs() const { return nSiPMs;  };
     Int_t GetnSides() const { return nSides;  };
     /** Modifiers **/
-    void SetDigi(Float_t s, Float_t t,Int_t i=0) { signals[i]=s;times[i]=t; }
+    void SetDigi(Float_t s, Float_t t,Int_t i=0) { signals[i]=trunc(100*s)/100;times[i]=trunc(1000*t)/1000.; }
     void SetDetectorID(Int_t detID) { fDetectorID = detID; }
     void SetDaqID(Int_t i, Int_t board_id, Int_t tofpet_id, Int_t tofpet_channel) { fDaqID[i] = board_id * 1000 + tofpet_id * 100 + tofpet_channel; }
     Int_t GetBoardID(Int_t i) { return int(fDaqID[i]/1000);}
