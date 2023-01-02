@@ -17,7 +17,8 @@ class DAQ_boards(ROOT.FairTask):
        if options.online:
           self.R.Init(options.server+options.path+'run_'+ runNr+'/')
        else:
-          self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/data/run_"+runNr+'/')
+          if options.path.find('commissioning')>0: self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/data/run_"+runNr+'/')
+          else:                                    self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/run_"+runNr+'/')
    def ExecuteEvent(self,event):
        h = self.M.h
        W = self.M.Weight
@@ -78,6 +79,7 @@ class Time_evolution(ROOT.FairTask):
        ut.bookHist(h,'ctimeM','delta event time per channel; dt [ms]',1000,0.0,10.,1700,-0.5,1699.5)
        ut.bookHist(h,'btime','delta timestamp per channel; ',3564*4+200,-0.5,3564*4-0.5+200,1700,-0.5,1699.5)
        ut.bookHist(h,'bnr','bunch number; ',3564,-0.5,3564-0.5)
+       ut.bookHist(h,'Xbnr','bunch number; ',3564*4,-0.5,3564*4-0.5)
        ut.bookHist(h,'bnrF','bunch number forward tracks; ',3564,-0.5,3564-0.5)
        ut.bookHist(h,'bnrB','bunch number backward tracks; ',3564,-0.5,3564-0.5)
 # type of crossing, check for b1only,b2nob1,nobeam
@@ -88,6 +90,8 @@ class Time_evolution(ROOT.FairTask):
            ut.bookHist(h,'trackDirSig'+x,'track direction significance;',100,-20,10)
 
        ut.bookHist(h,'Tboard','hit time per board',70,0.5,70.5,100,-5.,5.)
+       ut.bookHist(h,'Cckboard','160Mhz bunch nr',70,0.5,70.5,100,0.,16.)
+       ut.bookHist(h,'CckboardB2','160Mhz bunch nr',70,0.5,70.5,100,0.,16.)
        self.board0 = 40
 
        self.boardsVsTime = {}
@@ -117,7 +121,9 @@ class Time_evolution(ROOT.FairTask):
             if abs(SL[0])<0.03:  direction = 1
             elif SL[0]<-0.07:     direction = -1
        bn = (T%(4*3564))/4
+       sbn = T%(4*3564)
        rc = h['bnr'].Fill( bn ,W)
+       rc = h['Xbnr'].Fill( sbn,W)
        for x in self.xing:
             if self.M.xing[x]:
                  if x=='all' or (DStrack or SFtrack):  rc = h['bnr'+x].Fill( bn ,W)
@@ -187,6 +193,11 @@ class Time_evolution(ROOT.FairTask):
           for b in boards:
              for x in boards[b]:
                 rc = h['Tboard'].Fill(b,x-T0)
+       for b in boards:
+          for x in boards[b]:
+             rc = h['Cckboard'].Fill(b, sbn%4+x )
+             if self.M.fsdict or self.M.hasBunchInfo:
+                if self.M.xing['B2noB1']: rc = h['CckboardB2'].Fill(b, sbn%4+x )
 
    def Plot(self):
        h = self.M.h
@@ -453,6 +464,12 @@ class Time_evolution(ROOT.FairTask):
        h['bnrB'].Draw()
        self.M.myPrint(h['bunchNumber'],"BunchNr",subdir='daq')
 
+       ut.bookCanvas(h,'sndclock','snd bunch nr',1200,900,1,1)
+       tc = h['sndclock'].cd()
+       h['Xbnr'].SetStats(0)
+       h['Xbnr'].Draw()
+       self.M.myPrint(h['sndclock'],"XBunchNr",subdir='daq')
+
        ut.bookCanvas(h,'channels',' channel dt',1024,4*768,1,4)
        tc = h['channels'].cd(1)
        h['ctimeZ'].Draw('colz')
@@ -464,6 +481,10 @@ class Time_evolution(ROOT.FairTask):
        h['btime'].Draw('colz')
        self.M.myPrint(h['channels'],"mufilter channel dT",subdir='daq')
 
-       ut.bookCanvas(h,'boards','',2400,1800,1,1)
+       ut.bookCanvas(h,'boards','',1800,900,2,1)
+       h['boards'].cd(1)
        h['Tboard'].Draw('lego')
+       h['boards'].cd(2)
+       h['Cckboard'].Draw('lego')
+       h['CckboardB2'].Draw('legosame')
        self.M.myPrint(h['boards'],"board time diff",subdir='daq')

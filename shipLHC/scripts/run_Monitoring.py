@@ -81,8 +81,10 @@ if not options.geoFile:
            options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
      elif options.runNumber < 4855:
           options.geoFile =  "geofile_sndlhc_TI18_V5_14August2022.root"
-     else:
+     elif options.runNumber < 5172:
           options.geoFile =  "geofile_sndlhc_TI18_V6_08October2022.root"
+     else:
+          options.geoFile =  "geofile_sndlhc_TI18_V7_22November2022.root"
 
 # to be extended for future new alignments.
 

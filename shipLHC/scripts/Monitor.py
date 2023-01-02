@@ -96,27 +96,12 @@ class Monitoring():
         self.h = {}   # histogram storage
 
         self.runNr   = str(options.runNumber).zfill(6)
-# get filling scheme
-        try:
-           fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
-           pkl = Unpickler(fg)
-           FSdict = pkl.load('FSdict')
-           fg.Close()
-           if options.runNumber in FSdict: self.fsdict = FSdict[options.runNumber]
-           else:  self.fsdict = False
-        except:
-           print('continue without knowing filling scheme',options.server+options.path)
-           self.fsdict = False
 # presenter file
         name = 'run'+self.runNr+'.root'
         if options.interactive: name = 'I-'+name
         self.presenterFile = ROOT.TFile(name,'recreate')
         self.presenterFile.mkdir('scifi')
         self.presenterFile.mkdir('mufilter')
-        if self.fsdict:
-           for x in ['B1only','B2noB1','noBeam']:
-             self.presenterFile.mkdir('mufilter/'+x)
-             self.presenterFile.mkdir('scifi/'+x)
         self.presenterFile.mkdir('daq')
         self.presenterFile.mkdir('eventdisplay')
         self.FairTasks = {}
@@ -188,7 +173,6 @@ class Monitoring():
                rc = eventChain.GetEvent(options.nEvents-1)
             self.TEnd = eventChain.EventHeader.GetEventTime()
             rc = eventChain.GetEvent(0)
-
 # start FairRunAna
             self.run  = ROOT.FairRunAna()
             ioman = ROOT.FairRootManager.Instance()
@@ -219,6 +203,30 @@ class Monitoring():
                self.Reco_MuonTracks = self.trackTask.fittedTracks
                self.clusMufi        = self.trackTask.clusMufi
                self.clusScifi       = self.trackTask.clusScifi
+            
+        # get filling scheme, only necessary if not encoded in EventHeader, before 2022 reprocessing
+        self.hasBunchInfo = False
+        self.fsdict = False
+        if hasattr(eventChain.EventHeader,"GetBunchType"):
+           if not eventChain.EventHeader.GetBunchType()<0:
+                self.hasBunchInfo = True
+                print('take bunch info from event header')
+        if not self.hasBunchInfo:
+         try:
+           fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
+           pkl = Unpickler(fg)
+           FSdict = pkl.load('FSdict')
+           fg.Close()
+           if options.runNumber in FSdict: self.fsdict = FSdict[options.runNumber]
+         except:
+           print('continue without knowing filling scheme',options.server+options.path)
+         if self.fsdict: 
+           print('extract bunch info from filling scheme')
+        if self.fsdict or self.hasBunchInfo: 
+          for x in ['B1only','B2noB1','noBeam']:
+             self.presenterFile.mkdir('mufilter/'+x)
+             self.presenterFile.mkdir('scifi/'+x)
+
    def GetEntries(self):
        if  self.options.online:
          if  self.converter.newFormat:  return self.converter.fiN.Get('data').GetEntries()
@@ -294,7 +302,16 @@ class Monitoring():
 
 # check for bunch xing type
       self.xing = {'all':True,'B1only':False,'B2noB1':False,'noBeam':False}
-      if self.fsdict:
+      if self.hasBunchInfo:
+             binfo = self.eventTree.EventHeader
+             self.xing['IP1']  = binfo.isIP1()
+             self.xing['IP2']  = binfo.isIP2()
+             self.xing['B1']   = binfo.isB1()
+             self.xing['B2']   = binfo.isB2()
+             self.xing['B1only']  = binfo.isB1Only()
+             self.xing['B2noB1']  = binfo.isB2noB1()
+             self.xing['noBeam']  = binfo.isNoBeam()
+      elif self.fsdict:
              T   = self.eventTree.EventHeader.GetEventTime()
              bunchNumber = int((T%(4*3564))/4)
              nb1 = (3564 + bunchNumber - self.fsdict['phaseShift1'])%3564

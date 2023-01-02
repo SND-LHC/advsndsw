@@ -24,7 +24,7 @@ class Mufi_hitMaps(ROOT.FairTask):
        self.OT = ioman.GetSink().GetOutTree()
 
 # type of crossing, check for b1only,b2nob1,nobeam
-       if self.M.fsdict:   self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
+       if self.M.fsdict or self.M.hasBunchInfo:   self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
        else:   self.xing = {'':True}
        for xi in self.xing:
          ut.bookHist(h,detector+'Noise'+xi,'events with hits in single plane; s*10+l;',40,0.5,39.5)
@@ -215,7 +215,7 @@ class Mufi_hitMaps(ROOT.FairTask):
       systemAndPlanes =self.M.systemAndPlanes
       S = {1:[1800,800,2,1],2:[1800,1500,2,3],3:[1800,1800,2,4]}
       for xi in self.xing:
-       if not self.M.fsdict and xi!='': continue
+       if not self.M.fsdict and not self.M.hasBunchInfo and xi!='': continue
 
        for s in S:
            ut.bookCanvas(h,detector+'hitmaps' +sdict[s]+xi,'hitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
