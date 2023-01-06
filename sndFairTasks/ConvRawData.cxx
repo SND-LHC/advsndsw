@@ -488,7 +488,7 @@ void ConvRawData::Process1()
   fSNDLHCEventHeader->SetEventNumber(fEventTree->GetLeaf("evtNumber")->GetValue());
   // Fill filling scheme data into the event header
   if (FSmap->GetEntries()>1)
-      fSNDLHCEventHeader->SetBunchType(stoi(((TObjString*)FSmap->GetValue(Form("%d", (eventTime%(4*3564))/4)))->GetString().Data()));
+      fSNDLHCEventHeader->SetBunchType(stoi(((TObjString*)FSmap->GetValue(Form("%d", int((eventTime%(4*3564))/4))))->GetString().Data()));
   else
       fSNDLHCEventHeader->SetBunchType(stoi(((TObjString*)FSmap->GetValue("0"))->GetString().Data())); 
   
