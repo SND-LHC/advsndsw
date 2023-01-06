@@ -212,7 +212,7 @@ class Time_evolution(ROOT.FairTask):
        nbins  = int(tmax)
        yunit = "events per s"
        systems = {0:'Scifi',1:'Veto',2:'US',3:'DS'}
-       if self.fsdict:  Xi = ['','B1only', 'B2noB1','noBeam']
+       if self.fsdict or self.M.hasBunchInfo:  Xi = ['','B1only', 'B2noB1','noBeam']
        else: Xi = ['']
 
        if 'time' in h:
@@ -240,7 +240,7 @@ class Time_evolution(ROOT.FairTask):
        for k in K:
          for n in range(len(gtime['all'][k])):
              rc = h['time'+K[k]].Fill(gtime['all'][k][n]-T0)
-       if self.fsdict:
+       if self.fsdict or self.M.hasBunchInfo:
             for x in ['B1only', 'B2noB1','noBeam']:
                for k in K:
                   for n in range(len(gtime[x][k])):
@@ -400,7 +400,7 @@ class Time_evolution(ROOT.FairTask):
        stats.SetOptFit(1111111)
        h['T'].Update()
        self.M.myPrint(h['T'],"Rates",subdir='daq')
-       if self.fsdict:
+       if self.fsdict or self.M.hasBunchInfo:
             j = 1
             for x in ['B1only', 'B2noB1','noBeam']:
                  tc = h['Txing'].cd(j)
@@ -435,7 +435,7 @@ class Time_evolution(ROOT.FairTask):
             h['Txing'].Update()
             self.M.myPrint(h['Txing'],"RatesXing",subdir='daq')
 
-       if self.fsdict:
+       if self.fsdict or self.M.hasBunchInfo:
           ut.bookCanvas(h,'TD',' ',1024,768,4,2)
           j=1
           for x in self.xing:
