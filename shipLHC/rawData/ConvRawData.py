@@ -40,7 +40,7 @@ class ConvRawDataPY(ROOT.FairTask):
 
 # get filling scheme per run
       try:
-         fg = ROOT.TFile.Open(options.server+"/eos/experiment/sndlhc/convertedData/commissioning/TI18/FSdict.root")
+         fg = ROOT.TFile.Open(options.server+options.path+"/FSdict.root")
          pkl = Unpickler(fg)
          FSdict = pkl.load('FSdict')
          fg.Close()
