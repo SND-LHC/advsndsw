@@ -120,7 +120,7 @@ class Time_evolution(ROOT.FairTask):
             SFtrack = True
             if abs(SL[0])<0.03:  direction = 1
             elif SL[0]<-0.07:     direction = -1
-       bn = (T%(4*3564))/4
+       bn = (T%(4*3564))//4
        sbn = T%(4*3564)
        rc = h['bnr'].Fill( bn ,W)
        rc = h['Xbnr'].Fill( sbn,W)
@@ -131,8 +131,8 @@ class Time_evolution(ROOT.FairTask):
                  rc = h['trackDir'+x].Fill(SL[0],W)
                  rc = h['trackDirSig'+x].Fill(SL[1],W)
 
-       if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4,W)
-       elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4,W)
+       if direction >0: rc = h['bnrF'].Fill(bn,W)
+       elif direction <0: rc = h['bnrB'].Fill(bn,W)
        for x in self.xing:
           if self.M.xing[x]:
              self.gtime[x][0].append(T/self.M.freq)
