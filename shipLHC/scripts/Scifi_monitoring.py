@@ -194,13 +194,15 @@ class Scifi_residuals(ROOT.FairTask):
                 mClose = 0
                 mZmin = 999999.
                 for m in range(0,theTrack.getNumPointsWithMeasurement()):
-                   st   = theTrack.getFittedState(m)
+                   st   = ROOT.getFittedState(theTrack,m)
+                   if not st: break
                    Pos = st.getPos()
                    if abs(z-Pos.z())<mZmin:
                       mZmin = abs(z-Pos.z())
                       mClose = m
                 if mZmin>10000:
                     print("something wrong here with measurements",mClose,mZmin,theTrack.getNumPointsWithMeasurement())
+                    break
                 fstate =  theTrack.getFittedState(mClose)
                 pos,mom = fstate.getPos(),fstate.getMom()
                 rep.setPosMom(state,pos,mom)
