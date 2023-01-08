@@ -12,6 +12,25 @@ from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
 from rootpyPickler import Unpickler
 
 A,B=ROOT.TVector3(),ROOT.TVector3()
+# for fixing a root bug,  will be solved in the forthcoming 6.26 release.
+ROOT.gInterpreter.Declare("""
+#include <KalmanFitterInfo.h>
+#include <Track.h>
+#include <MeasuredStateOnPlane.h>
+#include <stddef.h>     
+
+const genfit::MeasuredStateOnPlane& getFittedState(genfit::Track* theTrack, int nM){
+      try{
+        return theTrack->getFittedState(nM);
+      }
+      catch(genfit::Exception& e){
+        std::cerr<<"Exception,e.what() "<<std::endl;
+        const genfit::MeasuredStateOnPlane* state(NULL);
+        return *state;
+      }
+}
+""")
+
 ROOT.gInterpreter.Declare("""
 #include "MuFilterHit.h"
 #include "AbsMeasurement.h"
@@ -313,7 +332,7 @@ class Monitoring():
              self.xing['noBeam']  = binfo.isNoBeam()
       elif self.fsdict:
              T   = self.eventTree.EventHeader.GetEventTime()
-             bunchNumber = int((T%(4*3564))/4)
+             bunchNumber = (T%(4*3564))//4
              nb1 = (3564 + bunchNumber - self.fsdict['phaseShift1'])%3564
              nb2 = (3564 + bunchNumber - self.fsdict['phaseShift1']- self.fsdict['phaseShift2'])%3564
              b1 = nb1 in self.fsdict['B1']
