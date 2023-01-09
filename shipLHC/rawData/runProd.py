@@ -293,7 +293,7 @@ class prodManager():
            return eventChain.GetEntries()
 
    def checkEOS(self,copy=False,latest=4361):
-       self.eosInventory = self.getFileList('/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/',latest)
+       self.eosInventory = self.getFileList(path,latest)
        tmp = self.options.server 
        self.options.server = "root://snd-server-1.cern.ch/"
        self.daqInventory = self.getFileList('/mnt/raid1/data_online/',latest)
@@ -311,7 +311,7 @@ class prodManager():
                for p in self.missing[r]:
                    filename = 'data_'+str(p).zfill(4)+'.root'
                    source = '/mnt/raid1/data_online/'+dirname+'/'+filename
-                   target = '/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/'+dirname+'/'+filename
+                   target = path+dirname+'/'+filename
                    os.system("xrdcp -f "+source+" "+os.environ['EOSSHIP']+target)
        
    def getConvStats(self,runList):
@@ -384,6 +384,7 @@ if __name__ == '__main__':
     elif options.prod == "reproc2022":
        path = "/eos/experiment/sndlhc/raw_data/physics/2022/"
        pathConv = "/eos/experiment/sndlhc/convertedData/physics/2022/"
+       # first run = 4361
     elif options.prod == "H6":
        path     = "/eos/experiment/sndlhc/raw_data/commissioning/TB_H6/data/"
        pathConv = "/eos/experiment/sndlhc/convertedData/commissioning/TB_H6/"
