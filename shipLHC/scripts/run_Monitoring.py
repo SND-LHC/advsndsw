@@ -239,8 +239,11 @@ if not options.auto:   # default online/offline mode
 
      for m in monitorTasks:
           monitorTasks[m].Plot()
-     print('i am finished')
-     M.presenterFile.daq.ls()
+     # check if all events had been processed
+     if not M.h['Etime'].GetEntries() == options.nEvents:
+         print('event count failed! Processed:',M.h['Etime'].GetEntries(),' total number of events:',options.nEvents)
+     else:
+         print('i am finished, all events processed')
 
  M.publishRootFile()
  if options.sudo:
