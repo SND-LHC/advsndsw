@@ -39,6 +39,7 @@ class ConvRawDataPY(ROOT.FairTask):
          self.outFile = ROOT.TMemFile('monitorRawData', 'recreate')
 
 # get filling scheme per run
+      self.fsdict = False
       try:
          if options.path.find('2022'): fpath = "/eos/experiment/sndlhc/convertedData/physics/2022/"
          else: fpath = "/eos/experiment/sndlhc/convertedData/commissioning/TI18/"
@@ -46,12 +47,10 @@ class ConvRawDataPY(ROOT.FairTask):
          pkl = Unpickler(fg)
          FSdict = pkl.load('FSdict')
          fg.Close()
-
-         if options.runNumber in FSdict: self.fsdict = FSdict[options.runNumber]
-         else:  self.fsdict = False
+         if options.runNumber in FSdict: 
+             if 'B1' in FSdict[options.runNumber]: self.fsdict = FSdict[options.runNumber]
       except:
          print('continue without knowing filling scheme',options.server+options.path)
-         self.fsdict = False  
       
       # put the run's FS in format to be passed to FairTasks as input
       self.FSmap = ROOT.TMap()
