@@ -8,6 +8,7 @@ class GeoInterface():
  " Geometry "
  def __init__(self,geoFile):
    self.fgeo = ROOT.TFile.Open(geoFile)
+   print('using geofile:',geoFile.GetName())
 #load geo dictionary
    upkl    = Unpickler(self.fgeo)
    self.snd_geo = upkl.load('ShipGeo')
