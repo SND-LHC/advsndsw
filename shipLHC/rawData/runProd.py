@@ -89,13 +89,13 @@ class prodManager():
                         -b 100000 -p "+pathConv+" -g GGGG "\
                         +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo  "
       if options.parallel>1: monitorCommand += " --postscale "+str(options.parallel)
-      convDataFiles = self.getFileList(pathConv,latest,minSize=0)
+      convDataFiles = self.getFileList(pathConv,latest,options.rmax,minSize=0)
       self.checkEOS(copy=False,latest=latest)
       # remove directories which are not completely copied
       for r in self.missing:
              if r in convDataFiles: convDataFiles.pop(r)
       # remove directories which are not fully converted
-      rawDataFiles = self.getFileList(path,latest,minSize=10E6)
+      rawDataFiles = self.getFileList(path,latest,options.rmax,minSize=10E6)
       self.RawrunNrs = {}
       for x in rawDataFiles:
              r =  x//10000
@@ -120,8 +120,9 @@ class prodManager():
            if len(self.runNrs[r]) != len(self.RawrunNrs[r]): continue  # not all files converted.
            print('executing DQ for run %i'%(r))
            if   r  < 4575:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
-           elif r  < 4855:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
-           else: geoFile =  "../geofile_sndlhc_TI18_V6_08October2022.root "
+           elif r  < 4855:  geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
+           elif r  < 5172:  geoFile =  "../geofile_sndlhc_TI18_V6_08October2022.root"
+           else: geoFile =  "../geofile_sndlhc_TI18_V7_22November2022.root"
            os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
            while self.count_python_processes('run_Monitoring')>(ncpus-2) or psutil.virtual_memory()[2]>90 : time.sleep(1800)
 
@@ -137,14 +138,15 @@ class prodManager():
            print('executing DQ for run %i'%(r))
            if   r  < 4575:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
            elif r  < 4855:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
-           else: geoFile =  "../geofile_sndlhc_TI18_V6_08October2022.root "
+           elif r  < 5172:  geoFile =  "../geofile_sndlhc_TI18_V6_08October2022.root"
+           else: geoFile =  "../geofile_sndlhc_TI18_V7_22November2022.root"
            os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
            time.sleep(20)
            while self.count_python_processes('run_Monitoring')>(ncpus-5) or psutil.virtual_memory()[2]>90 : time.sleep(300)
 
-   def check4NewFiles(self,latest):
-      rawDataFiles = self.getFileList(path,latest,minSize=10E6)
-      convDataFiles = self.getFileList(pathConv,latest,minSize=0)
+   def check4NewFiles(self,latest,rmax):
+      rawDataFiles = self.getFileList(path,latest,rmax,minSize=10E6)
+      convDataFiles = self.getFileList(pathConv,latest,rmax,minSize=0)
       orderedRDF = list(rawDataFiles.keys())
       orderedCDF = list(convDataFiles.keys())
       orderedRDF.reverse(),orderedCDF.reverse()
@@ -235,7 +237,7 @@ class prodManager():
            if rc==0: success[r].append(x)
      return success
 
-   def getFileList(self,p,latest,minSize=10E6):
+   def getFileList(self,p,latest,rmax=99999,minSize=10E6):
       inventory = {}
       dirList = str( subprocess.check_output("xrdfs "+self.options.server+" ls "+p,shell=True) )
       for x in dirList.split('\\n'):
@@ -243,6 +245,7 @@ class prodManager():
           if not aDir.find('run')==0:continue
           runNr = int(aDir.split('_')[1])
           if not runNr > latest: continue
+          if runNr > rmax:       continue
           fileList = str( subprocess.check_output("xrdfs "+self.options.server+" ls -l "+p+"/"+aDir,shell=True) )
           for z in fileList.split('\\n'):
                jj=0
@@ -292,11 +295,11 @@ class prodManager():
                 eventChain.Add(options.server+pathConv+'run_'+str(r).zfill(6)+'/'+p)
            return eventChain.GetEntries()
 
-   def checkEOS(self,copy=False,latest=4361):
-       self.eosInventory = self.getFileList(path,latest)
+   def checkEOS(self,copy=False,latest=4361,rlast=99999):
+       self.eosInventory = self.getFileList(path,latest,rlast)
        tmp = self.options.server 
        self.options.server = "root://snd-server-1.cern.ch/"
-       self.daqInventory = self.getFileList('/mnt/raid1/data_online/',latest)
+       self.daqInventory = self.getFileList('/mnt/raid1/data_online/',latest,rlast)
        self.options.server = tmp
        self.missing = {}
        for r in self.daqInventory:
@@ -400,7 +403,7 @@ if __name__ == '__main__':
 
     if options.auto:
       while 1 > 0:
-         M.check4NewFiles(options.latest)
+         M.check4NewFiles(options.latest,options.rMax)
          time.sleep(600)
       exit(0)
 
