@@ -119,6 +119,8 @@ HT_tasks['muon_reco_task_DS'].SetTrackingCase('passing_mu_DS')
 HT_tasks['muon_reco_task_nuInt'].SetTrackingCase('nu_interaction_products')
 
 run.Init()
+OT = sink.GetOutTree()
+OT.Reco_MuonTracks = ROOT.TObjArray(10)
 eventTree = ioman.GetInTree()
 # backward compatbility for early converted events
 eventTree.GetEvent(0)
@@ -238,7 +240,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
     else: rc = event.GetEvent(start[N])
     if goodEvents and not goodEvent(event): continue
     nHoughtracks = 0
-    OT.Reco_MuonTracks = ROOT.TObjArray(10)
+    OT.Reco_MuonTracks.Delete()
     if withHoughTrack > 0:
        rc = source.GetInTree().GetEvent(N)
        # Delete SndlhcMuonReco kalman tracks container
@@ -261,7 +263,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
        if len(uniqueTracks)<nTracks:
           OT.Reco_MuonTracks.Delete()
        nHoughtracks = OT.Reco_MuonTracks.GetEntries()
-       print('number of tracks by pattern recognition:', nHoughtracks)
+       if nHoughtracks>0: print('number of tracks by pattern recognition:', nHoughtracks)
 
     if withTrack > 0:
           # Delete SndlhcTracking fitted tracks container
@@ -276,7 +278,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
           for trk in trackTask.fittedTracks:
               OT.Reco_MuonTracks.Add(trk)
           ntracks = len(OT.Reco_MuonTracks) - nHoughtracks
-          print('number of tracks by KF-based tracking:', ntracks)
+          if ntracks>0: print('number of tracks by KF-based tracking:', ntracks)
     nAlltracks = len(OT.Reco_MuonTracks)
     if nAlltracks<nTracks: continue
 
