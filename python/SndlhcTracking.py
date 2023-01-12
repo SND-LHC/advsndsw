@@ -55,6 +55,7 @@ class Tracking(ROOT.FairTask):
    self.sigmaMufiUS_spatial = 2.*u.cm
    self.sigmaMufiDS_spatial = 0.3*u.cm
    self.scifi_vsignal = 15.*u.cm/u.ns
+   self.firstScifi_z = 300*u.cm
    self.Debug = False
    self.ioman = ROOT.FairRootManager.Instance()
    self.sink = self.ioman.GetSink()
@@ -479,20 +480,13 @@ class Tracking(ROOT.FairTask):
       if not fitStatus.isFitConverged() : return [100,-100]
       state = ROOT.getFittedState(theTrack,0)
       pos = state.getPos()
-# start with first measurement
-      M = theTrack.getPointWithMeasurement(0)
-      W      = M.getRawMeasurement()
-      detID = W.getDetId()
-      aHit   = self.event.Digi_ScifiHits[ self.DetID2Key[detID] ]
-      self.scifiDet.GetSiPMPosition(detID,A,B)
-      X = B-pos
-      L0 = X.Mag()/self.scifi_vsignal
-      # need to correct for signal propagation along fibre
-      clkey  = W.getHitId()
-      aCl = self.clusScifi[clkey]
-      T0track = aCl.GetTime() - L0
-      TZero    = aCl.GetTime()
+      mom = state.getMom()
+      lam = (self.firstScifi_z-pos.z())/mom.z()
+      # nominal first position
+      pos1 = ROOT.TVector3(pos.x()+lam*mom.x(),pos.y()+lam*mom.y(),self.firstScifi_z)
+
       self.Tline = ROOT.TGraph()
+      meanT = 0
       for nM in range(theTrack.getNumPointsWithMeasurement()):
             state = ROOT.getFittedState(theTrack,nM)
             if not state: continue
@@ -509,12 +503,10 @@ class Tracking(ROOT.FairTask):
             L = X.Mag()/self.scifi_vsignal
          # need to correct for signal propagation along fibre
             corTime = self.scifiDet.GetCorrectedTime(detID, aCl.GetTime(), 0)
-            trajLength = (posM-pos).Mag()
-            if posM[2] -pos[2] < 0: trajLength = -trajLength
-            dT = corTime - L - T0track - trajLength/u.speedOfLight
-            self.Tline.AddPoint(trajLength,dT)
+            trajLength = (posM-pos1).Mag()
+            T = corTime - L - trajLength/u.speedOfLight
+            self.Tline.AddPoint(trajLength,T)
       rc = self.Tline.Fit('pol1','SQ')
       fitResult =  rc.Get()
       slope = fitResult.Parameter(1)
-      return [slope,slope/(fitResult.ParError(1)+1E-13)]
-
+      return [slope,slope/(fitResult.ParError(1)+1E-13),fitResult.Parameter(0)]
