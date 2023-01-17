@@ -245,7 +245,7 @@ class Mufi_hitMaps(ROOT.FairTask):
            ut.bookCanvas(h,detector+'hitmaps' +sdict[s]+xi,'hitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
            ut.bookCanvas(h,detector+'Xhitmaps' +sdict[s]+xi,'Xhitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
            ut.bookCanvas(h,detector+'barmaps'+sdict[s]+xi,'barmaps'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
-           ut.bookCanvas(h,detector+'dTScifi'+sdict[s]+xi,'dt rel to scifi'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
+           if s==3: ut.bookCanvas(h,detector+'dTScifi'+sdict[s]+xi,'dt rel to scifi'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
 
            for l in range(systemAndPlanes[s]):
               n = l+1
@@ -258,8 +258,9 @@ class Mufi_hitMaps(ROOT.FairTask):
 
               tc = h[detector+'barmaps'+sdict[s]+xi].cd(n)
               h[detector+'bar_'+tag].Draw()
-              tc = h[detector+'dTScifi'+sdict[s]+xi].cd(n)
-              h[detector+'dT_'+tag].Draw()
+              if s==3: 
+                 tc = h[detector+'dTScifi'+sdict[s]+xi].cd(n)
+                 h[detector+'dT_'+tag].Draw('colz')
 
        ut.bookCanvas(h,detector+'hitmult'+xi,'hit multiplicities per plane',2000,1600,4,3)
        k=1
@@ -417,6 +418,7 @@ class Mufi_hitMaps(ROOT.FairTask):
               else: self.M.myPrint(h[canvas],canvas,subdir='mufilter')
        for canvas in [detector+'hitmaps',detector+'Xhitmaps',detector+'barmaps',detector+'dTScifi']:
               for s in range(1,4):
+                  if s<3 and canvas == detector+'dTScifi': continue
                   h[canvas+sdict[s]+xi].Update()
                   if x!='': self.M.myPrint(h[canvas+sdict[s]+xi],canvas+sdict[s],subdir='mufilter/'+xi)
                   else: self.M.myPrint(h[canvas+sdict[s]+xi],canvas+sdict[s],subdir='mufilter')
