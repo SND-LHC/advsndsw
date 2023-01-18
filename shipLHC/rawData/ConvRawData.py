@@ -271,7 +271,7 @@ class ConvRawDataPY(ROOT.FairTask):
        self.sTree = ROOT.TTree('rawConv','raw data converted')
        ROOT.gDirectory.pwd()
        self.header  = ROOT.SNDLHCEventHeader()
-       eventSND  = self.sTree.Branch("EventHeader",self.header,32000,-1)
+       eventSND  = self.sTree.Branch("EventHeader.",self.header,32000,-1)
 
        self.digiSciFi   = ROOT.TClonesArray("sndScifiHit")
        self.digiSciFiBranch   = self.sTree.Branch("Digi_ScifiHits",self.digiSciFi,32000,1)

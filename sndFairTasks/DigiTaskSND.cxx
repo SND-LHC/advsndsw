@@ -86,7 +86,7 @@ InitStatus DigiTaskSND::Init()
  
     // Event header
     fEventHeader = new SNDLHCEventHeader();
-    ioman->Register("EventHeader", "sndEventHeader", fEventHeader, kTRUE);
+    ioman->Register("EventHeader.", "sndEventHeader", fEventHeader, kTRUE);
 
     // Create and register output array - for SciFi and MuFilter
     fScifiDigiHitArray = new TClonesArray("sndScifiHit");
