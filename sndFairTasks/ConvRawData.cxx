@@ -123,7 +123,7 @@ InitStatus ConvRawData::Init()
         fEventTree = (TTree*)f0->Get("data");
         // use sndlhc eventHeader class
         fSNDLHCEventHeader = new SNDLHCEventHeader();
-        ioman->Register("EventHeader", "sndEventHeader", fSNDLHCEventHeader, kTRUE);        
+        ioman->Register("EventHeader.", "sndEventHeader", fSNDLHCEventHeader, kTRUE);        
     }
      
     fDigiSciFi    = new TClonesArray("sndScifiHit");

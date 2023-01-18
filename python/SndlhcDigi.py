@@ -20,7 +20,7 @@ class SndlhcDigi:
 
         # event header
         self.header  = ROOT.SNDLHCEventHeader()
-        self.eventHeader  = self.sTree.Branch("EventHeader",self.header,32000,1)
+        self.eventHeader  = self.sTree.Branch("EventHeader.",self.header,32000,1)
         #scifi
         self.digiScifi   = ROOT.TClonesArray("sndScifiHit")
         self.digiScifiBranch   = self.sTree.Branch("Digi_ScifiHits",self.digiScifi,32000,1)

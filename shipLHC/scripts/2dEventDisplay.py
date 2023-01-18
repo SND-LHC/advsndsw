@@ -289,11 +289,10 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
            mom.Print()
            pos.Print()
     T,dT = 0,0
-    if event.FindBranch("EventHeader"):
-       T = event.EventHeader.GetEventTime()
-       runId = eventTree.EventHeader.GetRunId()
-       if Tprev >0: dT = T-Tprev
-       Tprev = T
+    T = event.EventHeader.GetEventTime()
+    runId = eventTree.EventHeader.GetRunId()
+    if Tprev >0: dT = T-Tprev
+    Tprev = T
     if nAlltracks > 0: print('total number of tracks: ', nAlltracks)
 
     digis = []
