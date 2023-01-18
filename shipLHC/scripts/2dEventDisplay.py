@@ -289,7 +289,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
            mom.Print()
            pos.Print()
     T,dT = 0,0
-    if event.FindBranch("EventHeader"):
+    if event.FindBranch("EventHeader") or event.FindBranch("EventHeader."):
        T = event.EventHeader.GetEventTime()
        runId = eventTree.EventHeader.GetRunId()
        if Tprev >0: dT = T-Tprev
