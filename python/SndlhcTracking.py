@@ -394,7 +394,14 @@ class Tracking(ROOT.FairTask):
 
 # approximate covariance
     covM = ROOT.TMatrixDSym(6)
-    res = self.sigmaScifi_spatial
+    aCl = hitlist[0]
+    if hasattr(aCl,"GetFirst"):
+      detID = aCl.GetFirst()
+    else:
+      detID = aCl.GetDetectorID()
+    if detID>50000: res = self.sigmaMufiDS_spatial
+    else:  res = self.sigmaScifi_spatial
+
     for  i in range(3):   covM[i][i] = res*res
     for  i in range(3,6): covM[i][i] = ROOT.TMath.Power(res / (4.*2.) / ROOT.TMath.Sqrt(3), 2)
     rep = ROOT.genfit.RKTrackRep(13)
