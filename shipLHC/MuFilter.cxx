@@ -501,6 +501,35 @@ void MuFilter::GetLocalPosition(Int_t fDetectorID, TVector3& vLeft, TVector3& vR
   vRight.SetXYZ(locB[0],locB[1],locB[2]);
 }
 
+Float_t MuFilter::GetCorrectedTime(Int_t fDetectorID, Int_t channel, Double_t rawTime, Double_t L){
+/* expect time in u.ns  and  path length to sipm u.cm */
+/* calibration implemented only for DS! */
+/* channel 0 left or top, channel 1 right */
+	if (fDetectorID<30000){
+ 		LOG(ERROR) << "not yet implemented for Veto and DS, no correction applied" ;
+		return rawTime;
+	}
+	Float_t cor = rawTime;
+	int l = (fDetectorID-30000)/1000;
+	int ichannel60 = fDetectorID%1000;
+	int p;
+	if (channel==0 && ichannel60<30 ){p=0+l*6;}
+	if (channel==0 && ichannel60>29 && ichannel60<60 ){p=1+l*6;}
+	if (channel==1 && ichannel60<30 ){p=2+l*6;}
+	if (channel==1 && ichannel60>29 && ichannel60<60 ){p=3+l*6;}
+	if (channel==0 && ichannel60>59 && ichannel60<90 ){p=4+l*6;}
+	if (channel==0 && ichannel60>89 && ichannel60<120 ){p=5+l*6;}
+	if (l==4){p-=4;}
+	if (ichannel60>59) {ichannel60-=60;}
+	// DS time alignment first order
+	if (ichannel60<30){cor += conf_floats["MuFilter/DSTcorslope"]*(ichannel60-15);}
+	else{              cor -= conf_floats["MuFilter/DSTcorslope"]*(ichannel60-45);}
+	string si = to_string(p);
+	cor -= conf_floats["MuFilter/DSTcorC"+si];
+	cor -= L/conf_floats["MuFilter/DsPropSpeed"];
+	return cor;
+}
+
 void MuFilter::GetPosition(Int_t fDetectorID, TVector3& vLeft, TVector3& vRight)
 {
 
@@ -575,15 +604,4 @@ void MuFilter::GetPosition(Int_t fDetectorID, TVector3& vLeft, TVector3& vRight)
        if (subsystem==1){return conf_ints["MuFilter/UpstreamnSides"];}
        return conf_ints["MuFilter/DownstreamnSides"];
   }
-/*
-Double_t MuFilter::GetCorrectedTime(Int_t fDetectorID, Int_t channel, Double_t rawTime, Double_t L){
- expect time in u.ns  and  path length to sipm u.cm 
-	TString channelName;
-	channelName.Form("%i",fDetectorID);
-	channelName+= std::to_string(channel);
-	Double_t cor = conf_floats["MuFilter/tI"+channelName];
-	cor += L/conf_floats["Mufi/signalSpeed"];
-	return rawTime-cor;
-}
-*/
 ClassImp(MuFilter)
