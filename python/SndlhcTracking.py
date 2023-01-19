@@ -394,13 +394,15 @@ class Tracking(ROOT.FairTask):
 
 # approximate covariance
     covM = ROOT.TMatrixDSym(6)
-    aCl = hitlist[0]
-    if hasattr(aCl,"GetFirst"):
-      detID = aCl.GetFirst()
-    else:
-      detID = aCl.GetDetectorID()
-    if detID>50000: res = self.sigmaMufiDS_spatial
-    else:  res = self.sigmaScifi_spatial
+    for k in hitlist:
+      aCl = hitlist[k]
+      if hasattr(aCl,"GetFirst"):
+        detID = aCl.GetFirst()
+      else:
+        detID = aCl.GetDetectorID()
+      if detID>50000: res = self.sigmaMufiDS_spatial
+      else:  res = self.sigmaScifi_spatial
+      break
 
     for  i in range(3):   covM[i][i] = res*res
     for  i in range(3,6): covM[i][i] = ROOT.TMath.Power(res / (4.*2.) / ROOT.TMath.Sqrt(3), 2)
