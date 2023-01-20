@@ -425,7 +425,7 @@ class Mufi_hitMaps(ROOT.FairTask):
               h[canvas].Update()
               if x!='': self.M.myPrint(h[canvas],canvas,subdir='mufilter/'+xi)
               else: self.M.myPrint(h[canvas],canvas,subdir='mufilter')
-       for canvas in [detector+'hitmaps',detector+'Xhitmaps',detector+'barmaps',detector+'dTScifi']:
+       for canvas in [detector+'hitmaps',detector+'Xhitmaps',detector+'barmaps',detector+'dTScifi',detector+'dTcorScifi']:
               for s in range(1,4):
                   if s<3 and canvas == detector+'dTScifi': continue
                   h[canvas+sdict[s]+xi].Update()
