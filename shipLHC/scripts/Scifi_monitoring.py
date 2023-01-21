@@ -15,7 +15,7 @@ class Scifi_hitMaps(ROOT.FairTask):
        h = self.M.h
        ioman = ROOT.FairRootManager.Instance()
        self.OT = ioman.GetSink().GetOutTree()
-       if self.M.fsdict:   self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
+       if self.M.fsdict or self.M.hasBunchInfo :   self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
        else:   self.xing = {'':True}
        for xi in self.xing:
         for s in range(10):
@@ -50,7 +50,7 @@ class Scifi_hitMaps(ROOT.FairTask):
    def Plot(self):
       h = self.M.h
       for xi in self.xing:
-       if not self.M.fsdict and xi!='': continue
+       if not self.M.fsdict and not self.M.hasBunchInfo and xi!='': continue
        ut.bookCanvas(h,detector+'hitmaps'+xi,' ',1024,768,6,5)
        ut.bookCanvas(h,detector+'signal'+xi,' ',1024,768,6,5)
        ut.bookCanvas(h,detector+'tdc'+xi,' ',1024,768,6,5)
@@ -115,7 +115,7 @@ class Scifi_residuals(ROOT.FairTask):
 # type of crossing, check for b1only,b2nob1,nobeam
        self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
        for xi in self.xing:
-          if not self.M.fsdict and xi!='': continue
+          if not self.M.fsdict and not self.M.hasBunchInfo and xi!='': continue
           ut.bookHist(h,detector+'trackSlopes'+xi,'track slope; x/z [mrad]; y/z [mrad]',1000,-100,100,1000,-100,100)
           ut.bookHist(h,detector+'trackSlopesXL'+xi,'track slope; x/z [rad]; y/z [rad]',2200,-1.1,1.1,2200,-1.1,1.1)
           ut.bookHist(h,detector+'trackPos'+xi,'track pos; x [cm]; y [cm]',100,-90,10.,80,0.,80.)
@@ -146,8 +146,8 @@ class Scifi_residuals(ROOT.FairTask):
                  slopeX = mom.X()/mom.Z()
                  slopeY = mom.Y()/mom.Z()
                  rc = h[detector+'trackChi2/ndof'].Fill(fitStatus.getChi2()/(fitStatus.getNdf()+1E-10),fitStatus.getNdf())
-                 self.M.fillHist2(detector+'trackSlopes',slopeX*1000,slopeY*1000)
-                 self.M.fillHist2(detector+'trackSlopesXL',slopeX,slopeY)
+                 self.M.fillHist2(detector+'trackSlopes',slopeX*1000-pos.X()/48.2,slopeY*1000-pos.Y()/48.2)
+                 self.M.fillHist2(detector+'trackSlopesXL',slopeX-pos.X()/48200,slopeY-pos.Y()/48200)
                  self.M.fillHist2(detector+'trackPos',pos.X(),pos.Y())
                  if abs(slopeX)<0.1 and abs(slopeY)<0.1:  self.M.fillHist2(detector+'trackPosBeam',pos.X(),pos.Y())
 
@@ -194,13 +194,15 @@ class Scifi_residuals(ROOT.FairTask):
                 mClose = 0
                 mZmin = 999999.
                 for m in range(0,theTrack.getNumPointsWithMeasurement()):
-                   st   = theTrack.getFittedState(m)
+                   st   = ROOT.getFittedState(theTrack,m)
+                   if not st: break
                    Pos = st.getPos()
                    if abs(z-Pos.z())<mZmin:
                       mZmin = abs(z-Pos.z())
                       mClose = m
                 if mZmin>10000:
                     print("something wrong here with measurements",mClose,mZmin,theTrack.getNumPointsWithMeasurement())
+                    break
                 fstate =  theTrack.getFittedState(mClose)
                 pos,mom = fstate.getPos(),fstate.getMom()
                 rep.setPosMom(state,pos,mom)
@@ -305,7 +307,7 @@ class Scifi_residuals(ROOT.FairTask):
        for canvas in T:
            self.M.myPrint(self.M.h[canvas],"Scifi-"+canvas,subdir='scifi')
        for xi in self.xing:
-           if not self.M.fsdict and xi!='': continue
+           if not self.M.fsdict and not self.M.hasBunchInfo and xi!='': continue
            tname = detector+'trackDir'+xi
            ut.bookCanvas(h,tname,"track directions",1600,1800,3,2)
            h[tname].cd(1)

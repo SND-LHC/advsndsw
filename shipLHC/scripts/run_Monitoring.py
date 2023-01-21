@@ -81,8 +81,10 @@ if not options.geoFile:
            options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
      elif options.runNumber < 4855:
           options.geoFile =  "geofile_sndlhc_TI18_V5_14August2022.root"
-     else:
+     elif options.runNumber < 5172:
           options.geoFile =  "geofile_sndlhc_TI18_V6_08October2022.root"
+     else:
+          options.geoFile =  "geofile_sndlhc_TI18_V7_22November2022.root"
 
 # to be extended for future new alignments.
 
@@ -237,8 +239,11 @@ if not options.auto:   # default online/offline mode
 
      for m in monitorTasks:
           monitorTasks[m].Plot()
-     print('i am finished')
-     M.presenterFile.daq.ls()
+     # check if all events had been processed
+     if not M.h['Etime'].GetEntries() == options.nEvents:
+         print('event count failed! Processed:',M.h['Etime'].GetEntries(),' total number of events:',options.nEvents)
+     else:
+         print('i am finished, all events processed')
 
  M.publishRootFile()
  if options.sudo:

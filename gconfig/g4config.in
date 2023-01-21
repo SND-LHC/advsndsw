@@ -10,6 +10,7 @@
 # switch on other sources of di muon 
 /physics_lists/em/PositronToMuons true
 /physics_lists/em/GammaToMuons true
+/physics_lists/em/MuonToMuons true
 
 # drives me crazy how to stop this tons of output !!!
 /process/em/verbose 0

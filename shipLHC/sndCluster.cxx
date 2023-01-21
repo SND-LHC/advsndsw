@@ -49,7 +49,7 @@ sndCluster::sndCluster(Int_t first, Int_t N,std::vector<MuFilterHit*> hitlist,Mu
 	TVector3 B(0,0,0);
 // make clusterCentre:
 	for (int k = 0;k<fN; ++k){
-		MuDet->GetPosition(k+fFirst, A, B);
+		MuDet->GetPosition((hitlist.at(k))->GetDetectorID(), A, B);
 		Double_t w = 1.;
 		if (withQDC) {w = dynamic_cast<MuFilterHit*> (hitlist.at(k))->GetEnergy();}
 		Double_t t = 6.25 * dynamic_cast<MuFilterHit*> (hitlist.at(k))->GetTime();
