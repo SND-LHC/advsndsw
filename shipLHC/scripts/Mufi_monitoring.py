@@ -38,7 +38,7 @@ class Mufi_hitMaps(ROOT.FairTask):
 
                   if s==3:  
                         ut.bookHist(h,detector+'bar_'+str(s*10+l)+xi,'bar map / plane '+sdict[s]+str(l)+'; #bar',60,-0.5,59.5)
-                        ut.bookHist(h,detector+'dT_'+str(s*10+l)+xi,'dT with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',100,-25.,5.,120,-0.5,2*59.5)
+                        ut.bookHist(h,detector+'dT_'+str(s*10+l)+xi,'dT with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',      100,-25.,5.,120,-0.5,2*59.5)
                         ut.bookHist(h,detector+'dTcor_'+str(s*10+l)+xi,'dTcor with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',100,-25.,5.,120,-0.5,2*59.5)
                   else:       ut.bookHist(h,detector+'bar_'+str(s*10+l)+xi,'bar map / plane '+sdict[s]+str(l)+'; #bar',10,-0.5,9.5)
                   ut.bookHist(h,detector+'sig_'+str(s*10+l)+xi,'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
@@ -214,8 +214,9 @@ class Mufi_hitMaps(ROOT.FairTask):
                    tM = aHit.GetTime(i)*self.M.TDC2ns - L - trajLength/u.speedOfLight
                    self.M.fillHist2(detector+'dT_'+str(s*10+l),tM-scifi_time0,bar*2+i)
                    # use corrected time
-                   corTime = self.M.MuFilter.GetCorrectedTime(detID, i, aHit.GetTime(i), X.Mag());
-                   self.M.fillHist2(detector+'dTcor_'+str(s*10+l),corTime-scifi_time0,bar*2+i)
+                   corTime = self.M.MuFilter.GetCorrectedTime(detID, i, aHit.GetTime(i)*self.M.TDC2ns, X.Mag())
+                   tM = corTime - trajLength/u.speedOfLight
+                   self.M.fillHist2(detector+'dTcor_'+str(s*10+l),tM-scifi_time0,bar*2+i)
 
    def beamSpot(self,event):
       if not self.trackTask: return
