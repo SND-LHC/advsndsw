@@ -26,14 +26,14 @@ class GeoInterface():
      x = self.snd_geo[o1]
      if not hasattr(x,'items'):       temp[key] = x
      else:
-        for o2 in x:
+        for o2 in x.__dict__:
             key = o1 + '/' +o2
-            y = x[o2]
+            y = x.__dict__[o2]
             if not  hasattr(y,'items'):         temp[key] = y
             else:
-                for o3 in y:
+                for o3 in y.__dict__:
                    key = o1 + '/' +o2+ '__' +o3
-                   z = y[o3]
+                   z = y.__dict__[o3]
                    if not  hasattr(z,'items'):        temp[key] = z
    for key in temp:
        if not key.find('MuFilter')<0:
