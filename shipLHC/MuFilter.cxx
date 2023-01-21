@@ -519,7 +519,7 @@ Float_t MuFilter::GetCorrectedTime(Int_t fDetectorID, Int_t channel, Double_t ra
 	if (channel==1 && ichannel60>29 && ichannel60<60 ){p=3+l*6;}
 	if (channel==0 && ichannel60>59 && ichannel60<90 ){p=4+l*6;}
 	if (channel==0 && ichannel60>89 && ichannel60<120 ){p=5+l*6;}
-	if (l==4){p-=4;}
+	if (l==3){p-=4;}
 	if (ichannel60>59) {ichannel60-=60;}
 	// DS time alignment first order
 	if (ichannel60<30){cor += conf_floats["MuFilter/DSTcorslope"]*(ichannel60-15);}
