@@ -344,6 +344,8 @@ class Monitoring():
        self.presenterFile.Close()
        if self.options.online:
            wwwPath = "/eos/experiment/sndlhc/www/online"
+       elif options.path.find('2022') :
+           wwwPath = "/eos/experiment/sndlhc/www/reprocessing"
        else:    
            wwwPath = "/eos/experiment/sndlhc/www/offline"
        if self.options.sudo: 
@@ -377,6 +379,7 @@ class Monitoring():
 
    def updateHtml(self):
       if self.options.online: destination="online"
+      elif options.path.find('2022'): destination="reprocessing"
       else: destination="offline"
       rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/"+destination+".html  . ")
       old = open(destination+".html")

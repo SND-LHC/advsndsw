@@ -130,7 +130,11 @@ else:
        os._exit(1)
 # works only for runs on EOS
    if not options.server.find('eos')<0:
-      runDir = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_"+str(options.runNumber).zfill(6)
+      if options.path.find('2022'):
+          rawDataPath = "/eos/experiment/sndlhc/raw_data/physics/2022/"
+      else:
+          rawDataPath = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/"
+      runDir = rawDataPath+"run_"+str(options.runNumber).zfill(6)
       jname = "run_timestamps.json"
       dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+runDir,shell=True) ) 
       if jname in dirlist:
@@ -157,8 +161,8 @@ else:
 
 M = Monitor.Monitoring(options,FairTasks)
 if options.nEvents < 0 :   options.nEvents = M.GetEntries()
-if options.postScale==0 and options.nEvents>5E7: options.postScale = 100
-if options.postScale==0 and options.nEvents>5E6: options.postScale = 10
+if options.postScale==0 and options.nEvents>100E6: options.postScale = 100
+if options.postScale==0 and options.nEvents>10E6: options.postScale = 10
 
 monitorTasks = {}
 if not options.fname:
