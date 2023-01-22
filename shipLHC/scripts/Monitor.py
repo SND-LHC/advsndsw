@@ -344,7 +344,7 @@ class Monitoring():
        self.presenterFile.Close()
        if self.options.online:
            wwwPath = "/eos/experiment/sndlhc/www/online"
-       elif options.path.find('2022') :
+       elif self.options.path.find('2022') :
            wwwPath = "/eos/experiment/sndlhc/www/reprocessing"
        else:    
            wwwPath = "/eos/experiment/sndlhc/www/offline"
@@ -357,7 +357,7 @@ class Monitoring():
 
    def purgeMonitorHistos(self):
         wwwPath = "/eos/experiment/sndlhc/www/online/"
-        for r in options.runNumbers.split(','):
+        for r in self.options.runNumbers.split(','):
             if r!= '': runList.append(int(r))
         for r in runList:
               runNr   = str(r).zfill(6)+'.root'
@@ -375,11 +375,11 @@ class Monitoring():
                     s.Get(x.GetName()).Write()
         g.Close()
         f.Close()
-        os.system('xrdcp -f tmp.root  '+options.server+options.path+rName)
+        os.system('xrdcp -f tmp.root  '+self.options.server+options.path+rName)
 
    def updateHtml(self):
       if self.options.online: destination="online"
-      elif options.path.find('2022'): destination="reprocessing"
+      elif self.options.path.find('2022'): destination="reprocessing"
       else: destination="offline"
       rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/"+destination+".html  . ")
       old = open(destination+".html")
