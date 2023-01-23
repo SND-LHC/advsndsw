@@ -199,7 +199,7 @@ class Mufi_hitMaps(ROOT.FairTask):
               self.M.fillHist2(detector+'resX_'+sdict[s]+str(s*10+l),doca/u.cm,xEx)
               self.M.fillHist2(detector+'resY_'+sdict[s]+str(s*10+l),doca/u.cm,yEx)
 # calculate time difference for DS
-              if s==3:
+              if s==3 and abs(doca)<2.5*u.cm:
                  # horizontal layers have left and right sipms
                  if aHit.isVertical(): nmax = 1
                  else: nmax = 2
@@ -208,8 +208,8 @@ class Mufi_hitMaps(ROOT.FairTask):
                  # correct for flight length
                    trajLength = (posM-pos1).Mag()
                  # correct for signal speed, need to know left or right
-                   if aHit.isVertical() or i==1: X = B-posM   # A is top, B is bottom
-                   else:                         X = A-posM   # A is on the left, B is right
+                   if i==1:                      X = B-posM   # B is right  only horizontal planes have a second readout 
+                   else:                         X = A-posM   # A is on the left, or top for vertical planes
                    L = X.Mag()/self.mufi_vsignal
                    tM = aHit.GetTime(i)*self.M.TDC2ns - L - trajLength/u.speedOfLight
                    self.M.fillHist2(detector+'dT_'+str(s*10+l),tM-scifi_time0,bar*2+i)
