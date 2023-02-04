@@ -139,56 +139,114 @@ class Tracking(ROOT.FairTask):
     clusters = self.clusMufi
 
     stations = {}
+    clusPerStation = {}
+    planesPerProjection = {0:0,1:0}
     s = 3
-    for plane in range(self.systemAndPlanes[s]): 
-          stations[s*10+plane] = {}
+    for p in range(self.systemAndPlanes[s]+1): 
+          stations[s*10+p] = {}
+          clusPerStation[s*10+p] = 0
     k=-1
     for aCl in clusters:
          k+=1
          detID = aCl.GetFirst()
+         if detID//10000 < 3: continue
          p = (detID//1000)%10
          bar = detID%1000
          plane = s*10+p
-         if s==3:
-           if bar<60 or p==3: plane = s*10+2*p
-           else:  plane = s*10+2*p+1
-           stations[plane][k] = aCl
-    success = True
-    pXWithHits = 0
-    pYWithHits = 0
-    clustPer_pX = {}
-    clustPer_pY = {}
-    mask_pX = []
-    mask_pY = []
-    for p in range(30,30+self.systemAndPlanes[s]):
-         if p%2==0 and p<36: clustPer_pY[p]=len(stations[p])
-         else: clustPer_pX[p]=len(stations[p])
-         if len(stations[p])>self.DSnHits or len(stations[p])<1: continue
-         if p%2==0 and p<36: pYWithHits+=1
-         else: pXWithHits+=1
-    if pXWithHits<self.DSnPlanes or pYWithHits<self.DSnPlanes: success = False
-    if success:
- # build trackCandidate
-      # define planes to mask
-      clustPer_pX = dict(sorted(clustPer_pX.items(), key=lambda item: item[1], reverse = True))
-      clustPer_pY = dict(sorted(clustPer_pY.items(), key=lambda item: item[1], reverse = True))
-      # count planes with clusters
-      nX = self.nDSPlanesVert - list(clustPer_pX.values()).count(0)
-      nY = self.nDSPlanesHor - list(clustPer_pY.values()).count(0)
-      # mask busiest planes until there are at least DSnPlanes planes with clusters left
-      for ii in range(nX-self.DSnPlanes):
-        if list(clustPer_pX.values())[ii] >=self.DSnHits:
-           mask_pX.append(list(clustPer_pX.keys())[ii])
-      for ii in range(nY-self.DSnPlanes):
-        if list(clustPer_pY.values())[ii] >=self.DSnHits:
-           mask_pY.append(list(clustPer_pY.keys())[ii])
+         if bar<60: 
+           plane = s*10+2*p  # even numbers horizontal planes, odd numbers vertical planes
+         else:  
+           plane = s*10+2*p+1
+         stations[plane][k] = aCl
+         clusPerStation[plane] +=1
+    for p in clusPerStation:
+       if clusPerStation[p]>0:
+          planesPerProjection[p%2]+=1
 
-      hitlist = {}
-      for p in stations:
-         if p in mask_pX or p in mask_pY: continue
-         for k in stations[p]:
-             hitlist[k] = stations[p][k]
-      trackCandidates.append(hitlist)
+    failed = False
+    if planesPerProjection[1]<self.DSnPlanes or planesPerProjection[0]<self.DSnPlanes: return trackCandidates
+    if self.DSnPlanes==2 and (planesPerProjection[1]==2 or planesPerProjection[0]==2):
+    # require max 1 cluster per plane if only 2 planes hit per projection
+       for p in clusPerStation:
+         if clusPerStation[p]>1:
+            failed = True
+            break
+       if failed: return trackCandidates
+       hitlist = {}
+       for p in stations:
+         for k in stations[p]:  hitlist[k] = stations[p][k]
+       trackCandidates.append(hitlist)
+       return trackCandidates
+
+    for p in clusPerStation:
+         if clusPerStation[p]>self.nClusters: return trackCandidates
+
+# require one plane with 1 cluster as seed
+
+# proj = 0, horizontal, max 3 planes
+# proj = 1, vertex,     max 4 planes
+    seed = -1
+    combinations = {}
+    hitlist = {}
+    for proj in range(2):
+      for plane in range(self.systemAndPlanes[s]+1):
+          if not plane%2==proj: continue
+          if clusPerStation[s*10+plane]==1:
+             seed = s*10+plane
+             break
+      if seed < 0: return trackCandidates
+      combinations[proj] = {}
+      for kA in stations[seed]:
+         clA = stations[seed][kA]
+         clA.GetPosition(A,B)
+         posA = (A+B)/2.
+         for p2 in range(self.systemAndPlanes[s]+1):
+            if not p2%2==proj: continue
+            planeB = s*10+p2
+            if planeB == seed: continue
+            for kB in stations[planeB]:
+                clB = stations[planeB][kB]
+                clB.GetPosition(A,B)
+                posB = (A+B)/2.
+                delBA = posB-posA
+                if proj==0: 
+                   lam = delBA[1]/delBA[2]
+                   b = posA[1]-lam*posA[2]
+                else: 
+                   lam = delBA[0]/delBA[2]
+                   b = posA[0]-lam*posA[2]
+                for p3 in range(self.systemAndPlanes[s]+1):
+                   if not p3%2==proj: continue
+                   planeC = s*10+p3
+                   if planeC == seed or planeC == planeB: continue
+                   for kC in stations[planeC]:
+                      clC = stations[planeC][kC]
+                      clC.GetPosition(A,B)
+                      posC = (A+B)/2.
+                      eX = posC[2]*lam+b
+                      if proj==0: res = abs(eX-posC[1])
+                      else:       res = abs(eX-posC[0])
+                      if proj==0: combinations[proj][res] = [[seed,kA],[planeB,kB],[planeC,kC]]
+                      else:
+                         for p4 in range(self.systemAndPlanes[s]+1):
+                           if not p4%2==proj: continue
+                           planeD = s*10+p4
+                           if planeD == seed or planeD == planeB or planeD == planeC: continue
+                           if len(stations[planeD])==0:
+                               combinations[proj][res] = [[seed,kA],[planeB,kB],[planeC,kC]]
+                           for kD in stations[planeD]:
+                             clD = stations[planeD][kD]
+                             clD.GetPosition(A,B)
+                             posD = (A+B)/2.
+                             eX = posD[2]*lam+b
+                             if proj==0: res+= abs(eX-posD[1])
+                             else:       res+= abs(eX-posD[0])
+                             combinations[proj][res] = [[seed,kA],[planeB,kB],[planeC,kC],[planeD,kD]]
+      # find combination with smallest residual
+      srt = sorted(combinations[proj])[0]
+      for x in combinations[proj][srt]:
+         hitlist[x[1]] = stations[x[0]][x[1]]
+    trackCandidates.append(hitlist)
     return trackCandidates
 
  def Scifi_track(self):
@@ -400,7 +458,7 @@ class Tracking(ROOT.FairTask):
         detID = aCl.GetFirst()
       else:
         detID = aCl.GetDetectorID()
-      if detID>50000: res = self.sigmaMufiDS_spatial
+      if detID<40000: res = self.sigmaMufiDS_spatial
       else:  res = self.sigmaScifi_spatial
       break
 
@@ -428,12 +486,13 @@ class Tracking(ROOT.FairTask):
             detID = aCl.GetFirst()
             aCl.GetPosition(A,B)
             detSys  = 1
-            if detID>50000: detSys=3
+            if detID<40000: detSys=3
         else:
             detID = aCl.GetDetectorID()
-            if detID//10000 < 2: detSys  = 2
-            else: detSys  = 3
-            self.mufiDet.GetPosition(detID,A,B)
+            detSys  = 1
+            if detID<40000: detSys=3
+            if detSys==3 self.mufiDet.GetPosition(detID,A,B)
+            if detSys==1 self.scifiDet.GetPosition(detID,A,B)
         distance = 0
         tmp = array('d',[A[0],A[1],A[2],B[0],B[1],B[2],distance])
         unSortedList[A[2]] = [ROOT.TVectorD(7,tmp),detID,k,detSys]
