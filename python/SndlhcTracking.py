@@ -71,7 +71,7 @@ class Tracking(ROOT.FairTask):
    self.maskPlane=-1
    # for DS tracking
    self.DSnPlanes = 3
-   self.DSnHits = 2
+   self.DSnHits = 5
    self.nDSPlanesVert  = self.mufiDet.GetConfParI("MuFilter/NDownstreamPlanes")
    self.nDSPlanesHor = self.nDSPlanesVert-1
 
@@ -179,7 +179,7 @@ class Tracking(ROOT.FairTask):
        return trackCandidates
 
     for p in clusPerStation:
-         if clusPerStation[p]>self.nClusters: return trackCandidates
+         if clusPerStation[p]>self.DSnHits: return trackCandidates
 
 # require one plane with 1 cluster as seed
 
@@ -208,7 +208,7 @@ class Tracking(ROOT.FairTask):
             l = len(stations[planeB])
             if l>0: clInPlane[planeB] = l
          srt = sorted(clInPlane)
-         if len(stations[srt[0]])+len(stations[srt[1]]) > self.nClusters+1: return trackCandidates
+         if len(stations[srt[0]])+len(stations[srt[1]]) > self.DSnHits+1: return trackCandidates
          planeB = srt[0]
          for kB in stations[planeB]:
                 clB = stations[planeB][kB]
