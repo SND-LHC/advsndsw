@@ -70,7 +70,7 @@ class Tracking(ROOT.FairTask):
    self.maxRes=50
    self.maskPlane=-1
    # for DS tracking
-   self.DSnPlanes = 2
+   self.DSnPlanes = 3
    self.DSnHits = 2
    self.nDSPlanesVert  = self.mufiDet.GetConfParI("MuFilter/NDownstreamPlanes")
    self.nDSPlanesHor = self.nDSPlanesVert-1
@@ -200,11 +200,17 @@ class Tracking(ROOT.FairTask):
          clA = stations[seed][kA]
          clA.GetPosition(A,B)
          posA = (A+B)/2.
+         clInPlane = {}
          for p2 in range(self.systemAndPlanes[s]+1):
             if not p2%2==proj: continue
             planeB = s*10+p2
             if planeB == seed: continue
-            for kB in stations[planeB]:
+            l = len(stations[planeB])
+            if l>0: clInPlane[planeB] = l
+         srt = sorted(clInPlane)
+         if len(stations[srt[0]])+len(stations[srt[1]]) > self.nClusters+1: return trackCandidates
+         planeB = srt[0]
+         for kB in stations[planeB]:
                 clB = stations[planeB][kB]
                 clB.GetPosition(A,B)
                 posB = (A+B)/2.
