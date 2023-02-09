@@ -330,7 +330,7 @@ class MuonReco(ROOT.FairTask) :
                # Which hits to use for track fitting.
                self.hits_to_fit = case.find('hits_to_fit').text.strip()
                # Which hits to use for triplet condition.
-               self.hits_for_triplet = case.find('hits_for_hough').text.strip()
+               self.hits_for_triplet = case.find('hits_for_hough').text.strip() if case.find('hits_to_validate')==None else case.find('hits_to_validate').text.strip()
                
                # Detector plane masking. If flag is active, a plane will be masked if its N_hits > Nhits_per_plane.
                # In any case, plane masking will only be applied if solely Scifi hits are used in HT as it is

@@ -23,9 +23,9 @@
            where [ve] is Veto, [sf] is SciFi, [us] is Upstream Muon Filter,
            and [ds] is Downstream Muon Filter. -->
      <hits_to_fit> sfusds </hits_to_fit>
-     <!--  Which detectors to use for the Hough transform(HT). Format as above.
+     <!--  Which detectors to use to validate a track fit attempt. Format as above.
            Detectors specified here are automatically used in the cathegory above. -->
-     <hits_for_hough> ds </hits_for_hough>
+     <hits_to_validate> ds </hits_to_validate>
      <!--  Use SciFi hits, value 0, or clusters, value 1  -->
      <use_Scifi_clust> 0 </use_Scifi_clust>
      <!--  Minumum number of planes with measurement
@@ -117,9 +117,9 @@
            where [ve] is Veto, [sf] is SciFi, [us] is Upstream Muon Filter,
            and [ds] is Downstream Muon Filter. -->
      <hits_to_fit> sf </hits_to_fit>
-     <!--  Which detectors to use for the Hough transform. Format as above.
+     <!--  Which detectors to use to validate a track fit attempt. Format as above.
            Detectors specified here are automatically used in the cathegory above. -->
-     <hits_for_hough> sf </hits_for_hough>
+     <hits_to_validate> sf </hits_to_validate>
      <!--  Use SciFi hits, value 0, or clusters, value 1 -->
      <use_Scifi_clust> 0 </use_Scifi_clust>
      <!--  Minumum number of planes with measurement
@@ -210,9 +210,9 @@
            where [ve] is Veto, [sf] is SciFi, [us] is Upstream Muon Filter,
            and [ds] is Downstream Muon Filter. -->
      <hits_to_fit> ds </hits_to_fit>
-     <!--  Which detectors to use for the Hough transform. Format as above.
+     <!--  Which detectors to use to validate a track fit attempt. Format as above.
            Detectors specified here are automatically used in the cathegory above. -->
-     <hits_for_hough> ds </hits_for_hough>
+     <hits_to_validate> ds </hits_to_validate>
      <!--  Use SciFi hits, value 0, or clusters, value 1  -->
      <use_Scifi_clust> 0 </use_Scifi_clust>
      <!--  Minumum number of planes with measurement
