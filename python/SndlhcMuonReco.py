@@ -8,7 +8,7 @@ import shipunit as unit
 
 def hit_finder(slope, intercept, box_centers, box_ds, tol = 0.) :
     """ Finds hits intersected by Hough line """
-    
+
     # First check if track at center of box is within box limits
     d = np.abs(box_centers[0,:,1] - (box_centers[0,:,0]*slope + intercept))
     center_in_box = d < (box_ds[0,:,1]+tol)/2.
@@ -37,7 +37,7 @@ class hough() :
         self.HoughSpace_format = Hformat
         self.space_scale = space_scale
         
-        self.det_Zlen = det_Zlen        
+        self.det_Zlen = det_Zlen
 
         self.smooth = smooth
 
@@ -47,7 +47,7 @@ class hough() :
         else :
             self.xH_bins = np.linspace(np.sign(self.xH_range[0])*(self.xH_range[0]**0.5), np.sign(self.xH_range[1])*(self.xH_range[1]**0.5), n_xH)
             self.xH_bins = np.sign(self.xH_bins)*np.square(self.xH_bins)
-        
+
         self.cos_thetas = np.cos(self.xH_bins)
         self.sin_thetas = np.sin(self.xH_bins)
         
@@ -129,7 +129,7 @@ class hough() :
 
         if self.smooth_full:
           # In case of multiple occurrences of the maximum values, argmax returns
-          # the indices corresponding to the first occurrence(along 1st axis).          
+          # the indices corresponding to the first occurrence(along 1st axis).
           i_max = np.unravel_index(self.accumulator.argmax(), self.accumulator.shape)
         else:
           # In case there are more than 1 bins with the maximal Nentries, check if the n-th quantile of
@@ -144,7 +144,7 @@ class hough() :
                # to be decided what to do in 'linearIntercepts' case and multiple maxima
                return(-999, -999)
           elif len(maxima) > 1 and abs(min([x[1] for x in maxima]) - max([x[1] for x in maxima])) < res:
-               i_max = maxima[0]              
+               i_max = maxima[0]
           else:
             # FIXME: the next two lines can be a single line command for sure
             maxima_slopesAxis_list = list([x[1] for x in maxima])
@@ -152,9 +152,9 @@ class hough() :
             quantile = np.quantile(maxima_slopesAxis_list, self.n_quantile)
             Nwithin = 0
             # FIXME: a more elegant 'hidden' loop is maybe possible here too
-            for item in maxima:               
+            for item in maxima:
                if abs(item[1]-quantile)< res:
-                 Nwithin += 1                 
+                 Nwithin += 1
             if Nwithin/len(maxima) > self.n_quantile: 
                i_x = min([x[1] for x in maxima], key=lambda b: abs(b-quantile))
                for im in maxima:
@@ -363,13 +363,13 @@ class MuonReco(ROOT.FairTask) :
         self.Scifi_dx = self.scifiDet.GetConfParF("Scifi/channel_width")
         self.Scifi_dy = self.scifiDet.GetConfParF("Scifi/channel_width")
         self.Scifi_dz = self.scifiDet.GetConfParF("Scifi/epoxymat_z") # From Scifi.cxx This is the variable used to define the z dimension of SiPM channels, so seems like the right dimension to use.
-        
+
         self.Scifi_nPlanes    = self.scifiDet.GetConfParI("Scifi/nscifi")
         self.DS_nPlanes       = self.mufiDet.GetConfParI("MuFilter/NDownstreamPlanes")
         self.max_n_hits_plane = 3
         self.max_n_Scifi_hits = self.max_n_hits_plane*2*self.Scifi_nPlanes
         self.max_n_DS_hits    = self.max_n_hits_plane*(2*self.DS_nPlanes-1)
-        
+
         # get the distance between 1st and last detector planes to be used in the track fit.
         # a z_offset is used to shift detector hits so to have smaller Hough parameter space
         # Using geometers measurements! For safety, add a 5-cm-buffer in detector lengths and a 2.5-cm one to z_offset.
@@ -386,7 +386,7 @@ class MuonReco(ROOT.FairTask) :
         # this use case is not tested with an z offset yet
         if self.tracking_case.find('nu_') >= 0: z_offset = 0*unit.cm 
         #other use cases come here if ever added
-        
+
         # Initialize Hough transforms for both views:
         if self.Hough_space_format == 'normal':
             # rho-theta representation - must exclude theta range for tracks passing < 3 det. planes
@@ -449,13 +449,13 @@ class MuonReco(ROOT.FairTask) :
         self.kalman_sigmaScifi_spatial = self.Scifi_dx / 12**0.5
         self.kalman_sigmaMufiUS_spatial = self.MuFilter_us_dy / 12**0.5
         self.kalman_sigmaMufiDS_spatial = self.MuFilter_ds_dy/ 12**0.5
-        
+
         # Init() MUST return int
         return 0
     
     def SetScaleFactor(self, scale):
         self.scale = scale
-        
+
     def SetParFile(self, file_name):
         self.par_file = file_name
     
@@ -464,14 +464,14 @@ class MuonReco(ROOT.FairTask) :
 
     def SetHoughSpaceFormat(self, Hspace_format):
         self.Hough_space_format = Hspace_format
-        
+
     def ForceGenfitTrackFormat(self):
         self.genfitTrack = 1
 
     # flag showing the task is run seperately from other tracking tasks
     def SetStandalone(self):
         self.standalone = 1
-    
+
     def Passthrough(self) :
         T = self.ioman.GetInTree()
         
@@ -479,7 +479,7 @@ class MuonReco(ROOT.FairTask) :
              obj_name = x.GetName()
              if self.ioman.GetObject(obj_name) == None :
                  continue
-             self.ioman.Register(obj_name, self.ioman.GetFolderName(), self.ioman.GetObject(obj_name), ROOT.kTRUE) 
+             self.ioman.Register(obj_name, self.ioman.GetFolderName(), self.ioman.GetObject(obj_name), ROOT.kTRUE)
 
     def Exec(self, opt) :
         self.kalman_tracks.Clear('C')
@@ -489,9 +489,9 @@ class MuonReco(ROOT.FairTask) :
            if ROOT.gRandom.Rndm() > 1.0/self.scale: return
 
         self.events_run += 1
-        hit_collection = {"pos" : [[], [], []], 
-                          "d" : [[], [], []], 
-                          "vert" : [], 
+        hit_collection = {"pos" : [[], [], []],
+                          "d" : [[], [], []],
+                          "vert" : [],
                           "index" : [],
                           "system" : [],
                           "detectorID" : [],
@@ -515,28 +515,28 @@ class MuonReco(ROOT.FairTask) :
                 else :
                     if self.logger.IsLogNeeded(ROOT.fair.Severity.warn):
                        print("WARNING! Unknown MuFilter system!!")
-            
+
                 self.mufiDet.GetPosition(muFilterHit.GetDetectorID(), self.a, self.b)
-            
+
                 hit_collection["pos"][0].append(self.a.X())
                 hit_collection["pos"][1].append(self.a.Y())
                 hit_collection["pos"][2].append(self.a.Z())
-            
+
                 hit_collection["B"][0].append(self.b.X())
                 hit_collection["B"][1].append(self.b.Y())
                 hit_collection["B"][2].append(self.b.Z())
-            
+
                 hit_collection["vert"].append(muFilterHit.isVertical())
                 hit_collection["system"].append(muFilterHit.GetSystem())
-            
+
                 hit_collection["d"][0].append(self.MuFilter_ds_dx)
                 hit_collection["d"][2].append(self.MuFilter_ds_dz)
-            
+
                 hit_collection["index"].append(i_hit)
                 
                 hit_collection["detectorID"].append(muFilterHit.GetDetectorID())
                 hit_collection["mask"].append(False)
-            
+
                 # Downstream
                 if muFilterHit.GetSystem() == 3 :
                     hit_collection["d"][1].append(self.MuFilter_ds_dx)
@@ -564,29 +564,29 @@ class MuonReco(ROOT.FairTask) :
                # Loop through scifi clusters
                for i_clust, scifiCl in enumerate(self.clusScifi) :
                    scifiCl.GetPosition(self.a,self.b)
-                
+
                    hit_collection["pos"][0].append(self.a.X())
                    hit_collection["pos"][1].append(self.a.Y())
                    hit_collection["pos"][2].append(self.a.Z())
-                
+
                    hit_collection["B"][0].append(self.b.X())
                    hit_collection["B"][1].append(self.b.Y())
                    hit_collection["B"][2].append(self.b.Z())
-                   
+
                    # take the cluster size as the active area size
                    hit_collection["d"][0].append(scifiCl.GetN()*self.Scifi_dx)
                    hit_collection["d"][1].append(scifiCl.GetN()*self.Scifi_dy)
                    hit_collection["d"][2].append(self.Scifi_dz)
-                
+
                    if int(scifiCl.GetFirst()/100000)%10==1:
                       hit_collection["vert"].append(True)
                    else: hit_collection["vert"].append(False)
                    hit_collection["index"].append(i_clust)
-                
+
                    hit_collection["system"].append(0)
                    hit_collection["detectorID"].append(scifiCl.GetFirst())
                    hit_collection["mask"].append(False)
-                   
+
                    if self.isMC : hit_collection["time"].append(scifiCl.GetTime()/6.25) # for MC, hit time is in ns. Then for MC Scifi cluster time one has to divide by tdc2ns
                    else: hit_collection["time"].append(scifiCl.GetTime()) # already in ns
 
@@ -627,20 +627,20 @@ class MuonReco(ROOT.FairTask) :
                      hit_collection["pos"][0].append(self.a.X())
                      hit_collection["pos"][1].append(self.a.Y())
                      hit_collection["pos"][2].append(self.a.Z())
-            
+
                      hit_collection["B"][0].append(self.b.X())
                      hit_collection["B"][1].append(self.b.Y())
                      hit_collection["B"][2].append(self.b.Z())
-            
+
                      hit_collection["d"][0].append(self.Scifi_dx)
                      hit_collection["d"][1].append(self.Scifi_dy)
                      hit_collection["d"][2].append(self.Scifi_dz)
-                
+
                      hit_collection["vert"].append(scifiHit.isVertical())
                      hit_collection["index"].append(i_hit)
-                
+
                      hit_collection["system"].append(0)
-            
+
                      hit_collection["detectorID"].append(scifiHit.GetDetectorID())
                      
                      if self.hits_for_triplet == 'sf' and self.hits_to_fit == 'sf' and self.mask_plane:
@@ -653,7 +653,7 @@ class MuonReco(ROOT.FairTask) :
                      if self.isMC : hit_collection["time"].append(scifiHit.GetTime()) # already in ns
                      else:
                           hit_collection["time"].append(scifiHit.GetTime()*6.25) #tdc2ns
-    
+
         # Make the hit collection numpy arrays.
         for key, item in hit_collection.items() :
             if key == 'vert' :
@@ -831,14 +831,14 @@ class MuonReco(ROOT.FairTask) :
             # start state
             state = ROOT.genfit.MeasuredStateOnPlane(rep)
             rep.setPosMomCov(state, posM, momM, covM)
-            
+
             # create track
             seedState = ROOT.TVectorD(6)
             seedCov   = ROOT.TMatrixDSym(6)
             rep.get6DStateCov(state, seedState, seedCov)
-            
+
             theTrack = ROOT.genfit.Track(rep, seedState, seedCov)
-            
+
             # Sort measurements in Z
             hit_z = np.concatenate([hit_collection["pos"][2][hit_collection["vert"]][track_hits_ZX],
                                     hit_collection["pos"][2][~hit_collection["vert"]][track_hits_ZY]])
@@ -854,10 +854,10 @@ class MuonReco(ROOT.FairTask) :
 
             hit_B1 = np.concatenate([hit_collection["B"][1][hit_collection["vert"]][track_hits_ZX],
                                      hit_collection["B"][1][~hit_collection["vert"]][track_hits_ZY]])
-            
+
             hit_B2 = np.concatenate([hit_collection["B"][2][hit_collection["vert"]][track_hits_ZX],
                                      hit_collection["B"][2][~hit_collection["vert"]][track_hits_ZY]])
-            
+
             hit_detid = np.concatenate([hit_collection["detectorID"][hit_collection["vert"]][track_hits_ZX],
                                         hit_collection["detectorID"][~hit_collection["vert"]][track_hits_ZY]])
 
@@ -869,7 +869,7 @@ class MuonReco(ROOT.FairTask) :
                                               (hit_collection["d"][2][hit_collection["vert"]][track_hits_ZX]/2.)**2)**0.5,
                                              ((hit_collection["d"][1][~hit_collection["vert"]][track_hits_ZY]/2.)**2 +
                                               (hit_collection["d"][2][~hit_collection["vert"]][track_hits_ZY]/2.)**2)**0.5])
-            
+
             hitID = 0 # Does it matter? We don't have a global hit ID.
 
             hit_time = np.concatenate([hit_collection["time"][hit_collection["vert"]][track_hits_ZX],
@@ -891,7 +891,7 @@ class MuonReco(ROOT.FairTask) :
                                                           1, # detid?
                                                           6, # hitid?
                                                           tp)
-                
+
                 measurement.setMaxDistance(kalman_max_dis[i_z_sorted])
                 measurement.setDetId(int(hit_detid[i_z_sorted]))
                 measurement.setHitId(int(hitID))
@@ -910,7 +910,7 @@ class MuonReco(ROOT.FairTask) :
             if not fitStatus.isFitConverged() and 0>1:
                 theTrack.Delete()
                 raise RuntimeException("Kalman fit did not converge.")
-            
+
             # Now save the track if fit converged!
             theTrack.SetUniqueID(self.track_type)
             if fitStatus.isFitConverged():
