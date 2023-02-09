@@ -54,7 +54,7 @@ if options.HoughTracking:
       muon_reco_task_Sf.SetName("houghTransform_Sf")
       options.FairTasks["houghTransform_Sf"] = muon_reco_task_Sf
       HT_tasks.append(muon_reco_task_Sf)
-   if options.trackType == 'Scifi' or options.trackType == 'ScifiDS':
+   if options.trackType == 'DS' or options.trackType == 'ScifiDS':
       muon_reco_task_DS = SndlhcMuonReco.MuonReco()
       muon_reco_task_DS.SetTrackingCase('passing_mu_DS')
       muon_reco_task_DS.SetName("houghTransform_DS")
