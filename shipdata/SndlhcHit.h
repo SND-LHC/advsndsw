@@ -41,10 +41,11 @@ class SndlhcHit : public TObject
     /** Modifiers **/
     void SetDigi(Float_t s, Float_t t,Int_t i=0) { signals[i]=trunc(100*s)/100;times[i]=trunc(1000*t)/1000.; }
     void SetDetectorID(Int_t detID) { fDetectorID = detID; }
-    void SetDaqID(Int_t i, Int_t board_id, Int_t tofpet_id, Int_t tofpet_channel) { fDaqID[i] = board_id * 1000 + tofpet_id * 100 + tofpet_channel; }
-    Int_t GetBoardID(Int_t i) { return int(fDaqID[i]/1000);}
+    void SetDaqID(Int_t i, Int_t k, Int_t board_id, Int_t tofpet_id, Int_t tofpet_channel) { fDaqID[i] = k*100000 + board_id * 1000 + tofpet_id * 100 + tofpet_channel; }
+    Int_t GetBoardID(Int_t i) { return int((fDaqID[i]%100000)/1000);}
     Int_t GetTofpetID(Int_t i) { return int((fDaqID[i]%1000)/100);}
     Int_t Getchannel(Int_t i) { return fDaqID[i]%100;}
+    Int_t GetRawHitIndex(Int_t i=0) { return int(fDaqID[i]/100000);}
 
 // to be implemented by the subdetector
 
@@ -73,7 +74,7 @@ class SndlhcHit : public TObject
     Int_t   nSides;   /// number of sides
     Float_t signals[16];  /// SiPM signal
     Float_t times[16];     /// SiPM time
-    Int_t  fDaqID[16];   /// encodes (board_id * 1000) + (tofpet_id * 100) + tofpet_channel
+    Int_t  fDaqID[16];   /// encodes rawhitindex*100000+(board_id * 1000) + (tofpet_id * 100) + tofpet_channel
 
     ClassDef(SndlhcHit,2);
 };
