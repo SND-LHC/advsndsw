@@ -295,7 +295,7 @@
      <res> 5 </res>
      <!-- A back-up Hough space with 'space_scale'*Nbins in xH and yH axes.
           It is used in events where the above-defined common HT space is not optimal.  -->
-     <HT_space_scale> 5 </HT_space_scale>
+     <HT_space_scale> 1 </HT_space_scale>
   </tracking_case>
 
 </TrackingParams>

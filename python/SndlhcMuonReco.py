@@ -767,9 +767,8 @@ class MuonReco(ROOT.FairTask) :
             n_planes_hit_ZX = numPlanesHit(hit_collection["system"][triplet_hits_vertical][track_hits_for_triplet_ZX],
                                            hit_collection["detectorID"][triplet_hits_vertical][track_hits_for_triplet_ZX])
 
-            # For failed SciFi(DS) track fits, in events with little hit activity, try using less(more) Hough-space bins
-            if ((self.hits_to_fit == 'ds' and max(N_plane_ZX.values()) <= self.max_n_hits_plane and max(N_plane_ZY.values())) or\
-                (self.hits_to_fit == 'sf' and len(hit_collection["detectorID"]) <= self.max_n_Scifi_hits) and \
+            # For failed SciFi track fits, in events with little hit activity, try using less Hough-space bins
+            if (self.hits_to_fit == 'sf' and len(hit_collection["detectorID"]) <= self.max_n_Scifi_hits and \
                 (n_planes_hit_ZY < self.min_planes_hit or n_planes_hit_ZX < self.min_planes_hit)):
 
                 is_scaled = True
