@@ -53,6 +53,7 @@ parser.add_argument("--goodEvents", dest="goodEvents", action='store_true',defau
 parser.add_argument("--withTrack", dest="withTrack", action='store_true',default=False)
 parser.add_argument("--nTracks", dest="nTracks",default=0,type=int)
 parser.add_argument("--save", dest="save", action='store_true',default=False)
+parser.add_argument("--sH", dest="saveHistos", action='store_true',default=False,help="save all histos not only TCanvas")
 parser.add_argument("--interactive", dest="interactive", action='store_true',default=False)
 
 parser.add_argument("--parallel", dest="parallel",default=1,type=int)
@@ -248,6 +249,7 @@ if not options.auto:   # default online/offline mode
          print('event count failed! Processed:',M.h['Etime'].GetEntries(),' total number of events:',options.nEvents)
      else:
          print('i am finished, all events processed')
+ if options.saveHistos: ut.writeHists(h,'allHistos-run'+M.runNr+'.root')
 
  M.publishRootFile()
  if options.sudo:
