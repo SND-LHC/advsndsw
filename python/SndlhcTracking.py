@@ -498,7 +498,7 @@ class Tracking(ROOT.FairTask):
             detSys  = 1
             if detID<40000: detSys=3
             if detSys==3: self.mufiDet.GetPosition(detID,A,B)
-            if detSys==1: self.scifiDet.GetPosition(detID,A,B)
+            if detSys==1: self.scifiDet.GetSiPMPosition(detID,A,B)
         distance = 0
         tmp = array('d',[A[0],A[1],A[2],B[0],B[1],B[2],distance])
         unSortedList[A[2]] = [ROOT.TVectorD(7,tmp),detID,k,detSys]
