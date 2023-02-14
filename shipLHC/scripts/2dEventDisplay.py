@@ -27,7 +27,7 @@ parser = ArgumentParser()
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,required=False)
 parser.add_argument("-p", "--path", dest="path", help="run number",required=False,default="")
 parser.add_argument("-f", "--inputFile", dest="inputFile", help="input file data and MC",default="",required=False)
-parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=True)
+parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", default=os.environ["EOSSHIP"]+"/eos/experiment/sndlhc/convertedData/physics/2022/geofile_sndlhc_TI18_V0_2022.root")
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 
@@ -121,9 +121,14 @@ HT_tasks['muon_reco_task_nuInt'].SetTrackingCase('nu_interaction_products')
 run.Init()
 OT = sink.GetOutTree()
 eventTree = ioman.GetInTree()
-# backward compatbility for early converted events
 eventTree.GetEvent(0)
-if eventTree.GetBranch('Digi_MuFilterHit'): eventTree.Digi_MuFilterHits = eventTree.Digi_MuFilterHit
+geo.modules['Scifi'].InitEvent(eventTree.EventHeader)
+geo.modules['MuFilter'].InitEvent(eventTree.EventHeader)
+
+if eventTree.GetBranch('Digi_MuFilterHit'):
+# backward compatbility for early converted events
+  eventTree.GetEvent(0)
+  eventTree.Digi_MuFilterHits = eventTree.Digi_MuFilterHit
 
 nav = ROOT.gGeoManager.GetCurrentNavigator()
 
