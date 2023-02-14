@@ -38,9 +38,13 @@ class Mufi_hitMaps(ROOT.FairTask):
 
                   if s==3:  
                         ut.bookHist(h,detector+'bar_'+str(s*10+l)+xi,'bar map / plane '+sdict[s]+str(l)+'; #bar',60,-0.5,59.5)
-                        ut.bookHist(h,detector+'dT_'+str(s*10+l)+xi,'dT with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',      100,-25.,5.,120,-0.5,2*59.5)
-                        ut.bookHist(h,detector+'dTcor_'+str(s*10+l)+xi,'dTcor with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',100,-25.,5.,120,-0.5,2*59.5)
-                  else:       ut.bookHist(h,detector+'bar_'+str(s*10+l)+xi,'bar map / plane '+sdict[s]+str(l)+'; #bar',10,-0.5,9.5)
+                        ut.bookHist(h,detector+'dT_'+str(s*10+l)+xi,'dT with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',      100,-25.,5.,120,-0.5,2*60-0.5)
+                        ut.bookHist(h,detector+'dTcor_'+str(s*10+l)+xi,'dTcor with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',100,-25.,5.,120,-0.5,2*60-0.5)
+                  else:       
+                        ut.bookHist(h,detector+'bar_'+str(s*10+l)+xi,'bar map / plane '+sdict[s]+str(l)+'; #bar',10,-0.5,9.5)
+                        if s==1:
+                           ut.bookHist(h,detector+'dT_'+str(s*10+l)+xi,'dT with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',      100,-25.,5.,120,-0.5,2*8*7-0.5)
+                        ut.bookHist(h,detector+'dTcor_'+str(s*10+l)+xi,'dTcor with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',100,-25.,5.,120,-0.5,2*8*7-0.5)
                   ut.bookHist(h,detector+'sig_'+str(s*10+l)+xi,'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
                   if s==2:    
                       ut.bookHist(h,detector+'sigS_'+str(s*10+l)+xi,'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
@@ -199,24 +203,34 @@ class Mufi_hitMaps(ROOT.FairTask):
               self.M.fillHist2(detector+'resX_'+sdict[s]+str(s*10+l),doca/u.cm,xEx)
               self.M.fillHist2(detector+'resY_'+sdict[s]+str(s*10+l),doca/u.cm,yEx)
 # calculate time difference for DS
-              if s==3 and abs(doca)<2.5*u.cm:
+              if (s==3 and abs(doca)<2.5*u.cm) or (s==1 and abs(doca)<6*u.cm):
                  # horizontal layers have left and right sipms
                  if aHit.isVertical(): nmax = 1
                  else: nmax = 2
+                 barMult = 2
+                 if s==1: 
+                     nmax = 16
+                     barMult = 16
                  for i in range(nmax):
+                   if aHit.GetTime(i) < 0: continue # not valid time
                    posM = ROOT.TVector3(xEx,yEx,zEx)
                  # correct for flight length
                    trajLength = (posM-pos1).Mag()
                  # correct for signal speed, need to know left or right
-                   if i==1:                      X = B-posM   # B is right  only horizontal planes have a second readout 
-                   else:                         X = A-posM   # A is on the left, or top for vertical planes
+                   if s==3:
+                     if i==1:                      X = B-posM   # B is right  only horizontal planes have a second readout 
+                     else:                         X = A-posM   # A is on the left, or top for vertical planes
+                   if s==1:
+                     if i<8:                       X = A-posM  
+                     else:                         X = B-posM  
                    L = X.Mag()/self.mufi_vsignal
                    tM = aHit.GetTime(i)*self.M.TDC2ns - L - trajLength/u.speedOfLight
-                   self.M.fillHist2(detector+'dT_'+str(s*10+l),tM-scifi_time0,bar*2+i)
+                   self.M.fillHist2(detector+'dT_'+str(s*10+l),tM-scifi_time0,bar*barMult+i)
                    # use corrected time
-                   corTime = self.M.MuFilter.GetCorrectedTime(detID, i, aHit.GetTime(i)*self.M.TDC2ns, X.Mag())
-                   tM = corTime - trajLength/u.speedOfLight
-                   self.M.fillHist2(detector+'dTcor_'+str(s*10+l),tM-scifi_time0,bar*2+i)
+                   if s==3:
+                     corTime = self.M.MuFilter.GetCorrectedTime(detID, i, aHit.GetTime(i)*self.M.TDC2ns, X.Mag())
+                     tM = corTime - trajLength/u.speedOfLight
+                     self.M.fillHist2(detector+'dTcor_'+str(s*10+l),tM-scifi_time0,bar*barMult+i)
 
    def beamSpot(self,event):
       if not self.trackTask: return
@@ -251,7 +265,7 @@ class Mufi_hitMaps(ROOT.FairTask):
            ut.bookCanvas(h,detector+'hitmaps' +sdict[s]+xi,'hitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
            ut.bookCanvas(h,detector+'Xhitmaps' +sdict[s]+xi,'Xhitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
            ut.bookCanvas(h,detector+'barmaps'+sdict[s]+xi,'barmaps'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
-           if s==3: 
+           if s==3 or s==1: 
                ut.bookCanvas(h,detector+'dTScifi'+sdict[s]+xi,'dt rel to scifi'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
                ut.bookCanvas(h,detector+'dTcorScifi'+sdict[s]+xi,'dtcor rel to scifi'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
 
@@ -266,7 +280,7 @@ class Mufi_hitMaps(ROOT.FairTask):
 
               tc = h[detector+'barmaps'+sdict[s]+xi].cd(n)
               h[detector+'bar_'+tag].Draw()
-              if s==3: 
+              if s==3 or s==1:
                  tc = h[detector+'dTScifi'+sdict[s]+xi].cd(n)
                  h[detector+'dT_'+tag].Draw('colz')
                  tc = h[detector+'dTcorScifi'+sdict[s]+xi].cd(n)
