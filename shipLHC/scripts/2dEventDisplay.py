@@ -122,8 +122,10 @@ run.Init()
 OT = sink.GetOutTree()
 eventTree = ioman.GetInTree()
 eventTree.GetEvent(0)
-geo.modules['Scifi'].InitEvent(eventTree.EventHeader)
-geo.modules['MuFilter'].InitEvent(eventTree.EventHeader)
+if eventTree.EventHeader.ClassName() == 'SNDLHCEventHeader':
+   geo.modules['Scifi'].InitEvent(eventTree.EventHeader)
+   geo.modules['MuFilter'].InitEvent(eventTree.EventHeader)
+# if faireventheader, rely on user to select correct geofile.
 
 if eventTree.GetBranch('Digi_MuFilterHit'):
 # backward compatbility for early converted events
