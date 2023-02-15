@@ -208,10 +208,9 @@ class Monitoring():
                self.trackTask.DSnPlanes = 3
 
 # initialize detector class for access to eventheader
-        self.snd_geo.modules['Scifi'].InitEvent(eventChain)
-        eventChain.GetEvent(0)
-        self.snd_geo.modules['MuFilter'].InitEvent(eventChain)
-        eventChain.GetEvent(0)
+        rc = eventChain.GetEvent(0)
+        self.snd_geo.modules['Scifi'].InitEvent(eventChain.EventHeader)
+        self.snd_geo.modules['MuFilter'].InitEvent(eventChain.EventHeader)
 
         # get filling scheme, only necessary if not encoded in EventHeader, before 2022 reprocessing
         self.hasBunchInfo = False
