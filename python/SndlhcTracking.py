@@ -55,6 +55,7 @@ class Tracking(ROOT.FairTask):
    self.sigmaMufiUS_spatial = 2.*u.cm
    self.sigmaMufiDS_spatial = 0.3*u.cm
    self.scifi_vsignal = 15.*u.cm/u.ns
+   self.firstScifi_z = 300*u.cm
    self.Debug = False
    self.ioman = ROOT.FairRootManager.Instance()
    self.sink = self.ioman.GetSink()
@@ -69,8 +70,10 @@ class Tracking(ROOT.FairTask):
    self.maxRes=50
    self.maskPlane=-1
    # for DS tracking
-   self.DSnPlanes = 2
-   self.DSnHits = 2
+   self.DSnPlanes = 3
+   self.DSnHits = 5
+   self.nDSPlanesVert  = self.mufiDet.GetConfParI("MuFilter/NDownstreamPlanes")
+   self.nDSPlanesHor = self.nDSPlanesVert-1
 
    if online:
       self.event = self.sink.GetOutTree()
@@ -136,35 +139,120 @@ class Tracking(ROOT.FairTask):
     clusters = self.clusMufi
 
     stations = {}
+    clusPerStation = {}
+    planesPerProjection = {0:0,1:0}
     s = 3
-    for plane in range(self.systemAndPlanes[s]): 
-          stations[s*10+plane] = {}
+    for p in range(self.systemAndPlanes[s]+1): 
+          stations[s*10+p] = {}
+          clusPerStation[s*10+p] = 0
     k=-1
     for aCl in clusters:
          k+=1
          detID = aCl.GetFirst()
+         if detID//10000 < 3: continue
          p = (detID//1000)%10
          bar = detID%1000
          plane = s*10+p
-         if s==3:
-           if bar<60 or p==3: plane = s*10+2*p
-           else:  plane = s*10+2*p+1
-           stations[plane][k] = aCl
-    success = True
-    pXWithHits = 0
-    pYWithHits = 0
-    for p in range(30,30+self.systemAndPlanes[s]):
-         if len(stations[p])>self.DSnHits or len(stations[p])<1: continue
-         if p%2==0 and p<36: pYWithHits+=1
-         else: pXWithHits+=1
-    if pXWithHits<self.DSnPlanes or pYWithHits<self.DSnPlanes: success = False
-    if success:
- # build trackCandidate
-      hitlist = {}
-      for p in stations:
-         for k in stations[p]:
-             hitlist[k] = stations[p][k]
-      trackCandidates.append(hitlist)
+         if bar<60: 
+           plane = s*10+2*p  # even numbers horizontal planes, odd numbers vertical planes
+         else:  
+           plane = s*10+2*p+1
+         stations[plane][k] = aCl
+         clusPerStation[plane] +=1
+    for p in clusPerStation:
+       if clusPerStation[p]>0:
+          planesPerProjection[p%2]+=1
+
+    failed = False
+    if planesPerProjection[1]<self.DSnPlanes or planesPerProjection[0]<self.DSnPlanes: return trackCandidates
+    if self.DSnPlanes==2 and (planesPerProjection[1]==2 or planesPerProjection[0]==2):
+    # require max 1 cluster per plane if only 2 planes hit per projection
+       for p in clusPerStation:
+         if clusPerStation[p]>1:
+            failed = True
+            break
+       if failed: return trackCandidates
+       hitlist = {}
+       for p in stations:
+         for k in stations[p]:  hitlist[k] = stations[p][k]
+       trackCandidates.append(hitlist)
+       return trackCandidates
+
+    for p in clusPerStation:
+         if clusPerStation[p]>self.DSnHits: return trackCandidates
+
+# require one plane with 1 cluster as seed
+
+# proj = 0, horizontal, max 3 planes
+# proj = 1, vertex,     max 4 planes
+    seed = -1
+    combinations = {}
+    hitlist = {}
+    for proj in range(2):
+      for plane in range(self.systemAndPlanes[s]+1):
+          if not plane%2==proj: continue
+          if clusPerStation[s*10+plane]==1:
+             seed = s*10+plane
+             break
+      if seed < 0: return trackCandidates
+      combinations[proj] = {}
+      for kA in stations[seed]:
+         clA = stations[seed][kA]
+         clA.GetPosition(A,B)
+         posA = (A+B)/2.
+         clInPlane = {}
+         for p2 in range(self.systemAndPlanes[s]+1):
+            if not p2%2==proj: continue
+            planeB = s*10+p2
+            if planeB == seed: continue
+            l = len(stations[planeB])
+            if l>0: clInPlane[planeB] = l
+         srt = sorted(clInPlane)
+         if len(stations[srt[0]])+len(stations[srt[1]]) > self.DSnHits+1: return trackCandidates
+         planeB = srt[0]
+         for kB in stations[planeB]:
+                clB = stations[planeB][kB]
+                clB.GetPosition(A,B)
+                posB = (A+B)/2.
+                delBA = posB-posA
+                if proj==0: 
+                   lam = delBA[1]/delBA[2]
+                   b = posA[1]-lam*posA[2]
+                else: 
+                   lam = delBA[0]/delBA[2]
+                   b = posA[0]-lam*posA[2]
+                for p3 in range(self.systemAndPlanes[s]+1):
+                   if not p3%2==proj: continue
+                   planeC = s*10+p3
+                   if planeC == seed or planeC == planeB: continue
+                   for kC in stations[planeC]:
+                      clC = stations[planeC][kC]
+                      clC.GetPosition(A,B)
+                      posC = (A+B)/2.
+                      eX = posC[2]*lam+b
+                      if proj==0: res = abs(eX-posC[1])
+                      else:       res = abs(eX-posC[0])
+                      if proj==0: combinations[proj][res] = [[seed,kA],[planeB,kB],[planeC,kC]]
+                      else:
+                         for p4 in range(self.systemAndPlanes[s]+1):
+                           if not p4%2==proj: continue
+                           planeD = s*10+p4
+                           if planeD == seed or planeD == planeB or planeD == planeC: continue
+                           if len(stations[planeD])==0:
+                               combinations[proj][res] = [[seed,kA],[planeB,kB],[planeC,kC]]
+                           for kD in stations[planeD]:
+                             clD = stations[planeD][kD]
+                             clD.GetPosition(A,B)
+                             posD = (A+B)/2.
+                             eX = posD[2]*lam+b
+                             if proj==0: res+= abs(eX-posD[1])
+                             else:       res+= abs(eX-posD[0])
+                             combinations[proj][res] = [[seed,kA],[planeB,kB],[planeC,kC],[planeD,kD]]
+      # find combination with smallest residual
+      srt = sorted(combinations[proj])[0]
+      for x in combinations[proj][srt]:
+         hitlist[x[1]] = stations[x[0]][x[1]]
+    trackCandidates.append(hitlist)
     return trackCandidates
 
  def Scifi_track(self):
@@ -370,7 +458,16 @@ class Tracking(ROOT.FairTask):
 
 # approximate covariance
     covM = ROOT.TMatrixDSym(6)
-    res = self.sigmaScifi_spatial
+    for k in hitlist:
+      aCl = hitlist[k]
+      if hasattr(aCl,"GetFirst"):
+        detID = aCl.GetFirst()
+      else:
+        detID = aCl.GetDetectorID()
+      if detID<40000: res = self.sigmaMufiDS_spatial
+      else:  res = self.sigmaScifi_spatial
+      break
+
     for  i in range(3):   covM[i][i] = res*res
     for  i in range(3,6): covM[i][i] = ROOT.TMath.Power(res / (4.*2.) / ROOT.TMath.Sqrt(3), 2)
     rep = ROOT.genfit.RKTrackRep(13)
@@ -395,12 +492,13 @@ class Tracking(ROOT.FairTask):
             detID = aCl.GetFirst()
             aCl.GetPosition(A,B)
             detSys  = 1
-            if detID>50000: detSys=3
+            if detID<40000: detSys=3
         else:
             detID = aCl.GetDetectorID()
-            if detID//10000 < 2: detSys  = 2
-            else: detSys  = 3
-            self.mufiDet.GetPosition(detID,A,B)
+            detSys  = 1
+            if detID<40000: detSys=3
+            if detSys==3: self.mufiDet.GetPosition(detID,A,B)
+            if detSys==1: self.scifiDet.GetSiPMPosition(detID,A,B)
         distance = 0
         tmp = array('d',[A[0],A[1],A[2],B[0],B[1],B[2],distance])
         unSortedList[A[2]] = [ROOT.TVectorD(7,tmp),detID,k,detSys]
@@ -456,20 +554,13 @@ class Tracking(ROOT.FairTask):
       if not fitStatus.isFitConverged() : return [100,-100]
       state = ROOT.getFittedState(theTrack,0)
       pos = state.getPos()
-# start with first measurement
-      M = theTrack.getPointWithMeasurement(0)
-      W      = M.getRawMeasurement()
-      detID = W.getDetId()
-      aHit   = self.event.Digi_ScifiHits[ self.DetID2Key[detID] ]
-      self.scifiDet.GetSiPMPosition(detID,A,B)
-      X = B-pos
-      L0 = X.Mag()/self.scifi_vsignal
-      # need to correct for signal propagation along fibre
-      clkey  = W.getHitId()
-      aCl = self.clusScifi[clkey]
-      T0track = aCl.GetTime() - L0
-      TZero    = aCl.GetTime()
+      mom = state.getMom()
+      lam = (self.firstScifi_z-pos.z())/mom.z()
+      # nominal first position
+      pos1 = ROOT.TVector3(pos.x()+lam*mom.x(),pos.y()+lam*mom.y(),self.firstScifi_z)
+
       self.Tline = ROOT.TGraph()
+      meanT = 0
       for nM in range(theTrack.getNumPointsWithMeasurement()):
             state = ROOT.getFittedState(theTrack,nM)
             if not state: continue
@@ -486,12 +577,10 @@ class Tracking(ROOT.FairTask):
             L = X.Mag()/self.scifi_vsignal
          # need to correct for signal propagation along fibre
             corTime = self.scifiDet.GetCorrectedTime(detID, aCl.GetTime(), 0)
-            trajLength = (posM-pos).Mag()
-            if posM[2] -pos[2] < 0: trajLength = -trajLength
-            dT = corTime - L - T0track - trajLength/u.speedOfLight
-            self.Tline.AddPoint(trajLength,dT)
+            trajLength = (posM-pos1).Mag()
+            T = corTime - L - trajLength/u.speedOfLight
+            self.Tline.AddPoint(trajLength,T)
       rc = self.Tline.Fit('pol1','SQ')
       fitResult =  rc.Get()
       slope = fitResult.Parameter(1)
-      return [slope,slope/(fitResult.ParError(1)+1E-13)]
-
+      return [slope,slope/(fitResult.ParError(1)+1E-13),fitResult.Parameter(0)]

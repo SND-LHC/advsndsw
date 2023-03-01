@@ -13,7 +13,6 @@ include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 cmake_print_variables(INCLUDE_DIRECTORIES)
 cmake_print_variables(FAIRROOT_INCLUDE_DIR)
 
-Message(STATUS "?? include directories ${FAIRROOT_INCLUDE_DIR} ")
 set(LINK_DIRECTORIES
 ${ROOT_LIBRARY_DIR}
 ${FAIRROOT_LIBRARY_DIR}

@@ -8,6 +8,7 @@
 
 #include "FairModule.h"                 // for FairModule
 #include "FairDetector.h"
+#include "SNDLHCEventHeader.h"
 
 #include "Rtypes.h"                     // for ShipMuonShield::Class, Bool_t, etc
 
@@ -34,9 +35,12 @@ class MuFilter : public FairDetector
     /** Getposition **/
                  void GetPosition(Int_t id, TVector3& vLeft, TVector3& vRight); // or top and bottom
                  void GetLocalPosition(Int_t id, TVector3& vLeft, TVector3& vRight);
+                 Float_t GetCorrectedTime(Int_t id, Int_t c, Double_t t, Double_t L);
                  Int_t GetnSiPMs(Int_t detID);
                  Int_t GetnSides(Int_t detID);
 
+		void InitEvent(SNDLHCEventHeader *e){    eventHeader = e;// get mapping to eventHeader
+		}	
 		void SetConfPar(TString name, Float_t value){conf_floats[name]=value;}
 		void SetConfPar(TString name, Int_t value){conf_ints[name]=value;}
 		void SetConfPar(TString name, TString value){conf_strings[name]=value;}
@@ -82,22 +86,23 @@ class MuFilter : public FairDetector
 
 	private:
 
-			/** Track information to be stored until the track leaves the active volume. */
-			Int_t          fTrackID;           //!  track index
-			Int_t          fVolumeID;          //!  volume id
-			TLorentzVector fPos;               //!  position at entrance
-			TLorentzVector fMom;               //!  momentum at entrance
-			Double32_t     fTime;              //!  time
-			Double32_t     fLength;            //!  length
-			Double32_t     fELoss;             //!  energy loss
+		/** Track information to be stored until the track leaves the active volume. */
+		Int_t          fTrackID;           //!  track index
+		Int_t          fVolumeID;          //!  volume id
+		TLorentzVector fPos;               //!  position at entrance
+		TLorentzVector fMom;               //!  momentum at entrance
+		Double32_t     fTime;              //!  time
+		Double32_t     fLength;            //!  length
+		Double32_t     fELoss;             //!  energy loss
 
-			/** container for data points */
-			TClonesArray*  fMuFilterPointCollection;
+		/** container for data points */
+		TClonesArray*  fMuFilterPointCollection;
 
-			/** configuration parameters **/
-			std::map<TString,Float_t> conf_floats;
-			std::map<TString,Int_t> conf_ints;
-			std::map<TString,TString> conf_strings;
+		/** configuration parameters **/
+		std::map<TString,Float_t> conf_floats;
+		std::map<TString,Int_t> conf_ints;
+		std::map<TString,TString> conf_strings;
+		SNDLHCEventHeader *eventHeader;
 
 	protected:
 

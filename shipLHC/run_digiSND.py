@@ -79,6 +79,9 @@ if options.FairTask_digi:
   ioman = ROOT.FairRootManager.Instance()
   ioman.RegisterInputObject('Scifi', snd_geo.modules['Scifi'])
   ioman.RegisterInputObject('MuFilter', snd_geo.modules['MuFilter'])
+  # Don't use FairRoot's default event header settings
+  run.SetEventHeaderPersistence(False)
+  
   # Set input
   fileSource = ROOT.FairFileSource(options.inputFile)
   run.SetSource(fileSource)

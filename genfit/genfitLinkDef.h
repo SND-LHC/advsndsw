@@ -27,6 +27,8 @@
 #pragma link C++ class genfit::WireMeasurement+;
 #pragma link C++ class genfit::WirePointMeasurement+;
 
+#pragma link C++ class genfit::MeasurementFactory.h-;
+
 #pragma link C++ class genfit::HMatrixPhi-;
 #pragma link C++ class genfit::FullMeasurement-;
 #pragma link C++ class genfit::PlanarMeasurement-;

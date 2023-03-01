@@ -27,7 +27,7 @@ parser = ArgumentParser()
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,required=False)
 parser.add_argument("-p", "--path", dest="path", help="run number",required=False,default="")
 parser.add_argument("-f", "--inputFile", dest="inputFile", help="input file data and MC",default="",required=False)
-parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=True)
+parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", default=os.environ["EOSSHIP"]+"/eos/experiment/sndlhc/convertedData/physics/2022/geofile_sndlhc_TI18_V0_2022.root")
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 
@@ -61,6 +61,14 @@ detSize[2] =[mi.UpstreamBarX/2,           mi.UpstreamBarY/2,    mi.UpstreamBarZ/
 detSize[3] =[mi.DownstreamBarX_ver/2,mi.DownstreamBarY/2,mi.DownstreamBarZ/2]
 
 mc = False
+
+
+# Initialize FairLogger: set severity and verbosity
+logger = ROOT.FairLogger.GetLogger()
+logger.SetColoredLog(True)
+logger.SetLogVerbosityLevel('low')
+logger.SetLogScreenLevel('WARNING')
+logger.SetLogToScreen(True)
 
 run      = ROOT.FairRunAna()
 ioman = ROOT.FairRootManager.Instance()
@@ -111,10 +119,18 @@ HT_tasks['muon_reco_task_DS'].SetTrackingCase('passing_mu_DS')
 HT_tasks['muon_reco_task_nuInt'].SetTrackingCase('nu_interaction_products')
 
 run.Init()
+OT = sink.GetOutTree()
 eventTree = ioman.GetInTree()
-# backward compatbility for early converted events
 eventTree.GetEvent(0)
-if eventTree.GetBranch('Digi_MuFilterHit'): eventTree.Digi_MuFilterHits = eventTree.Digi_MuFilterHit
+if eventTree.EventHeader.ClassName() == 'SNDLHCEventHeader':
+   geo.modules['Scifi'].InitEvent(eventTree.EventHeader)
+   geo.modules['MuFilter'].InitEvent(eventTree.EventHeader)
+# if faireventheader, rely on user to select correct geofile.
+
+if eventTree.GetBranch('Digi_MuFilterHit'):
+# backward compatbility for early converted events
+  eventTree.GetEvent(0)
+  eventTree.Digi_MuFilterHits = eventTree.Digi_MuFilterHit
 
 nav = ROOT.gGeoManager.GetCurrentNavigator()
 
@@ -190,7 +206,7 @@ def bunchXtype():
              if not b1 and not b2: xing['noBeam'] = True
         return xing
 
-def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-1,nTracks=0,minSipmMult=1, option=None,Setup='',verbose=0,auto=False):
+def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-1,nTracks=0,minSipmMult=1,withTiming=False, option=None,Setup='',verbose=0,auto=False):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
  h['simpleDisplay'].cd(1)
  zStart = 250. # TI18 coordinate system
@@ -253,7 +269,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
        if len(uniqueTracks)<nTracks:
           OT.Reco_MuonTracks.Delete()
        nHoughtracks = OT.Reco_MuonTracks.GetEntries()
-       print('number of tracks by pattern recognition:', nHoughtracks)
+       if nHoughtracks>0: print('number of tracks by pattern recognition:', nHoughtracks)
 
     if withTrack > 0:
           # Delete SndlhcTracking fitted tracks container
@@ -268,7 +284,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
           for trk in trackTask.fittedTracks:
               OT.Reco_MuonTracks.Add(trk)
           ntracks = len(OT.Reco_MuonTracks) - nHoughtracks
-          print('number of tracks by KF-based tracking:', ntracks)
+          if ntracks>0: print('number of tracks by KF-based tracking:', ntracks)
     nAlltracks = len(OT.Reco_MuonTracks)
     if nAlltracks<nTracks: continue
 
@@ -279,11 +295,10 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
            mom.Print()
            pos.Print()
     T,dT = 0,0
-    if event.FindBranch("EventHeader"):
-       T = event.EventHeader.GetEventTime()
-       runId = eventTree.EventHeader.GetRunId()
-       if Tprev >0: dT = T-Tprev
-       Tprev = T
+    T = event.EventHeader.GetEventTime()
+    runId = eventTree.EventHeader.GetRunId()
+    if Tprev >0: dT = T-Tprev
+    Tprev = T
     if nAlltracks > 0: print('total number of tracks: ', nAlltracks)
 
     digis = []
@@ -380,7 +395,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
             rc=h[collection][c][1].Draw('sameP')
             h['display:'+c]=h[collection][c][1]
     h['simpleDisplay'].Update()
-
+    if withTiming: timingOfEvent()
     addTrack(OT)
 
     if option == "2tracks": 
@@ -669,6 +684,54 @@ def cleanTracks():
          for n1 in range( len(listOfDetIDs) ): print(listOfDetIDs[n1])
     return uniqueTracks
 
+def timingOfEvent(makeCluster=False,debug=False):
+   firstScifi_z = 300*u.cm
+   TDC2ns = 1E9/160.316E6
+   ut.bookHist(h,'evTimeDS','cor time of hits;[ns]',70,-5.,30)
+   ut.bookHist(h,'evTimeScifi','cor time of hits blue DS red Scifi;[ns]',70,-5.,30)
+   ut.bookCanvas(h,'tevTime','cor time of hits',1024,768,1,1)
+   h['evTimeScifi'].SetLineColor(ROOT.kRed)
+   h['evTimeDS'].SetLineColor(ROOT.kBlue)
+   h['evTimeScifi'].SetStats(0)
+   h['evTimeDS'].SetStats(0)
+   h['evTimeScifi'].SetLineWidth(2)
+   h['evTimeDS'].SetLineWidth(2)
+   if makeCluster: trackTask.scifiCluster()
+   meanXY = {}
+   for siCl in trackTask.clusScifi:
+       detID = siCl.GetFirst()
+       s = detID//1000000
+       isVertical = detID%1000000//100000
+       siCl.GetPosition(A,B)
+       z=(A[2]+B[2])/2.
+       pos = (A[1]+B[1])/2.
+       L = abs(A[0]-B[0])/2.
+       if isVertical:
+          pos = (A[0]+B[0])/2.
+          L = abs(A[1]-B[1])/2.
+       corTime = geo.modules['Scifi'].GetCorrectedTime(detID, siCl.GetTime(), 0) - (z-firstScifi_z)/u.speedOfLight
+       h['evTimeScifi'].Fill(corTime)
+       if debug: print(detID,corTime,pos)
+   for aHit in eventTree.Digi_MuFilterHits:
+       detID = aHit.GetDetectorID()
+       if not detID//10000==3: continue
+       if aHit.isVertical(): nmax = 1
+       else: nmax=2
+       geo.modules['MuFilter'].GetPosition(detID,A,B)
+       z=(A[2]+B[2])/2.
+       pos = (A[1]+B[1])/2.
+       L = abs(A[0]-B[0])/2.
+       if isVertical: 
+          pos = (A[0]+B[0])/2.
+          L = abs(A[1]-B[1])/2.
+       for i in range(nmax):
+            corTime = geo.modules['MuFilter'].GetCorrectedTime(detID, i, aHit.GetTime(i)*TDC2ns, 0)- (z-firstScifi_z)/u.speedOfLight
+            h['evTimeDS'].Fill(corTime)
+            if debug: print(detID,i,corTime,pos)
+   tc=h['tevTime'].cd()
+   h['evTimeScifi'].Draw()
+   h['evTimeDS'].Draw('same')
+   tc.Update()
 def mufiNoise():
   for s in range(1,4): 
     ut.bookHist(h,'mult'+str(s),'hit mult for system '+str(s),100,-0.5,99.5)

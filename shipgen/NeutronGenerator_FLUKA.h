@@ -19,8 +19,8 @@ class NeutronGenerator_FLUKA : public FairGenerator
   
   /** public method ReadEvent **/
   Bool_t ReadEvent(FairPrimaryGenerator*);  
-  virtual Bool_t Init(const char*, int){}; //!
-  virtual Bool_t Init(const char*){}; //!
+  Bool_t Init(const char*, int){return true;}; //!
+  Bool_t Init(const char*){return true;}; //!
   void SetZ(Double_t X) {  SND_Z = X; };
  private:
   

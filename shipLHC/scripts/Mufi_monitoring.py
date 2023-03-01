@@ -18,13 +18,14 @@ class Mufi_hitMaps(ROOT.FairTask):
        sdict = self.M.sdict
        h = self.M.h
        run = ROOT.FairRunAna.Instance()
-       self.trackTask = run.GetTask('simpleTracking')
+       self.trackTask = self.M.trackTask
        if not self.trackTask: self.trackTask = run.GetTask('houghTransform')
        ioman = ROOT.FairRootManager.Instance()
        self.OT = ioman.GetSink().GetOutTree()
+       self.mufi_vsignal = 15.*u.cm/u.ns
 
 # type of crossing, check for b1only,b2nob1,nobeam
-       if self.M.fsdict:   self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
+       if self.M.fsdict or self.M.hasBunchInfo:   self.xing = {'':True,'B1only':False,'B2noB1':False,'noBeam':False}
        else:   self.xing = {'':True}
        for xi in self.xing:
          ut.bookHist(h,detector+'Noise'+xi,'events with hits in single plane; s*10+l;',40,0.5,39.5)
@@ -35,8 +36,15 @@ class Mufi_hitMaps(ROOT.FairTask):
                   ut.bookHist(h,detector+'hit_'+str(s*10+l)+xi,'channel map / plane '+sdict[s]+str(l)+'; #channel',160,-0.5,159.5)
                   ut.bookHist(h,detector+'Xhit_'+str(s*10+l)+xi,'Xchannel map / plane '+sdict[s]+str(l)+'; #channel',160,-0.5,159.5)
 
-                  if s==3:  ut.bookHist(h,detector+'bar_'+str(s*10+l)+xi,'bar map / plane '+sdict[s]+str(l)+'; #bar',60,-0.5,59.5)
-                  else:       ut.bookHist(h,detector+'bar_'+str(s*10+l)+xi,'bar map / plane '+sdict[s]+str(l)+'; #bar',10,-0.5,9.5)
+                  if s==3:  
+                        ut.bookHist(h,detector+'bar_'+str(s*10+l)+xi,'bar map / plane '+sdict[s]+str(l)+'; #bar',60,-0.5,59.5)
+                        ut.bookHist(h,detector+'dT_'+str(s*10+l)+xi,'dT with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',      100,-25.,5.,120,-0.5,2*60-0.5)
+                        ut.bookHist(h,detector+'dTcor_'+str(s*10+l)+xi,'dTcor with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',100,-25.,5.,120,-0.5,2*60-0.5)
+                  else:       
+                        ut.bookHist(h,detector+'bar_'+str(s*10+l)+xi,'bar map / plane '+sdict[s]+str(l)+'; #bar',10,-0.5,9.5)
+                        if s==1:
+                           ut.bookHist(h,detector+'dT_'+str(s*10+l)+xi,'dT with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',      100,-25.,5.,120,-0.5,2*8*7-0.5)
+                        ut.bookHist(h,detector+'dTcor_'+str(s*10+l)+xi,'dTcor with respect to first scifi '+sdict[s]+str(l)+'; dt [ns] ;# bar + channel',100,-25.,5.,120,-0.5,2*8*7-0.5)
                   ut.bookHist(h,detector+'sig_'+str(s*10+l)+xi,'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
                   if s==2:    
                       ut.bookHist(h,detector+'sigS_'+str(s*10+l)+xi,'signal / plane '+sdict[s]+str(l)+'; QDC [a.u.]',200,0.0,200.)
@@ -171,11 +179,18 @@ class Mufi_hitMaps(ROOT.FairTask):
            posMom['first'] = [fstate.getPos(),fstate.getMom()]
            # fstate =  aTrack.getFittedState(aTrack.getNumPointsWithMeasurement()-1) does not make a difference
            posMom['last'] = [fstate.getPos(),fstate.getMom()]
+           rc = self.trackTask.trackDir(aTrack)
+           scifi_time0 = rc[2]
+           pos,mom = posMom['first']
+           lam = (self.trackTask.firstScifi_z-pos.z())/mom.z()
+           # nominal first position
+           pos1 = ROOT.TVector3(pos.x()+lam*mom.x(),pos.y()+lam*mom.y(),self.trackTask.firstScifi_z)
            for aHit in event.Digi_MuFilterHits:
               if not aHit.isValid(): continue
-              Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
+              detID = aHit.GetDetectorID()
+              Minfo = self.M.MuFilter_PlaneBars(detID)
               s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
-              self.M.MuFilter.GetPosition(aHit.GetDetectorID(),A,B)
+              self.M.MuFilter.GetPosition(detID,A,B)
 # calculate DOCA
               if s==1: pos,mom = posMom['first']
               else: pos,mom = posMom['last']
@@ -187,6 +202,35 @@ class Mufi_hitMaps(ROOT.FairTask):
               doca = pq.Dot(uCrossv)/uCrossv.Mag()
               self.M.fillHist2(detector+'resX_'+sdict[s]+str(s*10+l),doca/u.cm,xEx)
               self.M.fillHist2(detector+'resY_'+sdict[s]+str(s*10+l),doca/u.cm,yEx)
+# calculate time difference for DS
+              if (s==3 and abs(doca)<2.5*u.cm) or (s==1 and abs(doca)<6*u.cm):
+                 # horizontal layers have left and right sipms
+                 if aHit.isVertical(): nmax = 1
+                 else: nmax = 2
+                 barMult = 2
+                 if s==1: 
+                     nmax = 16
+                     barMult = 16
+                 for i in range(nmax):
+                   if aHit.GetTime(i) < 0: continue # not valid time
+                   posM = ROOT.TVector3(xEx,yEx,zEx)
+                 # correct for flight length
+                   trajLength = (posM-pos1).Mag()
+                 # correct for signal speed, need to know left or right
+                   if s==3:
+                     if i==1:                      X = B-posM   # B is right  only horizontal planes have a second readout 
+                     else:                         X = A-posM   # A is on the left, or top for vertical planes
+                   if s==1:
+                     if i<8:                       X = A-posM  
+                     else:                         X = B-posM  
+                   L = X.Mag()/self.mufi_vsignal
+                   tM = aHit.GetTime(i)*self.M.TDC2ns - L - trajLength/u.speedOfLight
+                   self.M.fillHist2(detector+'dT_'+str(s*10+l),tM-scifi_time0,bar*barMult+i)
+                   # use corrected time
+                   if s==3:
+                     corTime = self.M.MuFilter.GetCorrectedTime(detID, i, aHit.GetTime(i)*self.M.TDC2ns, X.Mag())
+                     tM = corTime - trajLength/u.speedOfLight
+                     self.M.fillHist2(detector+'dTcor_'+str(s*10+l),tM-scifi_time0,bar*barMult+i)
 
    def beamSpot(self,event):
       if not self.trackTask: return
@@ -215,12 +259,15 @@ class Mufi_hitMaps(ROOT.FairTask):
       systemAndPlanes =self.M.systemAndPlanes
       S = {1:[1800,800,2,1],2:[1800,1500,2,3],3:[1800,1800,2,4]}
       for xi in self.xing:
-       if not self.M.fsdict and xi!='': continue
+       if not self.M.fsdict and not self.M.hasBunchInfo and xi!='': continue
 
        for s in S:
            ut.bookCanvas(h,detector+'hitmaps' +sdict[s]+xi,'hitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
            ut.bookCanvas(h,detector+'Xhitmaps' +sdict[s]+xi,'Xhitmaps' +sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
            ut.bookCanvas(h,detector+'barmaps'+sdict[s]+xi,'barmaps'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
+           if s==3 or s==1: 
+               ut.bookCanvas(h,detector+'dTScifi'+sdict[s]+xi,'dt rel to scifi'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
+               ut.bookCanvas(h,detector+'dTcorScifi'+sdict[s]+xi,'dtcor rel to scifi'+sdict[s],S[s][0],S[s][1],S[s][2],S[s][3])
 
            for l in range(systemAndPlanes[s]):
               n = l+1
@@ -233,6 +280,11 @@ class Mufi_hitMaps(ROOT.FairTask):
 
               tc = h[detector+'barmaps'+sdict[s]+xi].cd(n)
               h[detector+'bar_'+tag].Draw()
+              if s==3 or s==1:
+                 tc = h[detector+'dTScifi'+sdict[s]+xi].cd(n)
+                 h[detector+'dT_'+tag].Draw('colz')
+                 tc = h[detector+'dTcorScifi'+sdict[s]+xi].cd(n)
+                 h[detector+'dTcor_'+tag].Draw('colz')
 
        ut.bookCanvas(h,detector+'hitmult'+xi,'hit multiplicities per plane',2000,1600,4,3)
        k=1
@@ -388,8 +440,9 @@ class Mufi_hitMaps(ROOT.FairTask):
               h[canvas].Update()
               if x!='': self.M.myPrint(h[canvas],canvas,subdir='mufilter/'+xi)
               else: self.M.myPrint(h[canvas],canvas,subdir='mufilter')
-       for canvas in [detector+'hitmaps',detector+'Xhitmaps',detector+'barmaps']:
+       for canvas in [detector+'hitmaps',detector+'Xhitmaps',detector+'barmaps',detector+'dTScifi',detector+'dTcorScifi']:
               for s in range(1,4):
+                  if s<3 and canvas.find('dT')>0: continue
                   h[canvas+sdict[s]+xi].Update()
                   if x!='': self.M.myPrint(h[canvas+sdict[s]+xi],canvas+sdict[s],subdir='mufilter/'+xi)
                   else: self.M.myPrint(h[canvas+sdict[s]+xi],canvas+sdict[s],subdir='mufilter')

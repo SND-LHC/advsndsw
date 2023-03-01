@@ -161,9 +161,6 @@ if simEngine == "muonDIS":
    DISgen = ROOT.MuDISGenerator()
    mu_start, mu_end = (-3.7-2.0)*u.m , -0.3*u.m # tunnel wall -30cm in front of SND
    DISgen.SetPositions(0, mu_start, mu_end)
-   if options.ecut > 0:  
-            modules['Floor'].SetEmin(options.ecut)
-            modules['Floor'].SetZmax(options.zmax)
    DISgen.Init(inputFile,options.firstEvent) 
    primGen.AddGenerator(DISgen)
    options.nEvents = min(options.nEvents,DISgen.GetNevents())
@@ -226,9 +223,6 @@ if simEngine == "MuonBack":
  else:
   primGen.SetTarget(snd_geo.target.z0+50*u.m,0.)
  #
- if options.ecut > 0:  
-     modules['Floor'].SetEmin(options.ecut)
-     modules['Floor'].SetZmax(options.zmax)
  MuonBackgen = ROOT.MuonBackGenerator()
  # MuonBackgen.FollowAllParticles() # will follow all particles after hadron absorber, not only muons
  MuonBackgen.Init(inputFile,options.firstEvent,options.phiRandom)
@@ -236,9 +230,10 @@ if simEngine == "MuonBack":
  options.nEvents = min(options.nEvents,MuonBackgen.GetNevents())
  MCTracksWithHitsOnly = True # otherwise, output file becomes too big
  print('Process ',options.nEvents,' from input file, with Phi random=',options.phiRandom, ' with MCTracksWithHitsOnly',MCTracksWithHitsOnly)
- 
- # optional, boost gamma2muon conversion
- # ROOT.kShipMuonsCrossSectionFactor = 100. 
+
+if options.ecut > 0:   
+   modules['Floor'].SetEmin(options.ecut)
+   modules['Floor'].SetZmax(options.zmax)
 
 #
 run.SetGenerator(primGen)
@@ -254,7 +249,8 @@ if options.fastMuon :
      if 'Veto' in modules:       modules['Veto'].SetFastMuon()
      elif 'Floor' in modules: 
            modules['Floor'].SetFastMuon()
-           print('only transport muons')
+           modules['Floor'].SetZmax(options.zmax)
+           print('transport only-muons up to z=',options.zmax)
 # ------------------------------------------------------------------------
 #---Store the visualiztion info of the tracks, this make the output file very large!!
 #--- Use it only to display but not for production!
@@ -284,9 +280,36 @@ elif options.deepCopy:
 if options.boostFactor > 1:
  ROOT.gROOT.ProcessLine('#include "Geant4/G4ProcessTable.hh"')
  ROOT.gROOT.ProcessLine('#include "Geant4/G4MuBremsstrahlung.hh"')
+ ROOT.gROOT.ProcessLine('#include "Geant4/G4GammaConversionToMuons.hh"')
+ ROOT.gROOT.ProcessLine('#include "Geant4/G4MuPairProduction.hh"')
+ ROOT.gROOT.ProcessLine('#include "Geant4/G4AnnihiToMuPair.hh"')
+ ROOT.gROOT.ProcessLine('#include "Geant4/G4MuonToMuonPairProduction.hh"')
+ ROOT.gROOT.ProcessLine('#include "Geant4/G4MuonPlus.hh"')
+ ROOT.gROOT.ProcessLine('#include "Geant4/G4MuonMinus.hh"')
+
  gProcessTable = ROOT.G4ProcessTable.GetProcessTable()
- procBrems        = gProcessTable.FindProcess(ROOT.G4String('muBrems'),ROOT.G4String('mu+'))
- procBrems.SetCrossSectionBiasingFactor(options.boostFactor)
+ # only muon interaction
+ # procBrems        = gProcessTable.FindProcess(ROOT.G4String('muBrems'),ROOT.G4String('mu+'))
+ # muPairProd = gProcessTable.FindProcess(ROOT.G4String('muPairProd'),ROOT.G4String('mu+'))
+ # muPairProd.SetCrossSectionBiasingFactor(options.boostFactor)
+ # procBrems.SetCrossSectionBiasingFactor(options.boostFactor)
+ # muon pair production
+ gammaToMuPair = gProcessTable.FindProcess(ROOT.G4String('GammaToMuPair'),ROOT.G4String('gamma'))
+ gammaToMuPair.SetCrossSecFactor(options.boostFactor) 
+ AnnihiToMuPair = gProcessTable.FindProcess(ROOT.G4String('AnnihiToMuPair'),ROOT.G4String('e+'))
+ AnnihiToMuPair.SetCrossSecFactor(options.boostFactor)
+ MuonToMuonPair = gProcessTable.FindProcess(ROOT.G4String('muToMuonPairProd'),ROOT.G4String('mu+'))
+ MuonToMuonPair.SetCrossSectionBiasingFactor(options.boostFactor)
+
+ mygMC = ROOT.TGeant4.GetMC()
+ if options.debug:
+   mygMC.ProcessGeantCommand("/run/particle/dumpOrderingParam")
+   mygMC.ProcessGeantCommand("/particle/select mu+")
+   mygMC.ProcessGeantCommand("/particle/process/dump")
+   mygMC.ProcessGeantCommand("/particle/select gamma")
+   mygMC.ProcessGeantCommand("/particle/process/dump")
+   mygMC.ProcessGeantCommand("/particle/select e+")
+   mygMC.ProcessGeantCommand("/particle/process/dump")
 #
 
 if inactivateMuonProcesses :

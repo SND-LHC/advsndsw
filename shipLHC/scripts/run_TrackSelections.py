@@ -14,7 +14,7 @@ parser = ArgumentParser()
 parser.add_argument("-o", "--outFile", dest="oname", help="output file name", type=str,default=None,required=True)
 parser.add_argument("-f", "--inputFile", dest="fname", help="file name for MC", type=str,default=None,required=False)
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
-parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,required=True)
+parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,required=False,default=-1)
 parser.add_argument("-p", "--path", dest="path", help="path to file",required=False,default="")
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=True)
@@ -54,7 +54,7 @@ if options.HoughTracking:
       muon_reco_task_Sf.SetName("houghTransform_Sf")
       options.FairTasks["houghTransform_Sf"] = muon_reco_task_Sf
       HT_tasks.append(muon_reco_task_Sf)
-   if options.trackType == 'Scifi' or options.trackType == 'ScifiDS':
+   if options.trackType == 'DS' or options.trackType == 'ScifiDS':
       muon_reco_task_DS = SndlhcMuonReco.MuonReco()
       muon_reco_task_DS.SetTrackingCase('passing_mu_DS')
       muon_reco_task_DS.SetName("houghTransform_DS")

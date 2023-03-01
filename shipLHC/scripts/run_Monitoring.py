@@ -53,6 +53,7 @@ parser.add_argument("--goodEvents", dest="goodEvents", action='store_true',defau
 parser.add_argument("--withTrack", dest="withTrack", action='store_true',default=False)
 parser.add_argument("--nTracks", dest="nTracks",default=0,type=int)
 parser.add_argument("--save", dest="save", action='store_true',default=False)
+parser.add_argument("--sH", dest="saveHistos", action='store_true',default=False,help="save all histos not only TCanvas")
 parser.add_argument("--interactive", dest="interactive", action='store_true',default=False)
 
 parser.add_argument("--parallel", dest="parallel",default=1,type=int)
@@ -81,8 +82,10 @@ if not options.geoFile:
            options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
      elif options.runNumber < 4855:
           options.geoFile =  "geofile_sndlhc_TI18_V5_14August2022.root"
-     else:
+     elif options.runNumber < 5172:
           options.geoFile =  "geofile_sndlhc_TI18_V6_08October2022.root"
+     else:
+          options.geoFile =  "geofile_sndlhc_TI18_V7_22November2022.root"
 
 # to be extended for future new alignments.
 
@@ -128,7 +131,11 @@ else:
        os._exit(1)
 # works only for runs on EOS
    if not options.server.find('eos')<0:
-      runDir = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_"+str(options.runNumber).zfill(6)
+      if options.path.find('2022'):
+          rawDataPath = "/eos/experiment/sndlhc/raw_data/physics/2022/"
+      else:
+          rawDataPath = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/"
+      runDir = rawDataPath+"run_"+str(options.runNumber).zfill(6)
       jname = "run_timestamps.json"
       dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+runDir,shell=True) ) 
       if jname in dirlist:
@@ -155,8 +162,8 @@ else:
 
 M = Monitor.Monitoring(options,FairTasks)
 if options.nEvents < 0 :   options.nEvents = M.GetEntries()
-if options.postScale==0 and options.nEvents>5E7: options.postScale = 100
-if options.postScale==0 and options.nEvents>5E6: options.postScale = 10
+if options.postScale==0 and options.nEvents>100E6: options.postScale = 100
+if options.postScale==0 and options.nEvents>10E6: options.postScale = 10
 
 monitorTasks = {}
 if not options.fname:
@@ -237,8 +244,12 @@ if not options.auto:   # default online/offline mode
 
      for m in monitorTasks:
           monitorTasks[m].Plot()
-     print('i am finished')
-     M.presenterFile.daq.ls()
+     # check if all events had been processed
+     if not M.h['Etime'].GetEntries() == options.nEvents:
+         print('event count failed! Processed:',M.h['Etime'].GetEntries(),' total number of events:',options.nEvents)
+     else:
+         print('i am finished, all events processed')
+ if options.saveHistos: ut.writeHists(h,'allHistos-run'+M.runNr+'.root')
 
  M.publishRootFile()
  if options.sudo:

@@ -12,6 +12,8 @@ from XRootD.client.flags import DirListFlags, OpenFlags, MkDirFlags, QueryCode
 from rootpyPickler import Unpickler
 
 A,B=ROOT.TVector3(),ROOT.TVector3()
+# for fixing a root bug,  will be solved in the forthcoming 6.26 release.
+
 ROOT.gInterpreter.Declare("""
 #include "MuFilterHit.h"
 #include "AbsMeasurement.h"
@@ -96,27 +98,12 @@ class Monitoring():
         self.h = {}   # histogram storage
 
         self.runNr   = str(options.runNumber).zfill(6)
-# get filling scheme
-        try:
-           fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
-           pkl = Unpickler(fg)
-           FSdict = pkl.load('FSdict')
-           fg.Close()
-           if options.runNumber in FSdict: self.fsdict = FSdict[options.runNumber]
-           else:  self.fsdict = False
-        except:
-           print('continue without knowing filling scheme',options.server+options.path)
-           self.fsdict = False
 # presenter file
         name = 'run'+self.runNr+'.root'
         if options.interactive: name = 'I-'+name
         self.presenterFile = ROOT.TFile(name,'recreate')
         self.presenterFile.mkdir('scifi')
         self.presenterFile.mkdir('mufilter')
-        if self.fsdict:
-           for x in ['B1only','B2noB1','noBeam']:
-             self.presenterFile.mkdir('mufilter/'+x)
-             self.presenterFile.mkdir('scifi/'+x)
         self.presenterFile.mkdir('daq')
         self.presenterFile.mkdir('eventdisplay')
         self.FairTasks = {}
@@ -188,7 +175,6 @@ class Monitoring():
                rc = eventChain.GetEvent(options.nEvents-1)
             self.TEnd = eventChain.EventHeader.GetEventTime()
             rc = eventChain.GetEvent(0)
-
 # start FairRunAna
             self.run  = ROOT.FairRunAna()
             ioman = ROOT.FairRootManager.Instance()
@@ -219,6 +205,36 @@ class Monitoring():
                self.Reco_MuonTracks = self.trackTask.fittedTracks
                self.clusMufi        = self.trackTask.clusMufi
                self.clusScifi       = self.trackTask.clusScifi
+               self.trackTask.DSnPlanes = 3
+
+# initialize detector class for access to eventheader
+        rc = eventChain.GetEvent(0)
+        self.snd_geo.modules['Scifi'].InitEvent(eventChain.EventHeader)
+        self.snd_geo.modules['MuFilter'].InitEvent(eventChain.EventHeader)
+
+        # get filling scheme, only necessary if not encoded in EventHeader, before 2022 reprocessing
+        self.hasBunchInfo = False
+        self.fsdict = False
+        if hasattr(eventChain.EventHeader,"GetBunchType"):
+           if not eventChain.EventHeader.GetBunchType()<0:
+                self.hasBunchInfo = True
+                print('take bunch info from event header')
+        if not self.hasBunchInfo:
+         try:
+           fg  = ROOT.TFile.Open(options.server+options.path+'FSdict.root')
+           pkl = Unpickler(fg)
+           FSdict = pkl.load('FSdict')
+           fg.Close()
+           if options.runNumber in FSdict: self.fsdict = FSdict[options.runNumber]
+         except:
+           print('continue without knowing filling scheme',options.server+options.path)
+         if self.fsdict: 
+           print('extract bunch info from filling scheme')
+        if self.fsdict or self.hasBunchInfo: 
+          for x in ['B1only','B2noB1','noBeam']:
+             self.presenterFile.mkdir('mufilter/'+x)
+             self.presenterFile.mkdir('scifi/'+x)
+
    def GetEntries(self):
        if  self.options.online:
          if  self.converter.newFormat:  return self.converter.fiN.Get('data').GetEntries()
@@ -294,9 +310,18 @@ class Monitoring():
 
 # check for bunch xing type
       self.xing = {'all':True,'B1only':False,'B2noB1':False,'noBeam':False}
-      if self.fsdict:
+      if self.hasBunchInfo:
+             binfo = self.eventTree.EventHeader
+             self.xing['IP1']  = binfo.isIP1()
+             self.xing['IP2']  = binfo.isIP2()
+             self.xing['B1']   = binfo.isB1()
+             self.xing['B2']   = binfo.isB2()
+             self.xing['B1only']  = binfo.isB1Only()
+             self.xing['B2noB1']  = binfo.isB2noB1()
+             self.xing['noBeam']  = binfo.isNoBeam()
+      elif self.fsdict:
              T   = self.eventTree.EventHeader.GetEventTime()
-             bunchNumber = int(T%(4*3564)/4+0.5)
+             bunchNumber = (T%(4*3564))//4
              nb1 = (3564 + bunchNumber - self.fsdict['phaseShift1'])%3564
              nb2 = (3564 + bunchNumber - self.fsdict['phaseShift1']- self.fsdict['phaseShift2'])%3564
              b1 = nb1 in self.fsdict['B1']
@@ -324,6 +349,8 @@ class Monitoring():
        self.presenterFile.Close()
        if self.options.online:
            wwwPath = "/eos/experiment/sndlhc/www/online"
+       elif self.options.path.find('2022') :
+           wwwPath = "/eos/experiment/sndlhc/www/reprocessing"
        else:    
            wwwPath = "/eos/experiment/sndlhc/www/offline"
        if self.options.sudo: 
@@ -335,7 +362,7 @@ class Monitoring():
 
    def purgeMonitorHistos(self):
         wwwPath = "/eos/experiment/sndlhc/www/online/"
-        for r in options.runNumbers.split(','):
+        for r in self.options.runNumbers.split(','):
             if r!= '': runList.append(int(r))
         for r in runList:
               runNr   = str(r).zfill(6)+'.root'
@@ -353,10 +380,11 @@ class Monitoring():
                     s.Get(x.GetName()).Write()
         g.Close()
         f.Close()
-        os.system('xrdcp -f tmp.root  '+options.server+options.path+rName)
+        os.system('xrdcp -f tmp.root  '+self.options.server+options.path+rName)
 
    def updateHtml(self):
       if self.options.online: destination="online"
+      elif self.options.path.find('2022'): destination="reprocessing"
       else: destination="offline"
       rc = os.system("xrdcp -f "+os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/"+destination+".html  . ")
       old = open(destination+".html")
@@ -628,6 +656,7 @@ class TrackSelector():
    def __init__(self,options):
         self.options = options
         self.EventNumber = -1
+        self.MonteCarlo = False
 
         path     = options.path
         if path.find('eos')>0:
@@ -639,32 +668,34 @@ class TrackSelector():
         self.Scifi       = self.snd_geo.modules['Scifi']
 
         self.runNr   = str(options.runNumber).zfill(6)
-        if options.partition < 0:
-            partitions = []
-            if path.find('eos')>0:
+        if options.runNumber > 0:
+           if options.partition < 0:
+              partitions = []
+              if path.find('eos')>0:
 # check for partitions
-               print("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr)
-               dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
-               for x in dirlist.split('\\n'):
-                  ix = x.find('sndsw_raw-')
-                  if ix<0: continue
-                  partitions.append(x[ix:])
-            else:
+                 print("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr)
+                 dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+options.path+"run_"+self.runNr,shell=True) )
+                 for x in dirlist.split('\\n'):
+                     ix = x.find('sndsw_raw-')
+                     if ix<0: continue
+                     partitions.append(x[ix:])
+              else:
 # check for partitions
                  dirlist  = os.listdir(options.path+"run_"+self.runNr)
                  for x in dirlist:
                      if not x.find("sndsw_raw-")<0:
                           partitions.append(x)
-        else:
+           else:
                  partitions = ["sndsw_raw-"+ str(options.partition).zfill(4)+".root"]
-        if options.runNumber>0:
-                eventChain = ROOT.TChain('rawConv')
-                for p in partitions:
-                       eventChain.Add(path+'run_'+self.runNr+'/'+p)
+           eventChain = ROOT.TChain('rawConv')
+           for p in partitions:
+               eventChain.Add(path+'run_'+self.runNr+'/'+p)
         else:
 # for MC data
-                f=ROOT.TFile.Open(options.fname)
-                eventChain = f.cbmsim
+                eventChain = ROOT.TChain("cbmsim")
+                eventChain.Add(options.fname)
+                self.MonteCarlo = True
+                partitions = []
         rc = eventChain.GetEvent(0)
 # start FairRunAna
         self.run  = ROOT.FairRunAna()
@@ -787,9 +818,9 @@ class TrackSelector():
           self.eventTree.GetEvent(n)
           # delete track containers
           self.fittedTracks.Delete()
-
+          
           self.ExecuteEvent(self.eventTree)
-          if self.fittedTracks.GetEntries() == 0: continue
+          if not self.MonteCarlo and self.fittedTracks.GetEntries() == 0: continue
           if self.options.simpleTracking and not self.options.trackType.find('Scifi')<0:
              if not self.eventTree.GetBranch("Cluster_Scifi"):
                 self.clusScifi.Delete()

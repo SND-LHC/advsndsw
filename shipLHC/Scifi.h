@@ -4,7 +4,7 @@
 
 #include "FairModule.h"                 // for FairModule
 #include "FairDetector.h"
-
+#include "SNDLHCEventHeader.h"
 #include "Rtypes.h"                     // for ShipMuonShield::Class, Bool_t, etc
 
 #include <string>                       // for string
@@ -49,6 +49,8 @@ public:
     Float_t  GetConfParF(TString name){return conf_floats[name];} 
     Int_t       GetConfParI(TString name){return conf_ints[name];}
     TString  GetConfParS(TString name){return conf_strings[name];}
+    void InitEvent(SNDLHCEventHeader *e){    eventHeader = e;// get mapping to eventHeader
+    }
 
     /**      Initialization of the detector is done here    */
     virtual void Initialize();
@@ -117,7 +119,7 @@ private:
     std::map<TString,Float_t> conf_floats;
     std::map<TString,Int_t> conf_ints;
     std::map<TString,TString> conf_strings;
-
+    SNDLHCEventHeader *eventHeader;
 protected:
     
     Int_t InitMedium(const char* name);

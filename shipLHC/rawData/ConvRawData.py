@@ -4,6 +4,9 @@ import ROOT,os,sys
 import boardMappingParser
 import csv
 import time
+import calendar
+from rootpyPickler import Unpickler
+import json
 
 # raw data from Ettore: https://cernbox.cern.ch/index.php/s/Ten7ilKuD3qdnM2 
 
@@ -36,6 +39,37 @@ class ConvRawDataPY(ROOT.FairTask):
          path    = options.path+'run_'+ runNr+'/'
          inFile   = 'data_'+part+'.root'
          self.outFile = ROOT.TMemFile('monitorRawData', 'recreate')
+
+# get filling scheme per run
+      self.fsdict = False
+      try:
+         if options.path.find('2022'): fpath = "/eos/experiment/sndlhc/convertedData/physics/2022/"
+         else: fpath = "/eos/experiment/sndlhc/convertedData/commissioning/TI18/"
+         fg = ROOT.TFile.Open(options.server+fpath+"/FSdict.root")
+         pkl = Unpickler(fg)
+         FSdict = pkl.load('FSdict')
+         fg.Close()
+         if options.runNumber in FSdict: 
+             if 'B1' in FSdict[options.runNumber]: self.fsdict = FSdict[options.runNumber]
+      except:
+         print('continue without knowing filling scheme',options.server+options.path)
+      
+      # put the run's FS in format to be passed to FairTasks as input
+      self.FSmap = ROOT.TMap()
+      if self.fsdict:         
+         for bunchNumber in range (0, 3564):
+             nb1 = (3564 + bunchNumber - self.fsdict['phaseShift1'])%3564
+             nb2 = (3564 + bunchNumber - self.fsdict['phaseShift1']- self.fsdict['phaseShift2'])%3564
+             b1 = nb1 in self.fsdict['B1']
+             b2 = nb2 in self.fsdict['B2']
+             IP1 = False
+             IP2 = False
+             if b1:
+                IP1 =  self.fsdict['B1'][nb1]['IP1']
+             if b2:
+                IP2 =  self.fsdict['B2'][nb2]['IP2']
+             self.FSmap.Add(ROOT.TObjString(str(bunchNumber)), ROOT.TObjString(str(int(IP2))+str(int(IP1))+str(int(b2))+str(int(b1))))
+      else: self.FSmap.Add(ROOT.TObjString("0"), ROOT.TObjString("-1"))
 
       self.run     = ROOT.FairRunAna()
       self.ioman = ROOT.FairRootManager.Instance()
@@ -71,6 +105,7 @@ class ConvRawDataPY(ROOT.FairTask):
       ioman.RegisterInputObject('saturationLimit', ROOT.TObjString(str(options.saturationLimit)))
       ioman.RegisterInputObject('local', ROOT.TObjString(str(int(local))))
       ioman.RegisterInputObject('newFormat', ROOT.TObjString(str(int(self.newFormat))))
+      ioman.RegisterInputObject('FSmap', self.FSmap)
       self.options = options
       
   # Initialize logger: set severity and verbosity
@@ -237,7 +272,7 @@ class ConvRawDataPY(ROOT.FairTask):
        self.sTree = ROOT.TTree('rawConv','raw data converted')
        ROOT.gDirectory.pwd()
        self.header  = ROOT.SNDLHCEventHeader()
-       eventSND  = self.sTree.Branch("EventHeader",self.header,32000,-1)
+       eventSND  = self.sTree.Branch("EventHeader.",self.header,32000,-1)
 
        self.digiSciFi   = ROOT.TClonesArray("sndScifiHit")
        self.digiSciFiBranch   = self.sTree.Branch("Digi_ScifiHits",self.digiSciFi,32000,1)
@@ -253,6 +288,8 @@ class ConvRawDataPY(ROOT.FairTask):
        self.fSink.WriteObject(B,"BranchList", ROOT.TObject.kSingleKey)
        self.fSink.SetRunId(options.runNumber)
        self.fSink.SetOutTree(self.sTree)
+
+       if self.newFormat: self.run_startUTC = self.getStartTime()
 
 #-------end of init for py ------------------------------------
 
@@ -336,6 +373,21 @@ class ConvRawDataPY(ROOT.FairTask):
                f.close()
          for l in self.Lcrun: print(l)
 
+   def getStartTime(self):
+      runNr = str( abs(self.options.runNumber) ).zfill(6)
+      path  = self.options.path+'run_'+ runNr+'/'
+      jname = "run_timestamps.json"
+      from XRootD import client
+      with client.File() as f:
+               f.open(self.options.server+path+jname)
+               status, jsonStr = f.read()
+               f.close()
+      date = json.loads(jsonStr)
+      time_str = date['start_time'].replace('Z','')
+      time_obj = time.strptime(time_str, '%Y-%m-%dT%H:%M:%S')
+      startTimeOfRun = calendar.timegm(time_obj)
+      return startTimeOfRun
+
   # reading hits and converting to event information
 
   # https://gitlab.cern.ch/snd-scifi/software/-/wikis/Raw-data-format 
@@ -371,9 +423,14 @@ class ConvRawDataPY(ROOT.FairTask):
      event = self.fiN.data
      event.GetEvent(eventNumber)
      self.header.SetEventTime(event.evt_timestamp)
+     self.header.SetUTCtimestamp(int(event.evt_timestamp*6.23768*1e-9 + self.run_startUTC))
      self.header.SetEventNumber(event.evt_number) #   for new event header
      self.header.SetFlags(event.evt_flags)
      self.header.SetRunId( self.options.runNumber )
+     if self.FSmap.GetEntries()>1:
+          self.header.SetBunchType(int(str(self.FSmap.GetValue(str(int((event.evt_timestamp%(4*3564))/4))))))
+     else:
+          self.header.SetBunchType(int(str(self.FSmap.GetValue("0"))))
 
      indexSciFi=0
      self.digiSciFi.Delete()

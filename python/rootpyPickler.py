@@ -269,10 +269,12 @@ class Unpickler(pickle.Unpickler):
                 return ret
             root_file.Get = xget
 
-    def load(self, key=None):
+    def load(self, skey=None):
         """Read a pickled object representation from the open file."""
-        if key is None:
+        key = skey
+        if skey is None:
             key = '_pickle'
+        elif skey.find(';')<0: key = skey+';'
         obj = None
         if _compat_hooks:
             save = _compat_hooks[0]()

@@ -23,8 +23,6 @@ fromElog = {4361:7902,4362: 7921, 4363: 7921, 4364: 7921, 4365: 7921, 4366: 7922
 
 emulsionReplacements = {0:1,4573:2,4859:3,5172:4}   # first runs with new emulsion
 
-www =os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/"
-
 class fillingScheme():
 
    def Init(self,options):
@@ -34,21 +32,22 @@ class fillingScheme():
      self.content = ''
      self.phaseShift1 =  3564-404  # IP1
      self.phaseShift2 =  129          # IP2
+     self.lpcFillingscheme = False
      self.FSdict = {}
      self.LumiInt = {}
      self.runInfo = {}
      self.beamCurrent = {}
-     if "FSdict.root" in os.listdir('.'):
+     if "FSdict.root" in os.listdir(options.path):
          fg  = ROOT.TFile.Open(options.path+'FSdict.root')
          pkl = Unpickler(fg)
          self.FSdict = pkl.load('FSdict')
          fg.Close()
-     if "RunInfodict.root" in os.listdir('.'):
+     if "RunInfodict.root" in os.listdir(options.path):
          fg  = ROOT.TFile.Open(options.path+"RunInfodict.root")
          pkl = Unpickler(fg)
          self.runInfo = pkl.load('runInfo')
          fg.Close()
-     if "Lumidict.root" in os.listdir('.'):
+     if "Lumidict.root" in os.listdir(options.path):
          fg  = ROOT.TFile.Open(options.path+"Lumidict.root")
          pkl = Unpickler(fg)
          self.LumiInt = pkl.load('LumiInt')
@@ -108,15 +107,34 @@ class fillingScheme():
        self.fromElogX[4560]=8037
        self.fromElogX[4661]=8083
 
+   def getNameOfFillingscheme(self,fillnr):
+        tmp = fillnr
+        alternative = self.alternativeFill(str(fillnr))
+        if alternative: tmp = alternative
+        if not self.lpcFillingscheme:
+             with urlopen('https://lpc.web.cern.ch/cgi-bin/fillTable.py?year=2022') as webpage:
+               self.lpcFillingscheme = webpage.read().decode()
+               self.tagi = '<td>XXXX</td>'
+               self.tagj = 'fillingSchemes/2022/candidates/'
+        fs = 0
+        i = self.lpcFillingscheme.find(self.tagi.replace('XXXX',str(tmp)))
+        if i>0:
+          j = self.lpcFillingscheme[i:].find(self.tagj)+i+len(self.tagj)
+          if j>0:
+             k = self.lpcFillingscheme[j:].find('.csv')
+             if k>0:
+               fs = self.lpcFillingscheme[j:j+k]
+        return fs
+        
    def getFillNrFromRunNr(self,runNumber):
        if runNumber in fromElog:
             return fromElog[runNumber]
        FILL_NUMBER_MASK = 0x000000000000FFFF
        R = ROOT.TFile.Open(os.environ['EOSSHIP']+\
-       "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_"+str(runNumber).zfill(6)+"/data_0000.root")
+       options.rawData+"/run_"+str(runNumber).zfill(6)+"/data_0000.root")
        try:
          if R.Get('event'):
-            rc = R.event.GetEvent(0)
+            rc = R.event.GetEvent(R.event.GetEntries()-1)
             flags = R.event.flags
          else:
             event = R.data
@@ -151,7 +169,8 @@ class fillingScheme():
             [1660892004.2119756, 1.0, 9907.5947265625, 0.0, 3.2100153151839246e-22, 0.0]
             time.ctime(1660892004.2119756)   -> 'Fri Aug 19 08:53:24 2022'
        """
-       self.lumiAtIP1 = {'startTime':self.content['data']['fillData']['data'][0][0],'lumiTime':ROOT.TGraph(),'fillingScheme':''}
+       fs = self.getNameOfFillingscheme(fillnr)
+       self.lumiAtIP1 = {'startTime':self.content['data']['fillData']['data'][0][0],'lumiTime':ROOT.TGraph(),'fillingScheme':fs}
        X = self.content['data']['fillData']['data']
        t0 =  self.lumiAtIP1['startTime']
        for n in range(len(X)):
@@ -178,6 +197,8 @@ class fillingScheme():
        if fill.LHC.FindObjectAny('LHC_STATS_LHC_INJECTION_SCHEME'):
           rc = fill.LHC.LHC_STATS_LHC_INJECTION_SCHEME.GetEvent(0)
           fillScheme = str(fill.LHC.LHC_STATS_LHC_INJECTION_SCHEME.var)
+       else:
+          fillScheme = self.getNameOfFillingscheme(fillnr)
 
        rc = LtreeOff.GetEvent(0)
        self.lumiAtIP1 = {'startTime':LtreeOff.unix_timestamp,'lumiTime':ROOT.TGraph(),'fillingScheme':fillScheme}
@@ -200,7 +221,7 @@ class fillingScheme():
        ROOT.gROOT.cd()
        self.options.fillNumbers = self.getFillNrFromRunNr(runNumber)
        # for overlay, need SND@LHC startTime to adjust with lumiTime 
-       runDir = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_"+str(runNumber).zfill(6)
+       runDir = options.rawData+"/run_"+str(runNumber).zfill(6)
        jname = "run_timestamps.json"
        dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+runDir,shell=True) )
        startTime=0
@@ -308,15 +329,14 @@ class fillingScheme():
        self.h['ax1'].Draw()
        self.h['time10'].Draw('histsame')
        self.myPrint('c1','Lumi-run'+str(runNumber).zfill(6))
-
-   def extractFillingScheme(self,fillNr):
+   def alternativeFill(self,fillNr):
        alternative = None
        if fillNr=='8470': 
-                  # 25ns_2462b_2450_1737_1735_180bpi_17inj_2INDIV
+                  # 25ns_156b_144_90_96_48bpi_4inj_MD7003 from ELOG
              alternative = '8471'
        if fillNr=='8461': 
-                  # 25ns_2462b_2450_1737_1735_180bpi_17inj_2INDIV
-             alternative = '8471'
+                  # 2nominals_10pilots_lossmaps_coll_allIPs from ELOG
+             alternative = '8184'
        if fillNr=='8256':
                   # 8256 = 25ns_2461b_2448_1737_1733_180bpi_16inj_1INDIV
              alternative = '8253'
@@ -324,8 +344,10 @@ class fillingScheme():
                   # 8140 = 25ns_2413b_2400_1836_1845_240bpi_12inj_1INDIV, same as 8142
              alternative = '8142'
        elif fillNr=='8105':
-             # from Cris:  '25ns_2173b_2160_1804_1737_240bpi_11inj_1INDIV'
-             alternative = '8108'
+             # from Cris:  '25ns_2173b_2160_1804_1737_240bpi_11inj_1INDIV'  wrong
+             # try:        '25ns_1935b_1922_1758_1842_240bpi_12inj_3INDIV'
+             # from elog  : 25ns_1935b_1922_1602_1672_192bpi_14inj_3INDIVs
+             alternative = '8106'
        elif fillNr=='8074':
                   # 8073 25ns_1227b_1214_1054_1102_144bpi_14inj
                   # 8076 25ns_1551b_1538_1404_1467_144bpi_16inj
@@ -347,19 +369,39 @@ class fillingScheme():
                   # 8016 rampup	25ns_603b_590_524_542_48bpi_17inj	UFO	true	false	First 600b ramp-up fill
                   # 8007 rampup	25ns_315b_302_237_240_48bpi_11inj	RF	false	false	Third 300b ramp-up fill
              alternative = '8007'  # ???
-       if alternative: 
+       elif fillNr=='8388':
+                  # 25ns_2462b_2450_1737_1735_180bpi_17inj_2INDIV
+             alternative = '8387'  #  
+       elif fillNr=='8478':
+                  # Single_12b_9_1_3_BSRT_2018_pilot
+             alternative = '8479'  #  
+       elif fillNr=='8294':
+                  # 25ns_315b_302_237_240_48bpi_11inj,
+             alternative = '8295'  #?  8293'  #  
+       return alternative
+       
+   def extractFillingScheme(self,fillNr):
+       if fillNr in []: # only exists a binary csv file
+            F=urlopen('https://lpc.web.cern.ch/fillingSchemes/2022/candidates/25ns_156b_144_90_96_48bpi_4inj_MD7003.csv')
+            X = F.read()
+            F.close()
+            csv = X.decode().split('\n')
+       else:
+        alternative = self.alternativeFill(str(fillNr))
+        if alternative: 
           with urlopen('https://lpc.web.cern.ch/cgi-bin/schemeInfo.py?fill='+alternative+'&fmt=json') as webpage:
               tmp = webpage.read().decode()
-       else:
+        else:
           with urlopen('https://lpc.web.cern.ch/cgi-bin/schemeInfo.py?fill='+fillNr+'&fmt=json') as webpage:
               tmp = webpage.read().decode()
-       exec("self.content = "+tmp)
-       if len(self.content['fills']) < 1: 
+        exec("self.content = "+tmp)
+        if len(self.content['fills']) < 1: 
               print('Filling scheme not yet known',fillNr,self.options.runNumbers)
               return -1
-       if alternative:           
+        if alternative:           
                self.content['fills'][fillNr] = self.content['fills'][alternative]
-       csv = self.content['fills'][fillNr]['csv'].split('\n')
+        csv = self.content['fills'][fillNr]['csv'].split('\n')
+
        nB1 = csv.index('B1 bucket number,IP1,IP2,IP5,IP8')
        F = ROOT.TFile(self.path+'fillingScheme-'+fillNr+'.root','recreate')
        nt = ROOT.TNtuple('fill'+fillNr,'b1 IP1 IP2','B1:IP1:IP2:IsB2')
@@ -433,6 +475,18 @@ class fillingScheme():
          if fillNr=="8140" or fillNr=="8070" or fillNr=="8045":
                 print('run with very low lumi at IP1, beam 2 background dominates')
                 self.phaseShift1 = 3564-1456
+         if fillNr == "8383":
+                print('run with very low lumi at IP1, fit does not converge correctly')
+                self.phaseShift1 = 1978 + 130
+         if fillNr == "8342":
+                print('run with very low lumi at IP1, beam 2 background dominates')
+                self.phaseShift1 = 2107
+         if fillNr == "8256":
+                print('run with very low lumi at IP1, beam 2 background dominates')
+                self.phaseShift1 = 2108
+         if fillNr == "8294":
+                print('run with very low lumi at IP1, beam 2 background dominates')
+                self.phaseShift1 =  2598 +129
 
          fsdict['phaseShift1'] = self.phaseShift1
          fsdict['phaseShift2'] = 3564 - 129
@@ -507,7 +561,7 @@ class fillingScheme():
          h['Xb2z'].SetStats(0)
          h['XIP1z'].SetStats(0)
          h['XIP2z'].SetStats(0)
-         R = ROOT.TFile.Open('run004705.root')              # www+"offline/run"+str(runNumber).zfill(6)+".root")
+         R = ROOT.TFile.Open(www+"offline/run"+str(runNumber).zfill(6)+".root")
          ROOT.gROOT.cd()
          bCanvas = R.daq.Get('sndclock')
          h['Xbnr']= bCanvas.FindObject('Xbnr').Clone('Xbnr')
@@ -609,15 +663,108 @@ class fillingScheme():
             nb2 = ( 3564 + b - fsdict['phaseShift1'] - fsdict['phaseShift2'])%3564
             print('b1 bunch number',nb1,nb2)
 
+   def calcMu(self):
+       sigma = 80E6 # 80mb
+       self.L = ROOT.TFile.Open("Lumi.root")
+       L = self.L
+       h = self.h
+       runInfo = self.runInfo
+       h['muAv']={}
+       for k in L.GetListOfKeys():
+           runNumber = k.GetName()[3:]
+           tc = L.Get(k.GetName())
+           h[runNumber+'_Mu']=ROOT.TGraph()
+       # need to know the number of colliding bunches. Take from filling scheme
+           fs = runInfo[int(runNumber)]['FillingScheme']
+           if fs==' ' or fs=='' or fs==0: 
+              print('filling scheme not in runinfo, try ',runNumber)
+              fillnr = runInfo[int(runNumber)]['Fillnumber']
+              fs = self.getNameOfFillingscheme(fillnr)
+              if fs==' ' or fs=='' or fs==0: 
+                            print('filling scheme not found')
+                            continue
+              else:print('filling scheme found!')
+              runInfo[int(runNumber)]['FillingScheme'] = fs
+           tag = 2
+           if fs.find('Multi')==0: tag=3
+           IP1 = int(fs.split('_')[tag])
+           collPerTurn = IP1/3564
+           i=-1
+           for x in tc.GetListOfPrimitives():
+                i+=1
+                if x.ClassName() == "TGraph":  gn = i
+                if x.ClassName() == "TGaxis":  an = i
+                if x.ClassName() == "TFrame":  fn = i
+                if x.GetName().find("timeWt")==0:
+                    h[x.GetName()] = x.Clone(x.GetName())
+                    name = runNumber+'_'+x.GetName()+'_Mu'
+                    h[name] = x.Clone(name)
+           g = tc.GetListOfPrimitives()[gn]
+           axis = tc.GetListOfPrimitives()[an]
+           frame = tc.GetListOfPrimitives()[fn]
+           scale = (axis.GetWmax()-axis.GetWmin())/(frame.GetY2()-frame.GetY1())
+           MuMax = 0
+           for n in range(g.GetN()):
+               mu = g.GetPointY(n) * scale * sigma / collPerTurn * 25E-9
+               h[runNumber+'_Mu'].AddPoint(g.GetPointX(n),mu)
+               if mu>MuMax: MuMax=mu
+           for t in ['timeWt10','timeWtDS10']:
+               hmu = runNumber+'_'+t+'_Mu'
+               for i in range(1,h[t].GetNbinsX()+1):
+                   h[hmu].SetBinContent(i,h[t].GetBinContent(i)/collPerTurn * 25E-9)
+                   h[hmu].SetBinError(i,h[t].GetBinError(i)/collPerTurn * 25E-9)
+# find mean values start and end time = 10% of max
+           for n in range(h[runNumber+'_Mu'].GetN()):
+               if h[runNumber+'_Mu'].GetPointY(n)>0.1*MuMax:
+                  startT = n
+                  break
+           for n in range(h[runNumber+'_Mu'].GetN(),0,-1):
+               if h[runNumber+'_Mu'].GetPointY(n)>0.1*MuMax:
+                  endT = n
+                  break
+           rc = h[runNumber+'_Mu'].Fit('pol0','SQ','',h[runNumber+'_Mu'].GetPointX(startT),h[runNumber+'_Mu'].GetPointX(endT))
+           res = rc.Get()
+           if not res: print('calcMu: something went wrong',runNumber)
+           muAv = res.Parameter(0)
+           h['muAv'][runNumber] = {'':muAv,'Scifi':0,'DS':0}
+           for t in ['timeWt10','timeWtDS10']:
+             hmu = runNumber+'_'+t+'_Mu'
+             if h[hmu].GetSumOfWeights()==0:continue
+             for n in range(1,h[hmu].GetNbinsX()):
+               if h[hmu].GetBinContent(n)>0.1*h[hmu].GetMaximum():
+                  startT = h[hmu].GetBinCenter(n)
+                  break
+             for n in range(h[hmu].GetNbinsX(),1,-1):
+               if h[hmu].GetBinContent(n)>0.1*h[hmu].GetMaximum():
+                  endT = h[hmu].GetBinCenter(n)
+                  break
+             rc = h[hmu].Fit('pol0','SQ','',startT,endT)
+             res = rc.Get()
+             if not res: print('calcMu '+t+': something went wrong',runNumber)
+             muAv = res.Parameter(0)
+             tag ='Scifi'
+             if t.find('DS')>0: tag='DS'
+             h['muAv'][runNumber][tag] = muAv
+       fout = ROOT.TFile('Mu.root','recreate')
+       for x in h:
+          if x.find('Mu')>0: h[x].Write()
+       fout.Close()
+# update runInfo
+       for runNumber in h['muAv']:
+          r = int(runNumber)
+          if not r in runInfo:
+              print('calcMu: run not in runInfo',r)
+              continue
+          runInfo[r]['muAv'] = {'':h['muAv'][runNumber][''],'Scifi':h['muAv'][runNumber]['Scifi'],'DS':h['muAv'][runNumber]['DS']}
+       
    def FwBw(self,runNumber):
        options.runNumbers = runNumber
        options.fillNumbers = self.runInfo[options.runNumbers]['Fillnumber']
 # analyze run for forward / backward tracks per bunch type
        h = self.h
-       offline = www+"offline/"
-       self.F = ROOT.TFile.Open(offline+"run"+str(runNumber).zfill(6)+".root")
-       self.B = ROOT.TFile.Open(offline+"BunchStructure.root")
-       self.L = ROOT.TFile.Open(offline+"Lumi.root")
+       self.F = ROOT.TFile.Open(www+"offline/run"+str(runNumber).zfill(6)+".root")
+       self.B = ROOT.TFile.Open(www+"offline/BunchStructure.root")
+       self.L = ROOT.TFile.Open(www+"offline/Lumi.root")
        xing = {'all':False,'B1only':False,'B2noB1':False,'noBeam':False}
                 
        for T in ['Txing','TD','T']:
@@ -1071,8 +1218,8 @@ class fillingScheme():
         lines.append("Overview of  runs \\newline")
         lines.append("\\scriptsize")
         lines.append("\\begin{scriptsize}")
-        lines.append("\\begin{tabular}{lcrrl}")
-        lines.append("  Run &  Fill &  events &  Lumi $\mathrm{pb}^{-1}$ & start time \\\\ ")
+        lines.append("\\begin{tabular}{lcrrrl}")
+        lines.append("  Run &  Fill &  events & mu & Lumi $\mathrm{pb}^{-1}$ & start time \\\\ ")
         ilines = 0
         for  i in range(len(R)):
            r = R[i]
@@ -1080,7 +1227,9 @@ class fillingScheme():
            N =  self.runInfo[r]['Entries']
            fill =  str(self.runInfo[r]['Fillnumber'])
            if fill == '': fill = ' -- '
-           lines.append(" %i & %6s & %10i & $%5.1F$ & %s \\\\"%(r,fill,N,lumi,self.runInfo[r]['StartTimeC']))
+           mu = ''
+           if 'muAv' in self.runInfo[r]: mu = "%4.1F"%(self.runInfo[r]['muAv'][''])
+           lines.append(" %i & %6s & %10i & %s & $%5.1F$ & %s \\\\"%(r,fill,N,mu,lumi,self.runInfo[r]['StartTimeC']))
            ilines+=1
            if ilines%19==0: 
                 lines.append("\end{tabular}")
@@ -1088,8 +1237,8 @@ class fillingScheme():
                 lines.append("\end{frame}")
                 lines.append("\\begin{frame}{}")
                 lines.append("\\begin{scriptsize}")
-                lines.append("\\begin{tabular}{lcrrl}")
-                lines.append("  Run &  Fill &  events &  Lumi $\mathrm{pb}^{-1}$ & start time \\\\ ")
+                lines.append("\\begin{tabular}{lcrrrl}")
+                lines.append("  Run &  Fill &  events & mu &  Lumi $\mathrm{pb}^{-1}$ & start time \\\\ ")
         lines.append("\end{tabular}")
         lines.append("\\end{scriptsize}")
         lines.append("\end{frame}")
@@ -1128,10 +1277,11 @@ class fillingScheme():
         lines.append(" ")
 #
         lines.append("\end{document}")
-        outFile = open('LumiSummary.tex','w')
+        outFile = open(os.environ["HOME"]+'/dummy','w')
         for l in lines:
              rc = outFile.write(l+"\n")
         outFile.close()
+        os.system('cp $HOME/dummy LumiSummary.tex')
 
    def plotLumiPerTime(self):
         h = self.h
@@ -1153,12 +1303,14 @@ class fillingScheme():
         tstart = h['LumiT'].GetPointX(0)
         tend = h['LumiT'].GetPointX(h['LumiT'].GetN()-1)
         ut.bookHist(h,'LumiTime','; ; pb^{-1}',100,tstart,tend)
+        ut.bookCanvas(self.h,'cL','',2400,800,1,1)
+        h['cL'].cd()
         h['LumiTime'].GetXaxis().SetTimeFormat("%d-%m")
         h['LumiTime'].GetXaxis().SetTimeOffset(0,'gmt')
         h['LumiTime'].SetMaximum(lmax*1.2)
         h['LumiTime'].SetStats(0)
         h['LumiTime'].Draw()
-        h['c1'].Update()
+        h['cL'].Update()
 # work with second axis
         rightmax = 1.1*Lint/1000.
         scale = ROOT.gPad.GetUymax()/rightmax
@@ -1177,7 +1329,7 @@ class fillingScheme():
         h['ILumiT'].SetLineColor(ROOT.kRed)
         h['ILumiT'].SetLineWidth(3)
         h['ILumiT'].Draw('same')
-        self.myPrint('c1','Lumi-time.root')
+        self.myPrint('cL','Lumi-time')
 
    def LumiIntegral(self,rmin,rmax):
         L = 0
@@ -1230,13 +1382,19 @@ class fillingScheme():
               else:
                  print('run not uptodate',r)
 
-   def tracksPerLumi(self):
+   def tracksPerLumi(self,aRun=False):
         h=self.h
         pol1 = ROOT.TF1('pol1','[0]+[1]*x',0,1E7)
-        self.F = ROOT.TFile.Open("Lumi.root")
+        self.F = ROOT.TFile.Open(options.path+"Lumi.root")
+        if aRun:
+            keys = ['run'+str(aRun).zfill(6)]
+            Frun = ROOT.TFile.Open(www+"offline/"+keys[0]+'.root')
+        else:
+            keys = self.F.GetListOfKeys()
         ROOT.gROOT.cd()
-        for k in self.F.GetListOfKeys():
-             nm = k.GetName()
+        for k in keys:
+             if aRun: nm = k
+             else:    nm = k.GetName()
              runNumber = int(nm.split('run')[1])
              tc = self.F.Get(nm)
              for x in tc.GetListOfPrimitives():
@@ -1264,9 +1422,14 @@ class fillingScheme():
                    tMax = 15000
              for x in ["timeWtDS","timeWt"]:
                hx = nm+x+'100'
-               h[hx] = tc.FindObject(x+'10').Clone(hx)
-               h[hx].Rebin(10)
-               h[hx].Scale(0.1)
+               if aRun:
+                 h[hx] = Frun.daq.T.FindObject(x).Clone(hx)
+                 h[hx].Rebin(100)
+                 h[hx].Scale(0.01)
+               else:
+                 h[hx] = tc.FindObject(x+'10').Clone(hx)
+                 h[hx].Rebin(10)
+                 h[hx].Scale(0.1)
                h[hx].GetYaxis().SetTitle('dt = 100s  [evts/nb^{-1}]')
                h[hx].SetTitle('DS(cyan) and Scifi(red) tracks   run '+str(runNumber))
                if tMin < h[hx].GetBinCenter(1): tMin = h[hx].GetBinCenter(3)
@@ -1307,12 +1470,13 @@ class fillingScheme():
                  if res:
                    chi2 = res.Chi2()/(tMax-tMin)
                    fun = h[nm+'timeWt100'].GetFunction('pol1')
-                   if chi2<5 and abs(fun.GetParameter(1)*3600)<5 and fun.GetParameter(0) < 500:
+                   if chi2<10 and abs(fun.GetParameter(1)*3600)<5 and fun.GetParameter(0) < 500:
                      b,m = fun.GetParameter(0),fun.GetParameter(1)
                      meanV = m*(tMin+tMax)/2+b
                      txtScifi = "Scifi tracks per nb^{-1} mean: %5.1F  slope: %5.2F per hour   %5.1F "%(meanV,fun.GetParameter(1)*3600,chi2)
                      textInfo.DrawLatexNDC(0.2, 0.85,txtScifi)
                    else:
+                     print('Fit failed',nm+'timeWt100',tMin,tMax,chi2,abs(fun.GetParameter(1)*3600),fun.GetParameter(0))
                      if h[nm+'timeWt100'].GetFunction('pol1'): h[nm+'timeWt100'].GetFunction('pol1').Delete()
 
              rc = h[nm+'timeWtDS100'].Fit('pol1','Sq','',tMin,tMax)
@@ -1320,12 +1484,13 @@ class fillingScheme():
              if res:
               chi2 = res.Chi2()/(tMax-tMin)
               fun = h[nm+'timeWtDS100'].GetFunction('pol1')
-              if chi2<10 and abs(fun.GetParameter(1)*3600)<15 and fun.GetParameter(0) < 500:
+              if chi2<20 and abs(fun.GetParameter(1)*3600)<15 and fun.GetParameter(0) < 500:
                 b,m = fun.GetParameter(0),fun.GetParameter(1)
                 meanV = m*(tMin+tMax)/2+b
                 txtDS = "   DS tracks per nb^{-1} mean: %5.1F  slope: %5.1F per hour  %5.1F "%(meanV,m*3600,chi2)
                 textInfo.DrawLatexNDC(0.2, 0.8,txtDS)
               else:
+                print('Fit failed',nm+'timeWtDS100',tMin,tMax,chi2,abs(fun.GetParameter(1)*3600),fun.GetParameter(0))
                 if h[nm+'timeWtDS100'].GetFunction('pol1'): h[nm+'timeWtDS100'].GetFunction('pol1').Delete()
              tc.Update()
              h['c1'].Print(nm+'Lumi-tracks.root')
@@ -1554,6 +1719,30 @@ class fillingScheme():
            pickle.dump(dictPtr,fp)
            fp.close()
 
+   def checkSynch(self):
+         for r in self.FSdict:
+            if not r in self.runInfo:
+                 print('run does not exist in runInfo',r)
+            elif not self.runInfo[r]['phaseShift1'] == self.FSdict[r]['phaseShift1']:
+                 print(r,self.runInfo[r]['phaseShift1'], self.FSdict[r]['phaseShift1'])
+            
+   def modifyFSdict(self,shift=-1):
+         # shift = -1 for converting 2022 to reproc2022, otherwise 0
+         fg  = ROOT.TFile.Open(options.path+'FSdict.root')
+         pkl = Unpickler(fg)
+         self.FSdict = pkl.load('FSdict')
+         fg.Close()
+         for r in self.FSdict:
+            self.FSdict[r]['phaseShift1'] = self.FSdict[r]['phaseShift1'] - shift
+         self.storeDict(self.FSdict,'FSdict','FSdict')
+         fg  = ROOT.TFile.Open(options.path+'runInfo.root')
+         pkl = Unpickler(fg)
+         self.runInfo = pkl.load('runInfo')
+         fg.Close()
+         for r in self.runInfo:
+               self.runInfo[r]['phaseShift1'] = self.FSdict[r]['phaseShift1']
+         self.storeDict(self.runInfo,'runInfo','RunInfodict')
+
 if __name__ == '__main__':
 
     from argparse import ArgumentParser
@@ -1565,8 +1754,12 @@ if __name__ == '__main__':
     parser.add_argument("-p", dest="path",       help="path to filling scheme", default="/mnt/hgfs/microDisk/SND@LHC/TI18/FillingSchemes/")
     parser.add_argument("-L", dest="lumiversion", help="offline or online lumi from ATLAS", default="offline")
     parser.add_argument("-ip2", dest="withIP2", help="with IP2",default=True)
+    parser.add_argument("-raw", dest="rawData", help="path to rawData",default="/eos/experiment/sndlhc/raw_data/physics/2022")   # before "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data"
+    parser.add_argument("-www", dest="www", help="path to offline folder",default=os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
 
     options = parser.parse_args()
+    if options.rawData.find('2022')>0 and options.path.find('TI18')>0: options.path="/mnt/hgfs/microDisk/SND@LHC/2022/FillingSchemes/"
+    www = options.www
     FS = fillingScheme()
     FS.Init(options)
     ut.bookCanvas(FS.h,'c1','c1',1800,900,1,1)
@@ -1639,7 +1832,7 @@ if __name__ == '__main__':
                         FS.FSdict[r]={'phaseShift1':0,'phaseShift2':0}
                  N_ScifiTracks = FS.h['timeWt'].GetEntries()
                  N_DSTracks   = FS.h['timeWtDS'].GetEntries()
-                 FS.runInfo[r] = {'Fillnumber':FS.options.fillNumbers,'phaseShift1':FS.FSdict[r]['phaseShift1'],'phaseShift2':FS.FSdict[r]['phaseShift2'],
+                 FS.runInfo[r] = {'Fillnumber':int(FS.options.fillNumbers),'phaseShift1':FS.FSdict[r]['phaseShift1'],'phaseShift2':FS.FSdict[r]['phaseShift2'],
                                           'StartTime':FS.startTime,'StartTimeC':time.ctime(FS.startTime),'Entries':Nevts,'partitions':partitions,
                                           'N_scifiTracks':N_ScifiTracks*postScale,'N_DSTracks':N_DSTracks*postScale,
                                           'lumiAtIP1':FS.LumiInt[r][0],'lumiAtIP1withSNDLHC':FS.LumiInt[r][1],
@@ -1652,6 +1845,7 @@ if __name__ == '__main__':
            FS.mergeLumi()
            FS.storeDict(FS.LumiInt,'LumiInt','Lumidict')
 
+           # FS.calcMu()
            FS.storeDict(FS.runInfo,'runInfo','RunInfodict')
 
            L,N= 0,0
@@ -1661,6 +1855,7 @@ if __name__ == '__main__':
            print('total nr of events',N,'  integrated luminosity ',L/1E9,'fb')
            print('run tracks per Lumi') 
            FS.tracksPerLumi()
+           FS.plotLumiPerTime()
            print('make Latex', 'requires up to date files on EOS! pdflatex LumiSummary.tex')
            FS.makeLatex()
            # os.system('pdflatex LumiSummary.tex')

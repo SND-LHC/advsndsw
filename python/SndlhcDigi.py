@@ -19,8 +19,8 @@ class SndlhcDigi:
         self.sTree = self.fn.cbmsim
 
         # event header
-        self.header  = ROOT.FairEventHeader()
-        self.eventHeader  = self.sTree.Branch("EventHeader",self.header,32000,1)
+        self.header  = ROOT.SNDLHCEventHeader()
+        self.eventHeader  = self.sTree.Branch("EventHeader.",self.header,32000,1)
         #scifi
         self.digiScifi   = ROOT.TClonesArray("sndScifiHit")
         self.digiScifiBranch   = self.sTree.Branch("Digi_ScifiHits",self.digiScifi,32000,1)
@@ -49,7 +49,8 @@ class SndlhcDigi:
     def digitize(self):
 
         self.header.SetRunId( self.sTree.MCEventHeader.GetRunID() )
-        self.header.SetMCEntryNumber( self.sTree.MCEventHeader.GetEventID() )  # counts from 1
+        self.header.SetEventNumber( self.sTree.MCEventHeader.GetEventID() )  # counts from 1
+        self.header.SetBunchType(101);
         self.eventHeader.Fill()
         self.digiScifi.Delete()
         self.digiScifi2MCPoints.Delete()

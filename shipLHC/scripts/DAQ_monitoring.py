@@ -17,7 +17,8 @@ class DAQ_boards(ROOT.FairTask):
        if options.online:
           self.R.Init(options.server+options.path+'run_'+ runNr+'/')
        else:
-          self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/data/run_"+runNr+'/')
+          if options.path.find('commissioning')>0: self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/data/run_"+runNr+'/')
+          else:                                    self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/run_"+runNr+'/')
    def ExecuteEvent(self,event):
        h = self.M.h
        W = self.M.Weight
@@ -78,6 +79,7 @@ class Time_evolution(ROOT.FairTask):
        ut.bookHist(h,'ctimeM','delta event time per channel; dt [ms]',1000,0.0,10.,1700,-0.5,1699.5)
        ut.bookHist(h,'btime','delta timestamp per channel; ',3564*4+200,-0.5,3564*4-0.5+200,1700,-0.5,1699.5)
        ut.bookHist(h,'bnr','bunch number; ',3564,-0.5,3564-0.5)
+       ut.bookHist(h,'Xbnr','bunch number; ',3564*4,-0.5,3564*4-0.5)
        ut.bookHist(h,'bnrF','bunch number forward tracks; ',3564,-0.5,3564-0.5)
        ut.bookHist(h,'bnrB','bunch number backward tracks; ',3564,-0.5,3564-0.5)
 # type of crossing, check for b1only,b2nob1,nobeam
@@ -88,6 +90,8 @@ class Time_evolution(ROOT.FairTask):
            ut.bookHist(h,'trackDirSig'+x,'track direction significance;',100,-20,10)
 
        ut.bookHist(h,'Tboard','hit time per board',70,0.5,70.5,100,-5.,5.)
+       ut.bookHist(h,'Cckboard','160Mhz bunch nr',70,0.5,70.5,100,0.,16.)
+       ut.bookHist(h,'CckboardB2','160Mhz bunch nr',70,0.5,70.5,100,0.,16.)
        self.board0 = 40
 
        self.boardsVsTime = {}
@@ -116,8 +120,10 @@ class Time_evolution(ROOT.FairTask):
             SFtrack = True
             if abs(SL[0])<0.03:  direction = 1
             elif SL[0]<-0.07:     direction = -1
-       bn = (T%(4*3564))/4
+       bn = (T%(4*3564))//4
+       sbn = T%(4*3564)
        rc = h['bnr'].Fill( bn ,W)
+       rc = h['Xbnr'].Fill( sbn,W)
        for x in self.xing:
             if self.M.xing[x]:
                  if x=='all' or (DStrack or SFtrack):  rc = h['bnr'+x].Fill( bn ,W)
@@ -125,8 +131,8 @@ class Time_evolution(ROOT.FairTask):
                  rc = h['trackDir'+x].Fill(SL[0],W)
                  rc = h['trackDirSig'+x].Fill(SL[1],W)
 
-       if direction >0: rc = h['bnrF'].Fill( (T%(4*3564))/4,W)
-       elif direction <0: rc = h['bnrB'].Fill( (T%(4*3564))/4,W)
+       if direction >0: rc = h['bnrF'].Fill(bn,W)
+       elif direction <0: rc = h['bnrB'].Fill(bn,W)
        for x in self.xing:
           if self.M.xing[x]:
              self.gtime[x][0].append(T/self.M.freq)
@@ -187,6 +193,11 @@ class Time_evolution(ROOT.FairTask):
           for b in boards:
              for x in boards[b]:
                 rc = h['Tboard'].Fill(b,x-T0)
+       for b in boards:
+          for x in boards[b]:
+             rc = h['Cckboard'].Fill(b, sbn%4+x )
+             if self.M.fsdict or self.M.hasBunchInfo:
+                if self.M.xing['B2noB1']: rc = h['CckboardB2'].Fill(b, sbn%4+x )
 
    def Plot(self):
        h = self.M.h
@@ -201,7 +212,7 @@ class Time_evolution(ROOT.FairTask):
        nbins  = int(tmax)
        yunit = "events per s"
        systems = {0:'Scifi',1:'Veto',2:'US',3:'DS'}
-       if self.fsdict:  Xi = ['','B1only', 'B2noB1','noBeam']
+       if self.fsdict or self.M.hasBunchInfo:  Xi = ['','B1only', 'B2noB1','noBeam']
        else: Xi = ['']
 
        if 'time' in h:
@@ -229,7 +240,7 @@ class Time_evolution(ROOT.FairTask):
        for k in K:
          for n in range(len(gtime['all'][k])):
              rc = h['time'+K[k]].Fill(gtime['all'][k][n]-T0)
-       if self.fsdict:
+       if self.fsdict or self.M.hasBunchInfo:
             for x in ['B1only', 'B2noB1','noBeam']:
                for k in K:
                   for n in range(len(gtime[x][k])):
@@ -389,7 +400,7 @@ class Time_evolution(ROOT.FairTask):
        stats.SetOptFit(1111111)
        h['T'].Update()
        self.M.myPrint(h['T'],"Rates",subdir='daq')
-       if self.fsdict:
+       if self.fsdict or self.M.hasBunchInfo:
             j = 1
             for x in ['B1only', 'B2noB1','noBeam']:
                  tc = h['Txing'].cd(j)
@@ -424,7 +435,7 @@ class Time_evolution(ROOT.FairTask):
             h['Txing'].Update()
             self.M.myPrint(h['Txing'],"RatesXing",subdir='daq')
 
-       if self.fsdict:
+       if self.fsdict or self.M.hasBunchInfo:
           ut.bookCanvas(h,'TD',' ',1024,768,4,2)
           j=1
           for x in self.xing:
@@ -453,6 +464,12 @@ class Time_evolution(ROOT.FairTask):
        h['bnrB'].Draw()
        self.M.myPrint(h['bunchNumber'],"BunchNr",subdir='daq')
 
+       ut.bookCanvas(h,'sndclock','snd bunch nr',1200,900,1,1)
+       tc = h['sndclock'].cd()
+       h['Xbnr'].SetStats(0)
+       h['Xbnr'].Draw()
+       self.M.myPrint(h['sndclock'],"XBunchNr",subdir='daq')
+
        ut.bookCanvas(h,'channels',' channel dt',1024,4*768,1,4)
        tc = h['channels'].cd(1)
        h['ctimeZ'].Draw('colz')
@@ -464,6 +481,10 @@ class Time_evolution(ROOT.FairTask):
        h['btime'].Draw('colz')
        self.M.myPrint(h['channels'],"mufilter channel dT",subdir='daq')
 
-       ut.bookCanvas(h,'boards','',2400,1800,1,1)
+       ut.bookCanvas(h,'boards','',1800,900,2,1)
+       h['boards'].cd(1)
        h['Tboard'].Draw('lego')
+       h['boards'].cd(2)
+       h['Cckboard'].Draw('lego')
+       h['CckboardB2'].Draw('legosame')
        self.M.myPrint(h['boards'],"board time diff",subdir='daq')

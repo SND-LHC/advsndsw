@@ -80,6 +80,8 @@ InitStatus ConvRawData::Init()
     TObjString* saturationLimit_obj = dynamic_cast<TObjString*>(ioman->GetObject("saturationLimit"));
     TObjString* newFormat_obj = dynamic_cast<TObjString*>(ioman->GetObject("newFormat"));
     TObjString* local_obj = dynamic_cast<TObjString*>(ioman->GetObject("local"));
+    // TMap containing the filling scheme per given run
+    FSmap = static_cast<TMap*>(ioman->GetObject("FSmap"));    
     // Input raw data file is read from the FairRootManager
     // This allows to have it in custom format, e.g. have arbitary names of TTrees
     TFile* f0 = dynamic_cast<TFile*>(ioman->GetObject("rawData"));
@@ -121,7 +123,7 @@ InitStatus ConvRawData::Init()
         fEventTree = (TTree*)f0->Get("data");
         // use sndlhc eventHeader class
         fSNDLHCEventHeader = new SNDLHCEventHeader();
-        ioman->Register("EventHeader", "sndEventHeader", fSNDLHCEventHeader, kTRUE);        
+        ioman->Register("EventHeader.", "sndEventHeader", fSNDLHCEventHeader, kTRUE);        
     }
      
     fDigiSciFi    = new TClonesArray("sndScifiHit");
@@ -365,7 +367,7 @@ void ConvRawData::Process0()
            }
            test = digiMuFilterStore[detID]->GetSignal(sipm_number);
            digiMuFilterStore[detID]->SetDigi(QDC,TDC,sipm_number);
-           digiMuFilterStore[detID]->SetDaqID(sipm_number, board_id, tofpet_id, tofpet_channel);
+           digiMuFilterStore[detID]->SetDaqID(sipm_number,n, board_id, tofpet_id, tofpet_channel);
            if (mask) digiMuFilterStore[detID]->SetMasked(sipm_number);
            
            LOG (info) << "create mu hit: " << detID << " " << tmp << " " << system
@@ -397,7 +399,7 @@ void ConvRawData::Process0()
              digiSciFiStore[sipmID] =  new sndScifiHit(sipmID);             
            }
            digiSciFiStore[sipmID]->SetDigi(QDC,TDC);
-           digiSciFiStore[sipmID]->SetDaqID(0, board_id, tofpet_id, tofpet_channel);
+           digiSciFiStore[sipmID]->SetDaqID(0,n, board_id, tofpet_id, tofpet_channel);
            if (mask) digiSciFiStore[sipmID]->setInvalid();
            LOG (info) << "create scifi hit: tdc = " << board.first << " " << sipmID
                        << " " << QDC << " " << TDC <<endl
@@ -464,7 +466,8 @@ void ConvRawData::Process1()
   int nSiPMs{}, nSides{}, direction{}, detID{}, sipm_number{}, chan{}, orientation{}, sipmLocal{};
   int sipmID{};
   double test{};
-  //TStopwatch timer;     
+  int64_t eventTime{};
+  //TStopwatch timer;
   
   tE = high_resolution_clock::now();
   //timer.Start();
@@ -479,14 +482,20 @@ void ConvRawData::Process1()
   
   fSNDLHCEventHeader->SetFlags(fEventTree->GetLeaf("evtFlags")->GetValue());
   fSNDLHCEventHeader->SetRunId(frunNumber);
-  fSNDLHCEventHeader->SetEventTime(fEventTree->GetLeaf("evtTimestamp")->GetValue());
-  fSNDLHCEventHeader->SetUTCtimestamp(fEventTree->GetLeaf("evtTimestamp")->GetValue()*6.23768*1e-9 + runStartUTC);
+  eventTime = fEventTree->GetLeaf("evtTimestamp")->GetValue();
+  fSNDLHCEventHeader->SetEventTime(eventTime);
+  fSNDLHCEventHeader->SetUTCtimestamp(eventTime*6.23768*1e-9 + runStartUTC);
   fSNDLHCEventHeader->SetEventNumber(fEventTree->GetLeaf("evtNumber")->GetValue());
-
+  // Fill filling scheme data into the event header
+  if (FSmap->GetEntries()>1)
+      fSNDLHCEventHeader->SetBunchType(stoi(((TObjString*)FSmap->GetValue(Form("%d", int((eventTime%(4*3564))/4))))->GetString().Data()));
+  else
+      fSNDLHCEventHeader->SetBunchType(stoi(((TObjString*)FSmap->GetValue("0"))->GetString().Data())); 
+  
   LOG (info) << "evtNumber per run "
              << fEventTree->GetLeaf("evtNumber")->GetValue()
              << " evtNumber per partition: " << eventNumber
-             << " timestamp: " << fEventTree->GetLeaf("evtTimestamp")->GetValue();
+             << " timestamp: " << eventTime;
   // Delete pointer map elements
   for (auto it : digiSciFiStore)
   {
@@ -642,7 +651,7 @@ void ConvRawData::Process1()
            }
            test = digiMuFilterStore[detID]->GetSignal(sipm_number);
            digiMuFilterStore[detID]->SetDigi(QDC,TDC,sipm_number);
-           digiMuFilterStore[detID]->SetDaqID(sipm_number, board_id, tofpet_id, tofpet_channel);
+           digiMuFilterStore[detID]->SetDaqID(sipm_number,n, board_id, tofpet_id, tofpet_channel);
            if (mask) digiMuFilterStore[detID]->SetMasked(sipm_number);
            
            LOG (info) << "create mu hit: " << detID << " " << tmp << " " << system
@@ -674,7 +683,7 @@ void ConvRawData::Process1()
              digiSciFiStore[sipmID] =  new sndScifiHit(sipmID);             
            }
            digiSciFiStore[sipmID]->SetDigi(QDC,TDC);
-           digiSciFiStore[sipmID]->SetDaqID(0, board_id, tofpet_id, tofpet_channel);
+           digiSciFiStore[sipmID]->SetDaqID(0,n,board_id, tofpet_id, tofpet_channel);
            if (mask) digiSciFiStore[sipmID]->setInvalid();
            LOG (info) << "create scifi hit: tdc = " << board_name << " " << sipmID
                        << " " << QDC << " " << TDC <<endl

@@ -122,6 +122,7 @@ class Scifi_CTR(ROOT.FairTask):
                   L = sortedClusters[s][proj][0][1]
                   rc = h['extrap'+str(s)+proj].Fill(abs(L))
                   time = aCl.GetTime()   # Get time in ns, use fastest TDC of cluster
+                  if M.options.check: time = self.M.Scifi.GetCorrectedTime(aCl.GetFirst(),aCl.GetTime(),0)
                   mat = sortedClusters[s][proj][0][4]
                   time-=  self.tdcScifiStationCalib[s][1][proj][mat]
                   time-=  self.tdcScifiStationCalib[s][0]
@@ -149,6 +150,7 @@ class Scifi_CTR(ROOT.FairTask):
                       aCl    = self.M.trackTask.clusScifi[clkey]
                       L = sortedClusters[s][proj][0][1]
                       time =  aCl.GetTime()   # Get time in ns, use fastest TDC of cluster
+                      if M.options.check: time = self.M.Scifi.GetCorrectedTime(aCl.GetFirst(),aCl.GetTime(),0)
                       mat  =  sortedClusters[s][proj][0][4]
                       time-=  self.tdcScifiStationCalib[s][1][proj][mat]
                       time-=  self.tdcScifiStationCalib[s][0]
@@ -431,11 +433,12 @@ if __name__ == '__main__':
    parser = ArgumentParser()
    parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
    parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,default=-1)
-   parser.add_argument("-p", "--path", dest="path", help="path to data",required=False,default="/eos/experiment/sndlhc/convertedData/commissioning/TI18/")
+   parser.add_argument("-p", "--path", dest="path", help="path to data",required=False,default="/eos/experiment/sndlhc/convertedData/physics/2022/")
    parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
    parser.add_argument("-f", "--inputFile", dest="fname", help="file name", type=str,default=None,required=False)
-   parser.add_argument("-g", "--geoFile", dest="geoFile", help="file name", type=str,default=None,required=False)
+   parser.add_argument("-g", "--geoFile", dest="geoFile", help="file name", type=str,default="geofile_sndlhc_TI18_V0_2022.root",required=False)
    parser.add_argument("-c", "--command", dest="command", help="command",required=False,default="")
+   parser.add_argument("-o", dest="check", help="use corrected times",action='store_true',default=False)
    parser.add_argument("-M", "--online", dest="online", help="online mode",default=False,action='store_true')
    parser.add_argument("--interactive", dest="interactive", action='store_true',default=False)
    parser.add_argument("-n", "--nEvents", dest="nEvents", help="number of events", default=-1,type=int)
@@ -451,6 +454,8 @@ if __name__ == '__main__':
           options.geoFile =  "geofile_sndlhc_TI18_V6_08October2022.root"
      else:
           options.geoFile =  "geofile_sndlhc_TI18_V7_22November2022.root"
+
+# 5236, run with new DAQ settings aligning to VETO
 
    FairTasks = []
    trackTask = SndlhcTracking.Tracking() 
