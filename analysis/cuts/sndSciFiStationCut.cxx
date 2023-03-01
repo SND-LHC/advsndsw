@@ -13,6 +13,15 @@ namespace sndAnalysis{
       cutName += " "+std::to_string(sta);
     }
     cutName += ". Threshold "+std::to_string(fractionThreshold);
+
+    shortName = "SciFiStation";
+    for (int sta : excluded_stations) shortName += "_"+std::to_string(sta);
+
+    nbins = std::vector<int>{5};
+    range_start = std::vector<double>{1};
+    range_end = std::vector<double>{6};
+    plot_var = std::vector<double>{-1};
+    std::cout << "Done initializing SciFiStation cut" << std::endl;
   }
 
   bool sciFiStationCut::passCut(){
@@ -20,6 +29,8 @@ namespace sndAnalysis{
     
     int station = findStation(hits_per_plane_horizontal, hits_per_plane_vertical, fractionThreshold);
     
+    plot_var[0] = station;
+
     if (std::find(stations_to_exclude.begin(), stations_to_exclude.end(), station) == stations_to_exclude.end()){
       return true;
     } else {
