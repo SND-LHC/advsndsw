@@ -424,11 +424,11 @@ class MuonReco(ROOT.FairTask) :
         else:
         # Now initialize output in genfit::track or sndRecoTrack format
            if self.genfitTrack:
-              self.kalman_tracks = ROOT.TObjArray(self.max_reco_muons)
+              self.kalman_tracks = ROOT.TObjArray(10)
               if hasattr(self, "standalone") and self.standalone:
                  self.ioman.Register("Reco_MuonTracks", self.ioman.GetFolderName(), self.kalman_tracks, ROOT.kTRUE)
            else:
-              self.kalman_tracks = ROOT.TClonesArray("sndRecoTrack", self.max_reco_muons)
+              self.kalman_tracks = ROOT.TClonesArray("sndRecoTrack", 10)
               if hasattr(self, "standalone") and self.standalone:
                  self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)
 
