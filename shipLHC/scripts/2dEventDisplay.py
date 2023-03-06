@@ -267,9 +267,6 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
        for ht_task in HT_tasks.values():
            for trk in ht_task.kalman_tracks:
                OT.Reco_MuonTracks.Add(trk)
-       uniqueTracks = cleanTracks()
-       if len(uniqueTracks)<nTracks:
-          OT.Reco_MuonTracks.Delete()
        nHoughtracks = OT.Reco_MuonTracks.GetEntries()
        if nHoughtracks>0: print('number of tracks by pattern recognition:', nHoughtracks)
 
