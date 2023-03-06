@@ -153,34 +153,29 @@ pair<float, float> sndRecoTrack::trackDir()
       Extract direction based on timing
       measurements as slope of linear fit of (dL,dT'),
       where dT' features time of flight estimation.
-      Reference T0 is 1st measurement in z */
+      Use a nominal first position in z */
 
    // Account for signal propagation in detectors
    vector<float> corr_times = getCorrTimes();
 
-   MuFilter *MuFilterDet = dynamic_cast<MuFilter*> (gROOT->GetListOfGlobals()->FindObject("MuFilter") );
-   Scifi *ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
    TGraph gr;
-   double resol{}, dist{}, delta_T{};
-   for (int i = 1;  i < fTrackPoints.size(); i++){
-     if (fRawMeasDetID[i] >= 100000) {
-         resol = ScifiDet->GetConfParF("Scifi/timeResol");
-     }
-     else resol = MuFilterDet->GetConfParF("MuFilter/timeResol");
-     delta_T = corr_times[i]-corr_times[0];
-     // Use current track point measurement only if time difference is above resolution
-     if (fabs(delta_T) < resol*sqrt(2)) continue;
-     dist= (fTrackPoints[i]-fTrackPoints[0]).Mag();
-     gr.AddPoint(dist, delta_T - dist/ShipUnit::c_light);
+   double dist{}, delta_T{};
+
+   double firstScifi_z = 300*ShipUnit::cm;
+   TVector3 pos(start);
+   TVector3 mom(fTrackMom);
+   double lam = (firstScifi_z - pos.z())/mom.z();
+   // nominal first position
+   TVector3 pos1(pos.x()+lam*mom.x(), pos.y()+lam*mom.y(), firstScifi_z);
+
+   for (int i = 0;  i < fTrackPoints.size(); i++){
+     dist= (fTrackPoints[i]-pos1).Mag();
+     gr.AddPoint(dist, corr_times[i] - dist/ShipUnit::c_light);
    }
    TF1 line("line", "pol1");
-   // A single entry in the graph - no fit
-   if (gr.GetN() < 2)
-     return make_pair(9999.,999.);
-   else
-     gr.Fit("line", "SQ");
-     return make_pair(line.GetParameter(1),
-                      line.GetParameter(1)/(line.GetParError(1)+1E-13));
+   gr.Fit("line", "SQ");
+   return make_pair(line.GetParameter(1),
+                    line.GetParameter(1)/(line.GetParError(1)+1E-13), line.GetParameter(0));
 }
 
 TVector3 sndRecoTrack::extrapolateToPlaneAtZ(float z)
