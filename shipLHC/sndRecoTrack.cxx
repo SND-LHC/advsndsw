@@ -147,7 +147,7 @@ pair<float, float> sndRecoTrack::Velocity()
      return make_pair(1./line.GetParameter(1),line.GetParError(1)/pow(line.GetParameter(1),2));
 }
 
-pair<float, float> sndRecoTrack::trackDir()
+tuple<float, float, float> sndRecoTrack::trackDir()
 {
    /* Based on the same function in SndlhcTracking.py!
       Extract direction based on timing
@@ -174,7 +174,7 @@ pair<float, float> sndRecoTrack::trackDir()
    }
    TF1 line("line", "pol1");
    gr.Fit("line", "SQ");
-   return make_pair(line.GetParameter(1),
+   return make_tuple(line.GetParameter(1),
                     line.GetParameter(1)/(line.GetParError(1)+1E-13), line.GetParameter(0));
 }
 

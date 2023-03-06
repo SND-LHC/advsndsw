@@ -32,7 +32,7 @@ class sndRecoTrack : public TObject {
   TVector3 extrapolateToPlaneAtZ(float z);
   std::pair<int, float> TrackDirection();
   std::pair<float, float> Velocity();
-  std::pair<float, float> trackDir();
+  std::tuple<float, float, float> trackDir();
   std::vector<float> getCorrTimes();
   float getSlopeXZ() {return fTrackMom.X()/fTrackMom.Z();}
   float getSlopeYZ() {return fTrackMom.Y()/fTrackMom.Z();}
