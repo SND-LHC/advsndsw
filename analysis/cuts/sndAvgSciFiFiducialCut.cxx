@@ -3,7 +3,10 @@
 #include "TChain.h"
 
 namespace sndAnalysis{
-  avgSciFiFiducialCut::avgSciFiFiducialCut(double vertical_min_cut, double vertical_max_cut, double horizontal_min_cut, double horizontal_max_cut, TChain * tree) : sciFiBaseCut(tree){
+  avgSciFiFiducialCut::avgSciFiFiducialCut(double vertical_min_cut, double vertical_max_cut, double horizontal_min_cut, double horizontal_max_cut, TChain * tree, bool reverseCuts) : sciFiBaseCut(tree){
+
+    reversed = reverseCuts;
+
     vertical_min = vertical_min_cut;
     vertical_max = vertical_max_cut;
     horizontal_min = horizontal_min_cut;
@@ -70,11 +73,15 @@ namespace sndAnalysis{
     if (n_ver == 0) return false;
     if (n_hor == 0) return false;
 
-    if (avg_hor < horizontal_min) return false;
-    if (avg_hor > horizontal_max) return false;
-    if (avg_ver < vertical_min) return false;
-    if (avg_ver > vertical_max) return false;
-
+    if (not reversed) {
+      if (avg_hor < horizontal_min) return false;
+      if (avg_hor > horizontal_max) return false;
+      if (avg_ver < vertical_min) return false;
+      if (avg_ver > vertical_max) return false;
+    } else {
+      if ((avg_hor > horizontal_min) and (avg_hor < horizontal_max)) return false;
+      if ((avg_ver > vertical_min) and (avg_ver < vertical_max)) return false;
+    }
     return true;
   }
 }	     

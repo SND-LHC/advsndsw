@@ -13,8 +13,8 @@ namespace sndAnalysis{
 
     shortName = "AvgDSbar";
     nbins = std::vector<int>{60, 60};
-    range_start = std::vector<double>{0, 60};
-    range_end = std::vector<double>{60, 120};
+    range_start = std::vector<double>{60, 0};
+    range_end = std::vector<double>{120, 60};
     plot_var = std::vector<double>{-1, -1};
   }
 

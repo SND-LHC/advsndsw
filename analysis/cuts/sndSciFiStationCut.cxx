@@ -21,7 +21,6 @@ namespace sndAnalysis{
     range_start = std::vector<double>{1};
     range_end = std::vector<double>{6};
     plot_var = std::vector<double>{-1};
-    std::cout << "Done initializing SciFiStation cut" << std::endl;
   }
 
   bool sciFiStationCut::passCut(){

@@ -9,7 +9,7 @@ namespace sndAnalysis{
     hitThreshold = threshold;
     cutName = "More than "+std::to_string(hitThreshold)+" SciFi hits";
     shortName = "SciFiMinHits";
-    nbins = std::vector<int>{15360};
+    nbins = std::vector<int>{1536};
     range_start = std::vector<double>{0};
     range_end = std::vector<double>{1536};
     plot_var = std::vector<double>{-1};

@@ -51,10 +51,24 @@ snd_geo = SndlhcGeo.GeoInterface(args.geoFile)
 scifiDet = ROOT.gROOT.GetListOfGlobals().FindObject('Scifi')
 
 # Set up TTrees
-ch = ROOT.TChain("rawConv")
+isMC = False
+treeName = "rawConv"
+
+ch = ROOT.TChain(treeName)
 ch.Add(args.inputFile)
 
-ch_tracks = ROOT.TChain("rawConv")
+if ch.GetEntries() == 0 :
+    treeName = "cbmsim"
+    isMC = True
+    del ch
+    ch = ROOT.TChain(treeName)
+    ch.Add(args.inputFile)
+
+if ch.GetEntries() == 0 :
+    print("Chain is empty. Exitting")
+    exit(-1)
+
+ch_tracks = ROOT.TChain(treeName)
 ch_tracks.Add(args.trackFile)
 ch.AddFriend(ch_tracks)
 
@@ -362,6 +376,34 @@ def sum_min_dca(event) :
     return np.sum([min_dca_ver, min_dca_hor]) <= sum_min_dca_cut
 cuts.append(["Sum of min DOCA per station < {0} cm".format(sum_min_dca_cut), sum_min_dca])
 
+min_scifi_hits_cut = 35
+def min_scifi_hits(event) :
+    n_hits = 0
+    for hit in event.Digi_ScifiHits :
+        if hit.isValid() :
+            n_hits += 1
+            if n_hits > 35 :
+                return True
+    return False
+cuts.append(["More than {0} SciFi hits".format(min_scifi_hits_cut), min_scifi_hits])
+
+min_QDC_data = 600
+min_QDC_MC = 700
+def min_US_QDC(event) :
+    US_QDC = 0
+    for hit in event.Digi_MuFilterHits :
+        if hit.GetSystem() != 2 :
+            continue
+        if not hit.isValid() :
+            continue
+        for key, value in hit.GetAllSignals() :
+            US_QDC += value
+            if isMC and (US_QDC > min_QDC_MC) :
+                return True
+            if (not isMC) and (US_QDC > min_QDC_data) :
+                return True
+    return False
+cuts.append(["US QDC larger than {0} ({1}) for data (MC)".format(min_QDC_data, min_QDC_MC), min_US_QDC])
 
 # Set up cut flow histogram
 ch.GetEntry(0)
@@ -371,7 +413,6 @@ cut_flow = f.Get("cutFlow")
 cut_flow_extended = ROOT.TH1D(cut_flow.GetName()+"_extended", cut_flow.GetTitle(), cut_flow.GetNbinsX()+len(cuts), 0, cut_flow.GetNbinsX()+len(cuts))
 
 for i in range(1, cut_flow.GetNbinsX()+1) :
-    
     cut_flow_extended.SetBinContent(i, cut_flow.GetBinContent(i))
     cut_flow_extended.GetXaxis().SetBinLabel(i, cut_flow.GetXaxis().GetBinLabel(i))
 
@@ -389,7 +430,7 @@ branch_list_copy.Write("BranchList", 1)
 
 import matplotlib.pyplot as plt
 
-dca_for_hist = []
+#dca_for_hist = []
 i_pass = 0
 for event in ch :
     passes_cut = True
@@ -406,12 +447,12 @@ for event in ch :
 
     print("EVENT {0}".format(i_pass))
     i_pass +=1
-    dca_for_hist.append(sum_min_dca(event))
-    print(dca_for_hist[-1])
+ #   dca_for_hist.append(sum_min_dca(event))
+ #   print(dca_for_hist[-1])
 
-plt.figure()
-plt.hist(dca_for_hist, bins = 100)
-plt.show()
+#plt.figure()
+#plt.hist(dca_for_hist, bins = 100)
+#plt.show()
 
 cut_flow_extended.Write()
 output_file.Write()
