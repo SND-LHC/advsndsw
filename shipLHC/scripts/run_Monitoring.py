@@ -249,7 +249,7 @@ if not options.auto:   # default online/offline mode
          print('event count failed! Processed:',M.h['Etime'].GetEntries(),' total number of events:',options.nEvents)
      else:
          print('i am finished, all events processed')
- if options.saveHistos: ut.writeHists(h,'allHistos-run'+M.runNr+'.root')
+ if options.saveHistos: ut.writeHists(M.h,'allHistos-run'+M.runNr+'.root')
 
  M.publishRootFile()
  if options.sudo:
