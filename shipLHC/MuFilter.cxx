@@ -521,7 +521,6 @@ Float_t MuFilter::GetCorrectedTime(Int_t fDetectorID, Int_t channel, Double_t ra
 		tag = "A";
 		if (fRunNumber>5116 && !(fRunNumber<5193 && fRunNumber>5174) ) {
 			tag = "B";
-			LOG(ERROR) << "MuFilter::GetCorrectedTime: constants for this period not yet implemented" ;
 			return rawTime;
 		}
 	}
