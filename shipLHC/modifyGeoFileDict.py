@@ -22,11 +22,16 @@ def modifyDicts():
          setattr(sGeo.MuFilter,'DsPropSpeed',14.9*u.cm/u.nanosecond)
          sGeo.MuFilter['DsPropSpeed'] = 14.9*u.cm/u.nanosecond
          constants = {}
-         constants['A'] =  [-5.61,-5.63,-5.90,-5.39,-5.40,-5.58,-5.99,-6.08,-6.27,-6.43,-5.94,-6.20,-5.45,-5.52,-5.75,-5.93,-5.40,-5.56,-5.46, -5.74]
+         constants['A'] =  [-5.61,-5.63,-5.90,-5.39,-5.40,-5.58,-5.99,-6.08,-6.27,-6.43,-5.94,-6.20,-5.45,-5.52,-5.75,-5.93,-5.40,-5.56,-5.46,-5.74]
+         constants['B'] =  [-6.56,-6.53,-6.75,-6.27,-6.34,-6.46,-7.50,-7.60,-7.79,-7.94,-7.51,-7.72,-8.09,-8.15,-8.38,-8.55,-8.04,-8.14,-8.02,-8.24]
        #time delay corrections first order, only for DS at the moment
-         for p in ["A"]:
-            setattr(sGeo.MuFilter,'DSTcorslope'+p,0.082)
-            sGeo.MuFilter['DSTcorslope'+p] = 0.082
+         for p in ["A","B"]:
+            if p=='A':
+               setattr(sGeo.MuFilter,'DSTcorslope'+p,0.082)
+               sGeo.MuFilter['DSTcorslope'+p] = 0.082
+            if p=='B':
+               setattr(sGeo.MuFilter,'DSTcorslope'+p,0.085)
+               sGeo.MuFilter['DSTcorslope'+p] = 0.085
             for i in range(len(constants[p])): 
                setattr(sGeo.MuFilter,'DSTcorC'+str(i)+p,constants[p][i])
                sGeo.MuFilter['DSTcorC'+str(i)+p] = constants[p][i]
