@@ -337,11 +337,17 @@ class Scifi_trackEfficiency(ROOT.FairTask):
    " track efficiency tag with DS track"
    def Init(self,options,monitor):
        self.M = monitor
+       self.debug = False
        h = self.M.h
        ut.bookHist(h,'DStag','DS track X/Y at scifi 1; X[cm]; Y[cm]',100,-50,0.,100,10,60)
        ut.bookHist(h,'dx','DS track X - scifi X; X[cm]',100,-20.,20.)
        ut.bookHist(h,'dy','DS track Y - scifi Y; Y[cm]',100,-20.,20.)
        ut.bookHist(h,'scifiTrack','scifi track X/Y at scifi 1; X[cm]; Y[cm]',100,-50,0.,100,10,60)
+       ut.bookHist(h,'USQDC','US QDC for matched tracks; qdc',220,-10,2190.)
+       ut.bookHist(h,'clSize','Scifi cluster size for matched tracks; n hits',10,-0.5,9.5)
+       ut.bookHist(h,'hitPerPlane','Scifi hits per detector ; n hits',50,-0.5,49.5)
+       for s in range(0,6): 
+           ut.bookHist(h,'scifiTrack_'+str(s),'scifi track X/Y at scifi 1 missing station '+str(s)+'; X[cm]; Y[cm]',100,-50,0.,100,10,60)
        self.zEx = self.M.zPos['Scifi'][10]
        self.zExVeto = self.M.zPos['MuFilter'][10]
        self.res = 10.
@@ -360,11 +366,13 @@ class Scifi_trackEfficiency(ROOT.FairTask):
           if theTrack.GetUniqueID()==3:   MufiTracks.append(k)
        if len(MufiTracks)==0: return
        vetoHits = []
+       USQDC = 0
        k = -1
        for aHit in event.Digi_MuFilterHits:
            k+=1
            Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
            s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
+           if s==2:  USQDC += aHit.SumOfSignals()['Sum']
            if s>1: continue
            X = aHit.GetAllSignals()
            if len(X)<5: continue   # number of fired SiPMs
@@ -409,6 +417,23 @@ class Scifi_trackEfficiency(ROOT.FairTask):
              rc = h['dy'].Fill(dy)
              if abs(dy)<self.res and abs(dx)<self.res:
                   rc = h['scifiTrack'].Fill(xExTag,yExTag)
+                  rc = h['scifiTrack_0'].Fill(xEx,yEx)
+                  rc = h['USQDC'].Fill(USQDC)
+             sortedClusters={}
+             NscifiTot = 0
+             for aCl in self.M.trackTask.clusScifi:
+                s = aCl.GetFirst()//1000000
+                if not (s in sortedClusters): sortedClusters[s]=0
+                sortedClusters[s]+=aCl.GetN()
+                rc = h['clSize'].Fill(aCl.GetN())
+             for s in sortedClusters:
+                 rc = h['hitPerPlane'].Fill(sortedClusters[s])
+             for s in range(1,6):
+                if not (s in sortedClusters):
+                  if abs(dy)<self.res and abs(dx)<self.res:
+                     rc = h['scifiTrack_'+str(s)].Fill(xEx,yEx)
+                     if -40<xEx and xEx<-12 and 18<yEx and yEx<47 and self.debug:
+                        print('inefficient scifi detector ',s,self.M.EventNumber,xEx,yEx,len(vetoHits))
 
 # analysis and plots 
    def Plot(self):
@@ -429,11 +454,42 @@ class Scifi_trackEfficiency(ROOT.FairTask):
        tc = h['scifiEff'].cd(3)
        h['eff'].DrawCopy('colz')
        self.M.myPrint(h['scifiEff'],'ScifiTrackEfficiency',subdir='scifi')
-       for limits in [{'X':[-44,-8],'Y':[16,50]},{'X':[-40,-12],'Y':[18,47]}]:
-         bins = []
-         for p in limits:
-           for x in limits[p]:
-             bins.append(eval('h["DStag"].Get'+p+'axis().FindBin(x)'))
-         e = h['scifiTrack'].Integral(bins[0],bins[1],bins[2],bins[3])/h['DStag'].Integral(bins[0],bins[1],bins[2],bins[3])
-         print('average efficiency: %5.2F<X<%5.2F %5.2F<Y<%5.2F = %5.2F%%'%(limits['X'][0],limits['X'][1],limits['Y'][0],limits['Y'][1],e))
-       
+       limits = {1:{'X':[-44,-8],'Y':[16,50]},2:{'X':[-40,-12],'Y':[18,47]}}
+       bins = {}
+       for l in limits :
+         bins[l] = []
+         for p in limits[l]:
+           for x in limits[l][p]:
+             bins[l].append(eval('h["DStag"].Get'+p+'axis().FindBin(x)'))
+         e = h['scifiTrack'].Integral(bins[l][0],bins[l][1],bins[l][2],bins[l][3])/h['DStag'].Integral(bins[l][0],bins[l][1],bins[l][2],bins[l][3])*100
+         print('average efficiency: %5.2F<X<%5.2F %5.2F<Y<%5.2F = %5.2F%%'%(limits[l]['X'][0],limits[l]['X'][1],limits[l]['Y'][0],limits[l]['Y'][1],e))
+       # station inefficiency
+       ut.bookCanvas(h,'Tsineff','',1200,900,3,2)
+       sRef=1
+       border = [14.964849051657234, 54.00431913184336, -46.21974599493218, -7.146496817384938]
+       h['TlineTop'+str(sRef)] = ROOT.TLine(border[2],border[1],border[3],border[1])
+       h['TlineBot'+str(sRef)] = ROOT.TLine(border[2],border[0],border[3],border[0])
+       h['TlineLef'+str(sRef)] = ROOT.TLine(border[2],border[0],border[2],border[1])
+       h['TlineRig'+str(sRef)] = ROOT.TLine(border[3],border[0],border[3],border[1])
+       for x in ['TlineTop'+str(sRef),'TlineBot'+str(sRef),'TlineLef'+str(sRef),'TlineRig'+str(sRef)]: 
+           h[x].SetLineWidth(2)
+           h[x].SetLineColor(ROOT.kRed)
+       for s in range(1,6):
+          tc = h['Tsineff'].cd(s)
+          tc.SetRightMargin(0.1)
+          tc.SetLogz(1)
+          h['sineff'+str(s)] = h['scifiTrack_'+str(s)].Clone('sineff'+str(s))
+          h['sineff'+str(s)].Divide(h['scifiTrack_0'])
+          h['sineff'+str(s)].SetStats(0)
+          h['sineff'+str(s)].SetMaximum(0.1)
+          h['sineff'+str(s)].DrawCopy('colz')
+          for x in ['TlineTop'+str(sRef),'TlineBot'+str(sRef),'TlineLef'+str(sRef),'TlineRig'+str(sRef)]: h[x].Draw('same')
+          tc.Update()
+          for l in limits :
+            e = h['scifiTrack_'+str(s)].Integral(bins[l][0],bins[l][1],bins[l][2],bins[l][3])/h['scifiTrack'].Integral(bins[l][0],bins[l][1],bins[l][2],bins[l][3])
+            print('average efficiency station: %2i %5.2F<X<%5.2F %5.2F<Y<%5.2F = %5.2G'%(s,limits[l]['X'][0],limits[l]['X'][1],limits[l]['Y'][0],limits[l]['Y'][1],e))
+       self.M.myPrint(h['Tsineff'],'ScifiStationInEfficiency',subdir='scifi')
+       ut.bookCanvas(h,'Tqdc','',1200,900,1,1)
+       tc = h['Tqdc'].cd()
+       h['USQDC'].Draw()
+       self.M.myPrint(h['Tqdc'],'US QDC for muon track',subdir='mufilter')
