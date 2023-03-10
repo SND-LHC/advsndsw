@@ -209,8 +209,9 @@ class Monitoring():
 
 # initialize detector class for access to eventheader
         rc = eventChain.GetEvent(0)
-        self.snd_geo.modules['Scifi'].InitEvent(eventChain.EventHeader)
-        self.snd_geo.modules['MuFilter'].InitEvent(eventChain.EventHeader)
+        if not self.MonteCarlo:
+           self.snd_geo.modules['Scifi'].InitEvent(eventChain.EventHeader)
+           self.snd_geo.modules['MuFilter'].InitEvent(eventChain.EventHeader)
 
         # get filling scheme, only necessary if not encoded in EventHeader, before 2022 reprocessing
         self.hasBunchInfo = False
@@ -304,6 +305,10 @@ class Monitoring():
             self.eventTree = self.options.online.sTree
       else: 
             self.eventTree.GetEvent(n)
+            if not self.MonteCarlo:
+              # initialize detector class for access to eventheader
+              self.snd_geo.modules['Scifi'].InitEvent(self.eventTree.EventHeader)
+              self.snd_geo.modules['MuFilter'].InitEvent(self.eventTree.EventHeader)
             if self.MonteCarlo: self.Weight = self.eventTree.MCTrack[0].GetWeight()
             for t in self.FairTasks: self.FairTasks[t].ExecuteTask()
       self.EventNumber = n
