@@ -244,26 +244,33 @@ int main(int argc, char ** argv) {
 	}
       }
       if (isMC) {
-
-	int pdgIn = abs(((ShipMCTrack*)MCTracks->At(0))->GetPdgCode());
-	int pdgOut = abs(((ShipMCTrack*)MCTracks->At(1))->GetPdgCode());
-	int this_species = -1;
 	
-	if (pdgIn == (pdgOut+1)){
-	  //CC
-	  if (pdgIn == 12) this_species = 0; // nueCC
-	  if (pdgIn == 14) this_species = 1; // numuCC
-	  if (pdgIn == 16) this_species = 2; // nutauCC
-	} else if (pdgIn == pdgOut) {
-	  //NC
-	  this_species = 3;
-	} else {
-	  // Other
+	int this_species = -1;
+	if (MCTracks->GetEntries() < 2) {
 	  this_species = 4;
+	} else {
+	  
+	  int pdgIn = abs(((ShipMCTrack*)MCTracks->At(0))->GetPdgCode());
+	  int pdgOut = abs(((ShipMCTrack*)MCTracks->At(1))->GetPdgCode());
+	
+	  if (pdgIn == (pdgOut+1)){
+	    //CC
+	    if (pdgIn == 12) this_species = 0; // nueCC
+	    if (pdgIn == 14) this_species = 1; // numuCC
+	    if (pdgIn == 16) this_species = 2; // nutauCC
+	  } else if (pdgIn == pdgOut) {
+	    //NC
+	    this_species = 3;
+	  } else {
+	    // Other
+	    this_species = 4;
+	  }
 	}
 	cut_by_cut_truth_histos[this_species][seq_cut+1][0]->Fill(((ShipMCTrack*) MCTracks->At(0))->GetEnergy()); // Enu
-	cut_by_cut_truth_histos[this_species][seq_cut+1][1]->Fill(((ShipMCTrack*) MCTracks->At(1))->GetEnergy()); // ELep
-	cut_by_cut_truth_histos[this_species][seq_cut+1][2]->Fill(((ShipMCTrack*) MCTracks->At(0))->GetEnergy()-((ShipMCTrack*) MCTracks->At(1))->GetEnergy()); // EHad
+	if (this_species < 4) {
+	  cut_by_cut_truth_histos[this_species][seq_cut+1][1]->Fill(((ShipMCTrack*) MCTracks->At(1))->GetEnergy()); // ELep
+	  cut_by_cut_truth_histos[this_species][seq_cut+1][2]->Fill(((ShipMCTrack*) MCTracks->At(0))->GetEnergy()-((ShipMCTrack*) MCTracks->At(1))->GetEnergy()); // EHad
+	}
 	cut_by_cut_truth_histos[this_species][seq_cut+1][3]->Fill(((ShipMCTrack*) MCTracks->At(0))->GetStartX()); // X
 	cut_by_cut_truth_histos[this_species][seq_cut+1][4]->Fill(((ShipMCTrack*) MCTracks->At(0))->GetStartY()); // Y
 	cut_by_cut_truth_histos[this_species][seq_cut+1][5]->Fill(((ShipMCTrack*) MCTracks->At(0))->GetStartZ()); // Z

@@ -2,40 +2,7 @@ import ROOT
 import numpy as np
 
 import SndlhcGeo
-
-# Code snippet from Simona. This should go somewhere where it can be used by several different pieces of code (monitoring, analysis, etc)
-import pickle
-p = open("/eos/experiment/sndlhc/convertedData/commissioning/TI18/FSdict.pkl",'rb')
-FSdict = pickle.load(p)
-
-def bunchXtype(eventTime, runN):
-    if runN in FSdict: 
-       fsdict = FSdict[runN]      
-    else: fsdict = False
-    if fsdict:
-             bunchNumber = int(eventTime%(4*3564)/4+0.5)
-             nb1 = (3564 + bunchNumber - fsdict['phaseShift1'])%3564
-             nb2 = (3564 + bunchNumber - fsdict['phaseShift1']- fsdict['phaseShift2'])%3564
-             if not "B1" in fsdict: b1 = False
-             else: b1 = nb1 in fsdict['B1']
-             if not "B2" in fsdict: b2 = False
-             else: b2 = nb2 in fsdict['B2']
-             IP1 = False
-             IP2 = False
-             B2noB1 = False
-             b1Only = False
-             noBeam = False
-             if b1:
-                IP1 =  fsdict['B1'][nb1]['IP1']
-             if b2:
-                IP2 =  fsdict['B2'][nb2]['IP2']
-             if b2 and not b1:
-                B2noB1 = True             
-             if b1 and not b2 and not IP1:
-                b1Only = True
-             if not b1 and not b2: noBeam = True
-             return IP1, IP2, b1Only, B2noB1, noBeam
-# End snippet
+import shipunit as u
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -49,6 +16,12 @@ args = parser.parse_args()
 
 snd_geo = SndlhcGeo.GeoInterface(args.geoFile)
 scifiDet = ROOT.gROOT.GetListOfGlobals().FindObject('Scifi')
+muFilterDet = ROOT.gROOT.GetListOfGlobals().FindObject('MuFilter')
+
+# Hard-coded?!
+TDC2ns = 1E9/160.316E6
+dsV = muFilterDet.GetConfParF("MuFilter/DsPropSpeed")
+dsL = muFilterDet.GetConfParF("MuFilter/UpstreamBarX")
 
 # Set up TTrees
 isMC = False
@@ -60,6 +33,7 @@ ch.Add(args.inputFile)
 if ch.GetEntries() == 0 :
     treeName = "cbmsim"
     isMC = True
+    TDC2ns = 1. # In the simulation hit times are always in ns
     del ch
     ch = ROOT.TChain(treeName)
     ch.Add(args.inputFile)
@@ -72,14 +46,23 @@ ch_tracks = ROOT.TChain(treeName)
 ch_tracks.Add(args.trackFile)
 ch.AddFriend(ch_tracks)
 
+dts = []
+
 # Set up cuts
 cuts = []
 
-# Event in time with IP1 bunch crossing
-def eventInBunchCrossing(event) :
-    IP1, IP2, b1Only, B2noB1, noBeam = bunchXtype(event.EventHeader.GetEventTime(), event.EventHeader.GetRunId())
-    return IP1
-#cuts.append(["Event in time with IP1 collision", eventInBunchCrossing])
+################################################################################
+# Event has one reconstructed DS track
+################################################################################
+def eventHasOneTrack(event) :
+    if event.Reco_MuonTracks.GetEntries() >= 1 :
+        return True
+    else :
+        return False
+cuts.append(["Event has one reconstructed DS track", eventHasOneTrack])
+################################################################################
+# Event direction cut
+################################################################################
 def direction(event) :
 
     t_scifi = []
@@ -110,76 +93,63 @@ def direction(event) :
         return 999
 
     return (np.sort(t_scifi)[0] - np.sort(t_muon)[-1]) < 0
+
+#delta_t_cut = -9
+#def direction(event) :
+#    if not isMC :
+#        scifiDet.InitEvent(event.EventHeader)
+#        muFilterDet.InitEvent(event.EventHeader)
+#    
+#    a = ROOT.TVector3()
+#    b = ROOT.TVector3()
+#
+#    t_scifi = []
+#    for hit in event.Digi_ScifiHits :
+#        if not hit.isValid() : 
+#            continue
+#        scifiDet.GetSiPMPosition(hit.GetDetectorID(), a, b)
+#        z = (a.Z() + b.Z())/2.
+#        t = hit.GetTime()*TDC2ns
+#        if not isMC :
+#            t = scifiDet.GetCorrectedTime(hit.GetDetectorID(), t, 0)
+#        t_scifi.append(t - z/u.speedOfLight)
+#
+#    t_muFilter = []
+#    for hit in event.Digi_MuFilterHits :
+#        if hit.GetSystem() != 3 :
+#            continue
+#        if hit.GetPlane() != 2 :
+#            continue
+#        if hit.isVertical() : 
+#            continue
+#        if not hit.isValid() :
+#            continue
+#        
+#        muFilterDet.GetPosition(hit.GetDetectorID(), a, b)
+#        z = (a.Z() + b.Z())/2.
+#
+#        t = [hit.GetTime(i)*TDC2ns for i in range(2)]
+#        if not isMC :
+#            for i in range(2) :
+#                t[i] = muFilterDet.GetCorrectedtime(hit.GetDetectorID(), i, t[i], 0)
+#        t = np.mean(t)
+#        t_muFilter.append(t - dsL/dsV*0.5 -z/u.speedOfLight)
+#        
+#    t_min_scifi = np.min(t_scifi)
+#    t_min_muFilter = np.min(t_muFilter)
+#
+#    delta = t_min_muFilter - t_min_scifi
+#
+#    dts.append(delta)
+#
+#    if delta < delta_t_cut :
+#        return False
+#    return True
 cuts.append(["Event direction", direction])
 
-# Event has one reconstructed DS track
-def eventHasOneTrack(event) :
-    if event.Reco_MuonTracks.GetEntries() >= 1 :
-        return True
-    else :
-        return False
-cuts.append(["Event has one reconstructed DS track", eventHasOneTrack])
-
-def trackInterceptShower(event) : 
-    n_ver = [0]*5
-    n_hor = [0]*5
-    x_sta = [0.]*5
-    y_sta = [0.]*5
-
-    a = ROOT.TVector3()
-    b = ROOT.TVector3()
-
-    for hit in event.Digi_ScifiHits :
-        if not hit.isValid() :
-            continue
-            
-        scifiDet.GetSiPMPosition(hit.GetDetectorID(), a, b)
-
-        if hit.isVertical() :
-            n_ver[hit.GetStation()-1] += 1
-            x_sta[hit.GetStation()-1] += (a.X() + b.X())/2.
-        else :
-            n_hor[hit.GetStation()-1] += 1
-            y_sta[hit.GetStation()-1] += (a.Y() + b.Y())/2.
-    
-    fracsum = np.cumsum(np.add(n_ver, n_hor)/(np.sum(n_ver)+np.sum(n_hor)))
-    station = next(x[0] for x in enumerate(fracsum) if x[1] > 0.05)
-    
-    x_first_sta = None
-    y_first_sta = None
-
-    for i in range(station, 5) :
-        if n_ver[i] >= 2 :
-            x_first_sta = x_sta[i]/n_ver[i]
-            break
-
-    for i in range(station, 5) :
-        if n_hor[i] >= 2 :
-            y_first_sta = y_sta[i]/n_hor[i]
-            break
-    
-    track = event.Reco_MuonTracks.At(0)
-
-    track_start = track.getStart()
-    track_stop = track.getStop()
-
-    slope_X = (track_stop.X() - track_start.X())/(track_stop.Z() - track_start.Z())
-    slope_Y = (track_stop.Y() - track_start.Y())/(track_stop.Z() - track_start.Z())
-    
-    station_z = 298.97+13*station
-        
-    station_vertex = ROOT.TVector3(track_start.X() + slope_X*(station_z - track_start.Z()), track_start.Y() + slope_Y*(station_z - track_start.Y()), station_z)
-    try :
-        if ((station_vertex.X() - x_first_sta)**2 + (station_vertex.Y() - y_first_sta)**2)**0.5 < 5 :
-            return True
-        else :
-            return False
-    except :
-        print(n_ver)
-        print(n_hor)
-        exit()
-#cuts.append(["Track intercepts first layer < 5 cm from shower center", trackInterceptShower])
-
+################################################################################
+# Track intercepts first SciFi plane within 5 cm of the edge
+################################################################################
 d_scifi_fiducial = 5
 def trackInScifiFiducial(event) :
     track = event.Reco_MuonTracks.At(0)
@@ -203,116 +173,11 @@ def trackInScifiFiducial(event) :
     if track_first_scifi_extrap.X() < -8 -39 + d_scifi_fiducial:
         return False
     return True
-
 cuts.append(["Track intercepts first SciFi plane < {0} cm from edge".format(d_scifi_fiducial), trackInScifiFiducial])
 
-def SciFiRMSEdge(event) :
-    x_hits = []
-    y_hits = []
-
-    for hit in event.Digi_ScifiHits :
-        if not hit.isValid() :
-            continue
-        mat = hit.GetMat()
-        sipm = hit.GetSiPM()
-        channel = hit.GetSiPMChan()
-        
-        x = channel + sipm*128 + mat*4*128
-
-        if hit.isVertical() :
-            x_hits.append(x)
-        else :
-            y_hits.append(x)
-
-    x_hits = np.array(x_hits)
-    y_hits = np.array(y_hits)
-
-    x_mean = x_hits.mean()
-    y_mean = y_hits.mean()
-
-    rms_x = (np.square(x_hits-x_mean).sum()/len(x_hits))**0.5
-    rms_y = (np.square(y_hits-y_mean).sum()/len(y_hits))**0.5
-
-    x_edge_rms =  (768 - np.abs(x_mean-768))/rms_x
-    y_edge_rms = (768 - np.abs(y_mean-768))/rms_y
-
-    if x_edge_rms < 4 :
-        return False
-    if y_edge_rms < 4 :
-        return False
-    return True
-
-#cuts.append(["SciFi hit center more than 4*RMS away from edge", SciFiRMSEdge])
-
-def SciFiStationProd(event) :
-    hits_per_station = [0]*5
-
-    for hit in event.Digi_ScifiHits :
-        if not hit.isValid() :
-            continue
-        station = hit.GetStation()-1
-        
-        hits_per_station[station] += 1
-
-    hits_per_station = np.array(hits_per_station)
-    prod_nhits_layer = np.prod(hits_per_station[hits_per_station>0]/2.)
-
-    if prod_nhits_layer < 500 :
-        return False
-    return True
-
-#cuts.append(["SciFi hits per station product >= 500", SciFiStationProd])
-
-def nSciFiHitsWeightedByTrackProximity(event) :
-    
-    track = event.Reco_MuonTracks.At(0)
-
-    track_start = track.getStart()
-    track_stop = track.getStop()
-
-    slope_X = (track_stop.X() - track_start.X())/(track_stop.Z() - track_start.Z())
-    slope_Y = (track_stop.Y() - track_start.Y())/(track_stop.Z() - track_start.Z())
-
-    a = ROOT.TVector3()
-    b = ROOT.TVector3()
-
-    weighted_n_hits_hor = 0.
-    weighted_n_hits_ver = 0.
-
-
-    hits_per_sta = [0]*5
-
-
-    for hit in event.Digi_ScifiHits :
-        if not hit.isValid() :
-            continue
-            
-        scifiDet.GetSiPMPosition(hit.GetDetectorID(), a, b)
-
-        if hit.isVertical() :
-            slope_XY = slope_X
-            track_start_XY = track_start.X()
-            track_stop_XY = track_stop.X()
-            hit_pos = [(a.Z() + b.Z())/2., (a.X() + b.X())/2.]
-        else :
-            slope_XY = slope_Y
-            track_start_XY = track_start.Y()
-            track_stop_XY = track_stop.Y()
-            hit_pos = [(a.Z() + b.Z())/2., (a.Y() + b.Y())/2.]
-
-        hits_per_sta[hit.GetStation()-1] += 1
-
-#        print(hit.isVertical(), track_start_XY + slope_XY*(hit_pos[0]-track_start.Z()), hit_pos[1])
-#        print(np.abs(track_start_XY + slope_XY*(hit_pos[0]-track_start.Z()) - hit_pos[1]))
-        if hit.isVertical() :
-            weighted_n_hits_ver += np.square(track_start_XY + slope_XY*(hit_pos[0]-track_start.Z()) - hit_pos[1])
-        else :
-            weighted_n_hits_hor += np.square(track_start_XY + slope_XY*(hit_pos[0]-track_start.Z()) - hit_pos[1])
-
-#    print(min([weighted_n_hits_ver, weighted_n_hits_hor]), weighted_n_hits_ver, weighted_n_hits_hor)
-#    print(hits_per_sta)
-    return min([weighted_n_hits_ver, weighted_n_hits_hor])
-
+################################################################################
+# SciFi hit to DS track DOCA per plane < 3 cm for both projections
+################################################################################
 sum_min_dca_cut = 3
 def sum_min_dca(event) :
     
@@ -376,6 +241,9 @@ def sum_min_dca(event) :
     return np.sum([min_dca_ver, min_dca_hor]) <= sum_min_dca_cut
 cuts.append(["Sum of min DOCA per station < {0} cm".format(sum_min_dca_cut), sum_min_dca])
 
+################################################################################
+# At least 35 SciFi hits
+################################################################################
 min_scifi_hits_cut = 35
 def min_scifi_hits(event) :
     n_hits = 0
@@ -387,6 +255,9 @@ def min_scifi_hits(event) :
     return False
 cuts.append(["More than {0} SciFi hits".format(min_scifi_hits_cut), min_scifi_hits])
 
+################################################################################
+# Min QDC
+################################################################################
 min_QDC_data = 600
 min_QDC_MC = 700
 def min_US_QDC(event) :
@@ -404,6 +275,32 @@ def min_US_QDC(event) :
                 return True
     return False
 cuts.append(["US QDC larger than {0} ({1}) for data (MC)".format(min_QDC_data, min_QDC_MC), min_US_QDC])
+
+################################################################################
+# Max DS activity < 10
+################################################################################
+max_DS_hits_cut = 10
+def max_DS_hits(event) :
+    DS_hits = 0.
+    for hit in event.Digi_MuFilterHits :
+        if hit.GetSystem() != 3 :
+            continue
+        if not hit.isValid() :
+            continue
+        
+        if hit.GetPlane() == 3 :
+            DS_hits += 1.
+        else :
+            DS_hits += 0.5
+    if DS_hits > max_DS_hits_cut :
+        return False
+    return True
+cuts.append(["Number of DS hits per projection is < {0}".format(max_DS_hits_cut), max_DS_hits])
+
+################################################################################
+# END CUT DEFINITONS
+################################################################################
+
 
 # Set up cut flow histogram
 ch.GetEntry(0)
@@ -453,6 +350,10 @@ for event in ch :
 #plt.figure()
 #plt.hist(dca_for_hist, bins = 100)
 #plt.show()
+
+plt.figure()
+plt.hist(dts, bins = 100)
+plt.show()
 
 cut_flow_extended.Write()
 output_file.Write()
