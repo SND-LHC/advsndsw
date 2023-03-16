@@ -44,6 +44,7 @@ int main(int argc, char ** argv) {
     if (ch->GetEntries() > 0) {
       isMC = true;
       ch->SetBranchStatus("EventHeader", 0); // To be able to run on old MC.
+      ch->SetBranchStatus("EventHeader.", 0); // To be able to run on old MC. Bizarre....?
     } else {
       std::cout << "Didn't find rawConv or cbmsim in input file" << std::endl;
       exit(-1);
@@ -62,7 +63,8 @@ int main(int argc, char ** argv) {
   ch->GetEntry(0);
   ch->GetFile()->Get("BranchList")->Write("BranchList", TObject::kSingleKey);
   ch->GetFile()->Get("TimeBasedBranchList")->Write("TimeBasedBranchList", TObject::kSingleKey);
-  ch->GetFile()->Get("FileHeader")->Write();
+  if (ch->GetFile()->Get("FileHeader")) ch->GetFile()->Get("FileHeader")->Write();
+  if (ch->GetFile()->Get("FileHeaderHeader")) ch->GetFile()->Get("FileHeaderHeader")->Write();
 
   // Set up all branches to copy to output TTree.
   TTree * outTree = ch->CloneTree(0);
