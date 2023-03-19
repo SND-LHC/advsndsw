@@ -368,7 +368,10 @@ if __name__ == '__main__':
     parser.add_argument("--parallel", dest="parallel",default=1,type=int)
     parser.add_argument("-rMin", dest="rMin",help="first run to process", default=-1,type=int)
     parser.add_argument("-rMax", dest="rMax",help="last run to process", default=9999,type=int)
+    parser.add_argument("-p", dest="path", help="path to data",required=False,default="")
+    parser.add_argument("-d", dest="pathConv", help="path to converted data",required=False,default="")
 
+    
     options = parser.parse_args()
     M = prodManager()
     M.Init(options)
@@ -397,7 +400,9 @@ if __name__ == '__main__':
          path = "/eos/experiment/sndlhc/raw_data/commissioning/scifi_cosmics_epfl/data/"   
          if options.runNumbers=="": 
              runList = [3,8]
-
+    elif options.prod == "test":
+       path     = options.path
+       pathConv = options.pathConv
     else:
         print("production not known. you are on your own",options.prod)
 
