@@ -531,7 +531,7 @@ class Mufi_hitMaps(ROOT.FairTask):
          self.M.myPrint(self.M.h[detector+'residualsVsY'+xi],detector+'residualsVsY',subdir='mufilter')
          self.M.myPrint(self.M.h[detector+'residuals'+xi],detector+'residuals',subdir='mufilter')
          
-       ut.bookCanvas(self.M.h,'dt','',1200,1200,1,2)
+       ut.bookCanvas(self.M.h,'dt'+xi,'',1200,1200,1,2)
        self.M.h['dt'].cd(1)
        self.M.h['deltaTScifiMufiHit_'+str(1)].Draw('hist')
        for s in range(1,6):
