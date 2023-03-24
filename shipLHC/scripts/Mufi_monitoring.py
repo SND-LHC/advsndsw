@@ -722,17 +722,22 @@ class Veto_Efficiency(ROOT.FairTask):
 
        if self.M.Reco_MuonTracks.GetEntries()<1: return
 # check that track has scifi cluster in station 1
-       scifi_1 = False
+       scifi_1X = False
+       scifi_1Y = False
        for aTrack in self.M.Reco_MuonTracks:
            if not aTrack.GetUniqueID()==1: continue
+           fitStatus = aTrack.getFitStatus()
+           if not fitStatus.isFitConverged(): continue
+           if fitStatus.getNdf() < 5 or fitStatus.getNdf()>12 : continue
+           if fitStatus.getChi2()/fitStatus.getNdf() > 80: continue
            for nM in range(aTrack.getNumPointsWithMeasurement()):
               M = aTrack.getPointWithMeasurement(nM)
               W = M.getRawMeasurement()
               detID = W.getDetId()
-              if detID//1000000 == 1: 
-                  scifi_1 = True
-                  break
-       if not scifi_1: return
+              if detID//100000 == 11: scifi_1Y = True
+              if detID//100000 == 10: scifi_1X = True
+              if scifi_1Y and scifi_1X:  break
+       if not (scifi_1X and scifi_1Y): return
        rc = h['scaler'].Fill(0)
        if not prevEvent: rc = h['scaler'].Fill(1)
 
@@ -773,7 +778,7 @@ class Veto_Efficiency(ROOT.FairTask):
                       if beam: rc = h[nc+'beamPosVeto_00'].Fill(xEx,yEx)
                     else:
                         if -45<xEx and xEx<-10 and 27<yEx and yEx<54  and beam and self.debug:
-                             print('no hits',noiseCut,prevEvent,event.EventHeader.GetEventNumber(),xEx,yEx,pos,mom,zEx,mom.x()/mom.z(),mom.y()/mom.z())
+                             print('no hits',noiseCut,prevEvent,beam,event.EventHeader.GetEventNumber(),xEx,yEx,pos,mom,zEx,mom.x()/mom.z(),mom.y()/mom.z())
                         rc = h[nc+'XPosVeto_11'].Fill(xEx,yEx)
                         if beam: rc = h[nc+'beamXPosVeto_11'].Fill(xEx,yEx)
 
