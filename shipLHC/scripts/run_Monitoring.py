@@ -183,7 +183,7 @@ if options.interactive:  monitorTasks['EventDisplay']   = EventDisplay_Task.twod
 for m in monitorTasks:
     monitorTasks[m].Init(options,M)
 
-monitorTasks['Veto_Efficiency'].debug  = True
+# monitorTasks['Veto_Efficiency'].debug  = True
 
 if not options.auto:   # default online/offline mode
  process = []
