@@ -5,6 +5,7 @@ from array import array
 import shipunit as u
 import SndlhcMuonReco
 import json
+from decorators import *
 from rootpyPickler import Unpickler
 import time
 from XRootD import client
@@ -290,6 +291,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
 
     if verbose>0:
        for aTrack in OT.Reco_MuonTracks:
+           print(aTrack.__repr__())
            mom    = aTrack.getFittedState().getMom()
            pos      = aTrack.getFittedState().getPos()
            mom.Print()
@@ -409,7 +411,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
     if verbose>0: dumpChannels()
     if save: h['simpleDisplay'].Print('{:0>2d}-event_{:04d}'.format(runId,N)+'.png')
     if not auto:
-       rc = input("hit return for next event or or p for print or q for quit: ")
+       rc = input("hit return for next event or p for print or q for quit: ")
        if rc=='p': 
              h['simpleDisplay'].Print(options.storePic+'{:0>2d}-event_{:07d}'.format(runId,event.EventHeader.GetEventNumber())+'.png')
        if rc=='q': break
