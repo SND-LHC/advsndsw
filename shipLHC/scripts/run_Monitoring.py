@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 import ROOT,os,sys,subprocess,atexit,time
 import rootUtils as ut
@@ -30,6 +29,7 @@ parser.add_argument("--batch", dest="batch", help="batch mode",default=False,act
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,default=-1)
 parser.add_argument("-p", "--path", dest="path", help="path to data",required=False,default="")
+parser.add_argument("-praw", dest="rawDataPath", help="path to raw data",required=False,default=False)
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
 parser.add_argument("-d", "--Debug", dest="debug", help="debug", default=False)
 parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_convRaw", help="convert raw data using ConvRawData FairTask", default=False)
@@ -78,6 +78,9 @@ if options.runNumber < 0  and not options.geoFile:
 #RUN3: 4 Nov 2022  -  
 
 if not options.geoFile:
+   if options.path.find('TI18')<0:
+     options.geoFile =  "geofile_sndlhc_TI18_V0_2022.root"
+   else:
      if options.runNumber < 4575:
            options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
      elif options.runNumber < 4855:
@@ -129,8 +132,9 @@ else:
    if options.runNumber < 0:
        print("run number required for non-auto mode")
        os._exit(1)
+   if options.rawDataPath: rawDataPath = options.rawDataPath
 # works only for runs on EOS
-   if not options.server.find('eos')<0:
+   elif not options.server.find('eos')<0:
       if options.path.find('2022'):
           rawDataPath = "/eos/experiment/sndlhc/raw_data/physics/2022/"
       else:
@@ -172,11 +176,14 @@ if not options.fname:
 monitorTasks['Scifi_hitMaps']   = Scifi_monitoring.Scifi_hitMaps()
 monitorTasks['Mufi_hitMaps']   = Mufi_monitoring.Mufi_hitMaps()
 monitorTasks['Mufi_QDCcorellations']   = Mufi_monitoring.Mufi_largeVSsmall()
+monitorTasks['Veto_Efficiency']   = Mufi_monitoring.Veto_Efficiency()
 monitorTasks['Scifi_residuals'] = Scifi_monitoring.Scifi_residuals()   # time consuming
 if options.interactive:  monitorTasks['EventDisplay']   = EventDisplay_Task.twod()
 
 for m in monitorTasks:
     monitorTasks[m].Init(options,M)
+
+monitorTasks['Veto_Efficiency'].debug  = True
 
 if not options.auto:   # default online/offline mode
  process = []
