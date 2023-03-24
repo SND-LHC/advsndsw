@@ -45,6 +45,7 @@ group.add_argument("-f",        dest="inputFile",       help="Input file if not 
 parser.add_argument("-g",        dest="geofile",       help="geofile for muon shield geometry, for experts only", required=False, default=None)
 parser.add_argument("-o", "--output",dest="outputDir",  help="Output directory", required=False,  default=".")
 parser.add_argument("--boostFactor", dest="boostFactor",  help="boost mu brems", required=False, type=float,default=0)
+parser.add_argument("--enhancePiKaDecay", dest="enhancePiKaDecay",  help="decrease charged pion and kaon lifetime", required=False, type=float,default=0.)
 parser.add_argument("--debug",   dest="debug",   help="debugging mode, check for overlaps", required=False, action="store_true")
 parser.add_argument("-D", "--display", dest="eventDisplay", help="store trajectories", required=False, action="store_true")
 
@@ -311,6 +312,16 @@ if options.boostFactor > 1:
    mygMC.ProcessGeantCommand("/particle/select e+")
    mygMC.ProcessGeantCommand("/particle/process/dump")
 #
+if options.enhancePiKaDecay:
+  ROOT.gROOT.ProcessLine('#include "Geant4/G4ParticleTable.hh"')
+  ROOT.gROOT.ProcessLine('#include "Geant4/G4DecayTable.hh"')
+  ROOT.gROOT.ProcessLine('#include "Geant4/G4PhaseSpaceDecayChannel.hh"')
+  pt = ROOT.G4ParticleTable.GetParticleTable()
+  for pid in [211,-211,321,-321]:
+      particleG4  = pt.FindParticle(pid)
+      lt = particleG4.GetPDGLifeTime()
+      particleG4.SetPDGLifeTime(lt/options.enhancePiKaDecay)
+  print('### pion kaon lifetime decreased by the factor:',options.enhancePiKaDecay)
 
 if inactivateMuonProcesses :
  ROOT.gROOT.ProcessLine('#include "Geant4/G4ProcessTable.hh"')
