@@ -26,7 +26,8 @@ h={}
 from argparse import ArgumentParser
 parser = ArgumentParser()
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,required=False)
-parser.add_argument("-p", "--path", dest="path", help="run number",required=False,default="")
+parser.add_argument("-p", "--path", dest="path", help="path to data file",required=False,default=os.environ["EOSSHIP"]+"/eos/experiment/sndlhc/convertedData/physics/2022/")
+parser.add_argument("-praw", "--pathRaw", dest="pathRaw", help="path to raw data file",required=False,default="/eos/experiment/sndlhc/raw_data/physics/2022/")
 parser.add_argument("-f", "--inputFile", dest="inputFile", help="input file data and MC",default="",required=False)
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", default=os.environ["EOSSHIP"]+"/eos/experiment/sndlhc/convertedData/physics/2022/geofile_sndlhc_TI18_V0_2022.root")
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
@@ -40,7 +41,7 @@ options.storePic = ''
 trans2local = False
 runInfo = False
 try:
-   fg  = ROOT.TFile.Open(options.server+"/eos/experiment/sndlhc/convertedData/commissioning/TI18/RunInfodict.root")
+   fg  = ROOT.TFile.Open(options.server+options.p+"RunInfodict.root")
    pkl = Unpickler(fg)
    runInfo = pkl.load('runInfo')
    fg.Close()
@@ -138,7 +139,7 @@ nav = ROOT.gGeoManager.GetCurrentNavigator()
 # get filling scheme
 try:
            runNumber = eventTree.EventHeader.GetRunId()
-           fg  = ROOT.TFile.Open(os.environ['EOSSHIP']+'/eos/experiment/sndlhc/convertedData/commissioning/TI18/FSdict.root')
+           fg  = ROOT.TFile.Open(os.environ['EOSSHIP']+options.p+'FSdict.root')
            pkl = Unpickler(fg)
            FSdict = pkl.load('FSdict')
            fg.Close()
@@ -151,7 +152,7 @@ except:
 startTimeOfRun = {}
 def getStartTime(runNumber):
       if runNumber in startTimeOfRun : return startTimeOfRun[runNumber]
-      runDir = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_"+str(runNumber).zfill(6)
+      runDir = options.pathRaw+"run_"+str(runNumber).zfill(6)
       jname = "run_timestamps.json"
       dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+runDir,shell=True) ) 
       if not jname in dirlist: return False
