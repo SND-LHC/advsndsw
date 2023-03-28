@@ -252,9 +252,10 @@ if not options.auto:   # default online/offline mode
      for m in monitorTasks:
           monitorTasks[m].Plot()
      # check if all events had been processed
-     if not M.h['Etime'].GetEntries() == options.nEvents:
+     if 'Etime' in M.h:
+       if not M.h['Etime'].GetEntries() == options.nEvents:
          print('event count failed! Processed:',M.h['Etime'].GetEntries(),' total number of events:',options.nEvents)
-     else:
+       else:
          print('i am finished, all events processed')
  if options.saveHistos: ut.writeHists(M.h,'allHistos-run'+M.runNr+'.root')
 
