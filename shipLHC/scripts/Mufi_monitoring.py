@@ -539,8 +539,9 @@ class Mufi_hitMaps(ROOT.FairTask):
           self.M.h['deltaTScifiMufiHit_'+str(s)].SetLineColor(s+1)
           self.M.h['deltaTScifiMufiHit_'+str(s)].Draw('samehist')
        self.M.h['dt'].cd(2)
-       self.M.h['deltaTScifiMufiHit_'+str(1)+'B2noB1'].Draw('hist')
-       for s in range(1,6):
+       if 'B2noB1' in self.xing:
+        self.M.h['deltaTScifiMufiHit_'+str(1)+'B2noB1'].Draw('hist')
+        for s in range(1,6):
           self.M.h['deltaTScifiMufiHit_'+str(s)+'B2noB1'].SetStats(0)
           self.M.h['deltaTScifiMufiHit_'+str(s)+'B2noB1'].SetLineColor(s+1)
           self.M.h['deltaTScifiMufiHit_'+str(s)+'B2noB1'].Draw('samehist')
@@ -839,14 +840,14 @@ class Veto_Efficiency(ROOT.FairTask):
 # make some printout
        Ntot = h[nc+'PosVeto_0'].Clone('Ntot')
        Ntot.Add(h[nc+'XPosVeto_0'])
-       ineff0 =  h[nc+'XPosVeto_0'].GetEntries()/Ntot.GetEntries()
-       ineff1 = h[nc+'XPosVeto_1'].GetEntries()/Ntot.GetEntries()
-       ineffOR =  h[nc+'XPosVeto_11'].GetEntries()/Ntot.GetEntries()
-       ineffAND = 1.-h[nc+'PosVeto_11'].GetEntries()/Ntot.GetEntries()
+       ineff0 =  h[nc+'XPosVeto_0'].GetEntries()/(Ntot.GetEntries()+1E-20)
+       ineff1 = h[nc+'XPosVeto_1'].GetEntries()/(Ntot.GetEntries()+1E-20)
+       ineffOR =  h[nc+'XPosVeto_11'].GetEntries()/(Ntot.GetEntries()+1E-20)
+       ineffAND = 1.-h[nc+'PosVeto_11'].GetEntries()/(Ntot.GetEntries()+1E-20)
        region = [21,91,34,89]
        xax = h[nc+'PosVeto_0'].GetXaxis()
        yax = h[nc+'PosVeto_0'].GetYaxis()
-       Ntot_r = Ntot.Integral(region[0],region[1],region[2],region[3])
+       Ntot_r = Ntot.Integral(region[0],region[1],region[2],region[3])+1E-20
        ineff0_r = h[nc+'XPosVeto_0'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
        ineff1_r = h[nc+'XPosVeto_1'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
        ineffOR_r =  h[nc+'XPosVeto_11'].Integral(region[0],region[1],region[2],region[3])/Ntot_r
@@ -858,15 +859,15 @@ class Veto_Efficiency(ROOT.FairTask):
           xax.GetBinCenter(region[1]),yax.GetBinCenter(region[0]),yax.GetBinCenter(region[1])))
        print('veto0: %5.2F%% veto1: %5.2F%% veto0AND1: %5.2F%% veto0OR1: %5.2F%%'%( ineff0_r*100,ineff1_r*100,ineffAND_r*100,ineffOR_r*100))
 #
-     h['hitVeto_0'] = h['hitVeto_01'].ProjectionX('hitVeto_0')
-     h['hitVeto_1'] = h['hitVeto_01'].ProjectionY('hitVeto_1')
-     h['hitVeto_0'].SetStats(0)
-     h['hitVeto_0'].SetLineColor(ROOT.kGreen)
-     h['hitVeto_1'].SetLineColor(ROOT.kBlue)
-     h['hitVeto_1'].SetStats(0)
-     ut.bookCanvas(h,'hitVeto','',900,600,1,1)
-     tc = h['hitVeto'].cd()
+     h['hitVeto_X'] = h['hitVeto_01'].ProjectionX('hitVeto_X')
+     h['hitVeto_Y'] = h['hitVeto_01'].ProjectionY('hitVeto_Y')
+     h['hitVeto_X'].SetStats(0)
+     h['hitVeto_X'].SetLineColor(ROOT.kGreen)
+     h['hitVeto_Y'].SetLineColor(ROOT.kBlue)
+     h['hitVeto_Y'].SetStats(0)
+     ut.bookCanvas(h,'ThitVeto','',900,600,1,1)
+     tc = h['ThitVeto'].cd()
      tc.SetLogy(1)
-     h['hitVeto_0'].Draw('hist')
-     h['hitVeto_1'].Draw('histsame')
+     h['hitVeto_X'].Draw('hist')
+     h['hitVeto_Y'].Draw('histsame')
 
