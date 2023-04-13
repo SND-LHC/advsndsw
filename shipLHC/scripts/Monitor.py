@@ -120,6 +120,8 @@ class Monitoring():
             self.converter = ConvRawData.ConvRawDataPY()
             self.converter.Init(options)
             self.options.online = self.converter
+            self.fsdict = False
+            self.hasBunchInfo = False
             self.eventTree = options.online.fSink.GetOutTree()
             self.Nkeys = 38   # need to find a way to get this number automatically
             if self.converter.newFormat: self.Nkeys = 1

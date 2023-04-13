@@ -510,7 +510,7 @@ class ConvRawDataPY(ROOT.FairTask):
                           digiMuFilterStore[detID] =  ROOT.MuFilterHit(detID,nSiPMs,nSides)
                   test = digiMuFilterStore[detID].GetSignal(sipm_number)
                   digiMuFilterStore[detID].SetDigi(QDC,TDC,sipm_number)
-                  digiMuFilterStore[detID].SetDaqID(sipm_number, board_id, tofpet_id, tofpet_channel)
+                  digiMuFilterStore[detID].SetDaqID(sipm_number,n,board_id, tofpet_id, tofpet_channel)
                   if mask: digiMuFilterStore[detID].SetMasked(sipm_number)
 
                   if self.options.debug:
@@ -529,7 +529,7 @@ class ConvRawDataPY(ROOT.FairTask):
                   if not sipmID in digiSciFiStore: 
                        digiSciFiStore[sipmID] =  ROOT.sndScifiHit(sipmID)
                   digiSciFiStore[sipmID].SetDigi(QDC,TDC)
-                  digiSciFiStore[sipmID].SetDaqID(0, board_id, tofpet_id, tofpet_channel)
+                  digiSciFiStore[sipmID].SetDaqID(0,n, board_id, tofpet_id, tofpet_channel)
                   if mask: digiSciFiStore[sipmID].setInvalid()
                   if self.options.debug:
                       print('create scifi hit: tdc = ',board,sipmID,QDC,TDC)

@@ -727,15 +727,15 @@ class Veto_Efficiency(ROOT.FairTask):
        rc = h['scaler'].Fill(11)
        if self.M.Reco_MuonTracks.GetEntries()<2: return # require Scifi and DS track
 # check that track has scifi cluster in station 1, afterthought: require measurements in all planes
+       planes = {}
        for scifiTrack in self.M.Reco_MuonTracks:
            if not scifiTrack.GetUniqueID()==1: continue
            fitStatus = scifiTrack.getFitStatus()
            if not fitStatus.isFitConverged(): continue
            if fitStatus.getNdf() < 5 or fitStatus.getNdf()>12 : continue
            if fitStatus.getChi2()/fitStatus.getNdf() > 80: continue
-           planes = {}
            for nM in range(scifiTrack.getNumPointsWithMeasurement()):
-              M = aTrack.getPointWithMeasurement(nM)
+              M = scifiTrack.getPointWithMeasurement(nM)
               W = M.getRawMeasurement()
               detID = W.getDetId()
               planes[detID//100000] = 1
