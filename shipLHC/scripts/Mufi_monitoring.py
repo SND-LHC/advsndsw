@@ -676,6 +676,7 @@ class Veto_Efficiency(ROOT.FairTask):
        self.OT = ioman.GetSink().GetOutTree()
        s = 1
        self.noiseCuts = [1,5,10,12]
+       self.zEx = self.M.zPos['Scifi'][10]
        for noiseCut in self.noiseCuts:
         for c in ['','NoPrev']:
          for b in ['','beam']:
@@ -694,6 +695,8 @@ class Veto_Efficiency(ROOT.FairTask):
        ut.bookHist(h,'hitVeto_01','nr hits 0 vs 1;n sipm; n sipm',25,-0.5,24.5,25,-0.5,24.5)
        ut.bookHist(h,'hitVeto_prev01','nr hits 0 vs 1;n sipm; n sipm',25,-0.5,24.5,25,-0.5,24.5)
        ut.bookHist(h,'scaler','all no prevEvent',25,-0.5,24.5)
+       ut.bookHist(h,'deltaT','delta T DS 2 and Scifi 1',100,-20.0,20.)
+       ut.bookHist(h,'X/Y','xy matching of scifi DS',100,-20.0,20.,100,-20.0,20.)
 
    def ExecuteEvent(self,event):
        systemAndPlanes = self.M.systemAndPlanes
@@ -721,24 +724,23 @@ class Veto_Efficiency(ROOT.FairTask):
        self.eventBefore['T'] = event.EventHeader.GetEventTime()
        self.eventBefore['N'] = event.EventHeader.GetEventNumber()
 
-       if self.M.Reco_MuonTracks.GetEntries()<1: return
-# check that track has scifi cluster in station 1
-       scifi_1X = False
-       scifi_1Y = False
-       for aTrack in self.M.Reco_MuonTracks:
-           if not aTrack.GetUniqueID()==1: continue
-           fitStatus = aTrack.getFitStatus()
+       rc = h['scaler'].Fill(11)
+       if self.M.Reco_MuonTracks.GetEntries()<2: return # require Scifi and DS track
+# check that track has scifi cluster in station 1, afterthought: require measurements in all planes
+       for scifiTrack in self.M.Reco_MuonTracks:
+           if not scifiTrack.GetUniqueID()==1: continue
+           fitStatus = scifiTrack.getFitStatus()
            if not fitStatus.isFitConverged(): continue
            if fitStatus.getNdf() < 5 or fitStatus.getNdf()>12 : continue
            if fitStatus.getChi2()/fitStatus.getNdf() > 80: continue
-           for nM in range(aTrack.getNumPointsWithMeasurement()):
+           planes = {}
+           for nM in range(scifiTrack.getNumPointsWithMeasurement()):
               M = aTrack.getPointWithMeasurement(nM)
               W = M.getRawMeasurement()
               detID = W.getDetId()
-              if detID//100000 == 11: scifi_1Y = True
-              if detID//100000 == 10: scifi_1X = True
-              if scifi_1Y and scifi_1X:  break
-       if not (scifi_1X and scifi_1Y): return
+              planes[detID//100000] = 1
+       rc = h['scaler'].Fill(10)
+       if not len(planes)==10: return
        rc = h['scaler'].Fill(0)
        if not prevEvent: rc = h['scaler'].Fill(1)
 
@@ -746,6 +748,20 @@ class Veto_Efficiency(ROOT.FairTask):
           rc = h['hitVeto_'+str(l)].Fill(hits[str(l)+'L'],hits[str(l)+'R'])
        rc = h['hitVeto_01'].Fill(hits[0],hits[1])
 
+       for muTrack in self.M.Reco_MuonTracks:
+          if not muTrack.GetUniqueID()==3: continue
+          fstate =  muTrack.getFittedState()
+          posT,momT  = fstate.getPos(),fstate.getMom()
+          lam      = (self.zEx-posT.z())/momT.z()
+          yExTag      = posT.y()+lam*momT.y()
+          xExTag      = posT.x()+lam*momT.x()
+          sstate = scifiTrack.getFittedState()
+          pos = sstate.getPos()
+          delX = xExTag - pos.x()
+          delY = yExTag - pos.y()
+          rc = h['X/Y'].Fill(delX,delY)
+          if abs(delX)>10 or abs(delY)>10: return
+          
        for aTrack in self.M.Reco_MuonTracks:
            if not aTrack.GetUniqueID()==1: continue
            fitStatus = aTrack.getFitStatus()
@@ -755,6 +771,38 @@ class Veto_Efficiency(ROOT.FairTask):
            beam = False
            if abs(mom.x()/mom.z())<0.1 and abs(mom.y()/mom.z())<0.1: beam = True
 # extrapolate to veto
+# check timing, remove backward tracks
+# 1: get early DS time in horizontal plane 2:
+           dsHitTimes = []
+           for aHit in event.Digi_MuFilterHits:
+              if not aHit.isValid(): continue
+              detID = aHit.GetDetectorID()
+              Minfo = self.M.MuFilter_PlaneBars(detID)
+              s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
+              if s==3 and l==2:
+                   self.M.MuFilter.GetPosition(detID,A,B)
+                   timeLeft = aHit.GetTime(0)
+                   timeRight = aHit.GetTime(1)
+                   if timeLeft>0 and timeRight>0:
+                      dL = abs(A[0]-B[0])
+                      avTime = self.M.MuFilter.GetCorrectedTime(detID, 0, timeLeft*self.M.TDC2ns,0) + \
+                               self.M.MuFilter.GetCorrectedTime(detID, 1, timeRight*self.M.TDC2ns,0)
+                      dsHitTimes.append( (avTime-abs(A[0]-B[0])/15)/2) # L/2 / 15cm/ns
+           dsHitTimes.sort()
+           scifiHitTimes = {1:[],2:[],3:[],4:[],5:[]}
+           deltaT = -100
+           if len(dsHitTimes)>0:
+            for scifiHit in event.Digi_ScifiHits:
+              detID = scifiHit.GetDetectorID()
+              s = int(scifiHit.GetDetectorID()/1000000)
+              if s>1.5: continue
+              scifiHitTimes[s].append(self.M.Scifi.GetCorrectedTime(detID,scifiHit.GetTime()*self.M.TDC2ns,0))
+            for s in scifiHitTimes:
+                if len(scifiHitTimes[s])<1: continue
+                scifiHitTimes[s].sort()
+                deltaT = dsHitTimes[0] - scifiHitTimes[s][0] - (self.M.zPos['MuFilter'][34]-self.M.zPos['Scifi'][s*10])/u.speedOfLight
+           rc = h['deltaT'].Fill(deltaT)
+           if deltaT < -10: continue
            s = 1
            for l in range(2):
               zEx = self.M.zPos['MuFilter'][s*10+l]
@@ -778,7 +826,7 @@ class Veto_Efficiency(ROOT.FairTask):
                       rc = h[nc+'PosVeto_00'].Fill(xEx,yEx)
                       if beam: rc = h[nc+'beamPosVeto_00'].Fill(xEx,yEx)
                     else:
-                        if -45<xEx and xEx<-10 and 27<yEx and yEx<54  and beam and self.debug:
+                        if -45<xEx and xEx<-10 and 27<yEx and yEx<54  and beam and self.debug and not prevEvent:
                              print('no hits',noiseCut,prevEvent,beam,event.EventHeader.GetEventNumber(),xEx,yEx,pos,mom,zEx,mom.x()/mom.z(),mom.y()/mom.z())
                         rc = h[nc+'XPosVeto_11'].Fill(xEx,yEx)
                         if beam: rc = h[nc+'beamXPosVeto_11'].Fill(xEx,yEx)
