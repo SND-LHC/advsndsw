@@ -209,7 +209,22 @@ vector<float> sndRecoTrack::getCorrTimes()
    float scintVel, L;
    float mean{}, fastest=999.;
    for ( int i = 0;  i < fTrackPoints.size(); i++ ){
-      // First get readout coordinates
+      // First get readout coordinates and parameters
+      if (fRawMeasDetID[i] >= 100000){
+         ScifiDet->GetSiPMPosition(fRawMeasDetID[i],A,B);
+         scintVel = ScifiDet->GetConfParF("Scifi/signalSpeed");
+      }
+      else {
+         MuFilterDet->GetPosition(fRawMeasDetID[i],A,B);
+         // DS
+         if (floor(fRawMeasDetID[i]/10000) == 3){
+            L = MuFilterDet->GetConfParF("MuFilter/DownstreamBarX");
+            scintVel = MuFilterDet->GetConfParF("MuFilter/DsPropSpeed");
+         }
+         // US and Veto
+         else scintVel = MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");
+      }
+      // calculate distance btw track point and SiPM
       // vertical detector elements
       if ( (fRawMeasDetID[i] >= 100000 && int(fRawMeasDetID[i]/100000)%10 == 1) or
            (fRawMeasDetID[i] < 100000  && floor(fRawMeasDetID[i]/10000) == 3 
@@ -217,17 +232,9 @@ vector<float> sndRecoTrack::getCorrTimes()
       else X = A - fTrackPoints[i];
       // Then, get calibrated hit times
       if (fRawMeasDetID[i] >= 100000) {
-         ScifiDet->GetSiPMPosition(fRawMeasDetID[i],A,B);
-         scintVel = ScifiDet->GetConfParF("Scifi/signalSpeed");
          corr_times.push_back(ScifiDet->GetCorrectedTime(fRawMeasDetID[i], fRawMeasTimes[i][0], 0) - X.Mag()/scintVel);
       }
       else { 
-         MuFilterDet->GetPosition(fRawMeasDetID[i],A,B);
-         if (floor(fRawMeasDetID[i]/10000) == 3){
-            scintVel = MuFilterDet->GetConfParF("MuFilter/DsPropSpeed");
-            L = MuFilterDet->GetConfParF("MuFilter/DownstreamBarX");
-         }
-         else scintVel = MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");
          mean = 0;
          fastest=999.;
          for (int ch = 0, N_channels = fRawMeasTimes[i].size(); ch <N_channels; ch++ ){
