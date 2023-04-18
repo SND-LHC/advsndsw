@@ -206,28 +206,50 @@ vector<float> sndRecoTrack::getCorrTimes()
    MuFilter *MuFilterDet = dynamic_cast<MuFilter*> (gROOT->GetListOfGlobals()->FindObject("MuFilter") );
    Scifi *ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
    TVector3 A, B, X{};
-   float scintVel;
-   float calibTime{};
+   float scintVel, L;
+   float mean{}, fastest=999.;
    for ( int i = 0;  i < fTrackPoints.size(); i++ ){
-      if (fRawMeasDetID[i] >= 100000) {
-         ScifiDet->GetSiPMPosition(fRawMeasDetID[i],A,B);
-         scintVel = ScifiDet->GetConfParF("Scifi/signalSpeed");
-         calibTime = ScifiDet->GetCorrectedTime(fRawMeasDetID[i], fRawMeasTimes[i], 0);
-      }
-      else { 
-         MuFilterDet->GetPosition(fRawMeasDetID[i],A,B);
-         if (floor(fRawMeasDetID[i]/10000) == 3)
-            scintVel = MuFilterDet->GetConfParF("MuFilter/DsPropSpeed");
-         else scintVel = MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");
-         // For the moment only SciFi is time calibrated
-         calibTime = fRawMeasTimes[i];
-      }
+      // First get readout coordinates
       // vertical detector elements
       if ( (fRawMeasDetID[i] >= 100000 && int(fRawMeasDetID[i]/100000)%10 == 1) or
            (fRawMeasDetID[i] < 100000  && floor(fRawMeasDetID[i]/10000) == 3 
                                        && fRawMeasDetID[i]%1000 > 59) ) X = B-fTrackPoints[i];
       else X = A - fTrackPoints[i];
-      corr_times.push_back(fRawMeasTimes[i] - X.Mag()/scintVel);
+      // Then, get calibrated hit times
+      if (fRawMeasDetID[i] >= 100000) {
+         ScifiDet->GetSiPMPosition(fRawMeasDetID[i],A,B);
+         scintVel = ScifiDet->GetConfParF("Scifi/signalSpeed");
+         corr_times.push_back(ScifiDet->GetCorrectedTime(fRawMeasDetID[i], fRawMeasTimes[i][0], 0) - X.Mag()/scintVel);
+      }
+      else { 
+         MuFilterDet->GetPosition(fRawMeasDetID[i],A,B);
+         if (floor(fRawMeasDetID[i]/10000) == 3){
+            scintVel = MuFilterDet->GetConfParF("MuFilter/DsPropSpeed");
+            L = MuFilterDet->GetConfParF("MuFilter/DownstreamBarX");
+         }
+         else scintVel = MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");
+         mean = 0;
+         fastest=999.;
+         for (int ch = 0, N_channels = fRawMeasTimes[i].size(); ch <N_channels; ch++ ){
+             // For the moment only DS is time calibrated
+             if (floor(fRawMeasDetID[i]/10000) == 3){
+                // vertical bars or DS clusters
+                if ( N_channels==1 ){
+                    corr_times.push_back(MuFilterDet->GetCorrectedTime(fRawMeasDetID[i], ch, fRawMeasTimes[i][ch], 0) - X.Mag()/scintVel);
+                }
+                // horizontal bar - take mean of the L/R hit times
+                else{
+                     mean += MuFilterDet->GetCorrectedTime(fRawMeasDetID[i], ch, fRawMeasTimes[i][ch], 0);
+                     if (ch == N_channels-1) corr_times.push_back(mean/N_channels- L/scintVel/2.);
+                }
+             }
+             // US and Veto - no time calibration yet, just use fastest hit time for now
+             else{
+                  fastest = min(fastest, fRawMeasTimes[i][ch]);
+                  if (ch == N_channels-1) corr_times.push_back(fastest - X.Mag()/scintVel);
+             }
+         }
+      }
       //cout<<"i "<<i<<" raw tdc "<<fRawMeasTimes[i]<<" corr t "<<corr_times.back()<<" "<< X.Mag()<<endl;
    }
 
