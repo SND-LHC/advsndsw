@@ -804,6 +804,15 @@ class Veto_Efficiency(ROOT.FairTask):
            rc = h['deltaT'].Fill(deltaT)
            if deltaT < -10: continue
            s = 1
+           #look for previous event time
+           T1 = event.EventHeader.GetEventTime()
+           N1 = event.EventHeader.GetEventNumber()
+           rc = event.GetEvent(N1-1)
+           T0 = event.EventHeader.GetEventTime()
+           if (T1-T0)<100: 
+               if not prevEvent and debug: print('what is going on?',N1)
+               rc = h['scaler'].Fill(2)
+               prevEvent = True
            for l in range(2):
               zEx = self.M.zPos['MuFilter'][s*10+l]
               lam = (zEx-pos.z())/mom.z()
