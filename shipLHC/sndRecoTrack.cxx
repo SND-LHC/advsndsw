@@ -147,40 +147,35 @@ pair<float, float> sndRecoTrack::Velocity()
      return make_pair(1./line.GetParameter(1),line.GetParError(1)/pow(line.GetParameter(1),2));
 }
 
-pair<float, float> sndRecoTrack::trackDir()
+tuple<float, float, float> sndRecoTrack::trackDir()
 {
    /* Based on the same function in SndlhcTracking.py!
       Extract direction based on timing
       measurements as slope of linear fit of (dL,dT'),
       where dT' features time of flight estimation.
-      Reference T0 is 1st measurement in z */
+      Use a nominal first position in z */
 
    // Account for signal propagation in detectors
    vector<float> corr_times = getCorrTimes();
 
-   MuFilter *MuFilterDet = dynamic_cast<MuFilter*> (gROOT->GetListOfGlobals()->FindObject("MuFilter") );
-   Scifi *ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
    TGraph gr;
-   double resol{}, dist{}, delta_T{};
-   for (int i = 1;  i < fTrackPoints.size(); i++){
-     if (fRawMeasDetID[i] >= 100000) {
-         resol = ScifiDet->GetConfParF("Scifi/timeResol");
-     }
-     else resol = MuFilterDet->GetConfParF("MuFilter/timeResol");
-     delta_T = corr_times[i]-corr_times[0];
-     // Use current track point measurement only if time difference is above resolution
-     if (fabs(delta_T) < resol*sqrt(2)) continue;
-     dist= (fTrackPoints[i]-fTrackPoints[0]).Mag();
-     gr.AddPoint(dist, delta_T - dist/ShipUnit::c_light);
+   double dist{}, delta_T{};
+
+   double firstScifi_z = 300*ShipUnit::cm;
+   TVector3 pos(start);
+   TVector3 mom(fTrackMom);
+   double lam = (firstScifi_z - pos.z())/mom.z();
+   // nominal first position
+   TVector3 pos1(pos.x()+lam*mom.x(), pos.y()+lam*mom.y(), firstScifi_z);
+
+   for (int i = 0;  i < fTrackPoints.size(); i++){
+     dist= (fTrackPoints[i]-pos1).Mag();
+     gr.AddPoint(dist, corr_times[i] - dist/ShipUnit::c_light);
    }
    TF1 line("line", "pol1");
-   // A single entry in the graph - no fit
-   if (gr.GetN() < 2)
-     return make_pair(9999.,999.);
-   else
-     gr.Fit("line", "SQ");
-     return make_pair(line.GetParameter(1),
-                      line.GetParameter(1)/(line.GetParError(1)+1E-13));
+   gr.Fit("line", "SQ");
+   return make_tuple(line.GetParameter(1),
+                    line.GetParameter(1)/(line.GetParError(1)+1E-13), line.GetParameter(0));
 }
 
 TVector3 sndRecoTrack::extrapolateToPlaneAtZ(float z)
@@ -211,28 +206,57 @@ vector<float> sndRecoTrack::getCorrTimes()
    MuFilter *MuFilterDet = dynamic_cast<MuFilter*> (gROOT->GetListOfGlobals()->FindObject("MuFilter") );
    Scifi *ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
    TVector3 A, B, X{};
-   float scintVel;
-   float calibTime{};
+   float scintVel, L;
+   float mean{}, fastest=999.;
    for ( int i = 0;  i < fTrackPoints.size(); i++ ){
-      if (fRawMeasDetID[i] >= 100000) {
+      // First get readout coordinates and parameters
+      if (fRawMeasDetID[i] >= 100000){
          ScifiDet->GetSiPMPosition(fRawMeasDetID[i],A,B);
          scintVel = ScifiDet->GetConfParF("Scifi/signalSpeed");
-         calibTime = ScifiDet->GetCorrectedTime(fRawMeasDetID[i], fRawMeasTimes[i], 0);
       }
-      else { 
+      else {
          MuFilterDet->GetPosition(fRawMeasDetID[i],A,B);
-         if (floor(fRawMeasDetID[i]/10000) == 3)
+         // DS
+         if (floor(fRawMeasDetID[i]/10000) == 3){
+            L = MuFilterDet->GetConfParF("MuFilter/DownstreamBarX");
             scintVel = MuFilterDet->GetConfParF("MuFilter/DsPropSpeed");
+         }
+         // US and Veto
          else scintVel = MuFilterDet->GetConfParF("MuFilter/VandUpPropSpeed");
-         // For the moment only SciFi is time calibrated
-         calibTime = fRawMeasTimes[i];
       }
+      // calculate distance btw track point and SiPM
       // vertical detector elements
       if ( (fRawMeasDetID[i] >= 100000 && int(fRawMeasDetID[i]/100000)%10 == 1) or
            (fRawMeasDetID[i] < 100000  && floor(fRawMeasDetID[i]/10000) == 3 
                                        && fRawMeasDetID[i]%1000 > 59) ) X = B-fTrackPoints[i];
       else X = A - fTrackPoints[i];
-      corr_times.push_back(fRawMeasTimes[i] - X.Mag()/scintVel);
+      // Then, get calibrated hit times
+      if (fRawMeasDetID[i] >= 100000) {
+         corr_times.push_back(ScifiDet->GetCorrectedTime(fRawMeasDetID[i], fRawMeasTimes[i][0], 0) - X.Mag()/scintVel);
+      }
+      else { 
+         mean = 0;
+         fastest=999.;
+         for (int ch = 0, N_channels = fRawMeasTimes[i].size(); ch <N_channels; ch++ ){
+             // For the moment only DS is time calibrated
+             if (floor(fRawMeasDetID[i]/10000) == 3){
+                // vertical bars or DS clusters
+                if ( N_channels==1 ){
+                    corr_times.push_back(MuFilterDet->GetCorrectedTime(fRawMeasDetID[i], ch, fRawMeasTimes[i][ch], 0) - X.Mag()/scintVel);
+                }
+                // horizontal bar - take mean of the L/R hit times
+                else{
+                     mean += MuFilterDet->GetCorrectedTime(fRawMeasDetID[i], ch, fRawMeasTimes[i][ch], 0);
+                     if (ch == N_channels-1) corr_times.push_back(mean/N_channels- L/scintVel/2.);
+                }
+             }
+             // US and Veto - no time calibration yet, just use fastest hit time for now
+             else{
+                  fastest = min(fastest, fRawMeasTimes[i][ch]);
+                  if (ch == N_channels-1) corr_times.push_back(fastest - X.Mag()/scintVel);
+             }
+         }
+      }
       //cout<<"i "<<i<<" raw tdc "<<fRawMeasTimes[i]<<" corr t "<<corr_times.back()<<" "<< X.Mag()<<endl;
    }
 

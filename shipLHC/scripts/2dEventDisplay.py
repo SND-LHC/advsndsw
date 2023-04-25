@@ -267,11 +267,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
        for ht_task in HT_tasks.values():
            for trk in ht_task.kalman_tracks:
                OT.Reco_MuonTracks.Add(trk)
-       uniqueTracks = cleanTracks()
-       if len(uniqueTracks)<nTracks:
-          OT.Reco_MuonTracks.Delete()
        nHoughtracks = OT.Reco_MuonTracks.GetEntries()
-       if nHoughtracks>0: print('number of tracks by pattern recognition:', nHoughtracks)
+       if nHoughtracks>0: print('number of tracks by HT:', nHoughtracks)
 
     if withTrack > 0:
           # Delete SndlhcTracking fitted tracks container
@@ -286,7 +283,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
           for trk in trackTask.fittedTracks:
               OT.Reco_MuonTracks.Add(trk)
           ntracks = len(OT.Reco_MuonTracks) - nHoughtracks
-          if ntracks>0: print('number of tracks by KF-based tracking:', ntracks)
+          if ntracks>0: print('number of tracks by ST:', ntracks)
     nAlltracks = len(OT.Reco_MuonTracks)
     if nAlltracks<nTracks: continue
 
