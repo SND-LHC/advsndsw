@@ -664,7 +664,7 @@ class Mufi_largeVSsmall(ROOT.FairTask):
 class Veto_Efficiency(ROOT.FairTask):
    " calculate Veto efficiency against Scifi tracks "
    def Init(self,options,monitor):
-       self.debug = False
+       self.debug = True
        self.M = monitor
        sdict = self.M.sdict
        self.eventBefore={'T':-1,'N':-1,'hits':{1:0,0:0,'0L':0,'0R':0,'1L':0,'1R':0}}
@@ -678,6 +678,10 @@ class Veto_Efficiency(ROOT.FairTask):
        self.noiseCuts = [1,5,10,12]
        self.zEx = self.M.zPos['Scifi'][10]
        for noiseCut in self.noiseCuts:
+        ut.bookHist(h,'timeDiffPrev_'+str(noiseCut),'time diff; [clock cycles] ',100,-0.5,999.5)
+        ut.bookHist(h,'XtimeDiffPrev_'+str(noiseCut),'time diff no hits; [clock cycles] ',100,-0.5,999.5)
+        ut.bookHist(h,'timeDiffNext_'+str(noiseCut),'time diff next; [clock cycles] ',100,-0.5,999.5)
+        ut.bookHist(h,'XtimeDiffNext_'+str(noiseCut),'time diff next no hits; [clock cycles] ',100,-0.5,999.5)
         for c in ['','NoPrev']:
          for b in ['','beam']:
           nc = 'T'+c+str(noiseCut)+b
@@ -721,8 +725,13 @@ class Veto_Efficiency(ROOT.FairTask):
            allChannels.clear()
        prevEvent = False
        if abs(event.EventHeader.GetEventTime()-self.eventBefore['T']) < 100: prevEvent = True
+       tmpT = self.eventBefore['T'] 
+       tmpN = self.eventBefore['N'] 
+       if not self.M.EventNumber==event.EventHeader.GetEventNumber():print('desaster !!!!',self.M.EventNumber,event.EventHeader.GetEventNumber())
        self.eventBefore['T'] = event.EventHeader.GetEventTime()
-       self.eventBefore['N'] = event.EventHeader.GetEventNumber()
+       if self.M.EventNumber - self.eventBefore['N'] > 1: 
+          print('what is going on?', self.M.EventNumber, self.eventBefore['N'])
+       self.eventBefore['N'] = self.M.EventNumber
 
        rc = h['scaler'].Fill(11)
        if self.M.Reco_MuonTracks.GetEntries()<2: return # require Scifi and DS track
@@ -803,16 +812,17 @@ class Veto_Efficiency(ROOT.FairTask):
                 deltaT = dsHitTimes[0] - scifiHitTimes[s][0] - (self.M.zPos['MuFilter'][34]-self.M.zPos['Scifi'][s*10])/u.speedOfLight
            rc = h['deltaT'].Fill(deltaT)
            if deltaT < -10: continue
-           s = 1
            #look for previous event time
            T1 = event.EventHeader.GetEventTime()
            N1 = event.EventHeader.GetEventNumber()
            rc = event.GetEvent(N1-1)
            T0 = event.EventHeader.GetEventTime()
+           rc = event.GetEvent(N1+1)
+           T2 = event.EventHeader.GetEventTime()
            if (T1-T0)<100: 
-               if not prevEvent and debug: print('what is going on?',N1)
-               rc = h['scaler'].Fill(2)
+               if not prevEvent: print('what is going on?',N1,T1,T0,N1-1,tmpN,tmpT)
                prevEvent = True
+           s = 1
            for l in range(2):
               zEx = self.M.zPos['MuFilter'][s*10+l]
               lam = (zEx-pos.z())/mom.z()
@@ -828,6 +838,9 @@ class Veto_Efficiency(ROOT.FairTask):
                       rc = h[nc+'XPosVeto_'+str(l)].Fill(xEx,yEx)
                       if beam: rc = h[nc+'beamXPosVeto_'+str(l)].Fill(xEx,yEx)
                  if l==0:
+                    if -45<xEx and xEx<-10 and 27<yEx and yEx<54:
+                          rc = h['timeDiffPrev_'+str(noiseCut)].Fill(T1-T0)
+                          rc = h['timeDiffNext_'+str(noiseCut)].Fill(T2-T1)
                     if hits[0] > noiseCut and hits[1] > noiseCut: 
                       rc = h[nc+'PosVeto_11'].Fill(xEx,yEx)
                       if beam: rc = h[nc+'beamPosVeto_11'].Fill(xEx,yEx)
@@ -835,8 +848,11 @@ class Veto_Efficiency(ROOT.FairTask):
                       rc = h[nc+'PosVeto_00'].Fill(xEx,yEx)
                       if beam: rc = h[nc+'beamPosVeto_00'].Fill(xEx,yEx)
                     else:
-                        if -45<xEx and xEx<-10 and 27<yEx and yEx<54  and beam and self.debug and not prevEvent:
-                             print('no hits',noiseCut,prevEvent,beam,event.EventHeader.GetEventNumber(),xEx,yEx,pos,mom,zEx,mom.x()/mom.z(),mom.y()/mom.z())
+                        if -45<xEx and xEx<-10 and 27<yEx and yEx<54:
+                          rc = h['XtimeDiffPrev_'+str(noiseCut)].Fill(T1-T0)
+                          rc = h['XtimeDiffNext_'+str(noiseCut)].Fill(T2-T1)
+                          if not prevEvent:
+                            if self.debug: print('no hits',noiseCut,prevEvent,beam,N1,xEx,yEx,pos,mom,zEx,mom.x()/mom.z(),mom.y()/mom.z())
                         rc = h[nc+'XPosVeto_11'].Fill(xEx,yEx)
                         if beam: rc = h[nc+'beamXPosVeto_11'].Fill(xEx,yEx)
 

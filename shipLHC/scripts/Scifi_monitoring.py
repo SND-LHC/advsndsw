@@ -348,6 +348,8 @@ class Scifi_trackEfficiency(ROOT.FairTask):
        ut.bookHist(h,'hitPerPlane','Scifi hits per detector ; n hits',50,-0.5,49.5)
        for s in range(0,6): 
            ut.bookHist(h,'scifiTrack_'+str(s),'scifi track X/Y at scifi 1 missing station '+str(s)+'; X[cm]; Y[cm]',100,-50,0.,100,10,60)
+           for proj in range(2):
+               ut.bookHist(h,'scifiTrack_'+str(10*s+proj),'scifi track X/Y at scifi 1 missing plane '+str(s*10+proj)+'; X[cm]; Y[cm]',100,-50,0.,100,10,60)
        self.zEx = self.M.zPos['Scifi'][10]
        self.zExVeto = self.M.zPos['MuFilter'][10]
        self.res = 10.
@@ -422,18 +424,22 @@ class Scifi_trackEfficiency(ROOT.FairTask):
              sortedClusters={}
              NscifiTot = 0
              for aCl in self.M.trackTask.clusScifi:
-                s = aCl.GetFirst()//1000000
+                s = aCl.GetFirst()//100000
                 if not (s in sortedClusters): sortedClusters[s]=0
                 sortedClusters[s]+=aCl.GetN()
                 rc = h['clSize'].Fill(aCl.GetN())
              for s in sortedClusters:
                  rc = h['hitPerPlane'].Fill(sortedClusters[s])
              for s in range(1,6):
-                if not (s in sortedClusters):
-                  if abs(dy)<self.res and abs(dx)<self.res:
+              if abs(dy)<self.res and abs(dx)<self.res:
+                if not ( (s*10 in sortedClusters) or ( (s*10+1)  in sortedClusters) ):
                      rc = h['scifiTrack_'+str(s)].Fill(xEx,yEx)
                      if -40<xEx and xEx<-12 and 18<yEx and yEx<47 and self.debug:
                         print('inefficient scifi detector ',s,self.M.EventNumber,xEx,yEx,len(vetoHits))
+                if not (s*10 in sortedClusters):
+                     rc = h['scifiTrack_'+str(s*10)].Fill(xEx,yEx)
+                if not ((s*10+1) in sortedClusters):
+                     rc = h['scifiTrack_'+str(s*10+1)].Fill(xEx,yEx)
 
 # analysis and plots 
    def Plot(self):
