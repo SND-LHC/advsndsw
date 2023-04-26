@@ -89,13 +89,13 @@ class prodManager():
                         -b 100000 -p "+pathConv+" -g GGGG "\
                         +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo  "
       if options.parallel>1: monitorCommand += " --postscale "+str(options.parallel)
-      convDataFiles = self.getFileList(pathConv,latest,options.rmax,minSize=0)
+      convDataFiles = self.getFileList(pathConv,latest,options.rMax,minSize=0)
       self.checkEOS(copy=False,latest=latest)
       # remove directories which are not completely copied
       for r in self.missing:
              if r in convDataFiles: convDataFiles.pop(r)
       # remove directories which are not fully converted
-      rawDataFiles = self.getFileList(path,latest,options.rmax,minSize=10E6)
+      rawDataFiles = self.getFileList(path,latest,options.rMax,minSize=10E6)
       self.RawrunNrs = {}
       for x in rawDataFiles:
              r =  x//10000
@@ -119,10 +119,7 @@ class prodManager():
       for r in self.runNrs:
            if len(self.runNrs[r]) != len(self.RawrunNrs[r]): continue  # not all files converted.
            print('executing DQ for run %i'%(r))
-           if   r  < 4575:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
-           elif r  < 4855:  geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
-           elif r  < 5172:  geoFile =  "../geofile_sndlhc_TI18_V6_08October2022.root"
-           else: geoFile =  "../geofile_sndlhc_TI18_V7_22November2022.root"
+           geoFile =  "../geofile_sndlhc_TI18_V0_2022.root"
            os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
            while self.count_python_processes('run_Monitoring')>(ncpus-2) or psutil.virtual_memory()[2]>90 : time.sleep(1800)
 
@@ -253,7 +250,7 @@ class prodManager():
                for o in z.split(' '):
                   if not o=='': tmp.append(o)
                if self.options.server.find('snd-server')>0:
-                  jj = 3              # not sure it is still correct with the changes on EOS
+                  jj = 0
                   k = z.rfind('data_')
                   if not k>0: continue
                   if not z[k+9:k+10]=='.': continue
@@ -381,12 +378,9 @@ if __name__ == '__main__':
        if options.server.find('eospublic')<0:
           path = "/mnt/raid1/data_online/" 
        else:
-          path = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/"
-       pathConv = "/eos/experiment/sndlhc/convertedData/commissioning/TI18/"
-       if options.runNumbers=="": 
-          runList = [1,6,7,8,16,18,19,20,21,23,24,25,26,27]
-          # 6,7,8   14,15,22 corrupted
-          # 
+          path = "/eos/experiment/sndlhc/raw_data/physics/2023_tmp/"
+          pathConv = "/eos/experiment/sndlhc/convertedData/physics/2023/"
+       
     elif options.prod == "reproc2022":
        path = "/eos/experiment/sndlhc/raw_data/physics/2022/"
        pathConv = "/eos/experiment/sndlhc/convertedData/physics/2022/"

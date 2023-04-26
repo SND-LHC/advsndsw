@@ -356,7 +356,7 @@ class Monitoring():
        self.presenterFile.Close()
        if self.options.online:
            wwwPath = "/eos/experiment/sndlhc/www/online"
-       elif self.options.path.find('2022') :
+       elif self.options.path.find('2022')>0 :
            wwwPath = "/eos/experiment/sndlhc/www/reprocessing"
        else:    
            wwwPath = "/eos/experiment/sndlhc/www/offline"

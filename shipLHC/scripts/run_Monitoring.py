@@ -134,10 +134,13 @@ else:
    if options.rawDataPath: rawDataPath = options.rawDataPath
 # works only for runs on EOS
    elif not options.server.find('eos')<0:
-      if options.path.find('2022'):
+      if options.path.find('2023'):
+          rawDataPath = "/eos/experiment/sndlhc/raw_data/physics/2023_tmp/"
+      elif options.path.find('2022'):
           rawDataPath = "/eos/experiment/sndlhc/raw_data/physics/2022/"
       else:
           rawDataPath = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/"
+      options.rawDataPath = rawDataPath
       runDir = rawDataPath+"run_"+str(options.runNumber).zfill(6)
       jname = "run_timestamps.json"
       dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+runDir,shell=True) ) 
