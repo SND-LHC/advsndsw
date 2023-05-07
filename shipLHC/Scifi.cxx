@@ -554,10 +554,11 @@ void Scifi::GetSiPMPosition(Int_t SiPMChan, TVector3& A, TVector3& B)
 		LOG(ERROR) << "Scifi::GetSiPMPosition: non valid run number "<<fRunNumber;
 		return;
 		}
-		tag = "D";
+		tag = "E";
 		if (fRunNumber<4575) {tag = "A";}
 		else if (fRunNumber<4855) {tag = "B";}
 		else if (fRunNumber<5172) {tag = "C";}
+		else if (fRunNumber<5431) {tag = "D";}
 	}
 	TString sID;
 	sID.Form("%i",SiPMChan);
