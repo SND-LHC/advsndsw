@@ -131,12 +131,13 @@ InitStatus ConvRawData::Init()
     fDigiMuFilter = new TClonesArray("MuFilterHit");
     ioman->Register("Digi_MuFilterHits", "DigiMuFilterHit_det", fDigiMuFilter, kTRUE);
     ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
-    
-    TStopwatch timerCSV;
-    timerCSV.Start();
-    read_csv(fpathCalib);
-    timerCSV.Stop();
-    LOG (info) << "Time to read CSV " << timerCSV.RealTime();
+    if (makeCalibration){
+      TStopwatch timerCSV;
+      timerCSV.Start();
+      read_csv(fpathCalib);
+      timerCSV.Stop();
+      LOG (info) << "Time to read CSV " << timerCSV.RealTime();
+    }
     //calibrationReport();
     TStopwatch timerBMap;
     timerBMap.Start();
