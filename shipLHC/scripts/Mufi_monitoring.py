@@ -689,8 +689,10 @@ class Veto_Efficiency(ROOT.FairTask):
            ut.bookHist(h,nc+'PosVeto_'+str(l),'track pos at veto'+str(l)+' with hit '+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
            ut.bookHist(h,nc+'XPosVeto_'+str(l),'track pos at veto'+str(l)+' no hit'+str(l)+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
           ut.bookHist(h,nc+'PosVeto_11','track pos at veto AND hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          ut.bookHist(h,nc+'PosVeto_111','track pos at veto AND hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
           ut.bookHist(h,nc+'PosVeto_00','track pos at veto OR hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
           ut.bookHist(h,nc+'XPosVeto_11','track pos at veto no hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          ut.bookHist(h,nc+'XPosVeto_111','track pos at veto no hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
           for x in [nc+'XPosVeto_11',nc+'PosVeto_00',nc+'PosVeto_11',nc+'PosVeto_1',
                       nc+'PosVeto_0',nc+'XPosVeto_1',nc+'XPosVeto_0']: h[x].SetStats(0)
 
@@ -729,7 +731,7 @@ class Veto_Efficiency(ROOT.FairTask):
        tmpN = self.eventBefore['N'] 
        if not self.M.EventNumber==event.EventHeader.GetEventNumber():print('desaster !!!!',self.M.EventNumber,event.EventHeader.GetEventNumber())
        self.eventBefore['T'] = event.EventHeader.GetEventTime()
-       if self.M.EventNumber - self.eventBefore['N'] > 1: 
+       if (self.M.EventNumber - self.eventBefore['N'] > 1) and self.M.options.postScale < 2:
           print('what is going on?', self.M.EventNumber, self.eventBefore['N'])
        self.eventBefore['N'] = self.M.EventNumber
 
@@ -819,42 +821,48 @@ class Veto_Efficiency(ROOT.FairTask):
            T0 = event.EventHeader.GetEventTime()
            rc = event.GetEvent(N1+1)
            T2 = event.EventHeader.GetEventTime()
-           if (T1-T0)<100: 
+           if (T1-T0)<100 and self.M.options.postScale < 2:: 
                if not prevEvent: print('what is going on?',N1,T1,T0,N1-1,tmpN,tmpT)
                prevEvent = True
            s = 1
+           xEx = {}
+           yEx = {}
            for l in range(2):
               zEx = self.M.zPos['MuFilter'][s*10+l]
               lam = (zEx-pos.z())/mom.z()
-              xEx,yEx = pos.x()+lam*mom.x(),pos.y()+lam*mom.y()
+              xEx[l] = pos.x()+lam*mom.x()
+              yEx[l] = pos.y()+lam*mom.y()
+           for l in range(2):
               for noiseCut in self.noiseCuts:
                  c=''
                  if not prevEvent: c='NoPrev'
                  nc = 'T'+c+str(noiseCut)
                  if hits[l] > noiseCut: 
-                      rc = h[nc+'PosVeto_'+str(l)].Fill(xEx,yEx)
-                      if beam: rc = h[nc+'beamPosVeto_'+str(l)].Fill(xEx,yEx)
+                      rc = h[nc+'PosVeto_'+str(l)].Fill(xEx[l],yEx[l])
+                      if beam: rc = h[nc+'beamPosVeto_'+str(l)].Fill(xEx[l],yEx[l])
                  else:                        
-                      rc = h[nc+'XPosVeto_'+str(l)].Fill(xEx,yEx)
-                      if beam: rc = h[nc+'beamXPosVeto_'+str(l)].Fill(xEx,yEx)
+                      rc = h[nc+'XPosVeto_'+str(l)].Fill(xEx[l],yEx[l])
+                      if beam: rc = h[nc+'beamXPosVeto_'+str(l)].Fill(xEx[l],yEx[l])
                  if l==0:
-                    if -45<xEx and xEx<-10 and 27<yEx and yEx<54:
+                    if -45<xEx[l] and xEx[l]<-10 and 27<yEx[l] and yEx[l]<54:
                           rc = h['timeDiffPrev_'+str(noiseCut)].Fill(T1-T0)
                           rc = h['timeDiffNext_'+str(noiseCut)].Fill(T2-T1)
                     if hits[0] > noiseCut and hits[1] > noiseCut: 
-                      rc = h[nc+'PosVeto_11'].Fill(xEx,yEx)
-                      if beam: rc = h[nc+'beamPosVeto_11'].Fill(xEx,yEx)
+                      rc = h[nc+'PosVeto_11'].Fill(xEx[l],yEx[l])
+                      rc = h[nc+'PosVeto_111'].Fill(xEx[1],yEx[1])
+                      if beam: rc = h[nc+'beamPosVeto_11'].Fill(xEx[l],yEx[l])
                     if hits[0] > noiseCut or hits[1] > noiseCut:    
-                      rc = h[nc+'PosVeto_00'].Fill(xEx,yEx)
-                      if beam: rc = h[nc+'beamPosVeto_00'].Fill(xEx,yEx)
+                      rc = h[nc+'PosVeto_00'].Fill(xEx[l],yEx[l])
+                      if beam: rc = h[nc+'beamPosVeto_00'].Fill(xEx[l],yEx[l])
                     else:
-                        if -45<xEx and xEx<-10 and 27<yEx and yEx<54:
+                        if -45<xEx[l] and xEx[l]<-10 and 27<yEx[l] and yEx[l]<54:
                           rc = h['XtimeDiffPrev_'+str(noiseCut)].Fill(T1-T0)
                           rc = h['XtimeDiffNext_'+str(noiseCut)].Fill(T2-T1)
                           if not prevEvent:
-                            if self.debug: print('no hits',noiseCut,prevEvent,beam,N1,xEx,yEx,pos,mom,zEx,mom.x()/mom.z(),mom.y()/mom.z())
-                        rc = h[nc+'XPosVeto_11'].Fill(xEx,yEx)
-                        if beam: rc = h[nc+'beamXPosVeto_11'].Fill(xEx,yEx)
+                            if self.debug: print('no hits',noiseCut,prevEvent,beam,N1)
+                        rc = h[nc+'XPosVeto_11'].Fill(xEx[l],yEx[l])
+                        rc = h[nc+'XPosVeto_111'].Fill(xEx[1],yEx[1])
+                        if beam: rc = h[nc+'beamXPosVeto_11'].Fill(xEx[l],yEx[l])
 
    def Plot(self,beamOnly=False):
      h = self.M.h

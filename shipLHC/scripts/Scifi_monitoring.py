@@ -472,7 +472,7 @@ class Scifi_trackEfficiency(ROOT.FairTask):
        # station inefficiency
        ut.bookCanvas(h,'Tsineff','',1200,900,3,2)
        sRef=1
-       border = [14.964849051657234, 54.00431913184336, -46.21974599493218, -7.146496817384938]
+       border = [14.964849051657234, 54.00431913184336, -46.21974599493218, -7.146496817384938]  # scifi 1 boundaries
        h['TlineTop'+str(sRef)] = ROOT.TLine(border[2],border[1],border[3],border[1])
        h['TlineBot'+str(sRef)] = ROOT.TLine(border[2],border[0],border[3],border[0])
        h['TlineLef'+str(sRef)] = ROOT.TLine(border[2],border[0],border[2],border[1])

@@ -17,8 +17,14 @@ def delProcesses(pname):
     status = subprocess.check_output(callstring,shell=True)
     for x in str(status).split("\\n"):
          if not x.find(pname)<0:
-            pid = x.split(' ')[2]
-            os.system('kill '+pid)
+            first = True
+            for pid in x.split(' '):
+              if first:
+                  first = False
+                  continue
+              if pid=='':continue
+              os.system('kill '+pid)
+              break 
          
 class prodManager():
 
@@ -88,7 +94,7 @@ class prodManager():
       monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
                         -b 100000 -p "+pathConv+" -g GGGG "\
                         +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo  "
-      if options.parallel>1: monitorCommand += " --postscale "+str(options.parallel)
+      if options.parallel>1: monitorCommand += " --postScale "+str(options.parallel)
       convDataFiles = self.getFileList(pathConv,latest,options.rMax,minSize=0)
       self.checkEOS(copy=False,latest=latest)
       # remove directories which are not completely copied
@@ -117,6 +123,7 @@ class prodManager():
           self.runNrs[r] = [x]
           
       for r in self.runNrs:
+           if not r in self.RawrunNrs: continue # file converted but not enough events
            if len(self.runNrs[r]) != len(self.RawrunNrs[r]): continue  # not all files converted.
            print('executing DQ for run %i'%(r))
            geoFile =  "../geofile_sndlhc_TI18_V0_2022.root"
@@ -127,7 +134,7 @@ class prodManager():
       monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
                         -b 100000 -p "+pathConv+" -g GGGG "\
                         +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
-      if options.parallel>1: monitorCommand += " --postscale "+str(options.parallel)
+      if options.parallel>1: monitorCommand += " --postScale "+str(options.parallel)
       if len(runNrs) ==0:
          self.getRunNrFromOffline(rMin,rMax)
          runNrs = self.dqDataFiles
@@ -239,7 +246,7 @@ class prodManager():
       dirList = str( subprocess.check_output("xrdfs "+self.options.server+" ls "+p,shell=True) )
       for x in dirList.split('\\n'):
           aDir = x[x.rfind('/')+1:]
-          if not aDir.find('run')==0:continue
+          if not aDir.find('run')==0 or aDir.find('json')>0: continue
           runNr = int(aDir.split('_')[1])
           if not runNr > latest: continue
           if runNr > rmax:       continue
