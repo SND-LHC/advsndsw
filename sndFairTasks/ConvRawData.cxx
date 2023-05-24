@@ -131,13 +131,12 @@ InitStatus ConvRawData::Init()
     fDigiMuFilter = new TClonesArray("MuFilterHit");
     ioman->Register("Digi_MuFilterHits", "DigiMuFilterHit_det", fDigiMuFilter, kTRUE);
     ScifiDet = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
-    if (makeCalibration){
-      TStopwatch timerCSV;
-      timerCSV.Start();
-      read_csv(fpathCalib);
-      timerCSV.Stop();
-      LOG (info) << "Time to read CSV " << timerCSV.RealTime();
-    }
+    TStopwatch timerCSV;
+    timerCSV.Start();
+    read_csv(fpathCalib);
+    timerCSV.Stop();
+    LOG (info) << "Time to read CSV " << timerCSV.RealTime();
+    
     //calibrationReport();
     TStopwatch timerBMap;
     timerBMap.Start();
@@ -966,6 +965,58 @@ void ConvRawData::read_csv(string Path)
   // counter of number of elements
   vector<int> key_vector{};
   
+  // Always read the SiPM mapping
+  int SiPM{};
+  vector<int> data_vector{};
+  map<string, map<int, vector<int>> > SiPMmap{};
+  vector<int> row{};
+  map<string, int> key { {"DS",2}, {"US",1}, {"Veto",0} };
+  struct stat buffer;
+  TString sndRoot = gSystem->Getenv("SNDSW_ROOT");
+  string sndswPath = sndRoot.Data();
+  string path_SiPMmap = Form("%s/geometry", sndswPath.c_str());
+  if (stat(path_SiPMmap.c_str(), &buffer) != 0)
+  {
+    LOG (error) << "Path "<< path_SiPMmap.c_str() << " does not exist!";
+    exit (0); 
+  }
+  for (auto sys : key)
+  {
+    infile.open(Form("%s/%s_SiPM_mapping.csv", path_SiPMmap.c_str(), sys.first.c_str()));
+    X << infile.rdbuf();
+    infile.close();
+          
+    // Skip 1st line
+    getline(X,line);
+    LOG (info) << "In " << sys.first << " SiPM map file: " << line;
+    // Read all other lines
+    while (getline(X,line))
+    {
+        data_vector.clear();
+        stringstream items(line);
+        // first element in line is SiPM
+        getline(items, element, ',');
+        SiPM = stoi(element);
+        // only taking first few elements of line
+        while (data_vector.size()<4 && getline(items, element, ',')) 
+        {
+           data_vector.push_back(stoi(element));
+        }
+        SiPMmap[sys.first][SiPM] = data_vector;
+        if (X.peek() == EOF) break;
+    }
+    X.str(string()); X.clear(); line.clear();
+    size = 0; offset = 0; bytesRead = 0;
+    for (auto channel : SiPMmap[sys.first])
+    {
+      row = channel.second;
+      TofpetMap[sys.second][row.at(2)*1000+row.at(3)] = channel.first;
+    }
+  } // end filling SiPMmap and TofpetMap
+
+  // Get QDC/TDC calibration data if flag is set
+  if (!makeCalibration) return;
+
   // Get QDC calibration data
   if (local)
   {
@@ -1064,54 +1115,6 @@ void ConvRawData::read_csv(string Path)
   }
   X.str(string()); X.clear(); line.clear();
   size = 0; offset = 0; bytesRead = 0;
-  
-  int SiPM{};
-  vector<int> data_vector{};
-  map<string, map<int, vector<int>> > SiPMmap{};
-  vector<int> row{};
-  map<string, int> key { {"DS",2}, {"US",1}, {"Veto",0} };
-  struct stat buffer;
-  TString sndRoot = gSystem->Getenv("SNDSW_ROOT");
-  string sndswPath = sndRoot.Data();
-  string path_SiPMmap = Form("%s/geometry", sndswPath.c_str());
-  if (stat(path_SiPMmap.c_str(), &buffer) != 0)
-  {
-    LOG (error) << "Path "<< path_SiPMmap.c_str() << " does not exist!";
-    exit (0); 
-  }
-  for (auto sys : key)
-  {
-    infile.open(Form("%s/%s_SiPM_mapping.csv", path_SiPMmap.c_str(), sys.first.c_str()));
-    X << infile.rdbuf();
-    infile.close();
-          
-    // Skip 1st line
-    getline(X,line);
-    LOG (info) << "In " << sys.first << " SiPM map file: " << line;
-    // Read all other lines
-    while (getline(X,line))
-    {
-        data_vector.clear();
-        stringstream items(line);
-        // first element in line is SiPM
-        getline(items, element, ',');
-        SiPM = stoi(element);
-        // only taking first few elements of line
-        while (data_vector.size()<4 && getline(items, element, ',')) 
-        {
-           data_vector.push_back(stoi(element));
-        }
-        SiPMmap[sys.first][SiPM] = data_vector;
-        if (X.peek() == EOF) break;
-    }
-    X.str(string()); X.clear(); line.clear();
-    size = 0; offset = 0; bytesRead = 0;
-    for (auto channel : SiPMmap[sys.first])
-    {
-      row = channel.second;
-      TofpetMap[sys.second][row.at(2)*1000+row.at(3)] = channel.first;
-    }
-  } // end filling SiPMmap and TofpetMap
 }
 void ConvRawData::debugMapping(string brd, int tofpetID, int tofpetChannel)
 {
