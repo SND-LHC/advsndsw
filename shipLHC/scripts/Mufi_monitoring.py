@@ -821,7 +821,7 @@ class Veto_Efficiency(ROOT.FairTask):
            T0 = event.EventHeader.GetEventTime()
            rc = event.GetEvent(N1+1)
            T2 = event.EventHeader.GetEventTime()
-           if (T1-T0)<100 and self.M.options.postScale < 2:: 
+           if (T1-T0)<100 and self.M.options.postScale < 2:
                if not prevEvent: print('what is going on?',N1,T1,T0,N1-1,tmpN,tmpT)
                prevEvent = True
            s = 1
