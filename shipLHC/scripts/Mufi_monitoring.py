@@ -729,7 +729,7 @@ class Veto_Efficiency(ROOT.FairTask):
        if abs(event.EventHeader.GetEventTime()-self.eventBefore['T']) < 100: prevEvent = True
        tmpT = self.eventBefore['T'] 
        tmpN = self.eventBefore['N'] 
-       if not self.M.EventNumber==event.EventHeader.GetEventNumber():print('desaster !!!!',self.M.EventNumber,event.EventHeader.GetEventNumber())
+       # if not self.M.EventNumber==event.EventHeader.GetEventNumber() and self.eventBefore['N']>0:print('desaster !!!!',self.M.EventNumber,event.EventHeader.GetEventNumber())
        self.eventBefore['T'] = event.EventHeader.GetEventTime()
        if (self.M.EventNumber - self.eventBefore['N'] > 1) and self.M.options.postScale < 2:
           print('what is going on?', self.M.EventNumber, self.eventBefore['N'])
