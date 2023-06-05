@@ -712,7 +712,16 @@ class Veto_Efficiency(ROOT.FairTask):
        W = self.M.Weight
        nSiPMs = 8
        hits = {1:0,0:0,'0L':0,'0R':0,'1L':0,'1R':0}
-       for aHit in event.Digi_MuFilterHits:
+       vetoHitsFromPrev = 0
+       if event.EventHeader.GetRunId() < 6204 and event.EventHeader.GetRunId() > 5480: vetoHitsFromPrev = 5
+       # special treatment for first 10fb-1 in 2023, wrong time alignment, again!
+       N1 = event.EventHeader.GetEventNumber()
+       dT = abs(event.EventHeader.GetEventTime()-self.eventBefore['T'])
+       for j in [0,-1]:
+         if j<0: 
+              if dT > vetoHitsFromPrev: continue
+              rc = event.GetEvent(N1-1)  # add veto hits from prev event
+         for aHit in event.Digi_MuFilterHits:
            if not aHit.isValid(): continue
            Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
            s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
@@ -725,11 +734,12 @@ class Veto_Efficiency(ROOT.FairTask):
               else:
                     hits[str(l)+'R']+=1
            allChannels.clear()
+         if j<0: event.GetEvent(N1)
        prevEvent = False
-       if abs(event.EventHeader.GetEventTime()-self.eventBefore['T']) < 100: prevEvent = True
+       dT = abs(event.EventHeader.GetEventTime()-self.eventBefore['T'])
+       if dT < 100 and dT > vetoHitsFromPrev: prevEvent = True
        tmpT = self.eventBefore['T'] 
        tmpN = self.eventBefore['N'] 
-       # if not self.M.EventNumber==event.EventHeader.GetEventNumber() and self.eventBefore['N']>0:print('desaster !!!!',self.M.EventNumber,event.EventHeader.GetEventNumber())
        self.eventBefore['T'] = event.EventHeader.GetEventTime()
        if (self.M.EventNumber - self.eventBefore['N'] > 1) and self.M.options.postScale < 2:
           print('what is going on?', self.M.EventNumber, self.eventBefore['N'])
@@ -822,7 +832,7 @@ class Veto_Efficiency(ROOT.FairTask):
            rc = event.GetEvent(N1+1)
            T2 = event.EventHeader.GetEventTime()
            rc = event.GetEvent(N1)
-           if (T1-T0)<100 and self.M.options.postScale < 2:
+           if (T1-T0) < 100 and (T1-T0) > vetoHitsFromPrev and self.M.options.postScale < 2:
                if not prevEvent: print('what is going on?',N1,T1,T0,N1-1,tmpN,tmpT)
                prevEvent = True
            s = 1

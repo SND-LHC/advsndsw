@@ -79,7 +79,7 @@ if options.runNumber < 0  and not options.geoFile:
 
 if not options.geoFile:
    if options.path.find('TI18')<0:
-     options.geoFile =  "geofile_sndlhc_TI18_V0_2022.root"
+     options.geoFile =  "geofile_sndlhc_TI18_V1_2023.root"
    else:
      if options.runNumber < 4575:
            options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
@@ -170,7 +170,7 @@ M = Monitor.Monitoring(options,FairTasks)
 if options.nEvents < 0 :   options.nEvents = M.GetEntries()
 if options.postScale==0 and options.nEvents>100E6: options.postScale = 100
 if options.postScale==0 and options.nEvents>10E6: options.postScale = 10
-
+print('using postScale ',options.postScale,' for run ',options.runNumber)
 monitorTasks = {}
 if not options.fname:
    monitorTasks['daq']     = DAQ_monitoring.DAQ_boards()
@@ -178,7 +178,7 @@ if not options.fname:
 monitorTasks['Scifi_hitMaps']   = Scifi_monitoring.Scifi_hitMaps()
 monitorTasks['Mufi_hitMaps']   = Mufi_monitoring.Mufi_hitMaps()
 monitorTasks['Mufi_QDCcorellations']   = Mufi_monitoring.Mufi_largeVSsmall()
-monitorTasks['Veto_Efficiency']   = Mufi_monitoring.Veto_Efficiency()
+if options.postScale<2: monitorTasks['Veto_Efficiency']   = Mufi_monitoring.Veto_Efficiency()
 monitorTasks['Scifi_residuals'] = Scifi_monitoring.Scifi_residuals()   # time consuming
 if options.interactive:  monitorTasks['EventDisplay']   = EventDisplay_Task.twod()
 
