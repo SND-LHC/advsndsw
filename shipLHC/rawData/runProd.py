@@ -25,7 +25,7 @@ def delProcesses(pname):
               if pid=='':continue
               os.system('kill '+pid)
               break 
-         
+
 class prodManager():
 
    def Init(self,options):
@@ -94,7 +94,7 @@ class prodManager():
       monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
                         -b 100000 -p "+pathConv+" -g GGGG "\
                         +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo  "
-      if options.parallel>1: monitorCommand += " --postScale "+str(options.parallel)
+      if options.parallel>1: monitorCommand += " --parallel "+str(options.parallel)
       convDataFiles = self.getFileList(pathConv,latest,options.rMax,minSize=0)
       self.checkEOS(copy=False,latest=latest)
       # remove directories which are not completely copied
@@ -123,10 +123,15 @@ class prodManager():
           self.runNrs[r] = [x]
           
       for r in self.runNrs:
-           if not r in self.RawrunNrs: continue # file converted but not enough events
-           if len(self.runNrs[r]) != len(self.RawrunNrs[r]): continue  # not all files converted.
+           if r > options.rMax or r < options.rMin: continue # outside range
+           if not r in self.RawrunNrs: 
+               print('run not found in raw data',r)
+               continue # file converted but not enough events
+           if len(self.runNrs[r]) != len(self.RawrunNrs[r]): 
+               print('run not complete',r)
+               continue  # not all files converted.
            print('executing DQ for run %i'%(r))
-           geoFile =  "../geofile_sndlhc_TI18_V0_2022.root"
+           geoFile =  "../geofile_sndlhc_TI18_V1_2023.root"
            os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
            while self.count_python_processes('run_Monitoring')>(ncpus-2) or psutil.virtual_memory()[2]>90 : time.sleep(1800)
 
@@ -153,7 +158,7 @@ class prodManager():
       convDataFiles = self.getFileList(pathConv,latest,rmax,minSize=0)
       orderedRDF = list(rawDataFiles.keys())
       orderedCDF = list(convDataFiles.keys())
-      orderedRDF.reverse(),orderedCDF.reverse()
+      orderedRDF.sort(),orderedCDF.sort()
 
       for x in orderedRDF: 
            if x in orderedCDF: continue
@@ -246,7 +251,7 @@ class prodManager():
       dirList = str( subprocess.check_output("xrdfs "+self.options.server+" ls "+p,shell=True) )
       for x in dirList.split('\\n'):
           aDir = x[x.rfind('/')+1:]
-          if not aDir.find('run')==0 or aDir.find('json')>0: continue
+          if not aDir.find('run')==0 or aDir.find('json')>0:continue
           runNr = int(aDir.split('_')[1])
           if not runNr > latest: continue
           if runNr > rmax:       continue
