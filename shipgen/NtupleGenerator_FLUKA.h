@@ -4,6 +4,12 @@
 #include "TROOT.h"
 #include "FairGenerator.h"
 #include "TTree.h"                      // for TTree
+#include "TClonesArray.h"
+#include "TObject.h"
+
+struct PrimaryTrack : public TObject{
+  Double_t id, px, py, pz, x, y, z, E, t, w, generation;
+};
 
 class FairPrimaryGenerator;
 
@@ -31,7 +37,8 @@ class NtupleGenerator_FLUKA : public FairGenerator
   TTree* fTree;
   int fNevents;
   int fn;
-  ClassDef(NtupleGenerator_FLUKA,2);
+  TClonesArray* primaries;
+  ClassDef(NtupleGenerator_FLUKA,3);
 };
 
 #endif /* !FLUKAntGENERATOR_H */
