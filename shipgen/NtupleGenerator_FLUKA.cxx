@@ -33,9 +33,9 @@ Bool_t NtupleGenerator_FLUKA::Init(const char* fileName, const int firstEvent) {
 
   fNevents = fTree->GetEntries();
   fn = firstEvent;
+  primaries = 0;
   // Check the input TTree structure
-  if (fTree->FindLeaf("primaries_") != nullptr) {
-     primaries = 0;
+  if (fTree->FindLeaf("primaries_") != nullptr) {     
      fTree->SetBranchAddress("primaries",&primaries);
   }
   else {  
