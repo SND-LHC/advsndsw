@@ -48,7 +48,7 @@ parser.add_argument("--boostFactor", dest="boostFactor",  help="boost mu brems",
 parser.add_argument("--enhancePiKaDecay", dest="enhancePiKaDecay",  help="decrease charged pion and kaon lifetime", required=False, type=float,default=0.)
 parser.add_argument("--debug",   dest="debug",   help="debugging mode, check for overlaps", required=False, action="store_true")
 parser.add_argument("-D", "--display", dest="eventDisplay", help="store trajectories", required=False, action="store_true")
-parser.add_argument("--EmuDet","--nuTargetActive",dest="nuTargetActive",help="activate emulsiondetector", required=False,action="store_true")
+parser.add_argument("--EmuDet","--nuTargetActive",dest="nuTargetPassive",help="activate emulsiondetector", required=False,action="store_false")
 parser.add_argument("--NagoyaEmu","--useNagoyaEmulsions",dest="useNagoyaEmulsions",help="use bricks of 57 Nagoya emulsion films instead of 60 Slavich", required=False,action="store_true")
 
 options = parser.parse_args()
@@ -107,7 +107,7 @@ shipRoot_conf.configure(0)     # load basic libraries, prepare atexit for python
 
 if options.testbeam:  snd_geo = ConfigRegistry.loadpy("$SNDSW_ROOT/geometry/sndLHC_H6geom_config.py")
 else:                         snd_geo = ConfigRegistry.loadpy("$SNDSW_ROOT/geometry/sndLHC_geom_config.py",
-                                                                  nuTargetPassive = not options.nuTargetActive, useNagoyaEmulsions = options.useNagoyaEmulsions)
+                                                                  nuTargetPassive = options.nuTargetPassive, useNagoyaEmulsions = options.useNagoyaEmulsions)
 
 if simEngine == "PG": tag = simEngine + "_"+str(options.pID)+"-"+mcEngine
 else: tag = simEngine+"-"+mcEngine

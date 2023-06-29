@@ -3,7 +3,7 @@ import shipunit as u
 from ShipGeoConfig import AttrDict, ConfigRegistry
 
 if "nuTargetPassive" not in globals():
-    nuTargetPassive = 1
+    nuTargetPassive = True
 if "useNagoyaEmulsions" not in globals():
     useNagoyaEmulsions=False
 
