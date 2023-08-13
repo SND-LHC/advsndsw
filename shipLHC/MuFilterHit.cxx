@@ -96,9 +96,10 @@ MuFilterHit::MuFilterHit(Int_t detID, std::vector<MuFilterPoint*> V)
         if ( t_Left <earliestToAL){earliestToAL = t_Left ;}
         if ( t_Right <earliestToAR){earliestToAR = t_Right ;}
      } 
-     // shortSiPM = {3,6,11,14,19,22,27,30,35,38,43,46,51,54,59,62,67,70,75,78};
+     // shortSiPM = {3,6,11,14,19,22,27,30,35,38,43,46,51,54,59,62,67,70,75,78}; - counting from 1!
+     // In the SndlhcHit class the 'signals' array starts from 0.
      for (unsigned int j=0; j<nSiPMs; ++j){
-        if (j==3 or j==6){
+        if (j==2 or j==5){
            signals[j] = signalRight/float(nSiPMs) * siPMcalibrationS;   // most simplest model, divide signal individually. Small SiPMS special
            times[j] = gRandom->Gaus(earliestToAL, timeResol);
         }else{
@@ -137,7 +138,7 @@ bool MuFilterHit::isVertical(){
 }
 
 bool MuFilterHit::isShort(Int_t i){
-  if (i%8==3 || i%8==6) {return kTRUE;}
+  if (i%8==2 || i%8==5) {return kTRUE;}
   else{return kFALSE;}
 }
 
