@@ -100,14 +100,14 @@ MuFilterHit::MuFilterHit(Int_t detID, std::vector<MuFilterPoint*> V)
      // In the SndlhcHit class the 'signals' array starts from 0.
      for (unsigned int j=0; j<nSiPMs; ++j){
         if (j==2 or j==5){
-           signals[j] = signalRight/float(nSiPMs) * siPMcalibrationS;   // most simplest model, divide signal individually. Small SiPMS special
+           signals[j] = signalLeft/float(nSiPMs) * siPMcalibrationS;   // most simplest model, divide signal individually. Small SiPMS special
            times[j] = gRandom->Gaus(earliestToAL, timeResol);
         }else{
-           signals[j] = signalRight/float(nSiPMs) * siPMcalibration;   // most simplest model, divide signal individually. 
+           signals[j] = signalLeft/float(nSiPMs) * siPMcalibration;   // most simplest model, divide signal individually. 
            times[j] = gRandom->Gaus(earliestToAL, timeResol);
         }
         if (nSides>1){ 
-            signals[j+nSiPMs] = signalLeft/float(nSiPMs) * siPMcalibration;   // most simplest model, divide signal individually.
+            signals[j+nSiPMs] = signalRight/float(nSiPMs) * siPMcalibration;   // most simplest model, divide signal individually.
             times[j+nSiPMs] = gRandom->Gaus(earliestToAR, timeResol);
         }
      }
