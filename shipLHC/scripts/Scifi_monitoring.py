@@ -422,18 +422,56 @@ class Scifi_trackEfficiency(ROOT.FairTask):
        ut.bookHist(h,'clSize','Scifi cluster size for matched tracks; n hits',10,-0.5,9.5)
        ut.bookHist(h,'hitPerPlane','Scifi hits per detector ; n hits',50,-0.5,49.5)
        ut.bookHist(h,'flightDir','flight direction',100,-20.,20.)
-       for s in range(0,6): 
+       for s in range(6):
            ut.bookHist(h,'XscifiTrack_'+str(s),'scifi track X/Y at scifi 1 missing station '+str(s)+'; X[cm]; Y[cm]',100,-50,0.,100,10,60)
+           if s==0: continue
            ut.bookHist(h,'XscifiTrack_0'+str(s),'scifi track X/Y at scifi 1 missing station '+str(s)+'; X[cm]; Y[cm]',100,-50,0.,100,10,60)
            for proj in range(2):
                ut.bookHist(h,'XscifiTrack_'+str(10*s+proj),'scifi track X/Y at scifi 1 missing plane '+str(s*10+proj)+'; X[cm]; Y[cm]',100,-50,0.,100,10,60)
+       ut.bookHist(h,'2scifiTrack_1','scifi track X/Y at scifi 1 missing station 1 and 2; X[cm]; Y[cm]',100,-50,0.,100,10,60)
+       ut.bookHist(h,'2scifiTrack_01','scifi track X/Y at scifi 1 missing station 1 and 2; X[cm]; Y[cm]',100,-50,0.,100,10,60)
+       for proj in range(2):
+               ut.bookHist(h,'2scifiTrack_'+str(10*1+proj),'scifi track X/Y at scifi 1 missing plane '+str(proj)+' in 1 and 2; X[cm]; Y[cm]',100,-50,0.,100,10,60)
        self.zEx = self.M.zPos['Scifi'][10]
        self.zExVeto = self.M.zPos['MuFilter'][10]
        self.res = 10.
        self.unbiased = options.ScifiResUnbiased
        self.masked = options.ScifiStationMasked
-
+       self.deadTime = 100
+       self.eventBefore={'T':-1,'N':-1,'hits':{1:0,0:0,'0L':0,'0R':0,'1L':0,'1R':0}}
    def ExecuteEvent(self,event):
+       vetoHitsFromPrev = 0
+       if event.EventHeader.GetRunId() < 6204 and event.EventHeader.GetRunId() > 5480: vetoHitsFromPrev = 5
+       # special treatment for first 10fb-1 in 2023, wrong time alignment, again!
+       N1 = event.GetReadEntry()
+       Tcurrent = event.EventHeader.GetEventTime()
+       dT = abs(Tcurrent-self.eventBefore['T'])
+       prevAdded = False
+       vetoHits = []
+       USQDC = 0
+       for j in [0,-1]:
+         if j<0 and N1>0: 
+              if dT > vetoHitsFromPrev: continue
+              rc = event.GetEvent(N1-1)  # add veto hits from prev event
+              prevAdded = True
+         for aHit in event.Digi_MuFilterHits:
+           Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
+           s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
+           if s==2 and j==0:  USQDC += aHit.SumOfSignals()['Sum']
+           if s>1: continue
+           X = aHit.GetAllSignals()
+           if len(X)<5: continue   # number of fired SiPMs
+           vetoHits.append(aHit.GetDetectorID())
+       if prevAdded and N1>1:
+         rc = event.GetEvent(N1-2)
+         Tprevprev = event.EventHeader.GetEventTime()
+         dT = abs(Tcurrent-Tprevprev)
+       if prevAdded: event.GetEvent(N1)
+       prevEvent = False
+       if dT < self.deadTime and dT > vetoHitsFromPrev:
+           return
+       self.eventBefore['T'] = Tcurrent
+
        h = self.M.h
        W = self.M.Weight
        MufiTracks    = []
@@ -446,18 +484,7 @@ class Scifi_trackEfficiency(ROOT.FairTask):
           if theTrack.GetUniqueID()==1:   ScifiTracks.append(k)
           if theTrack.GetUniqueID()==3:   MufiTracks.append(k)
        if len(MufiTracks)==0: return
-       vetoHits = []
-       USQDC = 0
-       k = -1
-       for aHit in event.Digi_MuFilterHits:
-           k+=1
-           Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
-           s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
-           if s==2:  USQDC += aHit.SumOfSignals()['Sum']
-           if s>1: continue
-           X = aHit.GetAllSignals()
-           if len(X)<5: continue   # number of fired SiPMs
-           vetoHits.append(k)
+          
        xExTag, yExTag = -10000,-10000
        for kMu in MufiTracks:
           theTrack = self.M.Reco_MuonTracks[kMu]
@@ -471,9 +498,8 @@ class Scifi_trackEfficiency(ROOT.FairTask):
           xExTag      = posT.x()+lam*momT.x()
           # eventually require hit in veto to remove ghost tracks
           ok = False
-          for k in vetoHits:
-              aHit = event.Digi_MuFilterHits[k]
-              self.M.MuFilter.GetPosition(aHit.GetDetectorID(),A,B)
+          for detID in vetoHits:
+              self.M.MuFilter.GetPosition(detID,A,B)
 # calculate DOCA
               lam = (self.zExVeto-posT.z())/momT.z()
               xExV,yExV = posT.x()+lam*momT.x(),posT.y()+lam*momT.y()
@@ -542,7 +568,7 @@ class Scifi_trackEfficiency(ROOT.FairTask):
              nproj = {0:0,1:0}
              for aCl in trackClusters:
                 sq = aCl//10
-                if sq==s or sq==self.masked: continue
+                if sq==s or self.masked.find(str(sq))>-0.5: continue
                 nproj[aCl%10]+=1
              if nproj[0]<3 or nproj[1]<3: continue
              theTrack = self.M.Reco_MuonTracks[ScifiTracks[0]]
@@ -581,6 +607,20 @@ class Scifi_trackEfficiency(ROOT.FairTask):
               rc = h['XscifiTrack_'+str(s*10)].Fill(xEx,yEx)
           if not ((s*10+1) in sortedClusters):
               rc = h['XscifiTrack_'+str(s*10+1)].Fill(xEx,yEx)
+          if s==1:
+             nproj = {0:0,1:0}
+             for aCl in trackClusters:
+                sq = aCl//10
+                if sq==2 or sq==1: continue
+                nproj[aCl%10]+=1
+             if nproj[0]<3 or nproj[1]<3: continue
+             rc = h['2scifiTrack_0'+str(s)].Fill(xEx,yEx)
+             if not ( (s*10 in sortedClusters) or ( (s*10+1)  in sortedClusters) or ( (2*10)  in sortedClusters) or ( (2*10+1)  in sortedClusters) ):
+                 rc = h['2scifiTrack_'+str(s)].Fill(xEx,yEx)
+             if not (s*10 in sortedClusters or 2*10 in sortedClusters ):
+               rc = h['2scifiTrack_'+str(s*10)].Fill(xEx,yEx)
+             if not ((s*10+1) in sortedClusters or (2*10+1) in sortedClusters):
+               rc = h['2scifiTrack_'+str(s*10+1)].Fill(xEx,yEx)
        if self.unbiased:
 # restore original track
            self.M.trackTask.maskPlane = -1
