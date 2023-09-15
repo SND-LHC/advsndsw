@@ -717,11 +717,12 @@ class Veto_Efficiency(ROOT.FairTask):
        vetoHitsFromPrev = 0
        if event.EventHeader.GetRunId() < 6204 and event.EventHeader.GetRunId() > 5480: vetoHitsFromPrev = 5
        # special treatment for first 10fb-1 in 2023, wrong time alignment, again!
-       N1 = event.EventHeader.GetEventNumber()
-       dT = abs(event.EventHeader.GetEventTime()-self.eventBefore['T'])
+       N1 = event.GetReadEntry()
+       Tcurrent = event.EventHeader.GetEventTime()
+       dT = abs(Tcurrent-self.eventBefore['T'])
        prevAdded = False
        for j in [0,-1]:
-         if j<0: 
+         if j<0 and N1>0: 
               if dT > vetoHitsFromPrev: continue
               rc = event.GetEvent(N1-1)  # add veto hits from prev event
               prevAdded = True
@@ -738,13 +739,11 @@ class Veto_Efficiency(ROOT.FairTask):
               else:
                     hits[str(l)+'R']+=1
            allChannels.clear()
-         if j<0: event.GetEvent(N1)
-       if prevAdded:
+       if prevAdded and N1>1:
          rc = event.GetEvent(N1-2)
          Tprevprev = event.EventHeader.GetEventTime()
-         rc = event.GetEvent(N1)
-         dT = abs(event.EventHeader.GetEventTime()-Tprevprev)
-       else: dT = abs(event.EventHeader.GetEventTime()-self.eventBefore['T'])
+         dT = abs(Tcurrent-Tprevprev)
+       if prevAdded: event.GetEvent(N1)
        prevEvent = False
        tightNoiseFilter = None
        otherAdvTrigger  = None
@@ -755,9 +754,9 @@ class Veto_Efficiency(ROOT.FairTask):
            if event.EventHeader.GetRunId() > 6567:
               tightNoiseFilter, otherFastTrigger, otherAdvTrigger,Nprev,dt = self.checkOtherTriggers(event)
 
-       tmpT = self.eventBefore['T'] 
-       tmpN = self.eventBefore['N'] 
-       self.eventBefore['T'] = event.EventHeader.GetEventTime()
+       tmpT = self.eventBefore['T']
+       tmpN = self.eventBefore['N']
+       self.eventBefore['T'] = Tcurrent
        if (self.M.EventNumber - self.eventBefore['N'] > 1) and self.M.options.postScale < 2:
           print('what is going on?', self.M.EventNumber, self.eventBefore['N'])
        self.eventBefore['N'] = self.M.EventNumber
