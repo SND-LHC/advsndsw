@@ -751,7 +751,7 @@ class Veto_Efficiency(ROOT.FairTask):
        if dT < self.deadTime and dT > vetoHitsFromPrev:
            prevEvent = True
            # check type of prev event, if it would pass tight noise filter, run 6568 ++ 
-           if event.EventHeader.GetRunId() > 6567:
+           if event.EventHeader.GetRunId() > 6567 and N1>0:
               tightNoiseFilter, otherFastTrigger, otherAdvTrigger,Nprev,dt = self.checkOtherTriggers(event)
 
        tmpT = self.eventBefore['T']
@@ -907,13 +907,14 @@ class Veto_Efficiency(ROOT.FairTask):
    def checkOtherTriggers(self,event,debug=False):
       T0 = event.EventHeader.GetEventTime()
       N = event.EventHeader.GetEventNumber()
-      Nprev = 1
-      rc = event.GetEvent(N-Nprev)
-      dt = T0 - event.EventHeader.GetEventTime()
       otherFastTrigger = False
       otherAdvTrigger = False
       tightNoiseFilter = False
-      while dt < self.deadTime:
+      Nprev = 1
+      if N<Nprev: return otherFastTrigger, otherAdvTrigger, tightNoiseFilter, -1, 0
+      rc = event.GetEvent(N-Nprev)
+      dt = T0 - event.EventHeader.GetEventTime()
+      while dt < self.deadTime and N>Nprev:
          otherFastTrigger = False
          for x in event.EventHeader.GetFastNoiseFilters():
              if debug: print('fast:', x.first, x.second )
@@ -932,7 +933,7 @@ class Veto_Efficiency(ROOT.FairTask):
       Nprev = 1
       rc = event.GetEvent(N-Nprev)
       dt = T0 - event.EventHeader.GetEventTime()
-      while dt < self.deadTime:
+      while dt < self.deadTime and Nprev>N:
          hits = {1:0,0:0}
          for aHit in event.Digi_MuFilterHits:
             Minfo = self.M.MuFilter_PlaneBars(aHit.GetDetectorID())
