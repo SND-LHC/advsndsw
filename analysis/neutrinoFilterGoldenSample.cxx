@@ -21,15 +21,16 @@
 #include "sndEventDeltat.h"
 #include "sndAvgSciFiFiducialCut.h"
 #include "sndAvgDSFiducialCut.h"
+#include "sndDSVetoCut.h"
 
-enum Cutset { stage1cuts, novetocuts, FVsideband} ;
+enum Cutset { stage1cuts, novetocuts, FVsideband, allowWalls2and5, stage1cutsVetoFirst, nueFilter} ;
 
 int main(int argc, char ** argv) {
 
   std::cout << "Starting neutrino filter" << std::endl;
   
   if (argc != 4) {
-    std::cout << "Two arguments required: input file name (or reg exp), output file name, cut set (0: stage 1 selection, 1: no veto or scifi 1st layer, 2: FV sideband " << std::endl;
+    std::cout << "Two arguments required: input file name (or reg exp), output file name, cut set (0: stage 1 selection, 1: no veto or scifi 1st layer, 2: FV sideband, 3: include walls 2 and 5, 4: nue filter (no DS selection, allow walls 1 to 4." << std::endl;
     exit(-1);
   }
 
@@ -79,16 +80,29 @@ int main(int argc, char ** argv) {
 
   if (selected_cutset == stage1cuts){ // Stage 1 cuts
     //    cutFlow.push_back( new sndAnalysis::minSciFiHits(1, ch)); // A. Events with SciFi activity
-    cutFlow.push_back( new sndAnalysis::vetoCut(ch)); // B. No veto hits
-    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 1), ch)); // C. No hits in first SciFi plane
-    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0.05, std::vector<int>(1, 5), ch)); // D. Vertex not in 5th wall
     cutFlow.push_back( new sndAnalysis::avgSciFiFiducialCut(200, 1200, 300, 128*12-200, ch)); // E. Average SciFi hit channel number must be within [200, 1200] (ver) and [300, max-200] (hor)
     cutFlow.push_back( new sndAnalysis::avgDSFiducialCut(70, 105, 10, 50, ch)); // F. Average DS hit bar number must be within [70, 105] (ver) and [10, 50] (hor)
+    cutFlow.push_back( new sndAnalysis::vetoCut(ch)); // B. No veto hits
+    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 1), ch)); // C. No hits in first SciFi plane
+    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 2), ch)); // C. No hits in second SciFi plane
+    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0.05, std::vector<int>(1, 5), ch)); // D. Vertex not in 5th wall
     cutFlow.push_back( new sndAnalysis::minSciFiConsecutivePlanes(ch)); // G. At least two consecutive SciFi planes hit
     cutFlow.push_back( new sndAnalysis::DSActivityCut(ch)); // H. If there is a downstream hit, require hits in all upstream stations.    
     if (not isMC) cutFlow.push_back( new sndAnalysis::eventDeltatCut(-1, 100, ch)); // J. Previous event more than 100 clock cycles away. To avoid deadtime issues.
     //    if (not isMC) cutFlow.push_back( new sndAnalysis::eventDeltatCut(+1, 10, ch)); // K. Next event more than 10 clock cycles away. To avoid event builder issues.
 
+  } else if (selected_cutset == stage1cutsVetoFirst){ // Stage 1 cuts but with Veto cut upfront. For neutral hadron background estimation
+    //    cutFlow.push_back( new sndAnalysis::minSciFiHits(1, ch)); // A. Events with SciFi activity
+    cutFlow.push_back( new sndAnalysis::vetoCut(ch)); // B. No veto hits
+    cutFlow.push_back( new sndAnalysis::avgSciFiFiducialCut(200, 1200, 300, 128*12-200, ch)); // E. Average SciFi hit channel number must be within [200, 1200] (ver) and [300, max-200] (hor)
+    cutFlow.push_back( new sndAnalysis::avgDSFiducialCut(70, 105, 10, 50, ch)); // F. Average DS hit bar number must be within [70, 105] (ver) and [10, 50] (hor)
+    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 1), ch)); // C. No hits in first SciFi plane
+    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 2), ch)); // C. No hits in second SciFi plane
+    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0.05, std::vector<int>(1, 5), ch)); // D. Vertex not in 5th wall
+    cutFlow.push_back( new sndAnalysis::minSciFiConsecutivePlanes(ch)); // G. At least two consecutive SciFi planes hit
+    cutFlow.push_back( new sndAnalysis::DSActivityCut(ch)); // H. If there is a downstream hit, require hits in all upstream stations.    
+    if (not isMC) cutFlow.push_back( new sndAnalysis::eventDeltatCut(-1, 100, ch)); // J. Previous event more than 100 clock cycles away. To avoid deadtime issues.
+    //    if (not isMC) cutFlow.push_back( new sndAnalysis::eventDeltatCut(+1, 10, ch)); // K. Next event more than 10 clock cycles away. To avoid event builder issues.
   } else if (selected_cutset == novetocuts) {
     //    cutFlow.push_back( new sndAnalysis::minSciFiHits(1, ch)); // A. Events with SciFi activity
     //cutFlow.push_back( new sndAnalysis::vetoCut(ch)); // B. No veto hits
@@ -105,6 +119,7 @@ int main(int argc, char ** argv) {
     //    cutFlow.push_back( new sndAnalysis::minSciFiHits(1, ch)); // A. Events with SciFi activity
     cutFlow.push_back( new sndAnalysis::vetoCut(ch)); // B. No veto hits
     cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 1), ch)); // C. No hits in first SciFi plane
+    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 2), ch)); // D. Vertex not in 5th wall
     cutFlow.push_back( new sndAnalysis::sciFiStationCut(0.05, std::vector<int>(1, 5), ch)); // D. Vertex not in 5th wall
     cutFlow.push_back( new sndAnalysis::avgSciFiFiducialCut(200, 1200, 300, 128*12-200, ch, true)); // E. Average SciFi hit channel number must be within [200, 1200] (ver) and [300, max-200] (hor)
     //    cutFlow.push_back( new sndAnalysis::avgDSFiducialCut(70, 105, 10, 50, ch)); // F. Average DS hit bar number must be within [70, 105] (ver) and [10, 50] (hor)
@@ -112,6 +127,28 @@ int main(int argc, char ** argv) {
     cutFlow.push_back( new sndAnalysis::DSActivityCut(ch)); // H. If there is a downstream hit, require hits in all upstream stations.    
     if (not isMC) cutFlow.push_back( new sndAnalysis::eventDeltatCut(-1, 100, ch)); // J. Previous event more than 100 clock cycles away. To avoid deadtime issues.
     //    if (not isMC) cutFlow.push_back( new sndAnalysis::eventDeltatCut(+1, 10, ch)); // K. Next event more than 10 clock cycles away. To avoid event builder issues.
+  } else if (selected_cutset == allowWalls2and5) {
+    cutFlow.push_back( new sndAnalysis::avgSciFiFiducialCut(200, 1200, 300, 128*12-200, ch)); // E. Average SciFi hit channel number must be within [200, 1200] (ver) and [300, max-200] (hor)
+    cutFlow.push_back( new sndAnalysis::avgDSFiducialCut(70, 105, 10, 50, ch)); // F. Average DS hit bar number must be within [70, 105] (ver) and [10, 50] (hor)
+    cutFlow.push_back( new sndAnalysis::vetoCut(ch)); // B. No veto hits
+    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 1), ch)); // C. No hits in first SciFi plane
+    //    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 2), ch)); // C. No hits in second SciFi plane
+    //    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0.05, std::vector<int>(1, 5), ch)); // D. Vertex not in 5th wall
+    //    cutFlow.push_back( new sndAnalysis::minSciFiConsecutivePlanes(ch)); // G. At least two consecutive SciFi planes hit
+    cutFlow.push_back( new sndAnalysis::DSActivityCut(ch)); // H. If there is a downstream hit, require hits in all upstream stations.    
+    if (not isMC) cutFlow.push_back( new sndAnalysis::eventDeltatCut(-1, 100, ch)); // J. Previous event more than 100 clock cycles away. To avoid deadtime issues.
+  } else if (selected_cutset == nueFilter) {
+    cutFlow.push_back( new sndAnalysis::avgSciFiFiducialCut(200, 1200, 300, 128*12-200, ch)); // E. Average SciFi hit channel number must be within [200, 1200] (ver) and [300, max-200] (hor)
+    //    cutFlow.push_back( new sndAnalysis::avgDSFiducialCut(70, 105, 10, 50, ch)); // F. Average DS hit bar number must be within [70, 105] (ver) and [10, 50] (hor)
+    cutFlow.push_back( new sndAnalysis::vetoCut(ch)); // B. No veto hits
+    //    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 1), ch)); // C. No hits in first SciFi plane
+    //    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0., std::vector<int>(1, 2), ch)); // C. No hits in second SciFi plane
+    cutFlow.push_back( new sndAnalysis::sciFiStationCut(0.05, std::vector<int>(1, 5), ch)); // D. Vertex not in 5th wall
+    cutFlow.push_back( new sndAnalysis::DSVetoCut(ch)); // D. Veto events with hits in last DS planes
+    //    cutFlow.push_back( new sndAnalysis::minSciFiConsecutivePlanes(ch)); // G. At least two consecutive SciFi planes hit
+    //    cutFlow.push_back( new sndAnalysis::DSActivityCut(ch)); // H. If there is a downstream hit, require hits in all upstream stations.    
+    if (not isMC) cutFlow.push_back( new sndAnalysis::eventDeltatCut(-1, 100, ch)); // J. Previous event more than 100 clock cycles away. To avoid deadtime issues.
+      
   } else {
     std::cout << "Unrecognized cutset. Exitting" << std::endl;
     exit(-1);
