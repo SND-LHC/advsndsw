@@ -120,6 +120,8 @@ class Monitoring():
             self.converter = ConvRawData.ConvRawDataPY()
             self.converter.Init(options)
             self.options.online = self.converter
+            self.fsdict = False
+            self.hasBunchInfo = False
             self.eventTree = options.online.fSink.GetOutTree()
             self.Nkeys = 38   # need to find a way to get this number automatically
             if self.converter.newFormat: self.Nkeys = 1
@@ -354,7 +356,7 @@ class Monitoring():
        self.presenterFile.Close()
        if self.options.online:
            wwwPath = "/eos/experiment/sndlhc/www/online"
-       elif self.options.path.find('2022') :
+       elif self.options.path.find('2022')>0 :
            wwwPath = "/eos/experiment/sndlhc/www/reprocessing"
        else:    
            wwwPath = "/eos/experiment/sndlhc/www/offline"

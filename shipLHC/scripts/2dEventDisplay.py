@@ -5,6 +5,7 @@ from array import array
 import shipunit as u
 import SndlhcMuonReco
 import json
+from decorators import *
 from rootpyPickler import Unpickler
 import time
 from XRootD import client
@@ -25,7 +26,8 @@ h={}
 from argparse import ArgumentParser
 parser = ArgumentParser()
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,required=False)
-parser.add_argument("-p", "--path", dest="path", help="run number",required=False,default="")
+parser.add_argument("-p", "--path", dest="path", help="path to data file",required=False,default=os.environ["EOSSHIP"]+"/eos/experiment/sndlhc/convertedData/physics/2022/")
+parser.add_argument("-praw", "--pathRaw", dest="pathRaw", help="path to raw data file",required=False,default="/eos/experiment/sndlhc/raw_data/physics/2022/")
 parser.add_argument("-f", "--inputFile", dest="inputFile", help="input file data and MC",default="",required=False)
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", default=os.environ["EOSSHIP"]+"/eos/experiment/sndlhc/convertedData/physics/2022/geofile_sndlhc_TI18_V0_2022.root")
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
@@ -39,7 +41,7 @@ options.storePic = ''
 trans2local = False
 runInfo = False
 try:
-   fg  = ROOT.TFile.Open(options.server+"/eos/experiment/sndlhc/convertedData/commissioning/TI18/RunInfodict.root")
+   fg  = ROOT.TFile.Open(options.server+options.p+"RunInfodict.root")
    pkl = Unpickler(fg)
    runInfo = pkl.load('runInfo')
    fg.Close()
@@ -137,7 +139,7 @@ nav = ROOT.gGeoManager.GetCurrentNavigator()
 # get filling scheme
 try:
            runNumber = eventTree.EventHeader.GetRunId()
-           fg  = ROOT.TFile.Open(os.environ['EOSSHIP']+'/eos/experiment/sndlhc/convertedData/commissioning/TI18/FSdict.root')
+           fg  = ROOT.TFile.Open(os.environ['EOSSHIP']+options.p+'FSdict.root')
            pkl = Unpickler(fg)
            FSdict = pkl.load('FSdict')
            fg.Close()
@@ -150,7 +152,7 @@ except:
 startTimeOfRun = {}
 def getStartTime(runNumber):
       if runNumber in startTimeOfRun : return startTimeOfRun[runNumber]
-      runDir = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/run_"+str(runNumber).zfill(6)
+      runDir = options.pathRaw+"run_"+str(runNumber).zfill(6)
       jname = "run_timestamps.json"
       dirlist  = str( subprocess.check_output("xrdfs "+options.server+" ls "+runDir,shell=True) ) 
       if not jname in dirlist: return False
@@ -265,11 +267,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
        for ht_task in HT_tasks.values():
            for trk in ht_task.kalman_tracks:
                OT.Reco_MuonTracks.Add(trk)
-       uniqueTracks = cleanTracks()
-       if len(uniqueTracks)<nTracks:
-          OT.Reco_MuonTracks.Delete()
        nHoughtracks = OT.Reco_MuonTracks.GetEntries()
-       if nHoughtracks>0: print('number of tracks by pattern recognition:', nHoughtracks)
+       if nHoughtracks>0: print('number of tracks by HT:', nHoughtracks)
 
     if withTrack > 0:
           # Delete SndlhcTracking fitted tracks container
@@ -284,12 +283,13 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
           for trk in trackTask.fittedTracks:
               OT.Reco_MuonTracks.Add(trk)
           ntracks = len(OT.Reco_MuonTracks) - nHoughtracks
-          if ntracks>0: print('number of tracks by KF-based tracking:', ntracks)
+          if ntracks>0: print('number of tracks by ST:', ntracks)
     nAlltracks = len(OT.Reco_MuonTracks)
     if nAlltracks<nTracks: continue
 
     if verbose>0:
        for aTrack in OT.Reco_MuonTracks:
+           print(aTrack.__repr__())
            mom    = aTrack.getFittedState().getMom()
            pos      = aTrack.getFittedState().getPos()
            mom.Print()
@@ -409,7 +409,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
     if verbose>0: dumpChannels()
     if save: h['simpleDisplay'].Print('{:0>2d}-event_{:04d}'.format(runId,N)+'.png')
     if not auto:
-       rc = input("hit return for next event or or p for print or q for quit: ")
+       rc = input("hit return for next event or p for print or q for quit: ")
        if rc=='p': 
              h['simpleDisplay'].Print(options.storePic+'{:0>2d}-event_{:07d}'.format(runId,event.EventHeader.GetEventNumber())+'.png')
        if rc=='q': break

@@ -6,9 +6,13 @@ import shipunit as u
 import saveBasicParameters
 
 path = os.environ['EOSSHIP']+"/eos/experiment/sndlhc/convertedData/physics/2022/"
-supportedGeoFiles = ["geofile_sndlhc_TI18_V1_06July2022.root","geofile_sndlhc_TI18_V2_12July2022.root","geofile_sndlhc_TI18_V3_08August2022.root",
+
+
+'''supportedGeoFiles = ["geofile_sndlhc_TI18_V1_06July2022.root","geofile_sndlhc_TI18_V2_12July2022.root","geofile_sndlhc_TI18_V3_08August2022.root",
                      "geofile_sndlhc_TI18_V4_10August2022.root","geofile_sndlhc_TI18_V5_14August2022.root","geofile_sndlhc_TI18_V6_08October2022.root",
                      "geofile_sndlhc_TI18_V7_22November2022.root"]
+'''
+supportedGeoFiles = ["geofile_sndlhc_TI18_V7_22November2022.root"]
             
 def modifyDicts():
    for g in supportedGeoFiles:
@@ -124,7 +128,23 @@ def modifyDicts():
     0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad,
     0.00*u.mrad,    0.35*u.mrad,    0.00*u.mrad,
     0.00*u.mrad,   -0.32*u.mrad,    0.00*u.mrad]
-         for c in ['A','B','C','D']:
+         alignment['E']=[       # 2023
+   458.16*u.um,  658.14*u.um,  569.77*u.um,
+  -285.21*u.um, -215.62*u.um,  -10.06*u.um,
+  -131.42*u.um,   61.04*u.um,   18.21*u.um,
+   -55.62*u.um,  -44.88*u.um,   60.99*u.um,
+   -1.85*u.um,   78.98*u.um,   13.98*u.um,
+    0.76*u.um, -109.75*u.um,   74.54*u.um,
+  -16.79*u.um,   56.44*u.um,   96.94*u.um,
+   71.04*u.um,  -64.13*u.um,   17.25*u.um,
+   588.09*u.um,  500.82*u.um,  306.64*u.um,
+  -429.88*u.um, -350.11*u.um, -408.64*u.um,
+   0.00*u.mrad,   -3.06*u.mrad,    0.00*u.mrad,
+   0.00*u.mrad,   -1.34*u.mrad,    0.00*u.mrad,
+   0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad,
+   0.00*u.mrad,    0.81*u.mrad,    0.00*u.mrad,
+   0.00*u.mrad,   -0.30*u.mrad,    0.00*u.mrad]
+         for c in ['A','B','C','D','E']:
           k=0
           for s in range(1,6):
            for o in range(0,2):

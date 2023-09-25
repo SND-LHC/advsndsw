@@ -17,7 +17,8 @@ class DAQ_boards(ROOT.FairTask):
        if options.online:
           self.R.Init(options.server+options.path+'run_'+ runNr+'/')
        else:
-          if options.path.find('commissioning')>0: self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/data/run_"+runNr+'/')
+          if options.rawDataPath: self.R.Init(options.server+options.rawDataPath+"run_"+runNr+'/')
+          elif options.path.find('commissioning')>0 and options.path.find('test')<0: self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/data/run_"+runNr+'/')
           else:                                    self.R.Init(options.server+options.path.replace("convertedData","raw_data")+"/run_"+runNr+'/')
    def ExecuteEvent(self,event):
        h = self.M.h

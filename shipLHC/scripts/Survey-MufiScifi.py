@@ -6,25 +6,8 @@ import time
 import ctypes
 import pickle
 from array import array
+
 # for fixing a root bug,  will be solved in the forthcoming 6.26 release.
-ROOT.gInterpreter.Declare("""
-#include <KalmanFitterInfo.h>
-#include <Track.h>
-#include <MeasuredStateOnPlane.h>
-#include <stddef.h>     
-
-const genfit::MeasuredStateOnPlane& getFittedState(genfit::Track* theTrack, int nM){
-      try{
-        return theTrack->getFittedState(nM);
-      }
-      catch(genfit::Exception& e){
-        std::cerr<<"Exception,e.what() "<<std::endl;
-        const genfit::MeasuredStateOnPlane* state(NULL);
-        return *state;
-      }
-}
-""")
-
 ROOT.gInterpreter.Declare("""
 #include "MuFilterHit.h"
 #include "AbsMeasurement.h"
@@ -3818,7 +3801,7 @@ def minimizeAlignScifi(first=True,level=1,migrad=False):
              name = "Scifi/LocM"
              for m in range(3):
                  gMinuit.mnparm(p, name+str(s*100+m*10+o), vstart[p], err, 0.,0.,ierflg)
-                 variables +=name.replace('/','')+str(k)+":"
+                 variables +=name.replace('/','')+str(s*100+o*10+m)+":"
                  p+=1
     for s in range(1,6):    
         for r in ["RotPhiS","RotPsiS", "RotThetaS"]:   

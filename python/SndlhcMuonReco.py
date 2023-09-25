@@ -242,10 +242,12 @@ class MuonReco(ROOT.FairTask) :
         if eventTree:
             self.MuFilterHits = eventTree.Digi_MuFilterHits
             self.ScifiHits       = eventTree.Digi_ScifiHits
+            self.EventHeader        = eventTree.EventHeader
         else:
         # Try the FairRoot way 
             self.MuFilterHits = self.ioman.GetObject("Digi_MuFilterHits")
             self.ScifiHits = self.ioman.GetObject("Digi_ScifiHits")
+            self.EventHeader = self.ioman.GetObject("EventHeader")
 
         # If that doesn't work, try using standard ROOT
             if self.MuFilterHits == None :
@@ -256,11 +258,17 @@ class MuonReco(ROOT.FairTask) :
                if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
                   print("Digi_ScifiHits not in branch list")
                self.ScifiHits = self.ioman.GetInTree().Digi_ScifiHits
+            if self.EventHeader == None :
+               if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
+                  print("EventHeader not in branch list")
+               self.EventHeader = self.ioman.GetInTree().EventHeader
         
         if self.MuFilterHits == None :
             raise RuntimeException("Digi_MuFilterHits not found in input file.")
         if self.ScifiHits == None :
             raise RuntimeException("Digi_ScifiHits not found in input file.")
+        if self.EventHeader == None :
+            raise RuntimeException("EventHeader not found in input file.")
         
         # Initialize event counters in case scaling of events is required
         self.scale = 1
@@ -364,6 +372,11 @@ class MuonReco(ROOT.FairTask) :
         self.Scifi_dy = self.scifiDet.GetConfParF("Scifi/channel_width")
         self.Scifi_dz = self.scifiDet.GetConfParF("Scifi/epoxymat_z") # From Scifi.cxx This is the variable used to define the z dimension of SiPM channels, so seems like the right dimension to use.
 
+        # Get number of readout channels
+        self.MuFilter_us_nSiPMs = self.mufiDet.GetConfParI("MuFilter/UpstreamnSiPMs")*self.mufiDet.GetConfParI("MuFilter/UpstreamnSides")
+        self.MuFilter_ds_nSiPMs_hor = self.mufiDet.GetConfParI("MuFilter/DownstreamnSiPMs")*self.mufiDet.GetConfParI("MuFilter/DownstreamnSides")
+        self.MuFilter_ds_nSiPMs_vert = self.mufiDet.GetConfParI("MuFilter/DownstreamnSiPMs")
+
         self.Scifi_nPlanes    = self.scifiDet.GetConfParI("Scifi/nscifi")
         self.DS_nPlanes       = self.mufiDet.GetConfParI("MuFilter/NDownstreamPlanes")
         self.max_n_hits_plane = 3
@@ -424,13 +437,19 @@ class MuonReco(ROOT.FairTask) :
         else:
         # Now initialize output in genfit::track or sndRecoTrack format
            if self.genfitTrack:
-              self.kalman_tracks = ROOT.TObjArray(self.max_reco_muons)
+              self.kalman_tracks = ROOT.TObjArray(10)
               if hasattr(self, "standalone") and self.standalone:
                  self.ioman.Register("Reco_MuonTracks", self.ioman.GetFolderName(), self.kalman_tracks, ROOT.kTRUE)
            else:
-              self.kalman_tracks = ROOT.TClonesArray("sndRecoTrack", self.max_reco_muons)
+              self.kalman_tracks = ROOT.TClonesArray("sndRecoTrack", 10)
               if hasattr(self, "standalone") and self.standalone:
                  self.ioman.Register("Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE)
+
+        # initialize detector class with EventHeader(runN), if SNDLHCEventHeader detected
+        # only needed if using HT tracking manager, i.e. standalone
+        if self.EventHeader.IsA().GetName()=='SNDLHCEventHeader' and hasattr(self, "standalone") and self.standalone and not self.isMC :
+           self.scifiDet.InitEvent(self.EventHeader)
+           self.mufiDet.InitEvent(self.EventHeader)
 
         # internal storage of clusters
         if self.Scifi_meas: self.clusScifi = ROOT.TObjArray(100)
@@ -537,30 +556,30 @@ class MuonReco(ROOT.FairTask) :
                 hit_collection["detectorID"].append(muFilterHit.GetDetectorID())
                 hit_collection["mask"].append(False)
 
+                times = []
                 # Downstream
                 if muFilterHit.GetSystem() == 3 :
                     hit_collection["d"][1].append(self.MuFilter_ds_dx)
-                    if muFilterHit.isVertical(): 
+                    for ch in range(self.MuFilter_ds_nSiPMs_hor):
+                        if muFilterHit.isVertical() and ch==self.MuFilter_ds_nSiPMs_vert: break
                         if self.isMC:
-                           hit_collection["time"].append(muFilterHit.GetAllTimes()[0]) #already in ns
-                        else: hit_collection["time"].append(muFilterHit.GetAllTimes()[0]*6.25) #tdc2ns
-                    else:
-                        if self.isMC:
-                           hit_collection["time"].append(-1) # FIXME - don't know what is best here
-                        else: hit_collection["time"].append(muFilterHit.GetImpactT()) #already in ns
+                          times.append(muFilterHit.GetAllTimes()[ch]) #already in ns
+                        else: times.append(muFilterHit.GetAllTimes()[ch]*6.25) #tdc2ns
                 # Upstream
                 else :
                     hit_collection["d"][1].append(self.MuFilter_us_dy)
-                    if self.isMC:
-                           hit_collection["time"].append(-1) # FIXME - don't know what is best here
-                    else: hit_collection["time"].append(muFilterHit.GetImpactT()) #already in ns
-        
+                    for ch in range(self.MuFilter_us_nSiPMs):
+                        if self.isMC:
+                           times.append(muFilterHit.GetAllTimes()[ch]) #already in ns
+                        else: times.append(muFilterHit.GetAllTimes()[ch]*6.25) #tdc2ns
+                hit_collection["time"].append(times)
+
         if "sf" in self.hits_to_fit :
             if self.Scifi_meas:
                # Make scifi clusters
                self.clusScifi.Clear()
                self.scifiCluster()
-               
+
                # Loop through scifi clusters
                for i_clust, scifiCl in enumerate(self.clusScifi) :
                    scifiCl.GetPosition(self.a,self.b)
@@ -587,8 +606,10 @@ class MuonReco(ROOT.FairTask) :
                    hit_collection["detectorID"].append(scifiCl.GetFirst())
                    hit_collection["mask"].append(False)
 
-                   if self.isMC : hit_collection["time"].append(scifiCl.GetTime()/6.25) # for MC, hit time is in ns. Then for MC Scifi cluster time one has to divide by tdc2ns
-                   else: hit_collection["time"].append(scifiCl.GetTime()) # already in ns
+                   times = []
+                   if self.isMC : times.append(scifiCl.GetTime()/6.25) # for MC, hit time is in ns. Then for MC Scifi cluster time one has to divide by tdc2ns
+                   else: times.append(scifiCl.GetTime()) # already in ns
+                   hit_collection["time"].append(times)
 
             else:
                  if self.hits_for_triplet == 'sf' and self.hits_to_fit == 'sf':
@@ -650,9 +671,14 @@ class MuonReco(ROOT.FairTask) :
                      else:
                           hit_collection["mask"].append(False)
 
-                     if self.isMC : hit_collection["time"].append(scifiHit.GetTime()) # already in ns
-                     else:
-                          hit_collection["time"].append(scifiHit.GetTime()*6.25) #tdc2ns
+                     times = []
+
+                     if self.isMC : times.append(scifiHit.GetTime()) # already in ns
+                     else: times.append(scifiHit.GetTime()*6.25) #tdc2ns
+                     hit_collection["time"].append(times)
+
+        # If no hits, return
+        if len(hit_collection['pos'][0])==0: return
 
         # Make the hit collection numpy arrays.
         for key, item in hit_collection.items() :
@@ -662,9 +688,12 @@ class MuonReco(ROOT.FairTask) :
                 this_dtype = np.bool_
             elif key == "index" or key == "system" or key == "detectorID" :
                 this_dtype = np.int32
-            else :
+            elif key != 'time' :
                 this_dtype = np.float32
-            hit_collection[key] = np.array(item, dtype = this_dtype)
+            if key== 'time':
+               length = max(map(len, item))
+               hit_collection[key] = np.stack(np.array([xi+[None]*(length-len(xi)) for xi in item]), axis = 1)
+            else: hit_collection[key] = np.array(item, dtype = this_dtype)
 
         # Useful for later
         triplet_condition_system = []
@@ -871,8 +900,10 @@ class MuonReco(ROOT.FairTask) :
 
             hitID = 0 # Does it matter? We don't have a global hit ID.
 
-            hit_time = np.concatenate([hit_collection["time"][hit_collection["vert"]][track_hits_ZX],
-                                      hit_collection["time"][~hit_collection["vert"]][track_hits_ZY]])
+            hit_time = {}
+            for ch in range(hit_collection["time"].shape[0]):
+                hit_time[ch] = np.concatenate([hit_collection["time"][ch][hit_collection["vert"]][track_hits_ZX],
+                                      hit_collection["time"][ch][~hit_collection["vert"]][track_hits_ZY]])
 
             for i_z_sorted in hit_z.argsort() :
                 tp = ROOT.genfit.TrackPoint()
@@ -917,9 +948,13 @@ class MuonReco(ROOT.FairTask) :
                else :
                   # Load items into snd track class object
                   this_track = ROOT.sndRecoTrack(theTrack)
-                  pointTimes = []
-                  for i_z_sorted in hit_z.argsort() :
-                      pointTimes.append(hit_time[i_z_sorted])
+                  pointTimes = ROOT.std.vector(ROOT.std.vector('float'))()
+                  for n, i_z_sorted in enumerate(hit_z.argsort()):
+                      t_per_hit = []
+                      for ch in range(len(hit_time)):
+                          if hit_time[ch][i_z_sorted] != None:
+                             t_per_hit.append(hit_time[ch][i_z_sorted])
+                      pointTimes.push_back(t_per_hit)
                   this_track.setRawMeasTimes(pointTimes)
                   this_track.setTrackType(self.track_type)
                   # Save the track in sndRecoTrack format
