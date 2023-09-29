@@ -264,11 +264,11 @@ class MuonReco(ROOT.FairTask) :
                self.EventHeader = self.ioman.GetInTree().EventHeader
         
         if self.MuFilterHits == None :
-            raise RuntimeException("Digi_MuFilterHits not found in input file.")
+            raise RuntimeError("Digi_MuFilterHits not found in input file.")
         if self.ScifiHits == None :
-            raise RuntimeException("Digi_ScifiHits not found in input file.")
+            raise RuntimeError("Digi_ScifiHits not found in input file.")
         if self.EventHeader == None :
-            raise RuntimeException("EventHeader not found in input file.")
+            raise RuntimeError("EventHeader not found in input file.")
         
         # Initialize event counters in case scaling of events is required
         self.scale = 1
@@ -316,7 +316,7 @@ class MuonReco(ROOT.FairTask) :
 
                    else: continue
                if not Hspace_format_exists:
-                  raise RuntimeException("Unknown Hough space format, check naming in parameter xml file.") 
+                  raise RuntimeError("Unknown Hough space format, check naming in parameter xml file.") 
 
                # A scale factor for a back-up Hough space having more/less bins than the default one
                # It is useful when fitting some low-E muon tracks, which are curved due to mult. scattering.
@@ -357,7 +357,7 @@ class MuonReco(ROOT.FairTask) :
 
             else: continue
         if not track_case_exists:
-           raise RuntimeException("Unknown tracking case, check naming in parameter xml file.")
+           raise RuntimeError("Unknown tracking case, check naming in parameter xml file.")
 
         # Get sensor dimensions from geometry
         self.MuFilter_ds_dx = self.mufiDet.GetConfParF("MuFilter/DownstreamBarY") # Assume y dimensions in vertical bars are the same as x dimensions in horizontal bars.
@@ -931,7 +931,7 @@ class MuonReco(ROOT.FairTask) :
 
             if not theTrack.checkConsistency():
                 theTrack.Delete()
-                raise RuntimeException("Kalman fitter track consistency check failed.")
+                raise RuntimeError("Kalman fitter track consistency check failed.")
 
             # do the fit
             self.kalman_fitter.processTrack(theTrack) # processTrackWithRep(theTrack,rep,True)
@@ -939,7 +939,7 @@ class MuonReco(ROOT.FairTask) :
             fitStatus = theTrack.getFitStatus()
             if not fitStatus.isFitConverged() and 0>1:
                 theTrack.Delete()
-                raise RuntimeException("Kalman fit did not converge.")
+                raise RuntimeError("Kalman fit did not converge.")
 
             # Now save the track if fit converged!
             theTrack.SetUniqueID(self.track_type)
