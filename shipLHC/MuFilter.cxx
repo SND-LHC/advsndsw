@@ -527,10 +527,12 @@ Float_t MuFilter::GetCorrectedTime(Int_t fDetectorID, Int_t channel, Double_t ra
 		         coveredRuns.push_back(stoi(tag_string.substr(tag_string.find("t_")+2)));
 		     }
 		}
-		if (coveredRuns.size()==0){
-		    tag = "t_"+to_string(coveredRuns[-1]);
+		if (coveredRuns.size()!=0){
+		    tag = "t_"+to_string(coveredRuns[coveredRuns.size()-1]);
 		    for (int i=1; i<coveredRuns.size(); i++){
-		          if (fRunNumber<coveredRuns[i]) tag = "t_"+to_string(coveredRuns[i-1]);
+		          if (fRunNumber>=coveredRuns[i-1] && fRunNumber<coveredRuns[i]){
+		              tag = "t_"+to_string(coveredRuns[i-1]);
+		          }
 		    }
 		    //special case
 		    if (fRunNumber<5193 && fRunNumber>5174) tag = "t_"+to_string(coveredRuns[0]);

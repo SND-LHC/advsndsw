@@ -465,9 +465,11 @@ Double_t Scifi::GetCorrectedTime(Int_t fDetectorID, Double_t rawTime, Double_t L
 		     }
 		}
 		if (coveredRuns.size()!=0){
-		    tag = "t_"+to_string(coveredRuns[-1]);
+		    tag = "t_"+to_string(coveredRuns[coveredRuns.size()-1]);
 		    for (int i=1; i<coveredRuns.size(); i++){
-		         if (fRunNumber<coveredRuns[i]) tag = "t_"+to_string(coveredRuns[i-1]);
+		         if (fRunNumber>=coveredRuns[i-1] && fRunNumber<coveredRuns[i]){
+		             tag = "t_"+to_string(coveredRuns[i-1]);
+		         }
 		    }
 		    // special case
 		    if (fRunNumber<5193 && fRunNumber>5174) tag = "t_"+to_string(coveredRuns[0]);
@@ -584,9 +586,11 @@ void Scifi::GetSiPMPosition(Int_t SiPMChan, TVector3& A, TVector3& B)
 		     }
 		}
 		if (coveredRuns.size()!=0){
-		    tag = "t_"+to_string(coveredRuns[-1]);
+		    tag = "t_"+to_string(coveredRuns[coveredRuns.size()-1]);
 		    for (int i=1; i<coveredRuns.size(); i++){
-		         if (fRunNumber<coveredRuns[i]) tag = "t_"+to_string(coveredRuns[i-1]);
+		         if (fRunNumber>=coveredRuns[i-1] && fRunNumber<coveredRuns[i]){
+		             tag = "t_"+to_string(coveredRuns[i-1]);
+		         }
 		    }
 		}
 		else{
