@@ -80,7 +80,8 @@ if options.runNumber < 0  and not options.geoFile:
 
 if not options.geoFile:
    if options.path.find('TI18')<0:
-     options.geoFile =  "geofile_sndlhc_TI18_V1_2023.root"
+     if options.path.find('2022')>0 : options.geoFile =  "geofile_sndlhc_TI18_V0_2022.root"
+     if options.path.find('2023')>0 : options.geoFile =  "geofile_sndlhc_TI18_V1_2023.root"
    else:
      if options.runNumber < 4575:
            options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
