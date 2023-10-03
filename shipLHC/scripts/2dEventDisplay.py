@@ -32,6 +32,7 @@ parser.add_argument("-f", "--inputFile", dest="inputFile", help="input file data
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", default=os.environ["EOSSHIP"]+"/eos/experiment/sndlhc/convertedData/physics/2022/geofile_sndlhc_TI18_V0_2022.root")
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
+parser.add_argument("-X", dest="extraInfo", help="print extra event info",default=True)
 
 parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", default=os.environ['SNDSW_ROOT']+"/python/TrackingParams.xml")
 parser.add_argument("-hf", "--HoughSpaceFormat", dest="HspaceFormat", help="Hough space representation. Should match the 'Hough_space_format' name in parFile, use quotes", default='linearSlopeIntercept')
@@ -324,7 +325,8 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
     dTs = "%5.2Fns"%(dT/freq*1E9)
     # find detector which triggered
     minT = firstTimeStamp(event)
-    dTs+= "    " + str(minT[1].GetDetectorID())
+    if minT[0] < 1000000000:
+        dTs+= "    " + str(minT[1].GetDetectorID())
     for p in proj:
        rc = h[ 'simpleDisplay'].cd(p)
        h[proj[p]].Draw('b')
@@ -337,7 +339,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
          if digi.GetName()  == 'MuFilterHit':
             system = digi.GetSystem()
             geo.modules['MuFilter'].GetPosition(detID,A,B)
-            sipmMult = len(digi.GetAllSignals())
+            sipmMult = len(digi.GetAllSignals(False,False))
             if sipmMult<minSipmMult and (system==1 or system==2): continue
          else:
             geo.modules['Scifi'].GetSiPMPosition(detID,A,B)
@@ -377,6 +379,7 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
     h['hitCollectionY']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     h['hitCollectionX']['Scifi'][1].SetMarkerColor(ROOT.kBlue+2)
     k = 1
+    moreEventInfo = []
     for collection in ['hitCollectionX','hitCollectionY']:
        h['simpleDisplay'].cd(k)
        drawInfo(h['simpleDisplay'], k, runId, N, T)
@@ -385,15 +388,35 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
           F = collection.replace('hitCollection','firedChannels')
           pj = collection.split('ion')[1]
           if pj =="X" or c=="Scifi":
-              print( "%1s %5s %3i  +:%3i -:%3i qdc :%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2]))
+              atext = "%1s %5s %3i  +:%3i -:%3i qdc :%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2])
           else:
-              print( "%1s %5s %3i  +:%3i -:%3i qdcL:%5.1F qdcR:%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2],h[F][c][3]))
+              atext = "%1s %5s %3i  +:%3i -:%3i qdcL:%5.1F qdcR:%5.1F"%(pj,c,h[collection][c][1].GetN(),h[F][c][0],h[F][c][1],h[F][c][2],h[F][c][3])
+          moreEventInfo.append(atext)
+          print(atext)
           if h[collection][c][1].GetN()<1: continue
           if c=='Scifi':
             h[collection][c][1].SetMarkerStyle(20)
             h[collection][c][1].SetMarkerSize(1.5)
             rc=h[collection][c][1].Draw('sameP')
             h['display:'+c]=h[collection][c][1]
+    T0 = eventTree.EventHeader.GetEventTime()
+    if type(start) == type(1): rc = event.GetEvent(N-1)
+    else: rc = event.GetEvent(start[N]-1)
+    delTM1 = eventTree.EventHeader.GetEventTime() - T0
+    if type(start) == type(1): rc = event.GetEvent(N+1)
+    else: rc = event.GetEvent(start[N]+1)
+    delTP1 = eventTree.EventHeader.GetEventTime() - T0
+    atext = "timing info, prev event: %6i cc  next event: %6i cc"%(delTM1,delTP1)
+    moreEventInfo.append(atext)
+    if type(start) == type(1): rc = event.GetEvent(N)
+    else: rc = event.GetEvent(start[N])
+
+    k = 1
+    for collection in ['hitCollectionX','hitCollectionY']:
+       h['simpleDisplay'].cd(k)
+       drawInfo(h['simpleDisplay'], k, runId, N, T,moreEventInfo)
+       k+=1
+            
     h['simpleDisplay'].Update()
     if withTiming: timingOfEvent()
     addTrack(OT)
@@ -408,10 +431,12 @@ def loopEvents(start=0,save=False,goodEvents=False,withTrack=-1,withHoughTrack=-
 
     if verbose>0: dumpChannels()
     if save: h['simpleDisplay'].Print('{:0>2d}-event_{:04d}'.format(runId,N)+'.png')
+    if auto:
+        h['simpleDisplay'].Print(options.storePic+str(runId)+'-event_'+str(event.EventHeader.GetEventNumber())+'.png')
     if not auto:
        rc = input("hit return for next event or p for print or q for quit: ")
        if rc=='p': 
-             h['simpleDisplay'].Print(options.storePic+'{:0>2d}-event_{:07d}'.format(runId,event.EventHeader.GetEventNumber())+'.png')
+             h['simpleDisplay'].Print(options.storePic+str(runId)+'-event_'+str(event.EventHeader.GetEventNumber())+'.png')
        if rc=='q': break
  if save: os.system("convert -delay 60 -loop 0 event*.png animated.gif")
 
@@ -653,12 +678,76 @@ def dumpVeto():
          muHits[plane].append(aHit)
     for plane in [10,11]:
         for aHit in muHits[plane]:
-          S =aHit.GetAllSignals()
+          S =aHit.GetAllSignals(False,False)
           txt = ""
           for x in S:
               if x[1]>0: txt+=str(x[1])+" "
           print(plane, (aHit.GetDetectorID()%1000)%60, txt)
 
+# decode MuFilter detID
+def MuFilter_PlaneBars(detID):
+         s = detID//10000
+         l  = (detID%10000)//1000  # plane number
+         bar = (detID%1000)
+         if s>2:
+             l=2*l
+             if bar>59:
+                  bar=bar-60
+                  if l<6: l+=1
+         return {'station':s,'plane':l,'bar':bar}
+
+def checkOtherTriggers(event,deadTime = 100,debug=False):
+      T0 = event.EventHeader.GetEventTime()
+      N = event.EventHeader.GetEventNumber()
+      Nprev = 1
+      rc = event.GetEvent(N-Nprev)
+      dt = T0 - event.EventHeader.GetEventTime()
+      otherFastTrigger = False
+      otherAdvTrigger = False
+      tightNoiseFilter = False
+      while dt < deadTime:
+         otherFastTrigger = False
+         for x in event.EventHeader.GetFastNoiseFilters():
+             if debug: print('fast:', x.first, x.second )
+             if x.second and not x.first == 'Veto_Total': otherFastTrigger = True
+         otherAdvTrigger = False
+         for x in event.EventHeader.GetAdvNoiseFilters():
+             if debug: print('adv:', x.first, x.second )
+             if x.second and not x.first == 'VETO_Planes': otherAdvTrigger = True
+         if debug: print('pre event ',Nprev,dt,otherFastTrigger,otherAdvTrigger)
+         if otherFastTrigger and otherAdvTrigger:
+             rc = event.GetEvent(N)
+             return otherFastTrigger, otherAdvTrigger, tightNoiseFilter, Nprev, dt
+         Nprev+=1
+         rc = event.GetEvent(N-Nprev)
+         dt = T0 - event.EventHeader.GetEventTime()
+      Nprev = 1
+      rc = event.GetEvent(N-Nprev)
+      dt = T0 - event.EventHeader.GetEventTime()
+      while dt < deadTime:
+         hits = {1:0,0:0}
+         for aHit in event.Digi_MuFilterHits:
+            Minfo = MuFilter_PlaneBars(aHit.GetDetectorID())
+            s,l,bar = Minfo['station'],Minfo['plane'],Minfo['bar']
+            if s>1: continue
+            allChannels = aHit.GetAllSignals(False,False)
+            hits[l]+=len(allChannels)
+         noiseFilter0 = (hits[0]+hits[1])>4.5
+         noiseFilter1 = hits[0]>0 and hits[1]>0
+         if debug: print('veto hits:',hits)
+         if noiseFilter0 and noiseFilter1: 
+            tightNoiseFilter = True
+            rc = event.GetEvent(N)
+            return otherFastTrigger, otherAdvTrigger, tightNoiseFilter, Nprev-1, dt
+         Nprev+=1
+         rc = event.GetEvent(N-Nprev)
+         dt = T0 - event.EventHeader.GetEventTime()
+      if Nprev>1: 
+            rc = event.GetEvent(N-Nprev+1)
+            dt = T0 - event.EventHeader.GetEventTime()
+      rc = event.GetEvent(N)
+      return otherFastTrigger, otherAdvTrigger, tightNoiseFilter, Nprev-1, dt
+      
 def cleanTracks():
     OT = sink.GetOutTree()
     listOfDetIDs = {}
@@ -752,7 +841,7 @@ def mufiNoise():
            for aHit in eventTree.Digi_MuFilterHits:
               if not aHit.isValid(): continue
               s = aHit.GetDetectorID()//10000
-              S = aHit.GetAllSignals()
+              S = aHit.GetAllSignals(False,False)
               rc = h['multb'+str(s)].Fill(len(S))
               mult[s]+=len(S)
               if s==2 or s==1:
@@ -784,7 +873,7 @@ def firstTimeStamp(event):
                     tmin[0]=dt
                     tmin[1]=digi
         for digi in event.Digi_MuFilterHits:
-           for t in digi.GetAllTimes():
+           for t in digi.GetAllTimes():    # will not give time if QDC<0!
                dt = t.second
                if dt<tmin[0]:
                     tmin[0]=dt
@@ -832,7 +921,7 @@ def fillNode(node):
          X.Draw('f&&same')
          X.Draw('same')   
 
-def drawInfo(pad, k, run, event, timestamp):
+def drawInfo(pad, k, run, event, timestamp,moreEventInfo=[]):
    drawLogo = True
    drawText = True
    if drawLogo:
@@ -848,6 +937,7 @@ def drawInfo(pad, k, run, event, timestamp):
       pad.cd(k)
 
    if drawText:
+    if k==1 or len(moreEventInfo)<5:
       runNumber = eventTree.EventHeader.GetRunId()
       if eventTree.GetBranch('MCTrack'):
         timestamp_start = False
@@ -873,3 +963,19 @@ def drawInfo(pad, k, run, event, timestamp):
       if timestamp_start:
            textInfo.DrawLatex(0, 0.2, 'Time (GMT): {}'.format(time_event))
       pad.cd(k)
+    elif options.extraInfo:
+      padText = ROOT.TPad("info","info",0.29,0.12,0.9,0.35)
+      padText.SetFillStyle(4000)
+      padText.Draw()
+      padText.cd()
+      textInfo = ROOT.TLatex()
+      textInfo.SetTextAlign(11)
+      textInfo.SetTextFont(42)
+      textInfo.SetTextSize(.1)
+      textInfo.SetTextColor(ROOT.kMagenta+2)
+      dely = 0.12
+      ystart = 0.85
+      for i in range(7):
+        textInfo.DrawLatex(0.4, 0.9-dely*i, moreEventInfo[i])
+      pad.cd(k)
+
