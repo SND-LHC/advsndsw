@@ -689,10 +689,12 @@ class Veto_Efficiency(ROOT.FairTask):
           for l in range(monitor.systemAndPlanes[s]):
            ut.bookHist(h,nc+'PosVeto_'+str(l),'track pos at veto'+str(l)+' with hit '+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
            ut.bookHist(h,nc+'XPosVeto_'+str(l),'track pos at veto'+str(l)+' no hit'+str(l)+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+           ut.bookHist(h,nc+'XPosVetoXL_'+str(l),'track pos at veto'+str(l)+' no hit'+str(l)+';X [cm]; Y [cm]',1100,-55.,0.,1100,10.,65.)
           ut.bookHist(h,nc+'PosVeto_11','track pos at veto AND hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
           ut.bookHist(h,nc+'PosVeto_111','track pos at veto AND hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
           ut.bookHist(h,nc+'PosVeto_00','track pos at veto OR hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
           ut.bookHist(h,nc+'XPosVeto_11','track pos at veto no hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
+          ut.bookHist(h,nc+'XPosVetoXL_11','track pos at veto no hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
           ut.bookHist(h,nc+'XPosVeto_111','track pos at veto no hit'+';X [cm]; Y [cm]',110,-55.,0.,110,10.,65.)
           for x in [nc+'XPosVeto_11',nc+'PosVeto_00',nc+'PosVeto_11',nc+'PosVeto_1',
                       nc+'PosVeto_0',nc+'XPosVeto_1',nc+'XPosVeto_0']: h[x].SetStats(0)
@@ -874,6 +876,7 @@ class Veto_Efficiency(ROOT.FairTask):
                       if beam: rc = h[nc+'beamPosVeto_'+str(l)].Fill(xEx[l],yEx[l])
                  else:                        
                       rc = h[nc+'XPosVeto_'+str(l)].Fill(xEx[l],yEx[l])
+                      rc = h[nc+'XPosVetoXL_'+str(l)].Fill(xEx[l],yEx[l])
                       if tightNoiseFilter: h[ncL+'XPosVeto_'+str(l)].Fill(xEx[l],yEx[l])
                       if beam: rc = h[nc+'beamXPosVeto_'+str(l)].Fill(xEx[l],yEx[l])
                  if l==0:
@@ -898,6 +901,7 @@ class Veto_Efficiency(ROOT.FairTask):
                           if not prevEvent or (prevEvent and not tightNoiseFilter):
                             if self.debug: print('no hits',noiseCut,prevEvent,beam,N1,tightNoiseFilter,otherFastTrigger,otherAdvTrigger)
                         rc = h[nc+'XPosVeto_11'].Fill(xEx[l],yEx[l])
+                        rc = h[nc+'XPosVetoXL_11'].Fill(xEx[l],yEx[l])
                         rc = h[nc+'XPosVeto_111'].Fill(xEx[1],yEx[1])
                         if beam: rc = h[nc+'beamXPosVeto_11'].Fill(xEx[l],yEx[l])
                         if tightNoiseFilter: 
