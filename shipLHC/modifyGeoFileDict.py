@@ -28,14 +28,22 @@ def modifyDicts():
          constants = {}
          constants['t_4791'] =  [-5.61,-5.63,-5.90,-5.39,-5.40,-5.58,-5.99,-6.08,-6.27,-6.43,-5.94,-6.20,-5.45,-5.52,-5.75,-5.93,-5.40,-5.56,-5.46,-5.74]
          constants['t_5117'] =  [-6.56,-6.53,-6.75,-6.27,-6.34,-6.46,-7.50,-7.60,-7.79,-7.94,-7.51,-7.72,-8.09,-8.15,-8.38,-8.55,-8.04,-8.14,-8.02,-8.24]
+         constants['t_5478'] =  [-5.28,-5.38,-5.71,-5.76,-5.28,-5.46,-4.22,-4.38,-4.55,-4.70,-4.27,-4.46,-5.31,-5.43,-5.71,-5.88,-5.34,-5.45,-5.38,-5.57]
+         constants['t_6208'] =  [-6.53,-6.68,-6.75,-6.81,-6.37,-6.52,-5.81,-5.97,-6.19,-6.31,-5.90,-6.10,-8.06,-8.17,-8.38,-8.54,-8.06,-8.15,-8.07,-8.29]
        #time delay corrections first order, only for DS at the moment
-         for p in ["t_4791","t_5117"]:
+         for p in ["t_4791","t_5117", "t_5478", "t_6208"]:
             if p=='t_4791':
                setattr(sGeo.MuFilter,'DSTcorslope'+p,0.082)
                sGeo.MuFilter['DSTcorslope'+p] = 0.082
             if p=='t_5117':
                setattr(sGeo.MuFilter,'DSTcorslope'+p,0.085)
                sGeo.MuFilter['DSTcorslope'+p] = 0.085
+            if p=='t_5478':
+               setattr(sGeo.MuFilter,'DSTcorslope'+p,0.082)
+               sGeo.MuFilter['DSTcorslope'+p] = 0.082
+            if p=='t_6208':
+               setattr(sGeo.MuFilter,'DSTcorslope'+p,0.086)
+               sGeo.MuFilter['DSTcorslope'+p] = 0.086
             for i in range(len(constants[p])): 
                setattr(sGeo.MuFilter,'DSTcorC'+str(i)+p,constants[p][i])
                sGeo.MuFilter['DSTcorC'+str(i)+p] = constants[p][i]
