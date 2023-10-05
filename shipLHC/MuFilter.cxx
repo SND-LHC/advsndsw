@@ -512,15 +512,35 @@ Float_t MuFilter::GetCorrectedTime(Int_t fDetectorID, Int_t channel, Double_t ra
 		return rawTime;
 	}
 	TString tag = "";
+	vector<int> coveredRuns{};
 	if (eventHeader){
 		Int_t fRunNumber = eventHeader->GetRunId();
 		if (fRunNumber<1){
 			LOG(ERROR) << "MuFilter::GetCorrectedTime: non valid run number "<<fRunNumber;
 			return rawTime;
 		}
-		tag = "A";
-		if (fRunNumber>5116 && !(fRunNumber<5193 && fRunNumber>5174) ) {
-			tag = "B";
+		// Get available tags from the geometry file
+		std::string tag_string;
+		for (auto key : conf_floats){
+		     tag_string = key.first.Data();
+		     if (tag_string.find("MuFilter/DSTcorslopet_") != string::npos){
+		         coveredRuns.push_back(stoi(tag_string.substr(tag_string.find("t_")+2)));
+		     }
+		}
+		if (coveredRuns.size()!=0){
+		    tag = "t_"+to_string(coveredRuns[coveredRuns.size()-1]);
+		    for (int i=1; i<coveredRuns.size(); i++){
+		          if (fRunNumber>=coveredRuns[i-1] && fRunNumber<coveredRuns[i]){
+		              tag = "t_"+to_string(coveredRuns[i-1]);
+		          }
+		    }
+		    //special case
+		    if (fRunNumber<5193 && fRunNumber>5174) tag = "t_"+to_string(coveredRuns[0]);
+		}
+		else{
+		     // allow reading older geo files with letter tags i.e. A, B, C
+		     tag = "A";
+		     if (fRunNumber>5116 && !(fRunNumber<5193 && fRunNumber>5174) ) {tag = "B";}		 
 		}
 	}
 	Float_t cor = rawTime;

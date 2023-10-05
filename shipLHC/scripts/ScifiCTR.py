@@ -4,6 +4,7 @@ import rootUtils as ut
 import ROOT
 import ctypes
 import pickle
+import SndlhcGeo
 from array import array
 def pyExit():
        print("Make suicide until solution found for freezing")
@@ -42,6 +43,12 @@ class Scifi_CTR(ROOT.FairTask):
        self.M = monitor
        h = self.M.h
        self.projs = {1:'V',0:'H'}
+       
+       # setup geometry
+       if (options.geoFile).find('../')<0: self.snd_geo = SndlhcGeo.GeoInterface(options.path+options.geoFile)
+       else:                               self.snd_geo = SndlhcGeo.GeoInterface(options.geoFile[3:])
+       self.MuFilter = self.snd_geo.modules['MuFilter']
+       self.Scifi       = self.snd_geo.modules['Scifi']
 
        self.tag = monitor.iteration
        tag = self.tag
@@ -445,17 +452,6 @@ if __name__ == '__main__':
 
    options = parser.parse_args()
    options.trackType = 'Scifi'
-   if not options.geoFile:
-     if options.runNumber < 4575:
-           options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
-     elif options.runNumber < 4855:
-          options.geoFile =  "geofile_sndlhc_TI18_V5_14August2022.root"
-     elif options.runNumber < 5172:
-          options.geoFile =  "geofile_sndlhc_TI18_V6_08October2022.root"
-     else:
-          options.geoFile =  "geofile_sndlhc_TI18_V7_22November2022.root"
-
-# 5236, run with new DAQ settings aligning to VETO
 
    FairTasks = []
    trackTask = SndlhcTracking.Tracking() 
