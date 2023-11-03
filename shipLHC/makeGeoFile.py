@@ -7,7 +7,6 @@ from argparse import ArgumentParser
 mcEngine     = "TGeant4"
 
 parser = ArgumentParser()
-group = parser.add_mutually_exclusive_group()
 
 parser.add_argument("-c",   dest="config",   help="configuration file", required=True)
 parser.add_argument("-g",   dest="geofile",   help="geo file output name", required=True)
