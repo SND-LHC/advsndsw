@@ -28,7 +28,7 @@ import shipLHC_conf as sndDet_conf
 
 run = ROOT.FairRunSim()
 run.SetName("TGeant4")  # Transport engine
-run.SetOutputFile(ROOT.TMemFile('output', 'recreate'))  # Output file
+run.SetSink(ROOT.FairRootFileSink(ROOT.TMemFile('output', 'recreate')))  # Output file
 run.SetUserConfig("g4Config_basic.C") # geant4 transport not used
 rtdb = run.GetRuntimeDb()
 modules = sndDet_conf.configure(run,snd_geo)
