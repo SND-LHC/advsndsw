@@ -850,7 +850,7 @@ else:
  fRun.SetInputFile(options.InputFile)
 if options.OutputFile == None:
   options.OutputFile = ROOT.TMemFile('event_display_output', 'recreate')
-fRun.SetOutputFile(options.OutputFile)
+fRun.SetSink(ROOT.FairRootFileSink(options.OutputFile))
 
 if options.ParFile:
  rtdb      = fRun.GetRuntimeDb()

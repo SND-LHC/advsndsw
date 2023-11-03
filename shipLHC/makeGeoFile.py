@@ -20,7 +20,7 @@ snd_geo = ConfigRegistry.loadpy(options.config)
 # -----Create simulation run----------------------------------------
 run = ROOT.FairRunSim()
 run.SetName(mcEngine)  # Transport engine
-run.SetOutputFile("dummy.root")  # Output file
+run.SetSink(ROOT.FairRootFileSink(ROOT.TMemFile('output', 'recreate')))  # output file
 run.SetUserConfig("g4Config.C") # user configuration file default g4Config.C 
 rtdb = run.GetRuntimeDb() 
 
@@ -46,4 +46,3 @@ run.CreateGeometryFile(options.geofile)
 # save detector parameters dictionary in geofile
 import saveBasicParameters
 saveBasicParameters.execute(options.geofile,snd_geo)
-
