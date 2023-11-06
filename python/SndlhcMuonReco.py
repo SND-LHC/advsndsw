@@ -959,6 +959,8 @@ class MuonReco(ROOT.FairTask) :
                   this_track.setTrackType(self.track_type)
                   # Save the track in sndRecoTrack format
                   self.kalman_tracks[i_muon] = this_track
+                  # Delete the Kalman track object
+                  theTrack.Delete()
 
             # Remove track hits and try to find an additional track
             # Find array index to be removed
