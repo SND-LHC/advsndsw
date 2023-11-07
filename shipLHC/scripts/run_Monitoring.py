@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 import ROOT,os,sys,subprocess,atexit,time
 import rootUtils as ut
@@ -30,6 +29,7 @@ parser.add_argument("--batch", dest="batch", help="batch mode",default=False,act
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 parser.add_argument("-r", "--runNumber", dest="runNumber", help="run number", type=int,default=-1)
 parser.add_argument("-p", "--path", dest="path", help="path to data",required=False,default="")
+parser.add_argument("-praw", dest="rawDataPath", help="path to raw data",required=False,default=False)
 parser.add_argument("-P", "--partition", dest="partition", help="partition of data", type=int,required=False,default=-1)
 parser.add_argument("-d", "--Debug", dest="debug", help="debug", default=False)
 parser.add_argument("-cpp", "--convRawCPP", action='store_true', dest="FairTask_convRaw", help="convert raw data using ConvRawData FairTask", default=False)
@@ -48,6 +48,7 @@ parser.add_argument("--Scifixmin", dest="Scifixmin", default=-2000.)
 parser.add_argument("--ScifialignPar", dest="ScifialignPar", default=False)
 parser.add_argument("--ScifiResUnbiased", dest="ScifiResUnbiased", default=False)
 parser.add_argument("--Mufixmin", dest="Mufixmin", default=-10.)
+parser.add_argument("--ScifiStationMasked", dest="ScifiStationMasked", default="-9")
 
 parser.add_argument("--goodEvents", dest="goodEvents", action='store_true',default=False)
 parser.add_argument("--withTrack", dest="withTrack", action='store_true',default=False)
@@ -64,7 +65,7 @@ options = parser.parse_args()
 options.slowStream = True
 if options.cosmics: options.slowStream = False
 options.startTime = ""
-options.dashboard = "/mnt/raid1/data_online/currently_processed_file.txt"
+options.dashboard = "/mnt/raid1/data_online/run_status.json"
 options.monitorTag = ''
 if (options.auto and not options.interactive) or options.batch: ROOT.gROOT.SetBatch(True)
 
@@ -78,6 +79,10 @@ if options.runNumber < 0  and not options.geoFile:
 #RUN3: 4 Nov 2022  -  
 
 if not options.geoFile:
+   if options.path.find('TI18')<0:
+     if options.path.find('2022')>0 : options.geoFile =  "geofile_sndlhc_TI18_V0_2022.root"
+     if options.path.find('2023')>0 : options.geoFile =  "geofile_sndlhc_TI18_V1_2023.root"
+   else:
      if options.runNumber < 4575:
            options.geoFile =  "geofile_sndlhc_TI18_V3_08August2022.root"
      elif options.runNumber < 4855:
@@ -96,19 +101,18 @@ def currentRun():
             Lcrun = L.decode().split('\n')
             f.close()
       curRun,curPart,start ="","",""
-      for l in Lcrun:
-            if not l.find('FINISHED')<0:
-               print("DAQ not running. Don't know which file to open.")
-               print(Lcrun)
-               break
-            if not l.find('.root') < 0:
-                 tmp = l.split('/')
-                 curRun = tmp[len(tmp)-2]
-                 curPart = tmp[len(tmp)-1]
-                 start = Lcrun[1]
-                 options.monitorTag = ''
-                 if len(Lcrun)>3: options.monitorTag = 'monitoring_'
-                 break
+      X=eval(Lcrun[0])
+      if not (X['state']=='running'):
+           print("DAQ not running.",X)
+      else:
+           curRun = 'run_'+str(X['run_number']).zfill(6)
+           curFile = X['currently_written_file']
+           k = curFile.rfind('data_')+5
+           curPart = int(curFile[k:k+4])
+           start = X['start_time']
+           # assume monitor file always present on DAQ server
+           if options.slowStream: options.monitorTag = 'monitoring_'
+           else:  options.monitorTag = ''
       return curRun,curPart,start
 
 if options.auto:
@@ -129,12 +133,16 @@ else:
    if options.runNumber < 0:
        print("run number required for non-auto mode")
        os._exit(1)
+   if options.rawDataPath: rawDataPath = options.rawDataPath
 # works only for runs on EOS
-   if not options.server.find('eos')<0:
-      if options.path.find('2022'):
+   elif not options.server.find('eos')<0:
+      if options.path.find('2023')>0:
+          rawDataPath = "/eos/experiment/sndlhc/raw_data/physics/2023_tmp/"
+      elif options.path.find('2022')>0:
           rawDataPath = "/eos/experiment/sndlhc/raw_data/physics/2022/"
       else:
           rawDataPath = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/"
+      options.rawDataPath = rawDataPath
       runDir = rawDataPath+"run_"+str(options.runNumber).zfill(6)
       jname = "run_timestamps.json"
       dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+runDir,shell=True) ) 
@@ -164,7 +172,7 @@ M = Monitor.Monitoring(options,FairTasks)
 if options.nEvents < 0 :   options.nEvents = M.GetEntries()
 if options.postScale==0 and options.nEvents>100E6: options.postScale = 100
 if options.postScale==0 and options.nEvents>10E6: options.postScale = 10
-
+print('using postScale ',options.postScale,' for run ',options.runNumber)
 monitorTasks = {}
 if not options.fname:
    monitorTasks['daq']     = DAQ_monitoring.DAQ_boards()
@@ -172,11 +180,14 @@ if not options.fname:
 monitorTasks['Scifi_hitMaps']   = Scifi_monitoring.Scifi_hitMaps()
 monitorTasks['Mufi_hitMaps']   = Mufi_monitoring.Mufi_hitMaps()
 monitorTasks['Mufi_QDCcorellations']   = Mufi_monitoring.Mufi_largeVSsmall()
+if options.postScale<2: monitorTasks['Veto_Efficiency']   = Mufi_monitoring.Veto_Efficiency()
 monitorTasks['Scifi_residuals'] = Scifi_monitoring.Scifi_residuals()   # time consuming
 if options.interactive:  monitorTasks['EventDisplay']   = EventDisplay_Task.twod()
 
 for m in monitorTasks:
     monitorTasks[m].Init(options,M)
+
+# monitorTasks['Veto_Efficiency'].debug  = True
 
 if not options.auto:   # default online/offline mode
  process = []
@@ -245,9 +256,10 @@ if not options.auto:   # default online/offline mode
      for m in monitorTasks:
           monitorTasks[m].Plot()
      # check if all events had been processed
-     if not M.h['Etime'].GetEntries() == options.nEvents:
+     if 'Etime' in M.h:
+       if not M.h['Etime'].GetEntries() == options.nEvents:
          print('event count failed! Processed:',M.h['Etime'].GetEntries(),' total number of events:',options.nEvents)
-     else:
+       else:
          print('i am finished, all events processed')
  if options.saveHistos: ut.writeHists(M.h,'allHistos-run'+M.runNr+'.root')
 

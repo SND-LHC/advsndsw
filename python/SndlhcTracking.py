@@ -116,17 +116,17 @@ class Tracking(ROOT.FairTask):
                     # Load items into snd track class object
                     #if not rc.getFitStatus().isFitConverged(): continue
                     this_track = ROOT.sndRecoTrack(rc)
-                    pointTimes = []
+                    pointTimes = ROOT.std.vector(ROOT.std.vector('float'))()
                     if x=='DS':
                        for pnt in rc.getPointsWithMeasurement():
                            hitID = pnt.getRawMeasurement().getHitId()
                            aCl = self.clusMufi[hitID]
-                           pointTimes.append(aCl.GetTime())
+                           pointTimes.push_back([aCl.GetTime()])
                     if x=='Scifi':
                        for pnt in rc.getPointsWithMeasurement():
                            hitID = pnt.getRawMeasurement().getHitId()
                            aCl = self.clusScifi[hitID]
-                           pointTimes.append(aCl.GetTime())
+                           pointTimes.push_back([aCl.GetTime()])
                     this_track.setRawMeasTimes(pointTimes)
                     this_track.setTrackType(rc.GetUniqueID())
                     # Store the track in sndRecoTrack format

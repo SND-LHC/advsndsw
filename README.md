@@ -76,7 +76,7 @@ On `lxplus` or any CC7/CC8 machine with access to CVMFS, you can do the followin
     ```
 2. Source the `setUp.sh` script
     ```bash
-    source /cvmfs/sndlhc.cern.ch/latest/setUp.sh
+    source /cvmfs/sndlhc.cern.ch/SNDLHC-2023/Aug30/setUp.sh  # recommended latest version
     ```
 3. If you don't want to modify the sndsw package, skip step 3:
     ```bash
@@ -90,7 +90,7 @@ On `lxplus` or any CC7/CC8 machine with access to CVMFS, you can do the followin
     ```
 4. Build the software using `aliBuild`
     ```bash
-    aliBuild build sndsw -c $SNDDIST --always-prefer-system
+    aliBuild build sndsw -c $SNDDIST --always-prefer-system --default release
     ```
 If you exit your shell session and you want to go back working on it, make sure to re-execute the second step.
 
@@ -146,7 +146,7 @@ Commands are similar to the previous case, but without access to CVMFS you need 
 
 4. Build the software using aliBuild
     ```bash
-    aliBuild build sndsw -c snddist
+    aliBuild build sndsw -c snddist --default release
     ```
     If you run into any problems, `aliDoctor` can help determine what the problem is.
 5. Load the environment

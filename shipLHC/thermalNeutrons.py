@@ -49,7 +49,7 @@ timer.Start()
 # -----Create simulation run----------------------------------------
 run = ROOT.FairRunSim()
 run.SetName('TGeant4')  # Transport engine
-run.SetOutputFile(outFile)  # Output file
+run.SetSink(ROOT.FairRootFileSink(outFile))  # Output file
 run.SetUserConfig("g4ConfigNeutron.C") # user configuration file default g4Config.C
 
 # -----Create PrimaryGenerator--------------------------------------

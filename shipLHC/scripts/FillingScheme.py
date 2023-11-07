@@ -21,7 +21,7 @@ fromElog = {4361:7902,4362: 7921, 4363: 7921, 4364: 7921, 4365: 7921, 4366: 7922
 # run 4986 fill 8234 Acc Message :  - 300b fill for VELO insertion - issue with MKI - B2, we ramp with 218b 
 
 
-emulsionReplacements = {0:1,4573:2,4859:3,5172:4}   # first runs with new emulsion
+emulsionReplacements = {0:1,4573:2,4859:3,5172:4,5485:5,6446:6}   # first runs with new emulsion
 
 class fillingScheme():
 
@@ -111,11 +111,13 @@ class fillingScheme():
         tmp = fillnr
         alternative = self.alternativeFill(str(fillnr))
         if alternative: tmp = alternative
+        Y = "2022"
+        if fillnr > 8500 : Y = "2023"
         if not self.lpcFillingscheme:
-             with urlopen('https://lpc.web.cern.ch/cgi-bin/fillTable.py?year=2022') as webpage:
+             with urlopen('https://lpc.web.cern.ch/cgi-bin/fillTable.py?year='+Y) as webpage:
                self.lpcFillingscheme = webpage.read().decode()
                self.tagi = '<td>XXXX</td>'
-               self.tagj = 'fillingSchemes/2022/candidates/'
+               self.tagj = 'fillingSchemes/'+Y+'/candidates/'
         fs = 0
         i = self.lpcFillingscheme.find(self.tagi.replace('XXXX',str(tmp)))
         if i>0:
@@ -145,12 +147,15 @@ class fillingScheme():
          print('fill number =',fillNumber )
        except:
          fillNumber = False
+       if runNumber == 6296 : fillNumber = 8897  # LHC mistake, twice the same fill number
        return fillNumber
 
-   def getLumiAtIP1(self,fillnr=None,fromnxcals=False):
-     if not fromnxcals:
+   def getLumiAtIP1(self,fillnr=None,fromnxcals=False, fromAtlas=False):
+     Y = "2022"
+     if fillnr>8500: Y = "2023"
+     if not fromnxcals and not fromAtlas:
        try:
-          with urlopen('https://lpc.web.cern.ch/cgi-bin/fillAnalysis.py?year=2022&action=fillData&exp=ATLAS&fillnr='+str(fillnr)) as webpage:
+          with urlopen('https://lpc.web.cern.ch/cgi-bin/fillAnalysis.py?year='+Y+'&action=fillData&exp=ATLAS&fillnr='+str(fillnr)) as webpage:
               tmp = webpage.read().decode()
        except:
           print('lumi info not avaible from lpc.',fillnr)
@@ -177,7 +182,8 @@ class fillingScheme():
             self.lumiAtIP1['lumiTime'].AddPoint(X[n][0]-t0,X[n][2])
        return 0
 
-     else:
+     elif fromnxcals:
+       # nxcals old:  /eos/experiment/sndlhc/nxcals_data/
        fileLoc = os.environ['EOSSHIP']+"/eos/experiment/sndlhc/nxcals_data/fill_"+str(fillnr).zfill(6)+".root"
        try:
            fill =  ROOT.TFile.Open(fileLoc)
@@ -207,7 +213,25 @@ class fillingScheme():
             self.lumiAtIP1['lumiTime'].AddPoint(e.unix_timestamp-t0,e.var)
 
        return 0
+       
+     elif fromAtlas:
+       fileLoc = os.environ['EOSSHIP']+"/eos/experiment/sndlhc/atlas_lumi/fill_"+str(fillnr).zfill(6)+".root"
+       try:
+           fill =  ROOT.TFile.Open(fileLoc)
+       except:
+           print('Fill information not found in atlas_lumi ',fillnr)
+           return -1
 
+       LtreeOff = fill.atlas_lumi
+       fillScheme = self.getNameOfFillingscheme(fillnr)
+
+       rc = LtreeOff.GetEvent(0)
+       self.lumiAtIP1 = {'startTime':LtreeOff.unix_timestamp,'lumiTime':ROOT.TGraph(),'fillingScheme':fillScheme}
+       t0 =  self.lumiAtIP1['startTime']
+       for e in LtreeOff:
+            self.lumiAtIP1['lumiTime'].AddPoint(e.unix_timestamp-t0,e.var)
+
+       return 0
    def drawLumi(self,runNumber):
        R = ROOT.TFile.Open(www+"offline/run"+str(runNumber).zfill(6)+".root")
        ROOT.gROOT.cd()
@@ -270,11 +294,12 @@ class fillingScheme():
 
        nbins = self.h['time'].GetNbinsX()
        endTime = self.h['time'].GetBinCenter(nbins)  # in seconds
-       rc = self.getLumiAtIP1(fillnr=options.fillNumbers,fromnxcals=True)
+       rc = self.getLumiAtIP1(fillnr=options.fillNumbers,fromnxcals=True,fromAtlas=False)
        if not rc<0:
-          if FS.lumiAtIP1['lumiTime'].GetN()<2: rc = -1
+          if FS.lumiAtIP1['lumiTime'].GetN()<2:
+              rc = self.getLumiAtIP1(fillnr=options.fillNumbers,fromnxcals=False,fromAtlas=True)
        if rc < 0:
-           rc = self.getLumiAtIP1(fillnr=options.fillNumbers,fromnxcals=False)
+           rc = self.getLumiAtIP1(fillnr=options.fillNumbers,fromnxcals=False,fromAtlas=False)
            if rc<0: return
 
        self.lumiAtlas = ROOT.TGraph()
@@ -1076,7 +1101,9 @@ class fillingScheme():
         keys = list(h.keys())
         keys.sort(reverse=True)
         for r in keys:
-           if r.find('run')==0: h[r].Write()
+           if r.find('run')==0: 
+              if int(r.split('run')[1])<options.rmin: continue
+              h[r].Write()
         F.Close()
 
    def mergeLumi(self):
@@ -1140,15 +1167,14 @@ class fillingScheme():
 # check for partitions
           runNr = str(r).zfill(6)
           partitions = []
-          path = "/eos/experiment/sndlhc/convertedData/commissioning/TI18/"
-          dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+path+"run_"+runNr,shell=True) )
+          dirlist  = str( subprocess.check_output("xrdfs "+os.environ['EOSSHIP']+" ls "+options.convpath+"run_"+runNr,shell=True) )
           for x in dirlist.split('\\n'):
              ix = x.find('sndsw_raw-')
              if ix<0: continue
              partitions.append(x[ix:])
           eventChain = ROOT.TChain('rawConv')
           for p in partitions:
-             eventChain.Add(os.environ['EOSSHIP']+path+'run_'+runNr+'/'+p)
+             eventChain.Add(os.environ['EOSSHIP']+options.convpath+'run_'+runNr+'/'+p)
           return eventChain.GetEntries(),partitions
 
    def getTotalStat(self):
@@ -1163,6 +1189,7 @@ class fillingScheme():
         # filling schemes:  FS-run004626.pdf  and  Lumi-run004626.pdf
         L,N= 0,0
         for r in self.runInfo:
+          if r>options.rmin:
             L+=self.runInfo[r]['lumiAtIP1withSNDLHC']
             N+=self.runInfo[r]['Entries']
         lines = []
@@ -1175,15 +1202,26 @@ class fillingScheme():
         lines.append("\\usepackage[latin1]{inputenc}")
         lines.append("\\usepackage[T1]{fontenc}")
         lines.append("\\title[Short Paper Title] % (optional, use only with long paper titles)")
-        lines.append("{SND@LHC Run Summary July - November 2022}")
-        lines.append("\date[Short Occasion] % (optional)")
-        lines.append("{ 17 November 2022}")
-        lines.append("\\begin{document}")
-        lines.append("\\begin{frame}{}")
-        lines.append("17 November 2022")
-        lines.append("\\newline  ")
-        lines.append("\\newline  ")
-        lines.append("Run Summary for July - November 2022")
+        if options.convpath.find('2022')>0:
+          lines.append("{SND@LHC Run Summary July - November 2022}")
+          lines.append("\date[Short Occasion] % (optional)")
+          lines.append("{ 17 November 2022}")
+          lines.append("\\begin{document}")
+          lines.append("\\begin{frame}{}")
+          lines.append("17 November 2022")
+          lines.append("\\newline  ")
+          lines.append("\\newline  ")
+          lines.append("Run Summary for July - November 2022")
+        else:
+          lines.append("{SND@LHC Run Summary March - July 2023}")
+          lines.append("\date[Short Occasion] % (optional)")
+          lines.append("{ 16 July 2023}")
+          lines.append("\\begin{document}")
+          lines.append("\\begin{frame}{}")
+          lines.append("16 July 2023")
+          lines.append("\\newline  ")
+          lines.append("\\newline  ")
+          lines.append("Run Summary for March - July 2023")
         nTXT = "$%5.2F\\times 10^9 $"%(N/1E9)
         lines.append("\\begin{itemize}")
         lines.append("\item total number of events: "+nTXT)
@@ -1223,6 +1261,7 @@ class fillingScheme():
         ilines = 0
         for  i in range(len(R)):
            r = R[i]
+           if r < options.rmin: continue
            lumi = self.runInfo[r]['lumiAtIP1withSNDLHC']/1E6
            N =  self.runInfo[r]['Entries']
            fill =  str(self.runInfo[r]['Fillnumber'])
@@ -1247,8 +1286,9 @@ class fillingScheme():
 # runs with beam present measured
         RwL = []
         self.runsWithBeam()
-        for  r in R:
+        for  r in self.runs:
              withBeam = False
+             if r not in self.runInfo: continue
              if 'timeWtDS' in  self.runs[r]:
                  if self.runs[r]['timeWtDS']/self.runs[r]['time'] > 0.25: withBeam = True
              if self.runInfo[r]['lumiAtIP1withSNDLHC']>0 or withBeam: RwL.append(r)
@@ -1283,6 +1323,23 @@ class fillingScheme():
         outFile.close()
         os.system('cp $HOME/dummy LumiSummary.tex')
 
+   def getIntegratedLumiFromPlot(dateA,dateB):
+      time_objA = time.strptime(dateA,'%m-%d,%Y-%H')
+      time_objB = time.strptime(dateB,'%m-%d,%Y-%H')
+      TA = calendar.timegm(time_objA)
+      TB = calendar.timegm(time_objB)
+      if not 'cL' in h: ut.readHists(h,'Lumi-time.root')
+      n=0
+      for x in h['cL'].GetListOfPrimitives():
+         if x.ClassName() == 'TGraph':
+             h['Lumi'+str(n)] = x.Clone('Lumi'+str(n))
+             n+=1
+         if x.ClassName() == 'TGaxis':
+             h['IntLumiAxis'] = x.Clone('IntLumiAxis')
+      d = h['Lumi1'].Eval(TB)-h['Lumi1'].Eval(TA)
+      scale = h['IntLumiAxis'].GetWmax() / h['IntLumiAxis'].GetY2()
+      print('Lumi between ',dateA,dateB,' = ',d*scale)
+
    def plotLumiPerTime(self):
         h = self.h
         runInfo = self.runInfo
@@ -1293,6 +1350,7 @@ class fillingScheme():
         runList.sort()
         lmax = 0
         for r in runList:
+           if r<options.rmin: continue
            h['LumiT'].AddPoint(runInfo[r]['StartTime'],0)
            X = runInfo[r]['lumiAtIP1withSNDLHC']/1E6
            h['LumiT'].AddPoint(runInfo[r]['StartTime']+1,X)
@@ -1349,7 +1407,10 @@ class fillingScheme():
    def runsWithBeam(self):
 # potential runs with beam selected by looking for daq rate > cosmics
            self.listOfRuns = {}
-           offline =www + "offline.html"
+           if options.convpath.find('2022')>0:
+              offline =www + "offline.html"
+           else:
+              offline =www + "offline2023.html"
            with client.File() as f:
                f.open(offline)
                status, L = f.read()
@@ -1362,6 +1423,7 @@ class fillingScheme():
                 if ir<0: continue
                 k = x[ir:].find(" ")
                 runNumber = int(x[ir+4:ir+4+k+1])
+                if runNumber<options.rmin: continue
                 R = ROOT.TFile.Open(www+"offline/run"+str(runNumber).zfill(6)+".root")
                 bCanvas = R.daq.Get('T')
                 if not bCanvas:
@@ -1396,6 +1458,7 @@ class fillingScheme():
              if aRun: nm = k
              else:    nm = k.GetName()
              runNumber = int(nm.split('run')[1])
+             if runNumber < options.rmin: continue
              tc = self.F.Get(nm)
              for x in tc.GetListOfPrimitives():
                   if x.GetTitle()=='' and x.GetName()=='': lumi = x
@@ -1572,6 +1635,9 @@ class fillingScheme():
             zaxis.SetMaxDigits(3)
             zaxis.SetTitleOffset(1.4)
             pal = histo.FindObject('palette')
+            if not pal:
+                print('error',emulsionNr)
+                return
             pal.SetX1NDC(0.86)
             pal.SetX2NDC(0.89)
             tc.Update()
@@ -1754,12 +1820,22 @@ if __name__ == '__main__':
     parser.add_argument("-p", dest="path",       help="path to filling scheme", default="/mnt/hgfs/microDisk/SND@LHC/TI18/FillingSchemes/")
     parser.add_argument("-L", dest="lumiversion", help="offline or online lumi from ATLAS", default="offline")
     parser.add_argument("-ip2", dest="withIP2", help="with IP2",default=True)
-    parser.add_argument("-raw", dest="rawData", help="path to rawData",default="/eos/experiment/sndlhc/raw_data/physics/2022")   # before "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data"
+    parser.add_argument("-raw", dest="rawData", help="path to rawData",default="/eos/experiment/sndlhc/raw_data/physics/2023_tmp")   # before "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data"
     parser.add_argument("-www", dest="www", help="path to offline folder",default=os.environ['EOSSHIP']+"/eos/experiment/sndlhc/www/")
-
+    parser.add_argument("-nMin", dest="nMin", help="min entries for a run",default=100000)
+    
     options = parser.parse_args()
-    if options.rawData.find('2022')>0 and options.path.find('TI18')>0: options.path="/mnt/hgfs/microDisk/SND@LHC/2022/FillingSchemes/"
     www = options.www
+    if options.rawData.find('2022')>0 and options.path.find('TI18')>0: 
+       options.path="/mnt/hgfs/microDisk/SND@LHC/2022/FillingSchemes/"
+       options.convpath = "/eos/experiment/sndlhc/convertedData/physics/2022/"
+       options.rmin = 4361-1
+       offline =www+"offline.html"
+    elif options.rawData.find('2023')>0 and options.path.find('TI18')>0: 
+       options.path="/mnt/hgfs/microDisk/SND@LHC/2023/FillingSchemes/"
+       options.convpath = "/eos/experiment/sndlhc/convertedData/physics/2023/"
+       options.rmin = 5413-1
+       offline =www+"offline2023.html"
     FS = fillingScheme()
     FS.Init(options)
     ut.bookCanvas(FS.h,'c1','c1',1800,900,1,1)
@@ -1772,7 +1848,6 @@ if __name__ == '__main__':
         FS.plotBunchStructure(options.fillNumbers,int(options.runNumbers))
     elif options.command == "makeAll" or options.command == "update":
            problems = {}
-           offline =www+"offline.html"
            with client.File() as f:
                f.open(offline)
                status, L = f.read()
@@ -1793,12 +1868,12 @@ if __name__ == '__main__':
                     if y=='': continue
                     nev = int( y )
                     break
-                if nev < 100000: continue
+                if nev < options.nMin: continue
                 scale = 1
                 k = x.find('post scaled:')
                 if k>0: scale = int(x[k+12:])
                 if runnr == 4425: continue   # no beam, but with fill number
-                if runnr > 4360: runs.append([runnr,scale])
+                if runnr > options.rmin: runs.append([runnr,scale])
            for z in runs:
                  r = z[0]
                  options.postScale = z[1]
@@ -1862,15 +1937,15 @@ if __name__ == '__main__':
            
            print('problems',problems)
            print('do not forget to copy to EOS:')
-           print('xrdcp -f  Lumi.root              $EOSSHIP/eos/experiment/sndlhc/www/offline/')
-           print('xrdcp -f Lumidict.root          $EOSSHIP//eos/experiment/sndlhc/convertedData/commissioning/TI18/')
-           print('xrdcp -f Lumidict.pkl            $EOSSHIP//eos/experiment/sndlhc/convertedData/commissioning/TI18/')
-           print('xrdcp -f FSdict.root              $EOSSHIP//eos/experiment/sndlhc/convertedData/commissioning/TI18/')
-           print('xrdcp -f FSdict.pkl               $EOSSHIP//eos/experiment/sndlhc/convertedData/commissioning/TI18/')
-           print('xrdcp -f RunInfodict.root      $EOSSHIP//eos/experiment/sndlhc/convertedData/commissioning/TI18/')
-           print('xrdcp -f RunInfodict.pkl       $EOSSHIP//eos/experiment/sndlhc/convertedData/commissioning/TI18/')
-           print('xrdcp -f Lumi-tracks.root     $EOSSHIP//eos/experiment/sndlhc/www/offline/')
-           print('xrdcp -f LumiSummary.pdf   $EOSSHIP//eos/experiment/sndlhc/www/offline/RunSummary.pdf')
+           print('xrdcp -f  Lumi.root              $EOSSHIP/eos/experiment/sndlhc/www/offline/Lumi2023.root')
+           print('xrdcp -f Lumidict.root          $EOSSHIP//eos/experiment/sndlhc/convertedData/physics/2023/')
+           print('xrdcp -f Lumidict.pkl            $EOSSHIP//eos/experiment/sndlhc/convertedData/physics/2023/')
+           print('xrdcp -f FSdict.root              $EOSSHIP//eos/experiment/sndlhc/convertedData/physics/2023/')
+           print('xrdcp -f FSdict.pkl               $EOSSHIP//eos/experiment/sndlhc/convertedData/physics/2023/')
+           print('xrdcp -f RunInfodict.root      $EOSSHIP//eos/experiment/sndlhc/convertedData/physics/2023/')
+           print('xrdcp -f RunInfodict.pkl       $EOSSHIP//eos/experiment/sndlhc/convertedData/physics/2023/')
+           print('xrdcp -f Lumi-tracks.root     $EOSSHIP//eos/experiment/sndlhc/www/offline/Lumi-tracks2023.root')
+           print('xrdcp -f LumiSummary.pdf   $EOSSHIP//eos/experiment/sndlhc/www/offline/RunSummary2023.pdf')
 
 
 

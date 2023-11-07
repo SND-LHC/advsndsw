@@ -17,9 +17,15 @@ def delProcesses(pname):
     status = subprocess.check_output(callstring,shell=True)
     for x in str(status).split("\\n"):
          if not x.find(pname)<0:
-            pid = x.split(' ')[2]
-            os.system('kill '+pid)
-         
+            first = True
+            for pid in x.split(' '):
+              if first:
+                  first = False
+                  continue
+              if pid=='':continue
+              os.system('kill '+pid)
+              break 
+
 class prodManager():
 
    def Init(self,options):
@@ -88,14 +94,14 @@ class prodManager():
       monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
                         -b 100000 -p "+pathConv+" -g GGGG "\
                         +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo  "
-      if options.parallel>1: monitorCommand += " --postscale "+str(options.parallel)
-      convDataFiles = self.getFileList(pathConv,latest,options.rmax,minSize=0)
+      if options.parallel>1: monitorCommand += " --parallel "+str(options.parallel)
+      convDataFiles = self.getFileList(pathConv,latest,options.rMax,minSize=0)
       self.checkEOS(copy=False,latest=latest)
       # remove directories which are not completely copied
       for r in self.missing:
              if r in convDataFiles: convDataFiles.pop(r)
       # remove directories which are not fully converted
-      rawDataFiles = self.getFileList(path,latest,options.rmax,minSize=10E6)
+      rawDataFiles = self.getFileList(path,latest,options.rMax,minSize=10E6)
       self.RawrunNrs = {}
       for x in rawDataFiles:
              r =  x//10000
@@ -117,12 +123,15 @@ class prodManager():
           self.runNrs[r] = [x]
           
       for r in self.runNrs:
-           if len(self.runNrs[r]) != len(self.RawrunNrs[r]): continue  # not all files converted.
+           if r > options.rMax or r < options.rMin: continue # outside range
+           if not r in self.RawrunNrs: 
+               print('run not found in raw data',r)
+               continue # file converted but not enough events
+           if len(self.runNrs[r]) != len(self.RawrunNrs[r]): 
+               print('run not complete',r)
+               continue  # not all files converted.
            print('executing DQ for run %i'%(r))
-           if   r  < 4575:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
-           elif r  < 4855:  geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
-           elif r  < 5172:  geoFile =  "../geofile_sndlhc_TI18_V6_08October2022.root"
-           else: geoFile =  "../geofile_sndlhc_TI18_V7_22November2022.root"
+           geoFile =  "../geofile_sndlhc_TI18_V1_2023.root"
            os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
            while self.count_python_processes('run_Monitoring')>(ncpus-2) or psutil.virtual_memory()[2]>90 : time.sleep(1800)
 
@@ -130,7 +139,7 @@ class prodManager():
       monitorCommand = "python $SNDSW_ROOT/shipLHC/scripts/run_Monitoring.py -r XXXX --server=$EOSSHIP \
                         -b 100000 -p "+pathConv+" -g GGGG "\
                         +" --postScale "+str(options.postScale)+ " --ScifiResUnbiased 1 --batch --sudo "
-      if options.parallel>1: monitorCommand += " --postscale "+str(options.parallel)
+      if options.parallel>1: monitorCommand += " --postScale "+str(options.parallel)
       if len(runNrs) ==0:
          self.getRunNrFromOffline(rMin,rMax)
          runNrs = self.dqDataFiles
@@ -139,7 +148,8 @@ class prodManager():
            if   r  < 4575:  geoFile =  "../geofile_sndlhc_TI18_V3_08August2022.root"
            elif r  < 4855:   geoFile =  "../geofile_sndlhc_TI18_V5_14August2022.root"
            elif r  < 5172:  geoFile =  "../geofile_sndlhc_TI18_V6_08October2022.root"
-           else: geoFile =  "../geofile_sndlhc_TI18_V7_22November2022.root"
+           elif r  < 5485: geoFile =  "../geofile_sndlhc_TI18_V7_22November2022.root"
+           else: geoFile =  "../geofile_sndlhc_TI18_V1_2023.root"
            os.system(monitorCommand.replace('XXXX',str(r)).replace('GGGG',geoFile)+" &")
            time.sleep(20)
            while self.count_python_processes('run_Monitoring')>(ncpus-5) or psutil.virtual_memory()[2]>90 : time.sleep(300)
@@ -149,7 +159,7 @@ class prodManager():
       convDataFiles = self.getFileList(pathConv,latest,rmax,minSize=0)
       orderedRDF = list(rawDataFiles.keys())
       orderedCDF = list(convDataFiles.keys())
-      orderedRDF.reverse(),orderedCDF.reverse()
+      orderedRDF.sort(),orderedCDF.sort()
 
       for x in orderedRDF: 
            if x in orderedCDF: continue
@@ -242,7 +252,7 @@ class prodManager():
       dirList = str( subprocess.check_output("xrdfs "+self.options.server+" ls "+p,shell=True) )
       for x in dirList.split('\\n'):
           aDir = x[x.rfind('/')+1:]
-          if not aDir.find('run')==0:continue
+          if not aDir.find('run')==0 or aDir.find('json')>0:continue
           runNr = int(aDir.split('_')[1])
           if not runNr > latest: continue
           if runNr > rmax:       continue
@@ -253,7 +263,7 @@ class prodManager():
                for o in z.split(' '):
                   if not o=='': tmp.append(o)
                if self.options.server.find('snd-server')>0:
-                  jj = 3              # not sure it is still correct with the changes on EOS
+                  jj = 0
                   k = z.rfind('data_')
                   if not k>0: continue
                   if not z[k+9:k+10]=='.': continue
@@ -368,7 +378,10 @@ if __name__ == '__main__':
     parser.add_argument("--parallel", dest="parallel",default=1,type=int)
     parser.add_argument("-rMin", dest="rMin",help="first run to process", default=-1,type=int)
     parser.add_argument("-rMax", dest="rMax",help="last run to process", default=9999,type=int)
+    parser.add_argument("-p", dest="path", help="path to data",required=False,default="")
+    parser.add_argument("-d", dest="pathConv", help="path to converted data",required=False,default="")
 
+    
     options = parser.parse_args()
     M = prodManager()
     M.Init(options)
@@ -378,12 +391,9 @@ if __name__ == '__main__':
        if options.server.find('eospublic')<0:
           path = "/mnt/raid1/data_online/" 
        else:
-          path = "/eos/experiment/sndlhc/raw_data/commissioning/TI18/data/"
-       pathConv = "/eos/experiment/sndlhc/convertedData/commissioning/TI18/"
-       if options.runNumbers=="": 
-          runList = [1,6,7,8,16,18,19,20,21,23,24,25,26,27]
-          # 6,7,8   14,15,22 corrupted
-          # 
+          path = "/eos/experiment/sndlhc/raw_data/physics/2023_tmp/"
+          pathConv = "/eos/experiment/sndlhc/convertedData/physics/2023/"
+       
     elif options.prod == "reproc2022":
        path = "/eos/experiment/sndlhc/raw_data/physics/2022/"
        pathConv = "/eos/experiment/sndlhc/convertedData/physics/2022/"
@@ -397,7 +407,9 @@ if __name__ == '__main__':
          path = "/eos/experiment/sndlhc/raw_data/commissioning/scifi_cosmics_epfl/data/"   
          if options.runNumbers=="": 
              runList = [3,8]
-
+    elif options.prod == "test":
+       path     = options.path
+       pathConv = options.pathConv
     else:
         print("production not known. you are on your own",options.prod)
 
