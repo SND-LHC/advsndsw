@@ -1,0 +1,12 @@
+executable = /afs/cern.ch/work/c/cvilela/private/snd_analysis/run_neutrino_filter_range.sh
+arguments = $(input_dir) $(output_dir) $(range_start) $(range_end) STAGE2 4
+log=/afs/cern.ch/work/c/cvilela/private/filter_$(range_start)_$(range_end).log
+output=/afs/cern.ch/work/c/cvilela/private/filter_$(range_start)_$(range_end).log
+error=/afs/cern.ch/work/c/cvilela/private/filter_$(range_start)_$(range_end).log
+should_transfer_files = NO
+request_CPUs = 1
++AccountingGroup = "group_u_SNDLHC.users"
++JobFlavour = "workday"
+notify_user = c.vilela@cern.ch
+notification = Error
+queue input_dir, output_dir, range_start, range_end from /afs/cern.ch/work/c/cvilela/private/snd_analysis/neutralHadronMC_neutrons_tgtarea.list

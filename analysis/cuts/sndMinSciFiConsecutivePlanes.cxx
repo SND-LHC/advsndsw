@@ -7,6 +7,13 @@
 namespace sndAnalysis{
   minSciFiConsecutivePlanes::minSciFiConsecutivePlanes(TChain * tree) : sciFiBaseCut(tree){
     cutName = "Two or more consecutive SciFi planes";
+
+    shortName = "At least two consecutive SciFi planes";
+    nbins = std::vector<int>{1};
+    range_start = std::vector<double>{0};
+    range_end = std::vector<double>{1};
+    plot_var = std::vector<double>{-1};
+
   }
 
   bool minSciFiConsecutivePlanes::passCut(){

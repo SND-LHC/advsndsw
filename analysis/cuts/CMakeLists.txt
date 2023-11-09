@@ -11,6 +11,7 @@ sndEventHeaderBaseCut.cxx
 sndEventDeltat.cxx
 sndAvgSciFiFiducialCut.cxx
 sndAvgDSFiducialCut.cxx
+sndDSVetoCut.cxx
 )
 
 set(LINK_DIRECTORIES
