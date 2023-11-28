@@ -58,8 +58,8 @@ sndScifiHit::sndScifiHit (int SiPMChan, std::vector<ScifiPoint*> V, std::vector<
 	// Find distances from MCPoint centre to ends of fibre
         TVector3 a, b;
         TVector3 impact(V[i]->GetX(),V[i]->GetY() ,V[i]->GetZ() );
-        ScifiDet->GetSiPMPosition(V[i]->GetDetectorID(),a, b);  // to be checked if left is always correct, horizontal / vertical layers
-
+        ScifiDet->GetSiPMPosition(V[i]->GetDetectorID(),a, b);
+	     
 	Double_t distance;
 
 	bool verticalHit = int(fDetectorID/100000)%10 == 1;
