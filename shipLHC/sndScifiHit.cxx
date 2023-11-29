@@ -77,14 +77,13 @@ sndScifiHit::sndScifiHit (int SiPMChan, std::vector<ScifiPoint*> V, std::vector<
 	
 	// for the timing, find earliest light to arrive at SiPM and smear with time resolution
 	Float_t arrival_time = V[i]->GetTime() + distance/signalSpeed;
-	//	std::cout << "DISTANCE " << distance << " propt " << distance/signalSpeed << " " << arrival_time << " " << V[i]->GetTime() << std::endl;
 	if (arrival_time < earliestToA){earliestToA = arrival_time;}
 	
      }
      Float_t ly = signalTotal/0.180*1000.*20.; // 20 p.e. per 180 keV
      signals[0] =MeanAndRMS(ly,nphe_max);
      if (ly >nphe_min){   // nominal threshold at 3.5 p.e.
-           flag=true;
+            flag=true;
       }else{
             flag=false;
       }
