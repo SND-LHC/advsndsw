@@ -24,9 +24,10 @@ parser = ArgumentParser()
 parser.add_argument("-f", "--inputFile", dest="inputFile", help="single input file", required=True)
 parser.add_argument("-g", "--geoFile", dest="geoFile", help="geofile", required=True)
 parser.add_argument("-n", "--nEvents", dest="nEvents",  type=int, help="number of events to process", default=100000)
-parser.add_argument("-ts", "--thresholdScifi", dest="ts", type=float, help="threshold energy for Scifi [keV]", default=3.5)
-parser.add_argument("-tML", "--thresholdMufiL", dest="tml", type=float, help="threshold energy for Mufi large [keV]", default=0.0)
-parser.add_argument("-tMS", "--thresholdMufiS", dest="tms", type=float, help="threshold energy for Mufi small [keV]", default=0.0)
+parser.add_argument("-ts", "--thresholdScifi", dest="ts", type=float, help="threshold energy for Scifi [p.e.]", default=3.5)
+parser.add_argument("-ss", "--saturationScifi", dest="ss", type=float, help="saturation energy for Scifi [p.e.]", default=104.)
+parser.add_argument("-tML", "--thresholdMufiL", dest="tml", type=float, help="threshold energy for Mufi large [p.e.]", default=0.0)
+parser.add_argument("-tMS", "--thresholdMufiS", dest="tms", type=float, help="threshold energy for Mufi small [p.e.]", default=0.0)
 parser.add_argument("-cpp", "--digiCPP", action='store_true', dest="FairTask_digi", help="perform digitization using DigiTaskSND", default=False)
 parser.add_argument("-d", "--Debug", dest="debug", help="debug", default=False)
 
@@ -67,8 +68,8 @@ mufiDet.SetConfPar("MuFilter/VandUpSiPMcalibration",25.*1000.);
 mufiDet.SetConfPar("MuFilter/VandUpSiPMcalibrationS",25.*1000.);
 mufiDet.SetConfPar("MuFilter/VandUpPropSpeed",12.5*u.cm/u.nanosecond);
 mufiDet.SetConfPar("MuFilter/DsPropSpeed",14.3*u.cm/u.nanosecond);
-scifiDet.SetConfPar("Scifi/nphe_min",3.5)   # threshold
-scifiDet.SetConfPar("Scifi/nphe_max",104.) # saturation
+scifiDet.SetConfPar("Scifi/nphe_min",options.ts)   # threshold
+scifiDet.SetConfPar("Scifi/nphe_max",options.ss) # saturation
 scifiDet.SetConfPar("Scifi/timeResol",150.*u.picosecond) # time resolution in ps
 scifiDet.SetConfPar("MuFilter/timeResol",150.*u.picosecond) # time resolution in ps, first guess
 
