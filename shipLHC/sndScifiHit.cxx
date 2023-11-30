@@ -39,7 +39,8 @@ sndScifiHit::sndScifiHit (int SiPMChan, std::vector<ScifiPoint*> V, std::vector<
      Float_t nphe_min = ScifiDet->GetConfParF("Scifi/nphe_min");
      Float_t nphe_max = ScifiDet->GetConfParF("Scifi/nphe_max");
      Float_t timeResol = ScifiDet->GetConfParF("Scifi/timeResol");
-
+     Float_t signalSpeed = ScifiDet->GetConfParF("Scifi/signalSpeed");
+     
      nSides   = 1;
      nSiPMs   = 1;
      for (unsigned int j=0; j<16; ++j){
@@ -52,21 +53,37 @@ sndScifiHit::sndScifiHit (int SiPMChan, std::vector<ScifiPoint*> V, std::vector<
      Float_t earliestToA   = 1E20;
      for( int i = 0; i <V.size();i++) {
         
-      // for the timing, find earliest particle and smear with time resolution
-        if (V[i]->GetTime()<earliestToA){earliestToA=V[i]->GetTime();}
-
         Double_t signal = V[i]->GetEnergyLoss()*W[i];
-      // Find distances from MCPoint centre to ends of fibre
-        TVector3 vLeft,vRight;
+
+	// Find distances from MCPoint centre to ends of fibre
+        TVector3 a, b;
         TVector3 impact(V[i]->GetX(),V[i]->GetY() ,V[i]->GetZ() );
-        ScifiDet->GetPosition(V[i]->GetDetectorID(),vLeft, vRight);  // to be checked if left is always correct, horizontal / vertical layers
-        Double_t distance_Left    =  (vLeft-impact).Mag();
-        signalTotal+= signal*ly_loss_mean(distance_Left,ly_loss_params); 
+        ScifiDet->GetSiPMPosition(V[i]->GetDetectorID(),a, b);
+	     
+	Double_t distance;
+
+	bool verticalHit = int(fDetectorID/100000)%10 == 1;
+
+	// Calculate distance from energy deposit to SiPM.
+	// Vertical
+	if (verticalHit) {
+	  distance = (b - impact).Mag();
+	  // Horizontal
+	} else {
+	  distance = (impact - a).Mag();
+	}
+
+	signalTotal+= signal*ly_loss_mean(distance,ly_loss_params);
+	
+	// for the timing, find earliest light to arrive at SiPM and smear with time resolution
+	Float_t arrival_time = V[i]->GetTime() + distance/signalSpeed;
+	if (arrival_time < earliestToA){earliestToA = arrival_time;}
+	
      }
      Float_t ly = signalTotal/0.180*1000.*20.; // 20 p.e. per 180 keV
      signals[0] =MeanAndRMS(ly,nphe_max);
-      if (ly >nphe_min){   // nominal threshold at 3.5 p.e.
-           flag=true;
+     if (ly >nphe_min){   // nominal threshold at 3.5 p.e.
+            flag=true;
       }else{
             flag=false;
       }
