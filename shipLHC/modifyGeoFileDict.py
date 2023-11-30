@@ -26,13 +26,17 @@ def modifyDicts():
          setattr(sGeo.MuFilter,'DsPropSpeed',14.9*u.cm/u.nanosecond)
          sGeo.MuFilter['DsPropSpeed'] = 14.9*u.cm/u.nanosecond
          constants = {}
-         constants['t_4791'] =  [-5.61,-5.63,-5.90,-5.39,-5.40,-5.58,-5.99,-6.08,-6.27,-6.43,-5.94,-6.20,-5.45,-5.52,-5.75,-5.93,-5.40,-5.56,-5.46,-5.74]
+         constants['t_0'] =  [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
+         constants['t_4361'] =  [-5.61,-5.63,-5.90,-5.39,-5.40,-5.58,-5.99,-6.08,-6.27,-6.43,-5.94,-6.20,-5.45,-5.52,-5.75,-5.93,-5.40,-5.56,-5.46,-5.74]
          constants['t_5117'] =  [-6.56,-6.53,-6.75,-6.27,-6.34,-6.46,-7.50,-7.60,-7.79,-7.94,-7.51,-7.72,-8.09,-8.15,-8.38,-8.55,-8.04,-8.14,-8.02,-8.24]
          constants['t_5478'] =  [-5.28,-5.38,-5.71,-5.76,-5.28,-5.46,-4.22,-4.38,-4.55,-4.70,-4.27,-4.46,-5.31,-5.43,-5.71,-5.88,-5.34,-5.45,-5.38,-5.57]
          constants['t_6208'] =  [-6.53,-6.68,-6.75,-6.81,-6.37,-6.52,-5.81,-5.97,-6.19,-6.31,-5.90,-6.10,-8.06,-8.17,-8.38,-8.54,-8.06,-8.15,-8.07,-8.29]
        #time delay corrections first order, only for DS at the moment
-         for p in ["t_4791","t_5117", "t_5478", "t_6208"]:
-            if p=='t_4791':
+         for p in ["t_0","t_4361","t_5117", "t_5478", "t_6208"]:
+            if p=='t_0':
+               setattr(sGeo.MuFilter,'DSTcorslope'+p,0.000)
+               sGeo.MuFilter['DSTcorslope'+p] = 0.000
+            if p=='t_4361':
                setattr(sGeo.MuFilter,'DSTcorslope'+p,0.082)
                sGeo.MuFilter['DSTcorslope'+p] = 0.082
             if p=='t_5117':
@@ -50,7 +54,12 @@ def modifyDicts():
 
        # Scifi part
          constants={}
-         constants['t_4791']=[   0.000*u.ns,  0.000*u.ns,  -0.222*u.ns, -0.509*u.ns, -0.517*u.ns,  -1.156*u.ns, -0.771*u.ns,
+         constants['t_0']=[   0.000*u.ns,  0.000*u.ns,  0.000*u.ns, 0.000*u.ns, 0.000*u.ns,  0.000*u.ns, 0.000*u.ns,
+  0.000*u.ns,  0.000*u.ns,   0.000*u.ns, 0.000*u.ns, 0.000*u.ns,  0.000*u.ns, 0.000*u.ns,
+  0.000*u.ns,  0.000*u.ns,  0.000*u.ns,  0.000*u.ns,  0.000*u.ns,  0.000*u.ns,  0.000*u.ns,
+   0.000*u.ns,  0.000*u.ns,  0.000*u.ns,  0.000*u.ns, 0.000*u.ns,  0.000*u.ns, 0.0000*u.ns,
+   0.000*u.ns,  0.000*u.ns,  0.000*u.ns, 0.000*u.ns, 0.000*u.ns,  0.000*u.ns,  0.000*u.ns ]
+         constants['t_4361']=[   0.000*u.ns,  0.000*u.ns,  -0.222*u.ns, -0.509*u.ns, -0.517*u.ns,  -1.156*u.ns, -0.771*u.ns,
   -0.287*u.ns,  0.000*u.ns,   0.250*u.ns, -0.854*u.ns, -1.455*u.ns,  -0.812*u.ns, -1.307*u.ns,
   -0.861*u.ns,  0.000*u.ns,  -0.307*u.ns,  0.289*u.ns,  0.069*u.ns,  -0.895*u.ns,  0.731*u.ns,
    0.164*u.ns,  0.000*u.ns,  -1.451*u.ns,  0.196*u.ns, -2.025*u.ns,  -1.049*u.ns, -0.938*u.ns,
@@ -71,7 +80,7 @@ def modifyDicts():
   -0.432*u.ns,  0.000*u.ns,  -1.366*u.ns,  0.326*u.ns,   -2.076*u.ns,  -1.152*u.ns,  -1.075*u.ns, 
   -1.067*u.ns,  0.000*u.ns,  -1.021*u.ns,  -0.873*u.ns,   0.623*u.ns,  -1.094*u.ns,  1.365*u.ns ]
   
-         for c in ['t_4791','t_5117', 't_5478', 't_6208']:
+         for c in ['t_0', 't_4361','t_5117', 't_5478', 't_6208']:
           k=0
           for s in range(1,6):
             setattr(sGeo.Scifi,'station'+str(s)+c,constants[c][k])
@@ -83,7 +92,23 @@ def modifyDicts():
                k+=1
 
          alignment={}
-         alignment['t_4791']=[
+         alignment['t_0']=[
+    0.00*u.um,  0.00*u.um,  0.00*u.um,
+ 0.00*u.um, 0.00*u.um,    0.00*u.um,
+ 0.00*u.um,  0.00*u.um,  0.00*u.um,
+  0.00*u.um,  0.00*u.um,  0.00*u.um,
+   0.00*u.um,   0.00*u.um,   0.00*u.um,
+    0.00*u.um, 0.00*u.um,   0.00*u.um,
+  0.00*u.um,   0.00*u.um,   0.00*u.um,
+   0.00*u.um,  0.00*u.um,   0.00*u.um,
+   0.00*u.um,   0.00*u.um,  0.00*u.um,
+  0.00*u.um,  0.00*u.um,   0.00*u.um,
+   0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad,
+   0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad,
+   0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad,
+   0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad,
+   0.00*u.mrad,    0.00*u.mrad,    0.00*u.mrad]
+         alignment['t_4361']=[
     7.30*u.um,  219.99*u.um,  247.73*u.um,
  -103.87*u.um, -105.64*u.um,    2.54*u.um,
  -286.76*u.um,  -53.99*u.um,  -85.45*u.um,
@@ -180,7 +205,7 @@ def modifyDicts():
    0.00*u.mrad, 0.88*u.mrad, 0.00*u.mrad,
    0.00*u.mrad, 0.07*u.mrad, 0.00*u.mrad]
    
-         for c in ['t_4791','t_4575','t_4855','t_5172','t_5431', 't_6305']:
+         for c in ['t_0', 't_4361','t_4575','t_4855','t_5172','t_5431', 't_6305']:
           k=0
           for s in range(1,6):
            for o in range(0,2):
