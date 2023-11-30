@@ -1,10 +1,3 @@
-/********************************************************************************
- *    Copyright (C) 2014 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH    *
- *                                                                              *
- *              This software is distributed under the terms of the             *
- *              GNU Lesser General Public Licence (LGPL) version 3,             *
- *                  copied verbatim in the file "LICENSE"                       *
- ********************************************************************************/
 #ifndef DIGITASKSND_H_
 #define DIGITASKSND_H_
 
@@ -12,7 +5,6 @@
 #include <RtypesCore.h>         // for Double_t, Int_t, Option_t
 #include <TClonesArray.h> 
 #include "FairTask.h"           // for FairTask, InitStatus
-//#include "FairEventHeader.h"    // for FairEventHeader
 #include "FairMCEventHeader.h"  // for FairMCEventHeader
 #include "Scifi.h"              // for Scifi detector
 #include "SNDLHCEventHeader.h"  // for EventHeader
@@ -37,14 +29,10 @@ class DigiTaskSND : public FairTask
 
     /** Virtual method Exec **/
     virtual void Exec(Option_t* opt);
-    
-    /** setting thresholds **/
-    void setThresholds(Float_t S,Float_t ML=0,Float_t MS=0){ScifiThreshold = S; MufiLargeThreshold = ML; MufiSmallThreshold = MS;}
 
   private:
     void digitizeMuFilter();
     void digitizeScifi();
-    void clusterScifi();
 
     Scifi* scifi;
     map<Int_t, map<Int_t, array<float, 2>>> fibresSiPM;
@@ -54,7 +42,6 @@ class DigiTaskSND : public FairTask
     FairMCEventHeader* fMCEventHeader;
     TClonesArray* fMuFilterPointArray; // MC points
     TClonesArray* fScifiPointArray;
-    TClonesArray* fScifiClusterArray;
     // Output
     SNDLHCEventHeader* fEventHeader;
     TClonesArray* fMuFilterDigiHitArray; // hit class (digitized!)
@@ -68,12 +55,7 @@ class DigiTaskSND : public FairTask
     DigiTaskSND(const DigiTaskSND&);
     DigiTaskSND& operator=(const DigiTaskSND&);
 
-    // thresholds
-    Float_t ScifiThreshold;
-    Float_t MufiLargeThreshold;
-    Float_t MufiSmallThreshold;
-
-    ClassDef(DigiTaskSND, 2);
+    ClassDef(DigiTaskSND, 3);
 };
 
 #endif /* DIGITASKSND_H_ */
