@@ -1,19 +1,15 @@
 //
 //  AdvTarget.cxx
 //
-//  by D. Centanni
-//  Sept 2022
+//  O. Lantwin and D. Centanni
+//  Dec 2023
 //
 
 #include "AdvTarget.h"
 #include "AdvTargetPoint.h"
 
 #include "TGeoManager.h"
-#include "FairRun.h"       // for FairRun
-#include "FairRuntimeDb.h" // for FairRuntimeDb
 #include <iosfwd>          // for ostream
-#include "TList.h"         // for TListIter, TList (ptr only)
-#include "TObjArray.h"     // for TObjArray
 #include "TString.h"       // for TString
 
 #include "TGeoBBox.h"
@@ -27,7 +23,6 @@
 #include "TGeoArb8.h"
 #include "TParticle.h"
 
-#include "TClonesArray.h"
 #include "TVirtualMC.h"
 
 #include "FairVolume.h"
@@ -40,8 +35,6 @@
 #include "FairGeoMedia.h"
 #include "FairGeoMedium.h"
 #include "FairGeoBuilder.h"
-#include "FairRun.h"
-#include "FairRuntimeDb.h"
 
 #include "ShipDetectorList.h"
 #include "ShipUnit.h"
@@ -56,29 +49,31 @@
 #include <ROOT/TSeq.hxx>
 #include <stddef.h> // for NULL
 #include <iostream> // for operator<<, basic_ostream,etc
-#include <string.h>
 
 using ROOT::TSeq;
 using namespace ShipUnit;
 
 AdvTarget::AdvTarget()
    : FairDetector("AdvTarget", "", kTRUE), fTrackID(-1), fVolumeID(-1), fPos(), fMom(), fTime(-1.), fLength(-1.),
-     fELoss(-1), fAdvTargetPointCollection(new TClonesArray("AdvTargetPoint"))
+     fELoss(-1), fAdvTargetPointCollection(new std::vector<AdvTargetPoint*>)
 {
 }
 
 AdvTarget::AdvTarget(const char *name, Bool_t Active, const char *Title)
    : FairDetector(name, true, kAdvSNDTarget), fTrackID(-1), fVolumeID(-1), fPos(), fMom(), fTime(-1.), fLength(-1.),
-     fELoss(-1), fAdvTargetPointCollection(new TClonesArray("AdvTargetPoint"))
+     fELoss(-1), fAdvTargetPointCollection(new std::vector<AdvTargetPoint*>)
 {
 }
 
 AdvTarget::~AdvTarget()
 {
-   if (fAdvTargetPointCollection) {
-      fAdvTargetPointCollection->Delete();
-      delete fAdvTargetPointCollection;
-   }
+   if (fAdvTargetPointCollection->size()) {
+        for (auto const& x : (*fAdvTargetPointCollection)) {
+            delete x;
+        }
+        fAdvTargetPointCollection->clear();
+        delete fAdvTargetPointCollection;
+    }
 }
 
 void AdvTarget::Initialize()
@@ -285,7 +280,10 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
 
 void AdvTarget::EndOfEvent()
 {
-   fAdvTargetPointCollection->Clear();
+   for (auto const& x : (*fAdvTargetPointCollection)) {
+      delete x;
+   }
+   fAdvTargetPointCollection->clear();
 }
 
 void AdvTarget::Register()
@@ -296,26 +294,21 @@ void AdvTarget::Register()
        only during the simulation.
    */
 
-   FairRootManager::Instance()->Register("AdvTargetPoint", "AdvTarget", fAdvTargetPointCollection, kTRUE);
-}
-TClonesArray *AdvTarget::GetCollection(Int_t iColl) const
-{
-   if (iColl == 0) {
-      return fAdvTargetPointCollection;
-   } else {
-      return NULL;
-   }
+   FairRootManager::Instance()->RegisterAny("AdvTargetPoint", fAdvTargetPointCollection, kTRUE);
 }
 
 void AdvTarget::Reset()
 {
-   fAdvTargetPointCollection->Clear();
+   for (auto const& x : (*fAdvTargetPointCollection)) {
+      delete x;
+   }
+   fAdvTargetPointCollection->clear();
 }
 
 AdvTargetPoint *AdvTarget::AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time,
                                   Double_t length, Double_t eLoss, Int_t pdgCode)
 {
-   TClonesArray &clref = *fAdvTargetPointCollection;
-   Int_t size = clref.GetEntriesFast();
-   return new (clref[size]) AdvTargetPoint(trackID, detID, pos, mom, time, length, eLoss, pdgCode);
+   auto point = new AdvTargetPoint(trackID, detID, pos, mom, time, length, eLoss, pdgCode);
+   fAdvTargetPointCollection->push_back(point);
+   return point;
 }

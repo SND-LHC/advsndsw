@@ -1,25 +1,21 @@
 //
 //  AdvTarget.h
 //
-//  by D. Centanni
-//  Sept 2022
+//  O. Lantwin and D. Centanni
+//  Dec 2023
 //
 #ifndef AdvTarget_H
 #define AdvTarget_H
 
-#include "FairModule.h" // for FairModule
 #include "FairDetector.h"
 
 #include "Rtypes.h" // for ShipMuonShield::Class, Bool_t, etc
 
-#include <string> // for string
-
-#include "TVector3.h"
 #include "TLorentzVector.h"
 
 class AdvTargetPoint;
 class FairVolume;
-class TClonesArray;
+class TVector3;
 
 class AdvTarget : public FairDetector {
    public:
@@ -49,7 +45,7 @@ class AdvTarget : public FairDetector {
       virtual void Register();
 
       /** Gets the produced collections */
-      virtual TClonesArray *GetCollection(Int_t iColl) const;
+            virtual TClonesArray *GetCollection(Int_t iColl) const {return nullptr;}
 
       /**      has to be called after each event to reset the containers      */
       virtual void Reset();
@@ -89,7 +85,7 @@ class AdvTarget : public FairDetector {
       Double32_t fLength;  //!  length
       Double32_t fELoss;   //!  energy loss
       /** container for data points */
-      TClonesArray *fAdvTargetPointCollection;
+      std::vector<AdvTargetPoint*>* fAdvTargetPointCollection;
       /** configuration parameters **/
       std::map<TString, Float_t> conf_floats;
       std::map<TString, Int_t> conf_ints;
