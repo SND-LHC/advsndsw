@@ -45,3 +45,16 @@ run.CreateGeometryFile(options.geofile)
 # save detector parameters dictionary in geofile
 import saveBasicParameters
 saveBasicParameters.execute(options.geofile,snd_geo)
+
+
+def checkOverlaps(removeScifi=False):
+ sGeo = ROOT.gGeoManager
+ sGeo.SetNmeshPoints(10000)
+ sGeo.CheckOverlaps(0.1)  # 1 micron takes 5minutes
+ sGeo.PrintOverlaps()
+# check subsystems in more detail
+ for x in sGeo.GetTopNode().GetNodes(): 
+   x.CheckOverlaps(0.0001)
+   sGeo.PrintOverlaps()
+
+checkOverlaps()
