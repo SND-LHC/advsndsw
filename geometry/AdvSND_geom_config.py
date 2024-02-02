@@ -349,22 +349,24 @@ with ConfigRegistry.register_config("basic") as c:
         c.AdvMuFilter.BarGap            = 0.1 * u.mm
         #AdvSND Downstream magnet
         c.AdvMuFilter.DownCutOffset     = 30. * u.cm
-        c.AdvMuFilter.DownFeX           = 200. * u.cm
-        c.AdvMuFilter.DownFeY           = 228. * u.cm
         c.AdvMuFilter.DownFeZ           = 160. * u.cm
         c.AdvMuFilter.CoilThickY         = 2*7. * u.cm
-        #c.AdvMuFilter.DownFeYokeX       = (c.AdvMuFilter.DownFeX-c.AdvMuFilter.MuonSysPlaneX)/2.
-        #c.AdvMuFilter.DownFeYokeY       = (c.AdvMuFilter.DownFeY - c.AdvMuFilter.MuonSysPlaneY- c.AdvMuFilter.CoilThickY)/2.
-        c.AdvMuFilter.DownFeYokeX       = (c.AdvMuFilter.DownFeX- 80*u.cm)/2.
-        c.AdvMuFilter.DownFeYokeY       = (c.AdvMuFilter.DownFeY - 80*u.cm - c.AdvMuFilter.CoilThickY)/2.
+        c.AdvMuFilter.MagTracker1X, c.AdvMuFilter.MagTracker2X, c.AdvMuFilter.MagTracker3X = 60 * u.cm, 70 * u.cm, 90 * u.cm
+        c.AdvMuFilter.MagTracker1Y, c.AdvMuFilter.MagTracker2Y, c.AdvMuFilter.MagTracker3Y = c.AdvMuFilter.MagTracker1X, c.AdvMuFilter.MagTracker2X, c.AdvMuFilter.MagTracker3X
+        c.AdvMuFilter.MagTrackerZ       = 25 * u.mm
+        #c.AdvMuFilter.DownFeX           = 200. * u.cm
+        #c.AdvMuFilter.DownFeY           = 228. * u.cm
+        c.AdvMuFilter.DownFeX           = (200./120.) * c.AdvMuFilter.MagTracker3X
+        c.AdvMuFilter.DownFeY           = (228./120.) * c.AdvMuFilter.MagTracker3Y
+        c.AdvMuFilter.DownFeYokeX       = (c.AdvMuFilter.DownFeX- c.AdvMuFilter.MagTracker2X)/2.
+        c.AdvMuFilter.DownFeYokeY       = (c.AdvMuFilter.DownFeY - c.AdvMuFilter.MagTracker2Y - c.AdvMuFilter.CoilThickY)/2.
         c.AdvMuFilter.DownFeCutX        = c.AdvMuFilter.DownFeYokeX - c.AdvMuFilter.DownCutOffset
         c.AdvMuFilter.DownFeCutY        = c.AdvMuFilter.DownFeYokeY - c.AdvMuFilter.DownCutOffset
         c.AdvMuFilter.IronCoreZ         = c.AdvMuFilter.DownFeZ
-        #c.AdvMuFilter.IronCoreX1        = c.AdvMuFilter.MuonSysPlaneX
-        c.AdvMuFilter.IronCoreX1        = 80*u.cm
-        c.AdvMuFilter.IronCoreX2        = 120 * u.cm
+        c.AdvMuFilter.IronCoreX1        = c.AdvMuFilter.MagTracker2X
+        c.AdvMuFilter.IronCoreX2        = c.AdvMuFilter.MagTracker3X
         c.AdvMuFilter.IronCoreY1        = c.AdvMuFilter.IronCoreX1
         c.AdvMuFilter.IronCoreY2        = c.AdvMuFilter.IronCoreX2
         c.AdvMuFilter.DownField         = 1.6 * u.tesla
-        c.AdvMuFilter.MagTrackerZ       = 25 * u.mm
+        
 

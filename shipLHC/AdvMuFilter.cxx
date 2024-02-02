@@ -268,7 +268,7 @@ void AdvMuFilter::ConstructGeometry()
   CoilUp->RegisterYourself();
   CoilDown->RegisterYourself();
 
-  TGeoCompositeShape *MuonSysFe = new TGeoCompositeShape("MuonSysFe", "FeWall-MuonSysPlane-(CoilSpace:CoilUp)-(CoilSpace:CoilDown)-(FeCut:CutUpRight)-(FeCut:CutDownRight)-(FeCut:CutDownLeft)-(FeCut:CutUpLeft)");
+  TGeoCompositeShape *MuonSysFe = new TGeoCompositeShape("MuonSysFe", "FeWall-MuonSysPlane-(CoilSpace:CoilUp)-(CoilSpace:CoilDown)");
   TGeoVolume *volFeWall = new TGeoVolume("volFeWall", MuonSysFe, Fe);
   TGeoVolume *volMagFe = new TGeoVolume("volMagFe", MuonSysPlane, Fe);
   volFeWall->SetLineColor(kGreen-4);
@@ -327,8 +327,6 @@ void AdvMuFilter::ConstructGeometry()
   Double_t fDownFeY           = conf_floats["AdvMuFilter/DownFeY"];
   Double_t fDownFeZ           = conf_floats["AdvMuFilter/DownFeZ"];
   Double_t CoilThickY         = conf_floats["AdvMuFilter/CoilThickY"];
-  Double_t fDownFeYokeX       = conf_floats["AdvMuFilter/DownFeYokeX"];
-  Double_t fDownFeYokeY       = conf_floats["AdvMuFilter/DownFeYokeY"];
   Double_t fDownFeCutX        = conf_floats["AdvMuFilter/DownFeCutX"];
   Double_t fDownFeCutY        = conf_floats["AdvMuFilter/DownFeCutY"];
 
@@ -447,7 +445,7 @@ void AdvMuFilter::ConstructGeometry()
 
   TGeoCompositeShape *DownCoil = new TGeoCompositeShape("DownCoil", "_DownCoil-IronCore");
   TGeoVolume *volDownCoil = new TGeoVolume("volDownCoil", DownCoil, Cu);
-
+  AddSensitiveVolume(volDownCoil);
 
   TGeoCompositeShape *IronYoke = new TGeoCompositeShape("IronYoke", "_IronYoke-_YokeHole-(DownFeCut:DownCutUpRight)-(DownFeCut:DownCutDownRight)-(DownFeCut:DownCutDownLeft)-(DownFeCut:DownCutUpLeft)");
 
@@ -461,7 +459,7 @@ void AdvMuFilter::ConstructGeometry()
   volIronCore->SetField(magField);
 
   volIronYoke->SetLineColor(kGreen-4);
-  volIronYoke->SetTransparency(60);
+  volIronYoke->SetTransparency(50);
   volIronCore->SetLineColor(kGreen);
 
   TGeoBBox *DownVertCoil1 = new TGeoBBox("DownVertCoil1", fIronCoreX1/2., fIronCoreY1/2., CoilThickY/4.);
@@ -480,23 +478,30 @@ void AdvMuFilter::ConstructGeometry()
   volDownstreamMagnet->AddNode(volDownVertCoil2, 0, new TGeoTranslation(0, 0, fDownFeZ/2.+CoilThickY/4));
   volDownstreamMagnet->AddNode(volIronYoke, 0, 0);
   volDownstreamMagnet->AddNode(volIronCore, 0, 0);
-  volDownstreamMagnet->AddNode(volDownCoil, 0, 0);
+  volDownstreamMagnet->AddNode(volDownCoil, 20000, 0);
 
 
   // Trackers part
-  Double_t fMagTrackerZ = conf_floats["AdvMuFilter/MagTrackerZ"]; // cm Alu tubes diameter
-  TGeoBBox *MagTracker = new TGeoBBox("MagTracker", 80/2., 80/2., fMagTrackerZ/2.);
-  //TGeoBBox *MagTracker = new TGeoBBox("MagTracker", fMuonSysPlaneX/2., fMuonSysPlaneY/2., fMagTrackerZ/2.);
-  TGeoVolume *volMagTracker = new TGeoVolume("volMagTracker", MagTracker, Al);
-  volMagTracker->SetLineColor(kGray);
-  AddSensitiveVolume(volMagTracker);
-  TGeoBBox *DownMagTracker = new TGeoBBox("DownMagTracker", fIronCoreX2/2., fIronCoreY2/2., fMagTrackerZ/2.);
+  Double_t fMagTracker1X = conf_floats["AdvMuFilter/MagTracker1X"];
+  Double_t fMagTracker1Y = conf_floats["AdvMuFilter/MagTracker1Y"];
+  Double_t fMagTracker2X = conf_floats["AdvMuFilter/MagTracker2X"];
+  Double_t fMagTracker2Y = conf_floats["AdvMuFilter/MagTracker2Y"];
+  Double_t fMagTracker3X = conf_floats["AdvMuFilter/MagTracker3X"];
+  Double_t fMagTracker3Y = conf_floats["AdvMuFilter/MagTracker3Y"];
+  Double_t fMagTrackerZ  = conf_floats["AdvMuFilter/MagTrackerZ"]; // cm Alu tubes diameter
+  TGeoVolume *volMagTracker1 = gGeoManager->MakeBox("volMagTracker1", Al, fMagTracker1X/2., fMagTracker1Y/2., fMagTrackerZ/2.);
+  volMagTracker1->SetLineColor(kGray);
+  AddSensitiveVolume(volMagTracker1);
+  TGeoVolume *volMagTracker2 = gGeoManager->MakeBox("volMagTracker2", Al, fMagTracker2X/2., fMagTracker2Y/2., fMagTrackerZ/2.);
+  volMagTracker2->SetLineColor(kGray);
+  AddSensitiveVolume(volMagTracker2);
+  TGeoBBox *DownMagTracker = new TGeoBBox("DownMagTracker", fMagTracker3X/2., fMagTracker3Y/2., fMagTrackerZ/2.);
   TGeoVolume *volDownMagTracker = new TGeoVolume("volDownMagTracker", DownMagTracker, Al);
   volDownMagTracker->SetLineColor(kGray);
   AddSensitiveVolume(volDownMagTracker);
 
-  volAdvMuFilter->AddNode(volMagTracker, 0+fDetIDOffset, new TGeoTranslation(0, 0, FirstMagZ+fMagTrackerZ/2));
-  volAdvMuFilter->AddNode(volMagTracker, 1+fDetIDOffset, new TGeoTranslation(0, 0, FirstMagZ+fMagnetsGap+fMagTrackerZ/2)); // Somehow magtrackers are not rendered in OGL, hardcoding the displacement
+  volAdvMuFilter->AddNode(volMagTracker1, 0+fDetIDOffset, new TGeoTranslation(0, 0, FirstMagZ+fMagTrackerZ/2));
+  volAdvMuFilter->AddNode(volMagTracker2, 1+fDetIDOffset, new TGeoTranslation(0, 0, FirstMagZ+fMagnetsGap+fMagTrackerZ/2)); // Somehow magtrackers are not rendered in OGL, hardcoding the displacement
   volAdvMuFilter->AddNode(volDownstreamMagnet, 0, new TGeoTranslation(0, 0, FirstMagZ+fMagnetsGap+fMagTrackerZ+CoilThickY/2+fDownFeZ/2.+0.01+2*0.87));
   volAdvMuFilter->AddNode(volDownMagTracker, 2+fDetIDOffset, new TGeoTranslation(0, 0, FirstMagZ+fMagnetsGap+fMagTrackerZ+CoilThickY+fDownFeZ+fMagTrackerZ/2+0.02+2*1.74));
 
