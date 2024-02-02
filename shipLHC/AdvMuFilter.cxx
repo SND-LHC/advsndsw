@@ -327,10 +327,10 @@ void AdvMuFilter::ConstructGeometry()
   Double_t fDownFeY           = conf_floats["AdvMuFilter/DownFeY"];
   Double_t fDownFeZ           = conf_floats["AdvMuFilter/DownFeZ"];
   Double_t CoilThickY         = conf_floats["AdvMuFilter/CoilThickY"];
-  Double_t fDownFeYokeX       = (fDownFeX-fMuonSysPlaneX)/2;
-  Double_t fDownFeYokeY       = (fDownFeY-fMuonSysPlaneY-CoilThickY)/2.;
-  Double_t fDownFeCutX        = fDownFeYokeX-fDownCutOffset;
-  Double_t fDownFeCutY        = fDownFeYokeY-fDownCutOffset;
+  Double_t fDownFeYokeX       = conf_floats["AdvMuFilter/DownFeYokeX"];
+  Double_t fDownFeYokeY       = conf_floats["AdvMuFilter/DownFeYokeY"];
+  Double_t fDownFeCutX        = conf_floats["AdvMuFilter/DownFeCutX"];
+  Double_t fDownFeCutY        = conf_floats["AdvMuFilter/DownFeCutY"];
 
   Double_t fIronCoreZ         = conf_floats["AdvMuFilter/IronCoreZ"];
   Double_t fIronCoreX1        = conf_floats["AdvMuFilter/IronCoreX1"];
@@ -485,7 +485,8 @@ void AdvMuFilter::ConstructGeometry()
 
   // Trackers part
   Double_t fMagTrackerZ = conf_floats["AdvMuFilter/MagTrackerZ"]; // cm Alu tubes diameter
-  TGeoBBox *MagTracker = new TGeoBBox("MagTracker", fMuonSysPlaneX/2., fMuonSysPlaneY/2., fMagTrackerZ/2.);
+  TGeoBBox *MagTracker = new TGeoBBox("MagTracker", 80/2., 80/2., fMagTrackerZ/2.);
+  //TGeoBBox *MagTracker = new TGeoBBox("MagTracker", fMuonSysPlaneX/2., fMuonSysPlaneY/2., fMagTrackerZ/2.);
   TGeoVolume *volMagTracker = new TGeoVolume("volMagTracker", MagTracker, Al);
   volMagTracker->SetLineColor(kGray);
   AddSensitiveVolume(volMagTracker);
