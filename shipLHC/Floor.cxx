@@ -369,9 +369,9 @@ void Floor::ConstructGeometry()
   LOG(DEBUG) << "shapes "<<shapes[0]->GetName()<<" "<<shapes[1]->GetName()<<" "<<shapes[2]->GetName();
   /**** Hand changes to fit the AdvSND apparatus ****/ 
   //TVector3 detdim(89.998020, 107.989308, 362.541092+2.);
-  TVector3 detdim(99.997800+6, 113.988714+25, 281.160616+2.); // new 2024
+  TVector3 detdim(99.997800+6, 113.988714+25, 281.160616+2.+70); // new 2024
   //auto Detpos = new TGeoTranslation("Detpos", -0.2024000+ShiftX, 30.581334+ShiftY, 620.85947+ShiftZ);
-  auto Detpos = new TGeoTranslation("Detpos", ShiftX-99.997800/2+22., ShiftY+113.988714/2.-10, ShiftZ+2*279.160616-22.); // new 2024
+  auto Detpos = new TGeoTranslation("Detpos", ShiftX-99.997800/2+22., ShiftY+113.988714/2.-10, ShiftZ+2*279.160616-22.-30); // new 2024
   Detpos->RegisterYourself();
   auto DetShape = new TGeoBBox("DetShape", detdim.X(), detdim.Y(), detdim.Z());
   /////////////////////////////////////////////

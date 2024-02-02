@@ -128,7 +128,7 @@ void AdvTarget::ConstructGeometry()
     Double_t fTargetWallZ = conf_floats["AdvTarget/TargetWallZ"];
     // Double_t fTTX = conf_floats["AdvTarget/TTX"];  // unused
     // Double_t fTTY = conf_floats["AdvTarget/TTY"];  // unused
-    // Double_t fTTZ = conf_floats["AdvTarget/TTZ"];  // unused
+    Double_t fTTZ = conf_floats["AdvTarget/TTZ"];
     Int_t stations = conf_ints["AdvTarget/nTT"];   // Number of TT stations
 
     TGeoBBox *TargetWall = new TGeoBBox("TargetWall", fTargetWallX / 2., fTargetWallY / 2., fTargetWallZ / 2.);
@@ -181,9 +181,10 @@ void AdvTarget::ConstructGeometry()
                       1,
                       new TGeoTranslation(line_of_sight_offset - EmWall0_survey.X() + (fTargetWallX - 42.2 * cm) / 2.,
                                           EmWall0_survey.Y(),
-                                          -TargetDiff + EmWall0_survey.Z()));
+                                          -TargetDiff + EmWall0_survey.Z() - 60 * cm - 30 * cm)); // - 60 * cm - 30 * cm to allocate a 150 cm Target
 
-    TGeoVolume* TrackingStation = gGeoManager->MakeBox("TrackingStation", Silicon, fTargetWallX / 2., fTargetWallY / 2., fTargetWallZ / 2.);
+    TGeoVolume* TrackingStation = gGeoManager->MakeBox("TrackingStation", Silicon, fTargetWallX / 2., fTargetWallY / 2., fTTZ / 2.);
+    TrackingStation->SetLineColor(kGray);
     AddSensitiveVolume(TrackingStation);
     // For correct detector IDs, the geometry has to be built back to front, from the top-level
     for (auto &&station : TSeq(stations)) {
@@ -235,10 +236,12 @@ void AdvTarget::ConstructGeometry()
         volAdvTarget->AddNode(
             volTargetWall,
             station,
-            new TGeoTranslation(0, 0, -fTargetWallZ / 2 + station * fTargetWallZ + station * 7.5 * mm));
-        volAdvTarget->AddNode(TrackingStation,
-                              station,
-			      new TGeoTranslation(0, 0, fTargetWallZ/2 + station * (fTargetWallZ + 7.5 * mm)));
+            new TGeoTranslation(0, 0, -fTargetWallZ / 2 + station * fTargetWallZ + station * fTTZ));
+        
+        volAdvTarget->AddNode(
+            TrackingStation,
+            station,
+			new TGeoTranslation(0, 0, fTTZ/2 + station * (fTargetWallZ + fTTZ)));
                               //new TGeoTranslation(0, 0, (station + 0.5) * fTargetWallZ + (station - 0.5) * 7.5 * mm));
     }
 }

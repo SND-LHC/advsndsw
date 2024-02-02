@@ -310,13 +310,13 @@ with ConfigRegistry.register_config("basic") as c:
         c.AdvTarget = AttrDict(z=0*u.cm)
         c.AdvTarget.TargetWallX = 40.0 * u.cm
         c.AdvTarget.TargetWallY = 40.0 * u.cm
-        c.AdvTarget.TargetWallZ = 7.5 * u.mm
+        c.AdvTarget.TargetWallZ = 7 * u.mm
 
         # Target Tracking stations
         c.AdvTarget.TTX = 49.29 * u.cm
         c.AdvTarget.TTY = 49.29 * u.cm
-        c.AdvTarget.TTZ = 7.5 * u.mm
-        c.AdvTarget.nTT = 40
+        c.AdvTarget.TTZ = 8 * u.mm
+        c.AdvTarget.nTT = 100
 
         # AdvSND MuFilter structure
         """
