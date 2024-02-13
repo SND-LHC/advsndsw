@@ -55,7 +55,7 @@ AdvTarget::AdvTarget()
     , fTime(-1.)
     , fLength(-1.)
     , fELoss(-1)
-    , fAdvTargetPointCollection(new std::vector<AdvTargetPoint *>)
+    , fAdvTargetPointCollection(new TClonesArray("AdvTargetPoint"))
 {
 }
 
@@ -68,19 +68,16 @@ AdvTarget::AdvTarget(const char *name, Bool_t Active, const char *Title)
     , fTime(-1.)
     , fLength(-1.)
     , fELoss(-1)
-    , fAdvTargetPointCollection(new std::vector<AdvTargetPoint *>)
+    , fAdvTargetPointCollection(new TClonesArray("AdvTargetPoint"))
 {
 }
 
 AdvTarget::~AdvTarget()
 {
-    if (fAdvTargetPointCollection->size()) {
-        for (auto const &x : (*fAdvTargetPointCollection)) {
-            delete x;
-        }
-        fAdvTargetPointCollection->clear();
-        delete fAdvTargetPointCollection;
-    }
+   if (fAdvTargetPointCollection) {
+      fAdvTargetPointCollection->Delete();
+      delete fAdvTargetPointCollection;
+   }
 }
 
 void AdvTarget::Initialize() { FairDetector::Initialize(); }
@@ -304,10 +301,7 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
 
 void AdvTarget::EndOfEvent()
 {
-    for (auto const &x : (*fAdvTargetPointCollection)) {
-        delete x;
-    }
-    fAdvTargetPointCollection->clear();
+   fAdvTargetPointCollection->Clear();
 }
 
 void AdvTarget::Register()
@@ -318,27 +312,26 @@ void AdvTarget::Register()
         only during the simulation.
     */
 
-    FairRootManager::Instance()->RegisterAny("AdvTargetPoint", fAdvTargetPointCollection, kTRUE);
+    FairRootManager::Instance()->Register("AdvTargetPoint", "AdvTarget", fAdvTargetPointCollection, kTRUE);
+}
+TClonesArray *AdvTarget::GetCollection(Int_t iColl) const
+{
+   if (iColl == 0) {
+      return fAdvTargetPointCollection;
+   } else {
+      return NULL;
+   }
 }
 
 void AdvTarget::Reset()
 {
-    for (auto const &x : (*fAdvTargetPointCollection)) {
-        delete x;
-    }
-    fAdvTargetPointCollection->clear();
+   fAdvTargetPointCollection->Clear();
 }
 
-AdvTargetPoint *AdvTarget::AddHit(Int_t trackID,
-                                  Int_t detID,
-                                  TVector3 pos,
-                                  TVector3 mom,
-                                  Double_t time,
-                                  Double_t length,
-                                  Double_t eLoss,
-                                  Int_t pdgCode)
+AdvTargetPoint *AdvTarget::AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time,
+                                  Double_t length, Double_t eLoss, Int_t pdgCode)
 {
-    auto point = new AdvTargetPoint(trackID, detID, pos, mom, time, length, eLoss, pdgCode);
-    fAdvTargetPointCollection->push_back(point);
-    return point;
+   TClonesArray &clref = *fAdvTargetPointCollection;
+   Int_t size = clref.GetEntriesFast();
+   return new (clref[size]) AdvTargetPoint(trackID, detID, pos, mom, time, length, eLoss, pdgCode);
 }

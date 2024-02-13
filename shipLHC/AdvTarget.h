@@ -14,6 +14,7 @@
 class AdvTargetPoint;
 class FairVolume;
 class TVector3;
+class TClonesArray;
 
 class AdvTarget : public FairDetector
 {
@@ -44,7 +45,7 @@ class AdvTarget : public FairDetector
     virtual void Register();
 
     /** Gets the produced collections */
-    virtual TClonesArray *GetCollection(Int_t iColl) const { return nullptr; }
+    virtual TClonesArray *GetCollection(Int_t iColl) const;
 
     /**      has to be called after each event to reset the containers      */
     virtual void Reset();
@@ -90,7 +91,7 @@ class AdvTarget : public FairDetector
     Double32_t fLength;    //!  length
     Double32_t fELoss;     //!  energy loss
     /** container for data points */
-    std::vector<AdvTargetPoint *> *fAdvTargetPointCollection;
+    TClonesArray *fAdvTargetPointCollection;
     /** configuration parameters **/
     std::map<TString, Float_t> conf_floats;
     std::map<TString, Int_t> conf_ints;
@@ -98,10 +99,9 @@ class AdvTarget : public FairDetector
 
     ClassDef(AdvTarget, 1)
 
-        protected
-        :
+  protected:
 
-        Int_t InitMedium(const char *name);
+    Int_t InitMedium(const char *name);
 };
 
 #endif
