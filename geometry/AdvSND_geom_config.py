@@ -341,7 +341,7 @@ with ConfigRegistry.register_config("basic") as c:
         c.AdvMuFilter.FeGap             = 2.0 * u.cm
         c.AdvMuFilter.Nplanes           = 22
         c.AdvMuFilter.CoilX             = c.AdvMuFilter.MuonSysPlaneX
-        c.AdvMuFilter.CoilY             = 2.0 *u.cm
+        c.AdvMuFilter.CoilY             = 9.2 *u.cm
         c.AdvMuFilter.FeX               = 2*c.AdvMuFilter.MuonSysPlaneX
         c.AdvMuFilter.FeY               = 2*c.AdvMuFilter.MuonSysPlaneY+3*c.AdvMuFilter.CoilY
         c.AdvMuFilter.Field             = 1.75 * u.tesla
@@ -350,7 +350,7 @@ with ConfigRegistry.register_config("basic") as c:
         #AdvSND Downstream magnet
         c.AdvMuFilter.DownCutOffset     = 30. * u.cm
         c.AdvMuFilter.DownFeZ           = 160. * u.cm
-        c.AdvMuFilter.CoilThickY         = 2*7. * u.cm
+        c.AdvMuFilter.CoilThickY         = 9.2 * u.cm
         c.AdvMuFilter.MagTracker1X, c.AdvMuFilter.MagTracker2X, c.AdvMuFilter.MagTracker3X = 60 * u.cm, 70 * u.cm, 90 * u.cm
         c.AdvMuFilter.MagTracker1Y, c.AdvMuFilter.MagTracker2Y, c.AdvMuFilter.MagTracker3Y = c.AdvMuFilter.MagTracker1X, c.AdvMuFilter.MagTracker2X, c.AdvMuFilter.MagTracker3X
         c.AdvMuFilter.MagTrackerZ       = 25 * u.mm

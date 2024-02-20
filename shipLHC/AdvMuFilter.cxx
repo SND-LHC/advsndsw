@@ -220,7 +220,7 @@ void AdvMuFilter::ConstructGeometry()
   Double_t fTargetWallX = 50.; //cm
   TVector3 EmWall0_survey(5.35+42.2/2.-(fTargetWallX-42.2)/2., 17.2+42.2/2., 288.92+10/2.+100); // cm
 
-  detector->AddNode(volAdvMuFilter,0,new TGeoTranslation(-2.4244059999999976-EmWall0_survey.X(), 38.3, 354.862+3+1+fFeZ/2.-41.895793+1.-3.854227000000008)); // hardcoded, try to find and elegant solution
+  detector->AddNode(volAdvMuFilter,0,new TGeoTranslation(-2.4244059999999976-EmWall0_survey.X(), 38.3, 354.862+3+1+fFeZ/2.-41.895793+1.-3.854227000000008+3.7497190000000046)); // hardcoded, try to find and elegant solution
   
   TGeoBBox *FeWall = new TGeoBBox("FeWall", fFeX/2., fFeY/2., fFeZ/2.);
   TGeoBBox *MuonSysPlane = new TGeoBBox("MuonSysPlane", fMuonSysPlaneX/2., fMuonSysPlaneY/2., fFeZ/2.+0.001);
@@ -317,7 +317,8 @@ void AdvMuFilter::ConstructGeometry()
   // for now just add a 1000 offset to identify Magnet hits from MuFilter ones
   Int_t    fDetIDOffset = 10000;
   //Double_t fNplanes2 = 20; // unused
-  Double_t fMagnetsGap = 90; // cm
+  //Double_t fMagnetsGap = 90; // cm
+  Double_t fMagnetsGap = 65; // cm
   Double_t FirstMagZ = (fNplanes-1)*(fFeZ+fFeGap)+fCoilY+fFeZ+fCoilY/2+0.01;
   //Double_t fShortCoilZ = fNplanes2*fFeZ; // unused
   Double_t fSpacing = 8.75; // cm
