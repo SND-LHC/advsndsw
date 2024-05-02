@@ -150,6 +150,9 @@ void AdvMuFilter::ConstructGeometry()
   InitMedium("aluminium");
 	TGeoMedium *Al =gGeoManager->GetMedium("aluminium");
 
+  InitMedium("silicon");
+  TGeoMedium *Silicon = gGeoManager->GetMedium("silicon");
+
 	/*
     Double_t fWallX = conf_floats["AdvMuFilter/WallX"];
     Double_t fWallY = conf_floats["AdvMuFilter/WallY"];
@@ -206,9 +209,7 @@ void AdvMuFilter::ConstructGeometry()
   Double_t fFeYokeY       = (fFeY-fMuonSysPlaneY-fCoilY)/2.;
   Double_t fFeCutX        = fFeYokeX - fCutOffset;
   Double_t fFeCutY        = fFeYokeY - fCutOffset;
-  Int_t    fNBars         = conf_ints["AdvMuFilter/NBars"];
-  Double_t fBarGap        = conf_floats["AdvMuFilter/BarGap"]; 
-  Double_t fBarY          = (fMuonSysPlaneY-(fNBars-1)*fBarGap)/fNBars;
+
   
   TGeoVolumeAssembly *volAdvMuFilter  = new TGeoVolumeAssembly("volAdvMuFilter");
   
@@ -274,8 +275,6 @@ void AdvMuFilter::ConstructGeometry()
   volFeWall->SetLineColor(kGreen-4);
   volMagFe->SetLineColor(kGreen);
   
-  //Double_t fField = 1.5; // Tesla
-  //fField = fField/10; // kGauss (complying with GEANT3)
   Double_t fField = conf_floats["AdvMuFilter/Field"];
   LOG(INFO) << " Mag field: " << fField/10. << " Tesla" << endl;
   TGeoUniformMagField *magField = new TGeoUniformMagField(-fField,0, 0);
@@ -287,10 +286,11 @@ void AdvMuFilter::ConstructGeometry()
   TGeoVolume *volVertCoil = new TGeoVolume("volVertCoil", VertCoil, Cu);
   volVertCoil->SetLineColor(kOrange+1);
 
-  TGeoVolume *volBar = gGeoManager->MakeBox("volBar", Scint, fMuonSysPlaneX/2., fBarY/2., fFeGap/2.);
-  volBar->SetLineColor(kGray-2);
-  AddSensitiveVolume(volBar);
-  TGeoVolume *volMuonSysDet;
+  // Minimal configuration includes Silicon strip detectors, for now only a sensitive plane is implemented
+  TGeoBBox *MuonSysDet = new TGeoBBox("MuonSysDet", fMuonSysPlaneX/2., fMuonSysPlaneY/2., fFeGap/2.);
+  TGeoVolume *volMuonSysDet = new TGeoVolume("volMuonSysDet", MuonSysDet, Silicon);
+  volMuonSysDet->SetLineColor(kGray-2);
+  AddSensitiveVolume(volMuonSysDet);
 
   volAdvMuFilter->AddNode(volVertCoil, 0, new TGeoTranslation(0, 0, 0));
     for(int i = 0; i<fNplanes; i++)
@@ -298,213 +298,13 @@ void AdvMuFilter::ConstructGeometry()
       volAdvMuFilter->AddNode(volFeWall, i, new TGeoTranslation(0, 0, (fCoilY+fFeZ)/2+i*(fFeZ+fFeGap)));
       volAdvMuFilter->AddNode(volMagFe, i, new TGeoTranslation(0, 0, (fCoilY+fFeZ)/2+i*(fFeZ+fFeGap)));
       if (i == fNplanes-1) continue;
-      string name = "volMuonSysDet_"+to_string(i);
-      volMuonSysDet = new TGeoVolumeAssembly(name.c_str());
-      for (Int_t ibar=0; ibar< fNBars; ibar++){
-        Double_t dy_bar = (fBarY+fBarGap)*ibar-fMuonSysPlaneY/2.+fBarY/2;
-        volMuonSysDet->AddNode(volBar, 100*i+ibar, new TGeoTranslation(0, dy_bar, 0));
-      }
-      Double_t XY_angle = 0.;
-      if (i%2 != 0) XY_angle = 90.;
-      volAdvMuFilter->AddNode(volMuonSysDet, i, new TGeoCombiTrans( TGeoTranslation(0, 0, (fCoilY+fFeZ)/2+(fFeZ+fFeGap)/2.+i*(fFeZ+fFeGap)), TGeoRotation("Bar_rot", 0, 0, XY_angle)));
+      volAdvMuFilter->AddNode(volMuonSysDet, i, new TGeoTranslation(0, 0, (fCoilY+fFeZ)/2+(fFeZ+fFeGap)/2.+i*(fFeZ+fFeGap)));
     }
   volAdvMuFilter->AddNode(volCoil, 0, new TGeoTranslation(0, fMuonSysPlaneY/2.+fCoilY/2., (fCoilY+fFeZ)/2+fCoilZ/2.-fFeZ/2.));
   volAdvMuFilter->AddNode(volCoil, 1, new TGeoTranslation(0, -fMuonSysPlaneY/2.-fCoilY/2., (fCoilY+fFeZ)/2+fCoilZ/2.-fFeZ/2.));
-
   volAdvMuFilter->AddNode(volVertCoil, 1, new TGeoTranslation(0, 0, (fNplanes-1)*(fFeZ+fFeGap)+fCoilY+fFeZ));
-  
-  // Now adding the second part of the spectrometer, TO DO: think about how to implement it in the Magnet.cxx class with all of the shapes.
-  // for now just add a 1000 offset to identify Magnet hits from MuFilter ones
-  Int_t    fDetIDOffset = 10000;
-  //Double_t fNplanes2 = 20; // unused
-  //Double_t fMagnetsGap = 90; // cm
-  Double_t fMagnetsGap = 65; // cm
-  Double_t FirstMagZ = (fNplanes-1)*(fFeZ+fFeGap)+fCoilY+fFeZ+fCoilY/2+0.01;
-  //Double_t fShortCoilZ = fNplanes2*fFeZ; // unused
-  Double_t fSpacing = 8.75; // cm
 
-  Double_t fDownCutOffset     = conf_floats["AdvMuFilter/DownCutOffset"];
-  Double_t fDownFeX           = conf_floats["AdvMuFilter/DownFeX"];
-  Double_t fDownFeY           = conf_floats["AdvMuFilter/DownFeY"];
-  Double_t fDownFeZ           = conf_floats["AdvMuFilter/DownFeZ"];
-  Double_t CoilThickY         = conf_floats["AdvMuFilter/CoilThickY"];
-  Double_t fDownFeCutX        = conf_floats["AdvMuFilter/DownFeCutX"];
-  Double_t fDownFeCutY        = conf_floats["AdvMuFilter/DownFeCutY"];
-
-  Double_t fIronCoreZ         = conf_floats["AdvMuFilter/IronCoreZ"];
-  Double_t fIronCoreX1        = conf_floats["AdvMuFilter/IronCoreX1"];
-  Double_t fIronCoreX2        = conf_floats["AdvMuFilter/IronCoreX2"];
-  Double_t fIronCoreY1        = conf_floats["AdvMuFilter/IronCoreY1"];
-  Double_t fIronCoreY2        = conf_floats["AdvMuFilter/IronCoreY2"];
-
-  /* TGeoBBox *ShortCoil = new TGeoBBox("ShortCoil", fCoilX/2., fCoilY/2., fShortCoilZ/2.);
-  TGeoVolume *volShortCoil = new TGeoVolume("volShortCoil", ShortCoil, Cu);
-  volShortCoil->SetLineColor(kOrange+1);
-
-
-  for(int i = 0; i< 20; i++)
-  {
-      volAdvMuFilter->AddNode(volFeWall, i+fNplanes, new TGeoTranslation(0, 0, FirstMagZ+fMagnetsGap+i*fFeZ-fFeGap+fSpacing));
-      volAdvMuFilter->AddNode(volMagFe, i+fNplanes, new TGeoTranslation(0, 0, FirstMagZ+fMagnetsGap+i*fFeZ-fFeGap+fSpacing));
-  }
-  volAdvMuFilter->AddNode(volShortCoil, 0, new TGeoTranslation(0, fMuonSysPlaneY/2.+fCoilY/2., fShortCoilZ/2.-fFeZ/2.+fMagnetsGap+FirstMagZ-fFeGap+fSpacing));
-  volAdvMuFilter->AddNode(volShortCoil, 1, new TGeoTranslation(0, -fMuonSysPlaneY/2.-fCoilY/2., fShortCoilZ/2.-fFeZ/2.+fMagnetsGap+FirstMagZ-fFeGap+fSpacing)); */
-
-  TGeoBBox *_IronYoke = new TGeoBBox("_IronYoke", fDownFeX/2., fDownFeY/2., fDownFeZ/2.);
-
-  Double_t _cutvers[8][2];
-  _cutvers[0][0] = -fIronCoreX1/2.;
-  _cutvers[0][1] = fIronCoreY1/2.;
-  _cutvers[1][0] = fIronCoreX1/2.;
-  _cutvers[1][1] = fIronCoreY1/2.;
-  _cutvers[2][0] = fIronCoreX1/2.;
-  _cutvers[2][1] = -fIronCoreY1/2.;
-  _cutvers[3][0] = -fIronCoreX1/2.;
-  _cutvers[3][1] = -fIronCoreY1/2.;
-  _cutvers[4][0] = -fIronCoreX2/2.;
-  _cutvers[4][1] = fIronCoreY2/2.;
-  _cutvers[5][0] = fIronCoreX2/2.;
-  _cutvers[5][1] = fIronCoreY2/2.;
-  _cutvers[6][0] = fIronCoreX2/2.;
-  _cutvers[6][1] = -fIronCoreY2/2.;
-  _cutvers[7][0] = -fIronCoreX2/2.;
-  _cutvers[7][1] = -fIronCoreY2/2.;
-  TGeoArb8 *IronCore = new TGeoArb8("IronCore", fIronCoreZ/2., (Double_t *)_cutvers);
-  
-  Double_t CoilVers[8][2];
-  CoilVers[0][0] = -fIronCoreX1/2.;
-  CoilVers[0][1] = (fIronCoreY1+CoilThickY)/2.;
-  CoilVers[1][0] = fIronCoreX1/2.;
-  CoilVers[1][1] = (fIronCoreY1+CoilThickY)/2.;
-  CoilVers[2][0] = fIronCoreX1/2.;
-  CoilVers[2][1] = -(fIronCoreY1+CoilThickY)/2.;
-  CoilVers[3][0] = -fIronCoreX1/2.;
-  CoilVers[3][1] = -(fIronCoreY1+CoilThickY)/2.;
-  CoilVers[4][0] = -fIronCoreX1/2.;
-  CoilVers[4][1] = (fIronCoreY2+CoilThickY)/2.;
-  CoilVers[5][0] = fIronCoreX1/2.;
-  CoilVers[5][1] = (fIronCoreY2+CoilThickY)/2.;
-  CoilVers[6][0] = fIronCoreX1/2.;
-  CoilVers[6][1] = -(fIronCoreY2+CoilThickY)/2.;
-  CoilVers[7][0] = -fIronCoreX1/2.;
-  CoilVers[7][1] = -(fIronCoreY2+CoilThickY)/2.;
-  TGeoArb8 *_DownCoil = new TGeoArb8("_DownCoil", fIronCoreZ/2.-0.001, (Double_t *)CoilVers);
-  
-  
-  Double_t YokeHole[8][2];
-  YokeHole[0][0] = -(fIronCoreX1+0.0001)/2.;
-  YokeHole[0][1] = (fIronCoreY1+CoilThickY+0.0001)/2.;
-  YokeHole[1][0] = (fIronCoreX1+0.0001)/2.;
-  YokeHole[1][1] = (fIronCoreY1+CoilThickY+0.0001)/2.;
-  YokeHole[2][0] = (fIronCoreX1+0.0001)/2.;
-  YokeHole[2][1] = -(fIronCoreY1+CoilThickY+0.0001)/2.;
-  YokeHole[3][0] = -(fIronCoreX1+0.0001)/2.;
-  YokeHole[3][1] = -(fIronCoreY1+CoilThickY+0.0001)/2.;
-  YokeHole[4][0] = -(fIronCoreX2+0.0001)/2.;
-  YokeHole[4][1] = (fIronCoreY2+CoilThickY+0.0001)/2.;
-  YokeHole[5][0] = (fIronCoreX2+0.0001)/2.;
-  YokeHole[5][1] = (fIronCoreY2+CoilThickY+0.0001)/2.;
-  YokeHole[6][0] = (fIronCoreX2+0.0001)/2.;
-  YokeHole[6][1] = -(fIronCoreY2+CoilThickY+0.0001)/2.;
-  YokeHole[7][0] = -(fIronCoreX2+0.0001)/2.;
-  YokeHole[7][1] = -(fIronCoreY2+CoilThickY+0.0001)/2.;
-  TGeoArb8 *_YokeHole = new TGeoArb8("_YokeHole", fIronCoreZ/2.+0.001, (Double_t *)YokeHole);
-
-  Double_t downcutvers[8][2];
-  downcutvers[0][0] = 0;
-  downcutvers[0][1] = 0;
-  downcutvers[1][0] = 0;
-  downcutvers[1][1] = -fDownFeCutY;
-  downcutvers[2][0] = 0;
-  downcutvers[2][1] = -fDownFeCutY;
-  downcutvers[3][0] = +fDownFeCutX;
-  downcutvers[3][1] = 0;
-
-  downcutvers[4][0] = 0;
-  downcutvers[4][1] = 0;
-  downcutvers[5][0] = 0;
-  downcutvers[5][1] = -fDownFeCutY;
-  downcutvers[6][0] = 0;
-  downcutvers[6][1] = -fDownFeCutY;
-  downcutvers[7][0] = +fDownFeCutX;
-  downcutvers[7][1] = 0;
-  TGeoArb8 *DownFeCut = new TGeoArb8("DownFeCut", fDownFeZ/2.+0.001, (Double_t *)downcutvers);
-
-    TGeoTranslation *DownCutUpRight = new TGeoTranslation("DownCutUpRight", -fDownFeX/2.-0.001, fDownFeY/2.+0.001, 0);
-    DownCutUpRight->RegisterYourself();
-    TGeoCombiTrans *DownCutDownRight = new TGeoCombiTrans( TGeoTranslation(-fDownFeX/2.-0.001, -fDownFeY/2.-0.001, 0), TGeoRotation("rot", 0, 0, 90));
-    DownCutDownRight->SetName("DownCutDownRight");
-    DownCutDownRight->RegisterYourself();
-    TGeoCombiTrans *DownCutDownLeft = new TGeoCombiTrans(TGeoTranslation(+fDownFeX/2.+0.001, -fDownFeY/2.-0.001, 0), TGeoRotation("rot1", 0, 0, 180));
-    DownCutDownLeft->SetName("DownCutDownLeft");
-    DownCutDownLeft->RegisterYourself();
-    TGeoCombiTrans *DownCutUpLeft = new TGeoCombiTrans(TGeoTranslation(+fDownFeX/2.+0.001, +fDownFeY/2.+0.001, 0), TGeoRotation("rot2", 0, 0, -90));
-    DownCutUpLeft->SetName("DownCutUpLeft");
-    DownCutUpLeft->RegisterYourself();
-  
-  TGeoVolume *volIronCore = new TGeoVolume("volIronCore", IronCore, Fe);
-
-  TGeoCompositeShape *DownCoil = new TGeoCompositeShape("DownCoil", "_DownCoil-IronCore");
-  TGeoVolume *volDownCoil = new TGeoVolume("volDownCoil", DownCoil, Cu);
-  AddSensitiveVolume(volDownCoil);
-
-  TGeoCompositeShape *IronYoke = new TGeoCompositeShape("IronYoke", "_IronYoke-_YokeHole-(DownFeCut:DownCutUpRight)-(DownFeCut:DownCutDownRight)-(DownFeCut:DownCutDownLeft)-(DownFeCut:DownCutUpLeft)");
-
-  
-  TGeoVolume *volIronYoke = new TGeoVolume("volIronYoke", IronYoke, Fe);
-
-  Double_t fDownField = conf_floats["AdvMuFilter/DownField"];
-  LOG(INFO) << " Downstream Mag field: " << fDownField/10. << " Tesla" << endl;
-  //TGeoUniformMagField *DownmagField = new TGeoUniformMagField(-fDownField,0, 0);
-  //TGeoGlobalMagField::Instance()->SetField(DownmagField);
-  volIronCore->SetField(magField);
-
-  volIronYoke->SetLineColor(kGreen-4);
-  volIronYoke->SetTransparency(50);
-  volIronCore->SetLineColor(kGreen);
-
-  TGeoBBox *DownVertCoil1 = new TGeoBBox("DownVertCoil1", fIronCoreX1/2., fIronCoreY1/2., CoilThickY/4.);
-  TGeoBBox *DownVertCoil2 = new TGeoBBox("DownVertCoil2", fIronCoreX2/2., fIronCoreY2/2., CoilThickY/4.);
-
-  TGeoVolume *volDownVertCoil1 = new TGeoVolume("volDownVertCoil1", DownVertCoil1, Cu);
-  TGeoVolume *volDownVertCoil2 = new TGeoVolume("volDownVertCoil2", DownVertCoil2, Cu);
-
-  volDownCoil->SetLineColor(kOrange+1);
-  volDownCoil->SetLineColor(kOrange+1);
-  volDownVertCoil1->SetLineColor(kOrange+1);
-  volDownVertCoil2->SetLineColor(kOrange+1);
-
-  TGeoVolumeAssembly *volDownstreamMagnet  = new TGeoVolumeAssembly("volDownstreamMagnet");
-  volDownstreamMagnet->AddNode(volDownVertCoil1, 0, new TGeoTranslation(0, 0, -fDownFeZ/2.-CoilThickY/4));
-  volDownstreamMagnet->AddNode(volDownVertCoil2, 0, new TGeoTranslation(0, 0, fDownFeZ/2.+CoilThickY/4));
-  volDownstreamMagnet->AddNode(volIronYoke, 0, 0);
-  volDownstreamMagnet->AddNode(volIronCore, 0, 0);
-  volDownstreamMagnet->AddNode(volDownCoil, 20000, 0);
-
-
-  // Trackers part
-  Double_t fMagTracker1X = conf_floats["AdvMuFilter/MagTracker1X"];
-  Double_t fMagTracker1Y = conf_floats["AdvMuFilter/MagTracker1Y"];
-  Double_t fMagTracker2X = conf_floats["AdvMuFilter/MagTracker2X"];
-  Double_t fMagTracker2Y = conf_floats["AdvMuFilter/MagTracker2Y"];
-  Double_t fMagTracker3X = conf_floats["AdvMuFilter/MagTracker3X"];
-  Double_t fMagTracker3Y = conf_floats["AdvMuFilter/MagTracker3Y"];
-  Double_t fMagTrackerZ  = conf_floats["AdvMuFilter/MagTrackerZ"]; // cm Alu tubes diameter
-  TGeoVolume *volMagTracker1 = gGeoManager->MakeBox("volMagTracker1", Al, fMagTracker1X/2., fMagTracker1Y/2., fMagTrackerZ/2.);
-  volMagTracker1->SetLineColor(kGray);
-  AddSensitiveVolume(volMagTracker1);
-  TGeoVolume *volMagTracker2 = gGeoManager->MakeBox("volMagTracker2", Al, fMagTracker2X/2., fMagTracker2Y/2., fMagTrackerZ/2.);
-  volMagTracker2->SetLineColor(kGray);
-  AddSensitiveVolume(volMagTracker2);
-  TGeoBBox *DownMagTracker = new TGeoBBox("DownMagTracker", fMagTracker3X/2., fMagTracker3Y/2., fMagTrackerZ/2.);
-  TGeoVolume *volDownMagTracker = new TGeoVolume("volDownMagTracker", DownMagTracker, Al);
-  volDownMagTracker->SetLineColor(kGray);
-  AddSensitiveVolume(volDownMagTracker);
-
-  volAdvMuFilter->AddNode(volMagTracker1, 0+fDetIDOffset, new TGeoTranslation(0, 0, FirstMagZ+fMagTrackerZ/2));
-  volAdvMuFilter->AddNode(volMagTracker2, 1+fDetIDOffset, new TGeoTranslation(0, 0, FirstMagZ+fMagnetsGap+fMagTrackerZ/2)); // Somehow magtrackers are not rendered in OGL, hardcoding the displacement
-  volAdvMuFilter->AddNode(volDownstreamMagnet, 0, new TGeoTranslation(0, 0, FirstMagZ+fMagnetsGap+fMagTrackerZ+CoilThickY/2+fDownFeZ/2.+0.01+2*0.87));
-  volAdvMuFilter->AddNode(volDownMagTracker, 2+fDetIDOffset, new TGeoTranslation(0, 0, FirstMagZ+fMagnetsGap+fMagTrackerZ+CoilThickY+fDownFeZ+fMagTrackerZ/2+0.02+2*1.74));
+  /// IT ENDS HERE, MINIMAL CONFIGURATION DOES NOT INCLUDE THE DOWNSTREAM MAGNET
 
 }
 Bool_t  AdvMuFilter::ProcessHits(FairVolume* vol)
@@ -543,10 +343,10 @@ Bool_t  AdvMuFilter::ProcessHits(FairVolume* vol)
     LOG(DEBUG)<< "AdvMuFilterPoint DetID " << detID << " Hit volume name " << name;
     fVolumeID = detID;
     Double_t xmean = (fPos.X()+Pos.X())/2. ;
-	Double_t ymean = (fPos.Y()+Pos.Y())/2. ;
-	Double_t zmean = (fPos.Z()+Pos.Z())/2. ;
+	  Double_t ymean = (fPos.Y()+Pos.Y())/2. ;
+	  Double_t zmean = (fPos.Z()+Pos.Z())/2. ;
     AddHit(fTrackID, detID,  TVector3(xmean, ymean,  zmean),
-			TVector3(fMom.Px(), fMom.Py(), fMom.Pz()), fTime, fLength,
+		TVector3(fMom.Px(), fMom.Py(), fMom.Pz()), fTime, fLength,
 			fELoss, pdgCode);
 
     // Increment number of det points in TParticle
