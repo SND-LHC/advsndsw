@@ -145,10 +145,6 @@ void AdvTarget::ConstructGeometry()
     // Active part
     double sensor_width = 93.7 * mm;
     double sensor_length = 91.5 * mm;
-    double strip_gap = 5.2 * nm;
-    double strip_width = 122 * um;
-    TGeoBBox *Strip = new TGeoBBox("Strip", sensor_length / 2, strip_width / 2, 0.5 * mm / 2);
-    TGeoVolume *StripVolume = new TGeoVolume("StripVolume", Strip, Silicon);
     TGeoBBox *SensorShape = new TGeoBBox("SensorShape", sensor_length / 2, sensor_width / 2, 0.5 * mm / 2);
     TGeoVolume *SensorVolume = new TGeoVolume("SensorVolume", SensorShape, Silicon);
     SensorVolume->SetLineColor(kGreen);
