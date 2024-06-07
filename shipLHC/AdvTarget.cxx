@@ -137,7 +137,7 @@ void AdvTarget::ConstructGeometry()
     // See https://indico.cern.ch/event/1201858/#81-detector-simulation for technical diagrams and renders
     //
     // Passive part
-    /* double module_length = 23.95 * cm;
+    double module_length = 23.95 * cm;
     double module_width = 12.0 * cm;
     TGeoBBox *Support = new TGeoBBox("Support", module_length / 2, module_width / 2, 3.0 * mm / 2);
     TGeoVolume *SupportVolume = new TGeoVolume("SupportVolume", Support, Polystyrene);
@@ -151,9 +151,8 @@ void AdvTarget::ConstructGeometry()
     TGeoVolume *StripVolume = new TGeoVolume("StripVolume", Strip, Silicon);
     TGeoBBox *SensorShape = new TGeoBBox("SensorShape", sensor_length / 2, sensor_width / 2, 0.5 * mm / 2);
     TGeoVolume *SensorVolume = new TGeoVolume("SensorVolume", SensorShape, Silicon);
-    auto *Strips = SensorVolume->Divide("SLICEY", 2, 768, -sensor_width / 2, strip_width);
     SensorVolume->SetLineColor(kGreen);
-    AddSensitiveVolume(Strips);
+    AddSensitiveVolume(SensorVolume);
 
     double sensor_gap = 3.1 * mm;
 
@@ -162,7 +161,7 @@ void AdvTarget::ConstructGeometry()
     const int sensors = 2;;
     const int strips = 768;
     double module_row_gap = 0.5 * mm;
-    double module_column_gap = 13.9 * mm; */
+    double module_column_gap = 13.9 * mm;
 
     // Definition of the target box containing tungsten walls + silicon tracker
     TGeoVolumeAssembly *volAdvTarget = new TGeoVolumeAssembly("volAdvTarget");
@@ -180,12 +179,9 @@ void AdvTarget::ConstructGeometry()
                                           EmWall0_survey.Y(),
                                           -TargetDiff + EmWall0_survey.Z() - 60 * cm - 30 * cm)); // - 60 * cm - 30 * cm to allocate a 150 cm Target
 
-    TGeoVolume* TrackingStation = gGeoManager->MakeBox("TrackingStation", Silicon, fTargetWallX / 2., fTargetWallY / 2., fTTZ / 2.);
-    TrackingStation->SetLineColor(kGray);
-    AddSensitiveVolume(TrackingStation);
     // For correct detector IDs, the geometry has to be built back to front, from the top-level
     for (auto &&station : TSeq(stations)) {
-        /* TGeoVolumeAssembly *TrackingStation = new TGeoVolumeAssembly("TrackingStation");
+        TGeoVolumeAssembly *TrackingStation = new TGeoVolumeAssembly("TrackingStation");
         // Each tracking station consists of X and Y planes
         for (auto &&plane : TSeq(2)) {
             TGeoVolumeAssembly *TrackerPlane = new TGeoVolumeAssembly("TrackerPlane");
@@ -228,7 +224,7 @@ void AdvTarget::ConstructGeometry()
                     plane,
                     new TGeoCombiTrans(TGeoTranslation(0, 0, +3.5 * mm + 0.5 * mm), TGeoRotation("y_rot", 0, 0, 90)));
             } 
-        }*/
+        }
 
         volAdvTarget->AddNode(
             volTargetWall,
