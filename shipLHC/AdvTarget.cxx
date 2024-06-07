@@ -6,6 +6,7 @@
 //
 
 #include "AdvTarget.h"
+#include "SiSensor.h"
 
 #include "AdvTargetPoint.h"
 #include "FairGeoBuilder.h"
@@ -137,27 +138,15 @@ void AdvTarget::ConstructGeometry()
     // See https://indico.cern.ch/event/1201858/#81-detector-simulation for technical diagrams and renders
     //
     // Passive part
-    double module_length = 23.95 * cm;
-    double module_width = 12.0 * cm;
-    TGeoBBox *Support = new TGeoBBox("Support", module_length / 2, module_width / 2, 3.0 * mm / 2);
+    TGeoBBox *Support = new TGeoBBox("Support", advsnd::module_length / 2, advsnd::module_width / 2, 3.0 * mm / 2);
     TGeoVolume *SupportVolume = new TGeoVolume("SupportVolume", Support, Polystyrene);
     SupportVolume->SetLineColor(kGray);
     // Active part
-    double sensor_width = 93.7 * mm;
-    double sensor_length = 91.5 * mm;
-    TGeoBBox *SensorShape = new TGeoBBox("SensorShape", sensor_length / 2, sensor_width / 2, 0.5 * mm / 2);
+    TGeoBBox *SensorShape = new TGeoBBox("SensorShape", advsnd::sensor_length / 2, advsnd::sensor_width / 2, 0.5 * mm / 2);
     TGeoVolume *SensorVolume = new TGeoVolume("SensorVolume", SensorShape, Silicon);
     SensorVolume->SetLineColor(kGreen);
     AddSensitiveVolume(SensorVolume);
 
-    double sensor_gap = 3.1 * mm;
-
-    const int rows = 4;
-    const int columns = 2;
-    const int sensors = 2;;
-    const int strips = 768;
-    double module_row_gap = 0.5 * mm;
-    double module_column_gap = 13.9 * mm;
 
     // Definition of the target box containing tungsten walls + silicon tracker
     TGeoVolumeAssembly *volAdvTarget = new TGeoVolumeAssembly("volAdvTarget");
@@ -179,21 +168,21 @@ void AdvTarget::ConstructGeometry()
     for (auto &&station : TSeq(stations)) {
         TGeoVolumeAssembly *TrackingStation = new TGeoVolumeAssembly("TrackingStation");
         // Each tracking station consists of X and Y planes
-        for (auto &&plane : TSeq(2)) {
+        for (auto &&plane : TSeq(advsnd::target::planes)) {
             TGeoVolumeAssembly *TrackerPlane = new TGeoVolumeAssembly("TrackerPlane");
             int i = 0;
             // Each plane consists of 4 modules
-            for (auto &&row : TSeq(rows)) {
-                for (auto &&column : TSeq(columns)) {
+            for (auto &&row : TSeq(advsnd::target::rows)) {
+                for (auto &&column : TSeq(advsnd::target::columns)) {
                     // Each module in turn consists of two sensors on a support
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
                     SensorModule->AddNode(SupportVolume, 1);
-                    for (auto &&sensor : TSeq(sensors)) {
+                    for (auto &&sensor : TSeq(advsnd::sensors)) {
                         int sensor_id =  (station << 5) + (plane << 4) + (row << 2) + (column << 1) + sensor;
                         SensorModule->AddNode(SensorVolume,
                                               sensor_id,
-                                              new TGeoTranslation(-module_length / 2 + 46.95 * mm + sensor_length / 2
-                                                                      + sensor * (sensor_length + sensor_gap),
+                                              new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2
+                                                                      + sensor * (advsnd::sensor_length + advsnd::sensor_gap),
                                                                   0,
                                                                   +3 * mm / 2 + 0.5 * mm / 2));
                     }
@@ -202,9 +191,9 @@ void AdvTarget::ConstructGeometry()
                         ++i,
                         new TGeoCombiTrans(
                             // Offset modules as needed by row and column
-                            TGeoTranslation((column % 2 ? 1 : -1) * (module_length / 2 + module_column_gap / 2),
-                                            (row - 1) * (-module_width - module_row_gap) - module_row_gap / 2
-                                                + module_width / 2,
+                            TGeoTranslation((column % 2 ? 1 : -1) * (advsnd::module_length / 2 + advsnd::target::module_column_gap / 2),
+                                            (row - 1) * (-advsnd::module_width - advsnd::target::module_row_gap) - advsnd::target::module_row_gap / 2
+                                                + advsnd::module_width / 2,
                                             0),
                             // Rotate every module of the second column
                             TGeoRotation(TString::Format("rot%d", i), 0, 0, column * 180)));
