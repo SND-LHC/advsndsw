@@ -31,7 +31,7 @@ namespace advsnd {
         const int stations = 5;
         const double module_row_gap = -26.3 * ShipUnit::mm + sensor_gap;
         const double module_column_gap = 2 * (sensor_length + sensor_gap) - module_length;
-        const double plane_width = 6 * sensor_length + 5 * sensor_gap + 2 * 46.95 * ShipUnit::mm;
+        const double plane_width = (2 * columns) * sensor_length + (2 * columns - 1) * sensor_gap + 2 * 46.95 * ShipUnit::mm;
     }
 
     namespace muon {
@@ -40,7 +40,7 @@ namespace advsnd {
         const int planes = 1;
         const double module_row_gap = -26.3 * ShipUnit::mm + sensor_gap;
         const double module_column_gap = 2 * (sensor_length + sensor_gap) - module_length;
-        const double plane_width = 6 * sensor_length + 5 * sensor_gap + 2 * 46.95 * ShipUnit::mm;
+        const double plane_width = (2 * columns) * sensor_length + (2 * columns - 1) * sensor_gap + 2 * 46.95 * ShipUnit::mm;
     }
 
 }
