@@ -299,11 +299,11 @@ void AdvMuFilter::ConstructGeometry()
                         ++j,
                         new TGeoCombiTrans(
                                   // Offset modules as needed by row and column
-                                  TGeoTranslation(-plane_width / 2. +advsnd::module_length / 2. + column * (advsnd::module_length + module_column_gap) + (column == 2 ? 43.85 * mm : 3.35 * mm),
+                                  TGeoTranslation(-plane_width / 2. + advsnd::module_length / 2. + column * (advsnd::module_length + module_column_gap) - (column == 2 ? 43.85 * mm : 3.35 * mm),
                                           (row-(rows-1.)/2.) * (advsnd::module_width + module_row_gap),
                                           (column-(columns-1.)/2.) * 4 * mm),
                             // Rotate every module of the second column
-                            TGeoRotation(TString::Format("rot%d", j), 0, 0, (column == 2) ? 180 : 0)));
+                            TGeoRotation(TString::Format("rot%d", j), 0, 0, (column != 2) ? 180 : 0)));
                 }
             }
             if (plane == 0) {
@@ -346,11 +346,11 @@ void AdvMuFilter::ConstructGeometry()
                         ++j,
                         new TGeoCombiTrans(
                             // Offset modules as needed by row and column
-                          TGeoTranslation(-plane_width / 2. +advsnd::module_length / 2. + column * (advsnd::module_length + module_column_gap) + (column == 2 ? 43.85 * mm : 3.35 * mm),
+                          TGeoTranslation(-plane_width / 2. +advsnd::module_length / 2. + column * (advsnd::module_length + module_column_gap) - (column == 2 ? 43.85 * mm : 3.35 * mm),
                                           (row-(rows-1.)/2.) * (advsnd::module_width + module_row_gap),
                                           (column-(columns-1.)/2.) * 4 * mm),
                             // Rotate every module of the second column
-                          TGeoRotation(TString::Format("rot%d", j), 0, 0, (column == 2) ? 180 : 0)));
+                          TGeoRotation(TString::Format("rot%d", j), 0, 0, (column != 2) ? 180 : 0)));
                 }
             }
             if (plane == 0) {
