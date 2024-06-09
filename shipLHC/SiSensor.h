@@ -25,20 +25,22 @@ namespace advsnd {
     }
 
     namespace hcal {
-        const int rows = 8;
-        const int columns = 4;
+        const int rows = 6;
+        const int columns = 3;
         const int planes = 2;
         const int stations = 5;
-        const double module_row_gap = 0.5 * ShipUnit::mm;
-        const double module_column_gap = 13.9 * ShipUnit::mm;
+        const double module_row_gap = -26.3 * ShipUnit::mm + sensor_gap;
+        const double module_column_gap = 2 * (sensor_length + sensor_gap) - module_length;
+        const double plane_width = 6 * sensor_length + 5 * sensor_gap + 2 * 46.95 * ShipUnit::mm;
     }
 
     namespace muon {
-        const int rows = 8;
-        const int columns = 4;
+        const int rows = 6;
+        const int columns = 3;
         const int planes = 1;
-        const double module_row_gap = 0.5 * ShipUnit::mm;
-        const double module_column_gap = 13.9 * ShipUnit::mm;
+        const double module_row_gap = -26.3 * ShipUnit::mm + sensor_gap;
+        const double module_column_gap = 2 * (sensor_length + sensor_gap) - module_length;
+        const double plane_width = 6 * sensor_length + 5 * sensor_gap + 2 * 46.95 * ShipUnit::mm;
     }
 
 }
