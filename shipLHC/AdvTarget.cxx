@@ -124,8 +124,6 @@ void AdvTarget::ConstructGeometry()
     Double_t fTargetWallX = conf_floats["AdvTarget/TargetWallX"];
     Double_t fTargetWallY = conf_floats["AdvTarget/TargetWallY"];
     Double_t fTargetWallZ = conf_floats["AdvTarget/TargetWallZ"];
-    // Double_t fTTX = conf_floats["AdvTarget/TTX"];  // unused
-    // Double_t fTTY = conf_floats["AdvTarget/TTY"];  // unused
     Double_t fTTZ = conf_floats["AdvTarget/TTZ"];
     Int_t stations = conf_ints["AdvTarget/nTT"];   // Number of TT stations
 
@@ -253,15 +251,9 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
         TLorentzVector Mom;
         gMC->TrackMomentum(Mom);
         Int_t detID = 0;
-	gMC->CurrentVolID(detID);
-	//Int_t strip_id = 0;
-        //Int_t sensor_id = 0;
-        //gMC->CurrentVolID(strip_id);
-        //gMC->CurrentVolOffID(1, sensor_id);
-        // Check which volume is actually hit and what detID is given
-        //fVolumeID = (sensor_id << 10) + strip_id;
+        gMC->CurrentVolID(detID);
         fVolumeID = detID;
-	Double_t xmean = (fPos.X() + Pos.X()) / 2.;
+        Double_t xmean = (fPos.X() + Pos.X()) / 2.;
         Double_t ymean = (fPos.Y() + Pos.Y()) / 2.;
         Double_t zmean = (fPos.Z() + Pos.Z()) / 2.;
         AddHit(fTrackID,

@@ -28,6 +28,7 @@ namespace advsnd {
         const int rows = 8;
         const int columns = 4;
         const int planes = 2;
+        const int stations = 5;
         const double module_row_gap = 0.5 * ShipUnit::mm;
         const double module_column_gap = 13.9 * ShipUnit::mm;
     }
