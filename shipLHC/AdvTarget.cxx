@@ -158,7 +158,7 @@ void AdvTarget::ConstructGeometry()
     double line_of_sight_offset = (-2.4244059999999976+5.203625000000001) * cm;
     detector->AddNode(volAdvTarget,
                       1,
-                      new TGeoTranslation(line_of_sight_offset - EmWall0_survey.X() + (fTargetWallX - 42.2 * cm) / 2.,
+                      new TGeoTranslation(line_of_sight_offset - EmWall0_survey.X() + (40 * cm - 42.2 * cm) / 2.,
                                           EmWall0_survey.Y(),
                                           -TargetDiff + EmWall0_survey.Z() - 60 * cm - 30 * cm)); // - 60 * cm - 30 * cm to allocate a 150 cm Target
 
