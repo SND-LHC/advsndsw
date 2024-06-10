@@ -284,7 +284,7 @@ void AdvMuFilter::ConstructGeometry()
                 for (auto &&column : TSeq(columns)) {
                     // Each module in turn consists of two sensors on a support
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
-                    SensorModule->AddNode(SupportVolume, 1);
+            //         SensorModule->AddNode(SupportVolume, 1);
                     for (auto &&sensor : TSeq(advsnd::sensors)) {
                         int sensor_id =  (station << 5) + (plane << 4) + (row << 2) + (column << 1) + sensor;
                         SensorModule->AddNode(SensorVolume,
@@ -301,20 +301,23 @@ void AdvMuFilter::ConstructGeometry()
                                   // Offset modules as needed by row and column
                                   TGeoTranslation(-plane_width / 2. + advsnd::module_length / 2. + column * (advsnd::module_length + module_column_gap) - (column == 2 ? 43.85 * mm : 3.35 * mm),
                                           (row-(rows-1.)/2.) * (advsnd::module_width + module_row_gap),
-                                          (column-(columns-1.)/2.) * 4 * mm),
+                                          ((column+row)%columns-(columns-1.)/2.) * 4 * mm),
                             // Rotate every module of the second column
                             TGeoRotation(TString::Format("rot%d", j), 0, 0, (column != 2) ? 180 : 0)));
                 }
             }
             if (plane == 0) {
                 // X-plane
-                TrackingStation->AddNode(TrackerPlane, plane);
+                TrackingStation->AddNode(
+                    TrackerPlane,
+                    plane,
+                    new TGeoTranslation(0, 0, -2 * mm));
             } else if (plane == 1) {
                 // Y-plane
                 TrackingStation->AddNode(
                     TrackerPlane,
                     plane,
-                    new TGeoCombiTrans(TGeoTranslation(0, 0, +3.5 * mm + 0.5 * mm), TGeoRotation("y_rot", 0, 0, 90)));
+                    new TGeoCombiTrans(TGeoTranslation(0, 0, 2 * mm), TGeoRotation("y_rot", 0, 0, 90)));
             }
         }
 
@@ -331,7 +334,7 @@ void AdvMuFilter::ConstructGeometry()
                 for (auto &&column : TSeq(columns)) {
                     // Each module in turn consists of two sensors on a support
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
-                    SensorModule->AddNode(SupportVolume, 1);
+                    // SensorModule->AddNode(SupportVolume, 1);
                     for (auto &&sensor : TSeq(advsnd::sensors)) {
                         int sensor_id =  (station << 5) + (plane << 4) + (row << 2) + (column << 1) + sensor;
                         SensorModule->AddNode(SensorVolume,
@@ -348,7 +351,7 @@ void AdvMuFilter::ConstructGeometry()
                             // Offset modules as needed by row and column
                           TGeoTranslation(-plane_width / 2. +advsnd::module_length / 2. + column * (advsnd::module_length + module_column_gap) - (column == 2 ? 43.85 * mm : 3.35 * mm),
                                           (row-(rows-1.)/2.) * (advsnd::module_width + module_row_gap),
-                                          (column-(columns-1.)/2.) * 4 * mm),
+                                          ((column+row)%columns-(columns-1.)/2.) * 4 * mm),
                             // Rotate every module of the second column
                           TGeoRotation(TString::Format("rot%d", j), 0, 0, (column != 2) ? 180 : 0)));
                 }

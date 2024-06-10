@@ -199,13 +199,16 @@ void AdvTarget::ConstructGeometry()
             }
             if (plane == 0) {
                 // X-plane
-                TrackingStation->AddNode(TrackerPlane, plane);
+                TrackingStation->AddNode(
+                    TrackerPlane,
+                    plane,
+                    new TGeoTranslation(0, 0, -2 * mm));
             } else if (plane == 1) {
                 // Y-plane
                 TrackingStation->AddNode(
                     TrackerPlane,
                     plane,
-                    new TGeoCombiTrans(TGeoTranslation(0, 0, +3.5 * mm + 0.5 * mm), TGeoRotation("y_rot", 0, 0, 90)));
+                    new TGeoCombiTrans(TGeoTranslation(0, 0, +2 * mm), TGeoRotation("y_rot", 0, 0, 90)));
             } 
         }
 
