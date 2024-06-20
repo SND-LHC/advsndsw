@@ -66,13 +66,13 @@ def configure(run,ship_geo,Gfield=''):
 
 	print(detectorList)
 	detElements = {}
-	if hasattr(run,'SetMaterials'):  
+	if hasattr(run,'SetMaterials'):
 		for x in detectorList:
 			run.AddModule(x)
 	# return list of detector elements
 		for x in run.GetListOfModules():
 			detElements[x.GetName()]=x
-		else:
-			for x in detectorList:
-				detElements[x.GetName()]=x
-		return detElements
+	else:
+		for x in detectorList:
+			detElements[x.GetName()]=x
+	return detElements

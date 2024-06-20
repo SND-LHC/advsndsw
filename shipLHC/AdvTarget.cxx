@@ -141,7 +141,7 @@ void AdvTarget::ConstructGeometry()
     SupportVolume->SetLineColor(kGray);
     // Active part
     TGeoBBox *SensorShape = new TGeoBBox("SensorShape", advsnd::sensor_length / 2, advsnd::sensor_width / 2, 0.5 * mm / 2);
-    TGeoVolume *SensorVolume = new TGeoVolume("SensorVolume", SensorShape, Silicon);
+    TGeoVolume *SensorVolume = new TGeoVolume("SensorVolumeTarget", SensorShape, Silicon);
     SensorVolume->SetLineColor(kGreen);
     AddSensitiveVolume(SensorVolume);
 
@@ -176,7 +176,7 @@ void AdvTarget::ConstructGeometry()
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
                     SensorModule->AddNode(SupportVolume, 1);
                     for (auto &&sensor : TSeq(advsnd::sensors)) {
-                        int sensor_id =  (station << 5) + (plane << 4) + (row << 2) + (column << 1) + sensor;
+                        int32_t sensor_id = station * 1e7 + plane * 1e6 + row * 1e5 + column * 1e4 + sensor * 1e3 + 999;
                         SensorModule->AddNode(SensorVolume,
                                               sensor_id,
                                               new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2

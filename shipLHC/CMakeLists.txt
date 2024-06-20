@@ -37,6 +37,8 @@ ScifiPoint.cxx
 MuFilter.cxx
 MuFilterPoint.cxx
 MuFilterHit.cxx
+AdvTargetHit.cxx
+AdvMuFilterHit.cxx
 sndScifiHit.cxx
 sndCluster.cxx
 Magnet.cxx

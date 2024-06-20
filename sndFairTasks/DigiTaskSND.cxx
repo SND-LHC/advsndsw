@@ -19,6 +19,14 @@
  #include "sndScifiHit.h"	     // for SciFi Hit
  #include "MuFilterHit.h"	     // for Muon Filter Hit
  #include "Hit2MCPoints.h"           // for linking hits to true MC points
+#include "AdvMuFilterPoint.h"
+#include "AdvMuFilterHit.h"
+#include "AdvTargetPoint.h"
+#include "AdvTargetHit.h"
+#include "TGeoManager.h"
+#include "TGeoNavigator.h"
+#include "SiSensor.h"
+#include "TGeoBBox.h"
 
 using namespace std;
 
@@ -26,11 +34,17 @@ DigiTaskSND::DigiTaskSND()
     : FairTask("DigTaskSND")
     , fScifiPointArray(nullptr)
     , fMuFilterPointArray(nullptr)
+    , AdvTargetPoints(nullptr),
+    AdvMuFilterPoints(nullptr)
     , fEventHeader(nullptr)
     , fScifiDigiHitArray(nullptr)
     , fMuFilterDigiHitArray(nullptr)
     , fScifiHit2MCPointsArray(nullptr)
     , fMuFilterHit2MCPointsArray(nullptr)
+    , AdvTargetHits(nullptr),
+    AdvMuFilterHits(nullptr),
+    AdvTargetHits2MCPoints(nullptr),
+    AdvMuFilterHits2MCPoints(nullptr)
 {}
 
 DigiTaskSND::~DigiTaskSND() {}
@@ -46,9 +60,11 @@ InitStatus DigiTaskSND::Init()
 
     // Get the SciFi detector and sipm to fibre mapping
     scifi = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
-    scifi->SiPMmapping();
-    fibresSiPM = scifi->GetSiPMmap();
-    siPMFibres = scifi->GetFibresMap();
+    if (scifi) {
+        scifi->SiPMmapping();
+        fibresSiPM = scifi->GetSiPMmap();
+        siPMFibres = scifi->GetFibresMap();
+    }
 
     // Get event header
     // Try classic FairRoot approach first
@@ -62,36 +78,58 @@ InitStatus DigiTaskSND::Init()
     fvetoPointArray = static_cast<TClonesArray*>(ioman->GetObject("vetoPoint"));
     fEmulsionPointArray = static_cast<TClonesArray*>(ioman->GetObject("EmulsionDetPoint"));
     fMuFilterPointArray = static_cast<TClonesArray*>(ioman->GetObject("MuFilterPoint"));
+    AdvTargetPoints = static_cast<TClonesArray*>(ioman->GetObject("AdvTargetPoint"));
+    AdvMuFilterPoints = static_cast<TClonesArray*>(ioman->GetObject("AdvMuFilterPoint"));
     if (!fScifiPointArray and !fMuFilterPointArray) {
         cout << "-W- DigiTaskSND::Init: "
                   << "No Scifi and no MuFilter MC Point array!" << endl;
-        return kERROR;
+        // return kERROR;
     }
     // copy branches from input file:
     fMCTrackArray = static_cast<TClonesArray*>(ioman->GetObject("MCTrack"));
     ioman->Register("MCTrack", "ShipMCTrack", fMCTrackArray, kTRUE);
-    ioman->Register("vetoPoint", "vetoPoints", fvetoPointArray, kTRUE);
-    ioman->Register("EmulsionDetPoint", "EmulsionDetPoints", fvetoPointArray, kTRUE);
-    ioman->Register("ScifiPoint", "ScifiPoints", fScifiPointArray, kTRUE);
-    ioman->Register("MuFilterPoint", "MuFilterPoints", fMuFilterPointArray, kTRUE);
+    if (fvetoPointArray) ioman->Register("vetoPoint", "vetoPoints", fvetoPointArray, kTRUE);
+    if (fEmulsionPointArray) ioman->Register("EmulsionDetPoint", "EmulsionDetPoints", fEmulsionPointArray, kTRUE);
+    if (fScifiPointArray) ioman->Register("ScifiPoint", "ScifiPoints", fScifiPointArray, kTRUE);
+    if (fMuFilterPointArray) ioman->Register("MuFilterPoint", "MuFilterPoints", fMuFilterPointArray, kTRUE);
+    ioman->Register("AdvTargetPoint", "AdvTargetPoints", AdvTargetPoints, kTRUE);
+    ioman->Register("AdvMuFilterPoint", "AdvMuFilterPoints", AdvMuFilterPoints, kTRUE);
  
     // Event header
     fEventHeader = new SNDLHCEventHeader();
     ioman->Register("EventHeader.", "sndEventHeader", fEventHeader, kTRUE);
 
-    // Create and register output array - for SciFi and MuFilter
-    fScifiDigiHitArray = new TClonesArray("sndScifiHit");
-    ioman->Register("Digi_ScifiHits", "DigiScifiHit_det", fScifiDigiHitArray, kTRUE);
-    // Branche containing links to MC truth info
-    fScifiHit2MCPointsArray = new TClonesArray("Hit2MCPoints");
-    ioman->Register("Digi_ScifiHits2MCPoints", "DigiScifiHits2MCPoints_det", fScifiHit2MCPointsArray, kTRUE);
-    fScifiHit2MCPointsArray->BypassStreamer(kTRUE);   
-    fMuFilterDigiHitArray = new TClonesArray("MuFilterHit");
-    ioman->Register("Digi_MuFilterHits", "DigiMuFilterHit_det", fMuFilterDigiHitArray, kTRUE);
-    // Branche containing links to MC truth info
-    fMuFilterHit2MCPointsArray = new TClonesArray("Hit2MCPoints");
-    ioman->Register("Digi_MuFilterHits2MCPoints", "DigiMuFilterHits2MCPoints_det", fMuFilterHit2MCPointsArray, kTRUE);
-    fMuFilterHit2MCPointsArray->BypassStreamer(kTRUE);
+    if (fScifiPointArray) {
+        // Create and register output array - for SciFi and MuFilter
+        fScifiDigiHitArray = new TClonesArray("sndScifiHit");
+        ioman->Register("Digi_ScifiHits", "DigiScifiHit_det", fScifiDigiHitArray, kTRUE);
+        // Branch containing links to MC truth info
+        fScifiHit2MCPointsArray = new TClonesArray("Hit2MCPoints");
+        ioman->Register("Digi_ScifiHits2MCPoints", "DigiScifiHits2MCPoints_det", fScifiHit2MCPointsArray, kTRUE);
+        fScifiHit2MCPointsArray->BypassStreamer(kTRUE);
+    }
+    if (fMuFilterPointArray) {
+        fMuFilterDigiHitArray = new TClonesArray("MuFilterHit");
+        ioman->Register("Digi_MuFilterHits", "DigiMuFilterHit_det", fMuFilterDigiHitArray, kTRUE);
+        // Branch containing links to MC truth info
+        fMuFilterHit2MCPointsArray = new TClonesArray("Hit2MCPoints");
+        ioman->Register("Digi_MuFilterHits2MCPoints", "DigiMuFilterHits2MCPoints_det", fMuFilterHit2MCPointsArray, kTRUE);
+        fMuFilterHit2MCPointsArray->BypassStreamer(kTRUE);
+    }
+
+    AdvMuFilterHits = new TClonesArray("AdvMuFilterHit");
+    ioman->Register("Digi_AdvMuFilterHits", "DigiAdvMuFilterHit_det", AdvMuFilterHits, kTRUE);
+    // Branch containing links to MC truth info
+    AdvMuFilterHits2MCPoints = new TClonesArray("Hit2MCPoints");
+    ioman->Register("Digi_AdvMuFilterHits2MCPoints", "DigiAdvMuFilterHits2MCPoints_det", AdvMuFilterHits2MCPoints, kTRUE);
+    AdvMuFilterHits2MCPoints->BypassStreamer(kTRUE);
+
+    AdvTargetHits = new TClonesArray("AdvTargetHit");
+    ioman->Register("Digi_AdvTargetHits", "DigiAdvTargetHit_det", AdvTargetHits, kTRUE);
+    // Branch containing links to MC truth info
+    AdvTargetHits2MCPoints = new TClonesArray("Hit2MCPoints");
+    ioman->Register("Digi_AdvTargetHits2MCPoints", "DigiAdvTargetHits2MCPoints_det", AdvTargetHits2MCPoints, kTRUE);
+    AdvTargetHits2MCPoints->BypassStreamer(kTRUE);
     
     return kSUCCESS;
 }
@@ -99,10 +137,18 @@ InitStatus DigiTaskSND::Init()
 void DigiTaskSND::Exec(Option_t* /*opt*/)
 {
 
-    fScifiDigiHitArray->Delete();
-    fScifiHit2MCPointsArray->Delete();
-    fMuFilterDigiHitArray->Delete();
-    fMuFilterHit2MCPointsArray->Delete();
+    if (fScifiDigiHitArray) {
+        fScifiDigiHitArray->Clear("C");
+        fScifiHit2MCPointsArray->Clear("C");
+    }
+    if (fMuFilterDigiHitArray) {
+        fMuFilterDigiHitArray->Clear("C");
+        fMuFilterHit2MCPointsArray->Clear("C");
+    }
+    AdvTargetHits->Clear("C");
+    AdvTargetHits2MCPoints->Clear("C");
+    AdvMuFilterHits->Clear("C");
+    AdvMuFilterHits2MCPoints->Clear("C");
 
     // Set event header
     fEventHeader->SetRunId(fMCEventHeader->GetRunID());
@@ -115,6 +161,145 @@ void DigiTaskSND::Exec(Option_t* /*opt*/)
     {
         digitizeScifi();
     }
+    digitiseAdvTarget();
+    digitiseAdvMuFilter();
+}
+
+void DigiTaskSND::digitiseAdvTarget(){
+
+    int index = 0;
+    std::map<int, std::vector<AdvTargetPoint*>> hit_collector{};
+
+    if (!gGeoManager) LOG(FATAL) << "Geofile required to get the position of AdvTargetHits.";
+    TGeoNavigator* nav = gGeoManager->GetCurrentNavigator();
+    int valid=0;
+    int skip=0;
+
+    for (auto *ptr: *AdvTargetPoints) {
+        auto *point = dynamic_cast<AdvTargetPoint*>(ptr);
+        auto detID = point->GetDetectorID();
+        int station = int(floor(detID / 1e7));
+        int plane = int(floor(detID / 1e6)) % 2;
+        int row = int(floor(detID / 1e5)) % 10;
+        int column = int(floor(detID / 1e4)) % 10;
+        int sensor_module = 2 * row + 1 + column;
+        int sensor = detID;
+        auto path = TString::Format("/cave_1/"
+                                    "Detector_0/"
+                                    "volAdvTarget_1/"
+                                    "TrackingStation_%d/"
+                                    "TrackerPlane_%d/"
+                                    "SensorModule_%d/"
+                                    "SensorVolumeTarget_%d",
+                                    station,
+                                    plane,
+                                    sensor_module,
+                                    sensor);
+        // TODO loop by module?
+        if (nav->CheckPath(path)) {
+            nav->cd(path);
+        } else {
+            LOG(ERROR) << path;
+            skip++;
+            continue;
+        }
+        auto *node = nav->GetCurrentNode();
+        // Find virtual strip by location
+        auto x = point->GetX();
+        auto y = point->GetY();
+        auto z = point->GetZ();
+        double global_pos[3] = {x, y, z};
+        double local_pos[3];
+        // Move to local coordinates (including rotation) to determine strip
+        nav->MasterToLocal(global_pos, local_pos);
+        int strip = floor((local_pos[1] + advsnd::sensor_width/2) + 1e-5 / (122.0053 * ShipUnit::um));
+        if (strip >= advsnd::strips || strip < 0) {
+            LOG(WARN) << "strip:" << strip;
+            LOG(WARN) << "y" << local_pos[1] + advsnd::sensor_width/2 ;
+            skip++;
+            continue;
+        }
+        valid++;
+
+        int detector_id = station * 1e7 + plane * 1e6 + row * 1e5 + column * 1e4 + sensor * 1e3 + strip;
+        // Collect points by virtual strip
+        hit_collector[detector_id].emplace_back(point);
+    }
+
+    for (const auto& [detectorID, points] : hit_collector){
+        // Make one hit per virtual strip (detector ID sensor + strip)
+        new ((*AdvTargetHits)[index++]) AdvTargetHit(detectorID, points);
+    }
+    LOG(INFO) << "valid: " << valid << ", skipped: " << skip;
+    //TODO add links
+}
+
+void DigiTaskSND::digitiseAdvMuFilter(){
+
+    int index = 0;
+    std::map<int, std::vector<AdvMuFilterPoint*>> hit_collector{};
+
+    if (!gGeoManager) LOG(FATAL) << "Geofile required to get the position of AdvMuFilterHits.";
+    TGeoNavigator* nav = gGeoManager->GetCurrentNavigator();
+    int valid=0;
+    int skip=0;
+
+    for (auto *ptr: *AdvMuFilterPoints) {
+        auto *point = dynamic_cast<AdvMuFilterPoint*>(ptr);
+        auto detID = point->GetDetectorID();
+        int station = int(floor(detID / 1e7));
+        int plane = int(floor(detID / 1e6)) % 2;
+        int row = int(floor(detID / 1e5)) % 10;
+        int column = int(floor(detID / 1e4)) % 10;
+        int sensor_module = 3 * row + 1 + column;
+        int sensor = detID;
+        auto path = TString::Format("/cave_1/"
+                                    "Detector_0/"
+                                    "volAdvMuFilter_0/"
+                                    "TrackingStation_%d/"
+                                    "TrackerPlane_%d/"
+                                    "SensorModule_%d/"
+                                    "SensorVolumeFilter_%d",
+                                    station,
+                                    plane,
+                                    sensor_module,
+                                    sensor);
+        // TODO loop by module?
+        if (nav->CheckPath(path)) {
+            nav->cd(path);
+        } else {
+            LOG(ERROR) << path;
+            skip++;
+            continue;
+        }
+        auto *node = nav->GetCurrentNode();
+        // Find virtual strip by location
+        auto x = point->GetX();
+        auto y = point->GetY();
+        auto z = point->GetZ();
+        double global_pos[3] = {x, y, z};
+        double local_pos[3];
+        // Move to local coordinates (including rotation) to determine strip
+        nav->MasterToLocal(global_pos, local_pos);
+        int strip = floor((local_pos[1] + advsnd::sensor_width/2) + 1e-5 / (122.0053 * ShipUnit::um));
+        if (strip >= advsnd::strips || strip < 0) {
+            LOG(WARN) << "strip:" << strip;
+            LOG(WARN) << "y" << local_pos[1] + advsnd::sensor_width/2 ;
+            skip++;
+            continue;
+        }
+        valid++;
+
+        int detector_id = station * 1e7 + plane * 1e6 + row * 1e5 + column * 1e4 + sensor * 1e3 + strip;
+        // Collect points by virtual strip
+        hit_collector[detector_id].emplace_back(point);
+    }
+
+    for (const auto& [detectorID, points] : hit_collector){
+        // Make one hit per virtual strip (detector ID sensor + strip)
+        new ((*AdvMuFilterHits)[index++]) AdvMuFilterHit(detectorID, points);
+    }
+    LOG(INFO) << "valid: " << valid << ", skipped: " << skip;
 }
 
 void DigiTaskSND::digitizeScifi()

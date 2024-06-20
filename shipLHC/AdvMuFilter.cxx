@@ -252,13 +252,9 @@ void AdvMuFilter::ConstructGeometry()
   //
   // See https://indico.cern.ch/event/1201858/#81-detector-simulation for technical diagrams and renders
   //
-  // Passive part
-  TGeoBBox *Support = new TGeoBBox("Support", advsnd::module_length / 2, advsnd::module_width / 2, 3.0 * mm / 2);
-  TGeoVolume *SupportVolume = new TGeoVolume("SupportVolume", Support, Polystyrene);
-  SupportVolume->SetLineColor(kGray);
   // Active part
-  TGeoBBox *SensorShape = new TGeoBBox("SensorShape", advsnd::sensor_length / 2, advsnd::sensor_width / 2, 0.5 * mm / 2);
-  TGeoVolume *SensorVolume = new TGeoVolume("SensorVolume", SensorShape, Silicon);
+  TGeoBBox *SensorShape = new TGeoBBox("SensorShapeFilter", advsnd::sensor_length / 2, advsnd::sensor_width / 2, 0.5 * mm / 2);
+  TGeoVolume *SensorVolume = new TGeoVolume("SensorVolumeFilter", SensorShape, Silicon);
   SensorVolume->SetLineColor(kGreen);
   AddSensitiveVolume(SensorVolume);
 
@@ -284,9 +280,8 @@ void AdvMuFilter::ConstructGeometry()
                 for (auto &&column : TSeq(columns)) {
                     // Each module in turn consists of two sensors on a support
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
-            //         SensorModule->AddNode(SupportVolume, 1);
                     for (auto &&sensor : TSeq(advsnd::sensors)) {
-                        int sensor_id =  (station << 5) + (plane << 4) + (row << 2) + (column << 1) + sensor;
+                        int32_t sensor_id = station * 1e7 + plane * 1e6 + row * 1e5 + column * 1e4 + sensor * 1e3 + 999;
                         SensorModule->AddNode(SensorVolume,
                                               sensor_id,
                                               new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2
@@ -334,9 +329,8 @@ void AdvMuFilter::ConstructGeometry()
                 for (auto &&column : TSeq(columns)) {
                     // Each module in turn consists of two sensors on a support
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
-                    // SensorModule->AddNode(SupportVolume, 1);
                     for (auto &&sensor : TSeq(advsnd::sensors)) {
-                        int sensor_id =  (station << 5) + (plane << 4) + (row << 2) + (column << 1) + sensor;
+                        int32_t sensor_id = station * 1e7 + plane * 1e6 + row * 1e5 + column * 1e4 + sensor * 1e3 + 999;
                         SensorModule->AddNode(SensorVolume,
                                               sensor_id,
                                               new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2
