@@ -141,7 +141,7 @@ void AdvTarget::ConstructGeometry()
     SupportVolume->SetLineColor(kGray);
     // Active part
     TGeoBBox *SensorShape = new TGeoBBox("SensorShape", advsnd::sensor_length / 2, advsnd::sensor_width / 2, 0.5 * mm / 2);
-    TGeoVolume *SensorVolume = new TGeoVolume("SensorVolume", SensorShape, Silicon);
+    TGeoVolume *SensorVolume = new TGeoVolume("SensorVolumeTarget", SensorShape, Silicon);
     SensorVolume->SetLineColor(kGreen);
     AddSensitiveVolume(SensorVolume);
 
