@@ -30,7 +30,7 @@ AdvTargetHit::AdvTargetHit(Int_t detID)
 
 // -----   constructor from AdvMuFilterPoint   ------------------------------------------
 AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
-    : SndlhcHit()
+    : SndlhcHit(detID)
 {
     // MuFilter* MuFilterDet = dynamic_cast<MuFilter*>(gROOT->GetListOfGlobals()->FindObject("MuFilter"));
     // // get parameters from the MuFilter detector for simulating the digitized information

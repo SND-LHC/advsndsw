@@ -30,7 +30,7 @@ AdvMuFilterHit::AdvMuFilterHit(Int_t detID)
 
 // -----   constructor from AdvMuFilterPoint   ------------------------------------------
 AdvMuFilterHit::AdvMuFilterHit(Int_t detID, const std::vector<AdvMuFilterPoint*>& V)
-    : SndlhcHit()
+    : SndlhcHit(detID)
 {
     // MuFilter* MuFilterDet = dynamic_cast<MuFilter*>(gROOT->GetListOfGlobals()->FindObject("MuFilter"));
     // // get parameters from the MuFilter detector for simulating the digitized information
