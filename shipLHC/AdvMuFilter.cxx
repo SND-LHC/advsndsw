@@ -281,7 +281,7 @@ void AdvMuFilter::ConstructGeometry()
                     // Each module in turn consists of two sensors on a support
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
                     for (auto &&sensor : TSeq(advsnd::sensors)) {
-                        int sensor_id =  (station << 5) + (plane << 4) + (row << 2) + (column << 1) + sensor;
+                        int32_t sensor_id = (station << 17) + (plane << 16) + (row << 13) + (column << 11) + (sensor << 10) + 999;
                         SensorModule->AddNode(SensorVolume,
                                               sensor_id,
                                               new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2
@@ -330,7 +330,7 @@ void AdvMuFilter::ConstructGeometry()
                     // Each module in turn consists of two sensors on a support
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
                     for (auto &&sensor : TSeq(advsnd::sensors)) {
-                        int sensor_id =  (station << 5) + (plane << 4) + (row << 2) + (column << 1) + sensor;
+                        int32_t sensor_id = (station << 17) + (plane << 16) + (row << 13) + (column << 11) + (sensor << 10) + 999;
                         SensorModule->AddNode(SensorVolume,
                                               sensor_id,
                                               new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2
