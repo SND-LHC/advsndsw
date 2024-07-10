@@ -456,6 +456,3 @@ AdvMuFilterPoint* AdvMuFilter::AddHit(Int_t trackID, Int_t detID,
     return new(clref[size]) AdvMuFilterPoint(trackID, detID, pos, mom,
                                        time, length, eLoss, pdgCode);
 }
-
-
-ClassImp(AdvMuFilter)
