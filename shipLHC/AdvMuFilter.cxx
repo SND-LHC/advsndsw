@@ -252,10 +252,6 @@ void AdvMuFilter::ConstructGeometry()
   //
   // See https://indico.cern.ch/event/1201858/#81-detector-simulation for technical diagrams and renders
   //
-  // Passive part
-  TGeoBBox *Support = new TGeoBBox("Support", advsnd::module_length / 2, advsnd::module_width / 2, 3.0 * mm / 2);
-  TGeoVolume *SupportVolume = new TGeoVolume("SupportVolume", Support, Polystyrene);
-  SupportVolume->SetLineColor(kGray);
   // Active part
   TGeoBBox *SensorShape = new TGeoBBox("SensorShapeFilter", advsnd::sensor_length / 2, advsnd::sensor_width / 2, 0.5 * mm / 2);
   TGeoVolume *SensorVolume = new TGeoVolume("SensorVolumeFilter", SensorShape, Silicon);
@@ -284,7 +280,6 @@ void AdvMuFilter::ConstructGeometry()
                 for (auto &&column : TSeq(columns)) {
                     // Each module in turn consists of two sensors on a support
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
-            //         SensorModule->AddNode(SupportVolume, 1);
                     for (auto &&sensor : TSeq(advsnd::sensors)) {
                         int sensor_id =  (station << 5) + (plane << 4) + (row << 2) + (column << 1) + sensor;
                         SensorModule->AddNode(SensorVolume,
@@ -334,7 +329,6 @@ void AdvMuFilter::ConstructGeometry()
                 for (auto &&column : TSeq(columns)) {
                     // Each module in turn consists of two sensors on a support
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
-                    // SensorModule->AddNode(SupportVolume, 1);
                     for (auto &&sensor : TSeq(advsnd::sensors)) {
                         int sensor_id =  (station << 5) + (plane << 4) + (row << 2) + (column << 1) + sensor;
                         SensorModule->AddNode(SensorVolume,
