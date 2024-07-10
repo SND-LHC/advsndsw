@@ -14,6 +14,8 @@
 #pragma link C++ class MuFilter+;
 #pragma link C++ class MuFilterPoint+;
 #pragma link C++ class MuFilterHit+;
+#pragma link C++ class AdvTargetHit+;
+#pragma link C++ class AdvMuFilterHit+;
 #pragma link C++ class sndScifiHit+;
 #pragma link C++ class sndCluster;
 #pragma link C++ class SNDLHCEventHeader+;
