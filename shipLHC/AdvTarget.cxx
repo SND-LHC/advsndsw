@@ -6,7 +6,6 @@
 //
 
 #include "AdvTarget.h"
-#include "SiSensor.h"
 
 #include "AdvTargetPoint.h"
 #include "FairGeoBuilder.h"
@@ -22,6 +21,7 @@
 #include "ShipDetectorList.h"
 #include "ShipStack.h"
 #include "ShipUnit.h"
+#include "SiSensor.h"
 #include "TGeoArb8.h"
 #include "TGeoBBox.h"
 #include "TGeoCompositeShape.h"
@@ -75,10 +75,10 @@ AdvTarget::AdvTarget(const char *name, Bool_t Active, const char *Title)
 
 AdvTarget::~AdvTarget()
 {
-   if (fAdvTargetPointCollection) {
-      fAdvTargetPointCollection->Delete();
-      delete fAdvTargetPointCollection;
-   }
+    if (fAdvTargetPointCollection) {
+        fAdvTargetPointCollection->Delete();
+        delete fAdvTargetPointCollection;
+    }
 }
 
 void AdvTarget::Initialize() { FairDetector::Initialize(); }
@@ -140,11 +140,11 @@ void AdvTarget::ConstructGeometry()
     TGeoVolume *SupportVolume = new TGeoVolume("SupportVolume", Support, Polystyrene);
     SupportVolume->SetLineColor(kGray);
     // Active part
-    TGeoBBox *SensorShape = new TGeoBBox("SensorShape", advsnd::sensor_length / 2, advsnd::sensor_width / 2, 0.5 * mm / 2);
+    TGeoBBox *SensorShape =
+        new TGeoBBox("SensorShape", advsnd::sensor_length / 2, advsnd::sensor_width / 2, 0.5 * mm / 2);
     TGeoVolume *SensorVolume = new TGeoVolume("SensorVolumeTarget", SensorShape, Silicon);
     SensorVolume->SetLineColor(kGreen);
     AddSensitiveVolume(SensorVolume);
-
 
     // Definition of the target box containing tungsten walls + silicon tracker
     TGeoVolumeAssembly *volAdvTarget = new TGeoVolumeAssembly("volAdvTarget");
@@ -155,12 +155,13 @@ void AdvTarget::ConstructGeometry()
                             288.92 * cm + 10 / 2. * cm);   // Survey position of the centre of the first emulsion wall
     Double_t TargetDiff = 100. * cm - 63.941980 * cm;
 
-    double line_of_sight_offset = (-2.4244059999999976+5.203625000000001) * cm;
+    double line_of_sight_offset = (-2.4244059999999976 + 5.203625000000001) * cm;
     detector->AddNode(volAdvTarget,
                       1,
                       new TGeoTranslation(line_of_sight_offset - EmWall0_survey.X() + (40 * cm - 42.2 * cm) / 2.,
                                           EmWall0_survey.Y(),
-                                          -TargetDiff + EmWall0_survey.Z() - 60 * cm - 30 * cm)); // - 60 * cm - 30 * cm to allocate a 150 cm Target
+                                          -TargetDiff + EmWall0_survey.Z() - 60 * cm
+                                              - 30 * cm));   // - 60 * cm - 30 * cm to allocate a 150 cm Target
 
     // For correct detector IDs, the geometry has to be built back to front, from the top-level
     for (auto &&station : TSeq(stations)) {
@@ -176,22 +177,25 @@ void AdvTarget::ConstructGeometry()
                     TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
                     SensorModule->AddNode(SupportVolume, 1);
                     for (auto &&sensor : TSeq(advsnd::sensors)) {
-                        int32_t sensor_id = (station << 17) + (plane << 16) + (row << 13) + (column << 11) + (sensor << 10) + 999;
-                        SensorModule->AddNode(SensorVolume,
-                                              sensor_id,
-                                              new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2
-                                                                      + sensor * (advsnd::sensor_length + advsnd::sensor_gap),
-                                                                  0,
-                                                                  +3 * mm / 2 + 0.5 * mm / 2));
+                        int32_t sensor_id =
+                            (station << 17) + (plane << 16) + (row << 13) + (column << 11) + (sensor << 10) + 999;
+                        SensorModule->AddNode(
+                            SensorVolume,
+                            sensor_id,
+                            new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2
+                                                    + sensor * (advsnd::sensor_length + advsnd::sensor_gap),
+                                                0,
+                                                +3 * mm / 2 + 0.5 * mm / 2));
                     }
                     TrackerPlane->AddNode(
                         SensorModule,
                         ++i,
                         new TGeoCombiTrans(
                             // Offset modules as needed by row and column
-                            TGeoTranslation((column % 2 ? 1 : -1) * (advsnd::module_length / 2 + advsnd::target::module_column_gap / 2),
-                                            (row - 1) * (-advsnd::module_width - advsnd::target::module_row_gap) - advsnd::target::module_row_gap / 2
-                                                + advsnd::module_width / 2,
+                            TGeoTranslation((column % 2 ? 1 : -1)
+                                                * (advsnd::module_length / 2 + advsnd::target::module_column_gap / 2),
+                                            (row - 1) * (-advsnd::module_width - advsnd::target::module_row_gap)
+                                                - advsnd::target::module_row_gap / 2 + advsnd::module_width / 2,
                                             0),
                             // Rotate every module of the second column
                             TGeoRotation(TString::Format("rot%d", i), 0, 0, column * 180)));
@@ -199,29 +203,23 @@ void AdvTarget::ConstructGeometry()
             }
             if (plane == 0) {
                 // X-plane
-                TrackingStation->AddNode(
-                    TrackerPlane,
-                    plane,
-                    new TGeoTranslation(0, 0, -2 * mm));
+                TrackingStation->AddNode(TrackerPlane, plane, new TGeoTranslation(0, 0, -2 * mm));
             } else if (plane == 1) {
                 // Y-plane
                 TrackingStation->AddNode(
                     TrackerPlane,
                     plane,
                     new TGeoCombiTrans(TGeoTranslation(0, 0, +2 * mm), TGeoRotation("y_rot", 0, 0, 90)));
-            } 
+            }
         }
 
+        volAdvTarget->AddNode(volTargetWall,
+                              station,
+                              new TGeoTranslation(0, 0, -fTargetWallZ / 2 + station * fTargetWallZ + station * fTTZ));
+
         volAdvTarget->AddNode(
-            volTargetWall,
-            station,
-            new TGeoTranslation(0, 0, -fTargetWallZ / 2 + station * fTargetWallZ + station * fTTZ));
-        
-        volAdvTarget->AddNode(
-            TrackingStation,
-            station,
-			new TGeoTranslation(0, 0, fTTZ/2 + station * (fTargetWallZ + fTTZ)));
-                              //new TGeoTranslation(0, 0, (station + 0.5) * fTargetWallZ + (station - 0.5) * 7.5 * mm));
+            TrackingStation, station, new TGeoTranslation(0, 0, fTTZ / 2 + station * (fTargetWallZ + fTTZ)));
+        // new TGeoTranslation(0, 0, (station + 0.5) * fTargetWallZ + (station - 0.5) * 7.5 * mm));
     }
 }
 
@@ -275,10 +273,7 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
     return kTRUE;
 }
 
-void AdvTarget::EndOfEvent()
-{
-   fAdvTargetPointCollection->Clear();
-}
+void AdvTarget::EndOfEvent() { fAdvTargetPointCollection->Clear(); }
 
 void AdvTarget::Register()
 {
@@ -292,22 +287,25 @@ void AdvTarget::Register()
 }
 TClonesArray *AdvTarget::GetCollection(Int_t iColl) const
 {
-   if (iColl == 0) {
-      return fAdvTargetPointCollection;
-   } else {
-      return NULL;
-   }
+    if (iColl == 0) {
+        return fAdvTargetPointCollection;
+    } else {
+        return NULL;
+    }
 }
 
-void AdvTarget::Reset()
-{
-   fAdvTargetPointCollection->Clear();
-}
+void AdvTarget::Reset() { fAdvTargetPointCollection->Clear(); }
 
-AdvTargetPoint *AdvTarget::AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time,
-                                  Double_t length, Double_t eLoss, Int_t pdgCode)
+AdvTargetPoint *AdvTarget::AddHit(Int_t trackID,
+                                  Int_t detID,
+                                  TVector3 pos,
+                                  TVector3 mom,
+                                  Double_t time,
+                                  Double_t length,
+                                  Double_t eLoss,
+                                  Int_t pdgCode)
 {
-   TClonesArray &clref = *fAdvTargetPointCollection;
-   Int_t size = clref.GetEntriesFast();
-   return new (clref[size]) AdvTargetPoint(trackID, detID, pos, mom, time, length, eLoss, pdgCode);
+    TClonesArray &clref = *fAdvTargetPointCollection;
+    Int_t size = clref.GetEntriesFast();
+    return new (clref[size]) AdvTargetPoint(trackID, detID, pos, mom, time, length, eLoss, pdgCode);
 }

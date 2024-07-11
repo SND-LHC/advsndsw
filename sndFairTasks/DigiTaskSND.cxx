@@ -1,32 +1,34 @@
- #include <TClonesArray.h>           // or TClonesArray
- #include <TGenericClassInfo.h>      // for TGenericClassInfo
- #include <TMath.h>                  // for Sqrt
- #include <TRandom.h>                // for TRandom, gRandom
- #include <TFile.h>
- #include <TROOT.h>
- #include <iostream>                 // for operator<<, basic_ostream, endl
- #include <algorithm>                // std::sort
- #include <vector>                   // std::vector
- #include "FairMCEventHeader.h"      // for FairMCEventHeader
- #include "FairLink.h"               // for FairLink
- #include "FairRunSim.h"             // for FairRunSim
- #include "FairRunAna.h"             // for FairRunAna
- #include "FairRootManager.h"        // for FairRootManager
- #include "DigiTaskSND.h"   	     // for Digitization
- #include "ScifiPoint.h"	     // for SciFi Point
- #include "Scifi.h"	             // for SciFi detector
- #include "MuFilterPoint.h"	     // for Muon Filter Point
- #include "sndScifiHit.h"	     // for SciFi Hit
- #include "MuFilterHit.h"	     // for Muon Filter Hit
- #include "Hit2MCPoints.h"           // for linking hits to true MC points
-#include "AdvMuFilterPoint.h"
+#include "DigiTaskSND.h"   // for Digitization
+
 #include "AdvMuFilterHit.h"
-#include "AdvTargetPoint.h"
+#include "AdvMuFilterPoint.h"
 #include "AdvTargetHit.h"
-#include "TGeoManager.h"
-#include "TGeoNavigator.h"
+#include "AdvTargetPoint.h"
+#include "FairLink.h"            // for FairLink
+#include "FairMCEventHeader.h"   // for FairMCEventHeader
+#include "FairRootManager.h"     // for FairRootManager
+#include "FairRunAna.h"          // for FairRunAna
+#include "FairRunSim.h"          // for FairRunSim
+#include "Hit2MCPoints.h"        // for linking hits to true MC points
+#include "MuFilterHit.h"         // for Muon Filter Hit
+#include "MuFilterPoint.h"       // for Muon Filter Point
+#include "Scifi.h"               // for SciFi detector
+#include "ScifiPoint.h"          // for SciFi Point
 #include "SiSensor.h"
 #include "TGeoBBox.h"
+#include "TGeoManager.h"
+#include "TGeoNavigator.h"
+#include "sndScifiHit.h"   // for SciFi Hit
+
+#include <TClonesArray.h>   // or TClonesArray
+#include <TFile.h>
+#include <TGenericClassInfo.h>   // for TGenericClassInfo
+#include <TMath.h>               // for Sqrt
+#include <TROOT.h>
+#include <TRandom.h>   // for TRandom, gRandom
+#include <algorithm>   // std::sort
+#include <iostream>    // for operator<<, basic_ostream, endl
+#include <vector>      // std::vector
 
 using namespace std;
 
@@ -34,18 +36,19 @@ DigiTaskSND::DigiTaskSND()
     : FairTask("DigTaskSND")
     , fScifiPointArray(nullptr)
     , fMuFilterPointArray(nullptr)
-    , AdvTargetPoints(nullptr),
-    AdvMuFilterPoints(nullptr)
+    , AdvTargetPoints(nullptr)
+    , AdvMuFilterPoints(nullptr)
     , fEventHeader(nullptr)
     , fScifiDigiHitArray(nullptr)
     , fMuFilterDigiHitArray(nullptr)
     , fScifiHit2MCPointsArray(nullptr)
     , fMuFilterHit2MCPointsArray(nullptr)
-    , AdvTargetHits(nullptr),
-    AdvMuFilterHits(nullptr),
-    AdvTargetHits2MCPoints(nullptr),
-    AdvMuFilterHits2MCPoints(nullptr)
-{}
+    , AdvTargetHits(nullptr)
+    , AdvMuFilterHits(nullptr)
+    , AdvTargetHits2MCPoints(nullptr)
+    , AdvMuFilterHits2MCPoints(nullptr)
+{
+}
 
 DigiTaskSND::~DigiTaskSND() {}
 
@@ -54,11 +57,11 @@ InitStatus DigiTaskSND::Init()
     FairRootManager* ioman = FairRootManager::Instance();
     if (!ioman) {
         LOG(FATAL) << "DigiTaskSND::Init: "
-                  << "RootManager not instantiated!";
+                   << "RootManager not instantiated!";
     }
 
     // Get the SciFi detector and sipm to fibre mapping
-    scifi = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
+    scifi = dynamic_cast<Scifi*>(gROOT->GetListOfGlobals()->FindObject("Scifi"));
     if (scifi) {
         scifi->SiPMmapping();
         fibresSiPM = scifi->GetSiPMmap();
@@ -67,10 +70,10 @@ InitStatus DigiTaskSND::Init()
 
     // Get event header
     // Try classic FairRoot approach first
-    fMCEventHeader = static_cast<FairMCEventHeader*> (ioman->GetObject("MCEventHeader."));
+    fMCEventHeader = static_cast<FairMCEventHeader*>(ioman->GetObject("MCEventHeader."));
     // .. with a safety net for trailing dots mischief
-    if ( fMCEventHeader == nullptr ) {
-       fMCEventHeader = static_cast<FairMCEventHeader*>(gROOT->FindObjectAny("MCEventHeader."));
+    if (fMCEventHeader == nullptr) {
+        fMCEventHeader = static_cast<FairMCEventHeader*>(gROOT->FindObjectAny("MCEventHeader."));
     }
     // Get input MC points
     fScifiPointArray = static_cast<TClonesArray*>(ioman->GetObject("ScifiPoint"));
@@ -86,10 +89,14 @@ InitStatus DigiTaskSND::Init()
     // copy branches from input file:
     fMCTrackArray = static_cast<TClonesArray*>(ioman->GetObject("MCTrack"));
     ioman->Register("MCTrack", "ShipMCTrack", fMCTrackArray, kTRUE);
-    if (fvetoPointArray) ioman->Register("vetoPoint", "vetoPoints", fvetoPointArray, kTRUE);
-    if (fEmulsionPointArray) ioman->Register("EmulsionDetPoint", "EmulsionDetPoints", fEmulsionPointArray, kTRUE);
-    if (fScifiPointArray) ioman->Register("ScifiPoint", "ScifiPoints", fScifiPointArray, kTRUE);
-    if (fMuFilterPointArray) ioman->Register("MuFilterPoint", "MuFilterPoints", fMuFilterPointArray, kTRUE);
+    if (fvetoPointArray)
+        ioman->Register("vetoPoint", "vetoPoints", fvetoPointArray, kTRUE);
+    if (fEmulsionPointArray)
+        ioman->Register("EmulsionDetPoint", "EmulsionDetPoints", fEmulsionPointArray, kTRUE);
+    if (fScifiPointArray)
+        ioman->Register("ScifiPoint", "ScifiPoints", fScifiPointArray, kTRUE);
+    if (fMuFilterPointArray)
+        ioman->Register("MuFilterPoint", "MuFilterPoints", fMuFilterPointArray, kTRUE);
     ioman->Register("AdvTargetPoint", "AdvTargetPoints", AdvTargetPoints, kTRUE);
     ioman->Register("AdvMuFilterPoint", "AdvMuFilterPoints", AdvMuFilterPoints, kTRUE);
 
@@ -111,7 +118,8 @@ InitStatus DigiTaskSND::Init()
         ioman->Register("Digi_MuFilterHits", "DigiMuFilterHit_det", fMuFilterDigiHitArray, kTRUE);
         // Branch containing links to MC truth info
         fMuFilterHit2MCPointsArray = new TClonesArray("Hit2MCPoints");
-        ioman->Register("Digi_MuFilterHits2MCPoints", "DigiMuFilterHits2MCPoints_det", fMuFilterHit2MCPointsArray, kTRUE);
+        ioman->Register(
+            "Digi_MuFilterHits2MCPoints", "DigiMuFilterHits2MCPoints_det", fMuFilterHit2MCPointsArray, kTRUE);
         fMuFilterHit2MCPointsArray->BypassStreamer(kTRUE);
     }
 
@@ -119,7 +127,8 @@ InitStatus DigiTaskSND::Init()
     ioman->Register("Digi_AdvMuFilterHits", "DigiAdvMuFilterHit_det", AdvMuFilterHits, kTRUE);
     // Branch containing links to MC truth info
     AdvMuFilterHits2MCPoints = new TClonesArray("Hit2MCPoints");
-    ioman->Register("Digi_AdvMuFilterHits2MCPoints", "DigiAdvMuFilterHits2MCPoints_det", AdvMuFilterHits2MCPoints, kTRUE);
+    ioman->Register(
+        "Digi_AdvMuFilterHits2MCPoints", "DigiAdvMuFilterHits2MCPoints_det", AdvMuFilterHits2MCPoints, kTRUE);
     AdvMuFilterHits2MCPoints->BypassStreamer(kTRUE);
 
     AdvTargetHits = new TClonesArray("AdvTargetHit");
@@ -154,16 +163,17 @@ void DigiTaskSND::Exec(Option_t* /*opt*/)
     fEventHeader->SetBunchType(101);
 
     // Digitize MC points if any
-    if (fMuFilterPointArray) digitizeMuFilter();
-    if (fScifiPointArray)
-    {
+    if (fMuFilterPointArray)
+        digitizeMuFilter();
+    if (fScifiPointArray) {
         digitizeScifi();
     }
     digitiseAdvTarget();
     digitiseAdvMuFilter();
 }
 
-void DigiTaskSND::digitiseAdvTarget(){
+void DigiTaskSND::digitiseAdvTarget()
+{
 
     int point_index = 0;
     int hit_index = 0;
@@ -176,11 +186,11 @@ void DigiTaskSND::digitiseAdvTarget(){
         LOG(FATAL) << "Geofile required to get the position of AdvTargetHits.";
     }
     TGeoNavigator* nav = gGeoManager->GetCurrentNavigator();
-    int valid=0;
-    int skip=0;
+    int valid = 0;
+    int skip = 0;
 
-    for (auto *ptr: *AdvTargetPoints) {
-        auto *point = dynamic_cast<AdvTargetPoint*>(ptr);
+    for (auto* ptr : *AdvTargetPoints) {
+        auto* point = dynamic_cast<AdvTargetPoint*>(ptr);
         auto detID = point->GetDetectorID();
         int station = int(floor(detID / 1e7));
         int plane = int(floor(detID / 1e6)) % 2;
@@ -205,7 +215,7 @@ void DigiTaskSND::digitiseAdvTarget(){
         } else {
             LOG(FATAL) << path;
         }
-        auto *node = nav->GetCurrentNode();
+        auto* node = nav->GetCurrentNode();
         // Find virtual strip by location
         auto x = point->GetX();
         auto y = point->GetY();
@@ -214,7 +224,7 @@ void DigiTaskSND::digitiseAdvTarget(){
         double local_pos[3];
         // Move to local coordinates (including rotation) to determine strip
         nav->MasterToLocal(global_pos, local_pos);
-        int strip = floor((local_pos[1] + advsnd::sensor_width/2) + 1e-5 / (122.0053 * ShipUnit::um));
+        int strip = floor((local_pos[1] + advsnd::sensor_width / 2) + 1e-5 / (122.0053 * ShipUnit::um));
         if (strip >= advsnd::strips || strip < 0) {
             LOG(FATAL) << "Invalid strip.";
         }
@@ -226,18 +236,19 @@ void DigiTaskSND::digitiseAdvTarget(){
         norm[detector_id] += point->GetEnergyLoss();
     }
 
-    for (const auto& [detector_id, points] : hit_collector){
+    for (const auto& [detector_id, points] : hit_collector) {
         // Make one hit per virtual strip (detector ID sensor + strip)
         new ((*AdvTargetHits)[hit_index++]) AdvTargetHit(detector_id, points);
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {
-            mc_links.Add(detector_id, point_id, energy_loss/norm[detector_id]);
+            mc_links.Add(detector_id, point_id, energy_loss / norm[detector_id]);
         }
     }
-    new((*AdvTargetHits2MCPoints)[0]) Hit2MCPoints(mc_links);
+    new ((*AdvTargetHits2MCPoints)[0]) Hit2MCPoints(mc_links);
 }
 
-void DigiTaskSND::digitiseAdvMuFilter(){
+void DigiTaskSND::digitiseAdvMuFilter()
+{
 
     int point_index = 0;
     int hit_index = 0;
@@ -251,8 +262,8 @@ void DigiTaskSND::digitiseAdvMuFilter(){
     }
     TGeoNavigator* nav = gGeoManager->GetCurrentNavigator();
 
-    for (auto *ptr: *AdvMuFilterPoints) {
-        auto *point = dynamic_cast<AdvMuFilterPoint*>(ptr);
+    for (auto* ptr : *AdvMuFilterPoints) {
+        auto* point = dynamic_cast<AdvMuFilterPoint*>(ptr);
         auto detID = point->GetDetectorID();
         int station = int(floor(detID / 1e7));
         int plane = int(floor(detID / 1e6)) % 2;
@@ -277,7 +288,7 @@ void DigiTaskSND::digitiseAdvMuFilter(){
         } else {
             LOG(FATAL) << path;
         }
-        auto *node = nav->GetCurrentNode();
+        auto* node = nav->GetCurrentNode();
         // Find virtual strip by location
         auto x = point->GetX();
         auto y = point->GetY();
@@ -286,7 +297,7 @@ void DigiTaskSND::digitiseAdvMuFilter(){
         double local_pos[3];
         // Move to local coordinates (including rotation) to determine strip
         nav->MasterToLocal(global_pos, local_pos);
-        int strip = floor((local_pos[1] + advsnd::sensor_width/2) + 1e-5 / (122.0053 * ShipUnit::um));
+        int strip = floor((local_pos[1] + advsnd::sensor_width / 2) + 1e-5 / (122.0053 * ShipUnit::um));
         if (strip >= advsnd::strips || strip < 0) {
             LOG(FATAL) << "Invalid strip.";
         }
@@ -298,21 +309,21 @@ void DigiTaskSND::digitiseAdvMuFilter(){
         norm[detector_id] += point->GetEnergyLoss();
     }
 
-    for (const auto& [detector_id, points] : hit_collector){
+    for (const auto& [detector_id, points] : hit_collector) {
         // Make one hit per virtual strip (detector ID sensor + strip)
         new ((*AdvMuFilterHits)[hit_index++]) AdvMuFilterHit(detector_id, points);
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {
-            mc_links.Add(detector_id, point_id, energy_loss/norm[detector_id]);
+            mc_links.Add(detector_id, point_id, energy_loss / norm[detector_id]);
         }
     }
-    new((*AdvMuFilterHits2MCPoints)[0]) Hit2MCPoints(mc_links);
+    new ((*AdvMuFilterHits2MCPoints)[0]) Hit2MCPoints(mc_links);
 }
 
 void DigiTaskSND::digitizeScifi()
 {
     // a map containing fibreID and vector(list) of points and weights
-    map<int, pair<vector<ScifiPoint*>, vector<float>> > hitContainer{};
+    map<int, pair<vector<ScifiPoint*>, vector<float>>> hitContainer{};
     Hit2MCPoints mcLinks;
     map<pair<int, int>, double> mcPoints{};
     map<int, double> norm{};
@@ -320,44 +331,48 @@ void DigiTaskSND::digitizeScifi()
     int locFibreID{};
 
     // Fill the map
-    for (int k = 0, kEnd = fScifiPointArray->GetEntries(); k < kEnd; k++)
-    {
+    for (int k = 0, kEnd = fScifiPointArray->GetEntries(); k < kEnd; k++) {
         ScifiPoint* point = static_cast<ScifiPoint*>(fScifiPointArray->At(k));
-        if (!point) continue;
+        if (!point)
+            continue;
         // Collect all hits in same SiPM channel
         detID = point->GetDetectorID();
-        locFibreID = detID%100000;
+        locFibreID = detID % 100000;
         // Check if locFibreID in a dead area
-        if(siPMFibres.count(locFibreID)==0) continue;
+        if (siPMFibres.count(locFibreID) == 0)
+            continue;
         double dE{};
         float weight{};
-        for (auto sipmChan : siPMFibres[locFibreID])
-        {
-            globsipmChan = int(detID/100000)*100000+sipmChan.first;
+        for (auto sipmChan : siPMFibres[locFibreID]) {
+            globsipmChan = int(detID / 100000) * 100000 + sipmChan.first;
             weight = sipmChan.second[0];
             hitContainer[globsipmChan].first.push_back(point);
             hitContainer[globsipmChan].second.push_back(weight);
-            dE = point->GetEnergyLoss()*weight;
+            dE = point->GetEnergyLoss() * weight;
             mcPoints[make_pair(globsipmChan, k)] = dE;
-            norm[globsipmChan]+= dE;
+            norm[globsipmChan] += dE;
         }
-    }// End filling map
+    }   // End filling map
     int index = 0;
     // Loop over entries of the hitContainer map and collect all hits in same detector element
-    for (auto it = hitContainer.begin(); it != hitContainer.end(); it++){
-        new ((*fScifiDigiHitArray)[index]) sndScifiHit(it->first, hitContainer[it->first].first, hitContainer[it->first].second);
+    for (auto it = hitContainer.begin(); it != hitContainer.end(); it++) {
+        new ((*fScifiDigiHitArray)[index])
+            sndScifiHit(it->first, hitContainer[it->first].first, hitContainer[it->first].second);
         index++;
- 	for (auto mcit = mcPoints.begin(); mcit != mcPoints.end(); mcit++){
-            if(it->first == mcit->first.first) mcLinks.Add(it->first, mcit->first.second, mcPoints[make_pair(it->first, mcit->first.second)]/norm[it->first]);
+        for (auto mcit = mcPoints.begin(); mcit != mcPoints.end(); mcit++) {
+            if (it->first == mcit->first.first)
+                mcLinks.Add(it->first,
+                            mcit->first.second,
+                            mcPoints[make_pair(it->first, mcit->first.second)] / norm[it->first]);
         }
     }
-    new((*fScifiHit2MCPointsArray)[0]) Hit2MCPoints(mcLinks);
+    new ((*fScifiHit2MCPointsArray)[0]) Hit2MCPoints(mcLinks);
 }
 
 void DigiTaskSND::digitizeMuFilter()
 {
     // a map with detID and vector(list) of points
-    map<int, vector<MuFilterPoint*> > hitContainer{};
+    map<int, vector<MuFilterPoint*>> hitContainer{};
     Hit2MCPoints mcLinks;
     map<pair<int, int>, double> mcPoints{};
     map<int, double> norm{};
@@ -366,21 +381,25 @@ void DigiTaskSND::digitizeMuFilter()
     // Fill the map
     for (int k = 0, kEnd = fMuFilterPointArray->GetEntries(); k < kEnd; k++) {
         MuFilterPoint* point = static_cast<MuFilterPoint*>(fMuFilterPointArray->At(k));
-        if (!point) continue;
+        if (!point)
+            continue;
         // Collect all hits in same detector element
         detID = point->GetDetectorID();
         hitContainer[detID].push_back(point);
         mcPoints[make_pair(detID, k)] = point->GetEnergyLoss();
-        norm[detID]+= point->GetEnergyLoss();
+        norm[detID] += point->GetEnergyLoss();
     }
     int index = 0;
     // Loop over entries of the hitContainer map and collect all hits in same detector element
-    for (auto it = hitContainer.begin(); it != hitContainer.end(); it++){
-        /*MuFilterHit* aHit = */new ((*fMuFilterDigiHitArray)[index]) MuFilterHit(it->first, hitContainer[it->first]);
+    for (auto it = hitContainer.begin(); it != hitContainer.end(); it++) {
+        /*MuFilterHit* aHit = */ new ((*fMuFilterDigiHitArray)[index]) MuFilterHit(it->first, hitContainer[it->first]);
         index++;
-        for (auto mcit = mcPoints.begin(); mcit != mcPoints.end(); mcit++){
-            if(it->first == mcit->first.first) mcLinks.Add(it->first, mcit->first.second, mcPoints[make_pair(it->first, mcit->first.second)]/norm[it->first]);
+        for (auto mcit = mcPoints.begin(); mcit != mcPoints.end(); mcit++) {
+            if (it->first == mcit->first.first)
+                mcLinks.Add(it->first,
+                            mcit->first.second,
+                            mcPoints[make_pair(it->first, mcit->first.second)] / norm[it->first]);
         }
     }
-    new((*fMuFilterHit2MCPointsArray)[0]) Hit2MCPoints(mcLinks);
+    new ((*fMuFilterHit2MCPointsArray)[0]) Hit2MCPoints(mcLinks);
 }

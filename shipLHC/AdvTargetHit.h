@@ -1,8 +1,8 @@
-#ifndef ADVTARGETHIT_H
-#define ADVTARGETHIT_H 1
+#ifndef SHIPLHC_ADVTARGETHIT_H_
+#define SHIPLHC_ADVTARGETHIT_H_
 
-#include "SndlhcHit.h"
 #include "SiSensor.h"
+#include "SndlhcHit.h"
 
 class AdvTargetPoint;
 
@@ -40,4 +40,4 @@ class AdvTargetHit : public SndlhcHit
     ClassDef(AdvTargetHit, 1);
 };
 
-#endif
+#endif   // SHIPLHC_ADVTARGETHIT_H_

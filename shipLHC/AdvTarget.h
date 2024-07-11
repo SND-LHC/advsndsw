@@ -4,8 +4,8 @@
 //  O. Lantwin and D. Centanni
 //  Dec 2023
 //
-#ifndef AdvTarget_H
-#define AdvTarget_H
+#ifndef SHIPLHC_ADVTARGET_H_
+#define SHIPLHC_ADVTARGET_H_
 
 #include "FairDetector.h"
 #include "Rtypes.h"   // for ShipMuonShield::Class, Bool_t, etc
@@ -99,9 +99,10 @@ class AdvTarget : public FairDetector
 
     ClassDef(AdvTarget, 1)
 
-  protected:
+        protected
+        :
 
-    Int_t InitMedium(const char *name);
+        Int_t InitMedium(const char *name);
 };
 
-#endif
+#endif   // SHIPLHC_ADVTARGET_H_
