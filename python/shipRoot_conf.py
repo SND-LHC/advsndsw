@@ -6,9 +6,9 @@ from pythia8_conf_utils import addHNLtoROOT
 from pythia8darkphoton_conf import addDPtoROOT
 
 # Check whether we are in the SND@LHC environment
-if not os.environ.get("SNDSW_ROOT"):
-    print("ERROR: SNDSW_ROOT unset. Exiting.")
-    print("ERROR: Please make sure that you're running in the SND@LHC environment.")
+if not os.environ.get("ADVSNDSW_ROOT"):
+    print("ERROR: ADVSNDSW_ROOT unset. Exiting.")
+    print("ERROR: Please make sure that you're running in the AdvSND environment.")
     quit(1)
 
 # When on Darwin load all needed shared libs as DYLD_LIBRARY_PATH is not

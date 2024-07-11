@@ -108,7 +108,7 @@ shipRoot_conf.configure(0)     # load basic libraries, prepare atexit for python
 
 if options.testbeam:  snd_geo = ConfigRegistry.loadpy("$SNDSW_ROOT/geometry/sndLHC_H6geom_config.py")
 elif options.AdvSND:
-    snd_geo = ConfigRegistry.loadpy("$SNDSW_ROOT/geometry/AdvSND_geom_config.py")
+    snd_geo = ConfigRegistry.loadpy("$ADVSNDSW_ROOT/geometry/AdvSND_geom_config.py")
 else:                         snd_geo = ConfigRegistry.loadpy("$SNDSW_ROOT/geometry/sndLHC_geom_config.py",
                                                                   nuTargetPassive = options.nuTargetPassive, useNagoyaEmulsions = options.useNagoyaEmulsions)
 
