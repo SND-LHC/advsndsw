@@ -1,13 +1,14 @@
-#ifndef DIGITASKSND_H_
-#define DIGITASKSND_H_
+#ifndef SNDFAIRTASKS_DIGITASKSND_H_
+#define SNDFAIRTASKS_DIGITASKSND_H_
 
-#include <Rtypes.h>             // for THashConsistencyHolder, ClassDef
-#include <RtypesCore.h>         // for Double_t, Int_t, Option_t
+#include "FairMCEventHeader.h"   // for FairMCEventHeader
+#include "FairTask.h"            // for FairTask, InitStatus
+#include "SNDLHCEventHeader.h"   // for EventHeader
+#include "Scifi.h"               // for Scifi detector
+
+#include <Rtypes.h>       // for THashConsistencyHolder, ClassDef
+#include <RtypesCore.h>   // for Double_t, Int_t, Option_t
 #include <TClonesArray.h>
-#include "FairTask.h"           // for FairTask, InitStatus
-#include "FairMCEventHeader.h"  // for FairMCEventHeader
-#include "Scifi.h"              // for Scifi detector
-#include "SNDLHCEventHeader.h"  // for EventHeader
 class TBuffer;
 class TClass;
 class TClonesArray;
@@ -42,17 +43,17 @@ class DigiTaskSND : public FairTask
 
     // Input
     FairMCEventHeader* fMCEventHeader;
-    TClonesArray* fMuFilterPointArray; // MC points
+    TClonesArray* fMuFilterPointArray;   // MC points
     TClonesArray* fScifiPointArray;
     TClonesArray* AdvTargetPoints;
     TClonesArray* AdvMuFilterPoints;
     // Output
     SNDLHCEventHeader* fEventHeader;
-    TClonesArray* fMuFilterDigiHitArray; // hit class (digitized!)
+    TClonesArray* fMuFilterDigiHitArray;   // hit class (digitized!)
     TClonesArray* fScifiDigiHitArray;
     TClonesArray* AdvTargetHits;
     TClonesArray* AdvMuFilterHits;
-    TClonesArray* fMuFilterHit2MCPointsArray; // link to MC truth
+    TClonesArray* fMuFilterHit2MCPointsArray;   // link to MC truth
     TClonesArray* fScifiHit2MCPointsArray;
     TClonesArray* AdvTargetHits2MCPoints;
     TClonesArray* AdvMuFilterHits2MCPoints;
@@ -66,4 +67,4 @@ class DigiTaskSND : public FairTask
     ClassDef(DigiTaskSND, 3);
 };
 
-#endif /* DIGITASKSND_H_ */
+#endif   // SNDFAIRTASKS_DIGITASKSND_H_

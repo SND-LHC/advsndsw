@@ -1,8 +1,8 @@
-#ifndef ADVMUFILTERHIT_H
-#define ADVMUFILTERHIT_H 1
+#ifndef SHIPLHC_ADVMUFILTERHIT_H_
+#define SHIPLHC_ADVMUFILTERHIT_H_
 
-#include "SndlhcHit.h"
 #include "SiSensor.h"
+#include "SndlhcHit.h"
 
 class AdvMuFilterPoint;
 
@@ -40,4 +40,4 @@ class AdvMuFilterHit : public SndlhcHit
     ClassDef(AdvMuFilterHit, 1);
 };
 
-#endif
+#endif   // SHIPLHC_ADVMUFILTERHIT_H_
