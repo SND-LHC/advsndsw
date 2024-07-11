@@ -4,13 +4,17 @@ advsndsw
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
+- [advsndsw](#advsndsw)
 - [Introduction](#introduction)
     - [Contact and communication](#contact-and-communication)
     - [Branches](#branches)
 - [Build instructions](#build-instructions)
+    - [Introduction to `aliBuild`](#introduction-to-alibuild)
     - [On lxplus or systems with CVMFS](#on-lxplus-or-systems-with-cvmfs)
     - [On systems without access to CVMFS](#on-systems-without-access-to-cvmfs)
 - [Run Instructions](#run-instructions)
+    - [Use cases covered by `run_simSND.py`:](#use-cases-covered-by-run_simsndpy)
+    - [Digitization of MC data:](#digitization-of-mc-data)
 - [Docker Instructions](#docker-instructions)
 - [Contributing Code](#contributing-code)
 
@@ -48,7 +52,7 @@ Both mailing lists are self-subscribe CERN e-groups.
 The `aliBuild` family of tools developed by ALICE is used to set up `advsndsw` and
 its dependencies.
 
-### Introduction to `aliBuild`
+## Introduction to `aliBuild`
 
 The basic commands are the same regardless of whether CVMFS is used:
 
