@@ -45,9 +45,11 @@ InitStatus DigiTaskSND::Init()
 
     // Get the SciFi detector and sipm to fibre mapping
     scifi = dynamic_cast<Scifi*> (gROOT->GetListOfGlobals()->FindObject("Scifi") );
-    scifi->SiPMmapping();
-    fibresSiPM = scifi->GetSiPMmap();
-    siPMFibres = scifi->GetFibresMap();
+    if (scifi) {
+        scifi->SiPMmapping();
+        fibresSiPM = scifi->GetSiPMmap();
+        siPMFibres = scifi->GetFibresMap();
+    }
 
     // Get event header
     // Try classic FairRoot approach first
@@ -68,28 +70,32 @@ InitStatus DigiTaskSND::Init()
     // copy branches from input file:
     fMCTrackArray = static_cast<TClonesArray*>(ioman->GetObject("MCTrack"));
     ioman->Register("MCTrack", "ShipMCTrack", fMCTrackArray, kTRUE);
-    ioman->Register("vetoPoint", "vetoPoints", fvetoPointArray, kTRUE);
-    ioman->Register("EmulsionDetPoint", "EmulsionDetPoints", fvetoPointArray, kTRUE);
-    ioman->Register("ScifiPoint", "ScifiPoints", fScifiPointArray, kTRUE);
-    ioman->Register("MuFilterPoint", "MuFilterPoints", fMuFilterPointArray, kTRUE);
+    if (fvetoPointArray) ioman->Register("vetoPoint", "vetoPoints", fvetoPointArray, kTRUE);
+    if (fEmulsionPointArray) ioman->Register("EmulsionDetPoint", "EmulsionDetPoints", fEmulsionPointArray, kTRUE);
+    if (fScifiPointArray) ioman->Register("ScifiPoint", "ScifiPoints", fScifiPointArray, kTRUE);
+    if (fMuFilterPointArray) ioman->Register("MuFilterPoint", "MuFilterPoints", fMuFilterPointArray, kTRUE);
  
     // Event header
     fEventHeader = new SNDLHCEventHeader();
     ioman->Register("EventHeader.", "sndEventHeader", fEventHeader, kTRUE);
 
-    // Create and register output array - for SciFi and MuFilter
-    fScifiDigiHitArray = new TClonesArray("sndScifiHit");
-    ioman->Register("Digi_ScifiHits", "DigiScifiHit_det", fScifiDigiHitArray, kTRUE);
-    // Branche containing links to MC truth info
-    fScifiHit2MCPointsArray = new TClonesArray("Hit2MCPoints");
-    ioman->Register("Digi_ScifiHits2MCPoints", "DigiScifiHits2MCPoints_det", fScifiHit2MCPointsArray, kTRUE);
-    fScifiHit2MCPointsArray->BypassStreamer(kTRUE);   
-    fMuFilterDigiHitArray = new TClonesArray("MuFilterHit");
-    ioman->Register("Digi_MuFilterHits", "DigiMuFilterHit_det", fMuFilterDigiHitArray, kTRUE);
-    // Branche containing links to MC truth info
-    fMuFilterHit2MCPointsArray = new TClonesArray("Hit2MCPoints");
-    ioman->Register("Digi_MuFilterHits2MCPoints", "DigiMuFilterHits2MCPoints_det", fMuFilterHit2MCPointsArray, kTRUE);
-    fMuFilterHit2MCPointsArray->BypassStreamer(kTRUE);
+    if (fScifiPointArray) {
+        // Create and register output array - for SciFi and MuFilter
+        fScifiDigiHitArray = new TClonesArray("sndScifiHit");
+        ioman->Register("Digi_ScifiHits", "DigiScifiHit_det", fScifiDigiHitArray, kTRUE);
+        // Branch containing links to MC truth info
+        fScifiHit2MCPointsArray = new TClonesArray("Hit2MCPoints");
+        ioman->Register("Digi_ScifiHits2MCPoints", "DigiScifiHits2MCPoints_det", fScifiHit2MCPointsArray, kTRUE);
+        fScifiHit2MCPointsArray->BypassStreamer(kTRUE);
+    }
+    if (fMuFilterPointArray) {
+        fMuFilterDigiHitArray = new TClonesArray("MuFilterHit");
+        ioman->Register("Digi_MuFilterHits", "DigiMuFilterHit_det", fMuFilterDigiHitArray, kTRUE);
+        // Branch containing links to MC truth info
+        fMuFilterHit2MCPointsArray = new TClonesArray("Hit2MCPoints");
+        ioman->Register("Digi_MuFilterHits2MCPoints", "DigiMuFilterHits2MCPoints_det", fMuFilterHit2MCPointsArray, kTRUE);
+        fMuFilterHit2MCPointsArray->BypassStreamer(kTRUE);
+    }
     
     return kSUCCESS;
 }
@@ -97,10 +103,14 @@ InitStatus DigiTaskSND::Init()
 void DigiTaskSND::Exec(Option_t* /*opt*/)
 {
 
-    fScifiDigiHitArray->Delete();
-    fScifiHit2MCPointsArray->Delete();
-    fMuFilterDigiHitArray->Delete();
-    fMuFilterHit2MCPointsArray->Delete();
+    if (fScifiDigiHitArray) {
+        fScifiDigiHitArray->Clear("C");
+        fScifiHit2MCPointsArray->Clear("C");
+    }
+    if (fMuFilterDigiHitArray) {
+        fMuFilterDigiHitArray->Clear("C");
+        fMuFilterHit2MCPointsArray->Clear("C");
+    }
 
     // Set event header
     fEventHeader->SetRunId(fMCEventHeader->GetRunID());
