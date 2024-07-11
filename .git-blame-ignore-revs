@@ -1,0 +1,11 @@
+# .git-blame-ignore-revs
+# Pre-commit fixes for AdvSND C++
+d57b0cb0cd591340839a6963549169a3e82740e1
+# Pre-commit fixes for AdvSND_geom_config.py
+dc777980daec3e66217c1021a4893726c0510c05
+# Fix missing include of ROOT types
+db396d44c2ef6f81983ae41384228cc97c01c611
+# Clang format
+48f830fe8144e7adfb4ff745bca971a987e6db21
+# AdvTarget: Clang format
+b0b290b83817e959f54ad55325d0397034acd74c
