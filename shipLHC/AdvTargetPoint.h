@@ -2,6 +2,7 @@
 #define SHIPLHC_ADVTARGETPOINT_H_ 1
 
 #include "FairMCPoint.h"
+#include "SiSensor.h"
 #include "TObject.h"
 #include "TVector3.h"
 
