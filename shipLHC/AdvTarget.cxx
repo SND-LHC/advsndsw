@@ -254,12 +254,12 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
         Int_t detID = 0;
         gMC->CurrentVolID(detID);
         fVolumeID = detID;
-        // Double_t xmean = (EntryPoint.X() + Pos.X()) / 2.;
-        // Double_t ymean = (fPos.Y() + Pos.Y()) / 2.;
-        // Double_t zmean = (fPos.Z() + Pos.Z()) / 2.;
+        Double_t xmean = (EntryPoint.X() + ExitPoint.X()) / 2.;
+        Double_t ymean = (EntryPoint.Y() + ExitPoint.Y()) / 2.;
+        Double_t zmean = (EntryPoint.Z() + ExitPoint.Z()) / 2.;
         AddHit(fTrackID,
                fVolumeID,
-               TVector3(EntryPoint.X(), EntryPoint.Y(), EntryPoint.Z()),
+               TVector3(xmean, ymean, zmean),
                TVector3(fMom.Px(), fMom.Py(), fMom.Pz()),
                fTime,
                fLength,
