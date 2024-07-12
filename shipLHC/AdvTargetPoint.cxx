@@ -15,16 +15,18 @@ AdvTargetPoint::AdvTargetPoint()
 
 AdvTargetPoint::AdvTargetPoint(Int_t trackID,
                                Int_t detID,
-                               TVector3 entrypoint,
+                               TVector3 pos,
                                TVector3 mom,
                                Double_t tof,
                                Double_t length,
                                Double_t eLoss,
-                               Int_t pdgcode, 
+                               Int_t pdgcode,
                                TVector3 exitpoint)
-    : FairMCPoint(trackID, detID, entrypoint, mom, tof, length, eLoss)
+    : FairMCPoint(trackID, detID, pos, mom, tof, length, eLoss)
     , fPdgCode(pdgcode)
-    , ExitPoint(exitpoint)
+    , exit_x(exitpoint.X())
+    , exit_y(exitpoint.Y())
+    , exit_z(exitpoint.Z())
 {
 }
 

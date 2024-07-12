@@ -16,16 +16,18 @@ class AdvTargetPoint : public FairMCPoint
     /** Constructor with arguments
      *@param trackID  Index of MCTrack
      *@param detID    Detector ID
-     *@param entrypoint      Ccoordinates at entrance to active volume [cm]
+     *@param pos      Coordinates halfway between entrance and exit of active volume [cm]
      *@param mom      Momentum of track at entrance [GeV]
      *@param tof      Time since event start [ns]
      *@param length   Track length since creation [cm]
      *@param eLoss    Energy deposit [GeV]
+     *@param pdgCode  PDG code of MC particle
+     *@param exitpoint      Coordinates at exit from active volume [cm]
      **/
 
     AdvTargetPoint(Int_t trackID,
                    Int_t detID,
-                   TVector3 entrypoint,
+                   TVector3 pos,
                    TVector3 mom,
                    Double_t tof,
                    Double_t length,
@@ -51,7 +53,9 @@ class AdvTargetPoint : public FairMCPoint
 
   private:
     Int_t fPdgCode;
-    TVector3 ExitPoint;
+    Double_t exit_x;
+    Double_t exit_y;
+    Double_t exit_z;
 
     /** Copy constructor **/
     AdvTargetPoint(const AdvTargetPoint& point);
