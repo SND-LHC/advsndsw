@@ -51,7 +51,7 @@ AdvTarget::AdvTarget()
     : FairDetector("AdvTarget", "", kTRUE)
     , fTrackID(-1)
     , fVolumeID(-1)
-    , EntryPoint()
+    , fEntryPoint()
     , fMom()
     , fTime(-1.)
     , fLength(-1.)
@@ -64,7 +64,7 @@ AdvTarget::AdvTarget(const char *name, Bool_t Active, const char *Title)
     : FairDetector(name, true, kAdvSNDTarget)
     , fTrackID(-1)
     , fVolumeID(-1)
-    , EntryPoint()
+    , fEntryPoint()
     , fMom()
     , fTime(-1.)
     , fLength(-1.)
@@ -231,7 +231,7 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
         fELoss = 0.;
         fTime = gMC->TrackTime() * 1.0e09;
         fLength = gMC->TrackLength();
-        gMC->TrackPosition(EntryPoint);
+        gMC->TrackPosition(fEntryPoint);
         gMC->TrackMomentum(fMom);
     }
     // Sum energy loss for all steps in the active volume
@@ -247,16 +247,16 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
 
         TParticle *p = gMC->GetStack()->GetCurrentTrack();
         Int_t pdgCode = p->GetPdgCode();
-        TLorentzVector ExitPoint;
-        gMC->TrackPosition(ExitPoint);
+        TLorentzVector exit_point;
+        gMC->TrackPosition(exit_point);
         TLorentzVector Mom;
         gMC->TrackMomentum(Mom);
         Int_t detID = 0;
         gMC->CurrentVolID(detID);
         fVolumeID = detID;
-        Double_t xmean = (EntryPoint.X() + ExitPoint.X()) / 2.;
-        Double_t ymean = (EntryPoint.Y() + ExitPoint.Y()) / 2.;
-        Double_t zmean = (EntryPoint.Z() + ExitPoint.Z()) / 2.;
+        Double_t xmean = (fEntryPoint.X() + exit_point.X()) / 2.;
+        Double_t ymean = (fEntryPoint.Y() + exit_point.Y()) / 2.;
+        Double_t zmean = (fEntryPoint.Z() + exit_point.Z()) / 2.;
         AddHit(fTrackID,
                fVolumeID,
                TVector3(xmean, ymean, zmean),
@@ -265,7 +265,7 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
                fLength,
                fELoss,
                pdgCode,
-               TVector3(ExitPoint.X(), ExitPoint.Y(), ExitPoint.Z()));
+               TVector3(exit_point.X(), exit_point.Y(), exit_point.Z()));
 
         // Increment number of det points in TParticle
         ShipStack *stack = (ShipStack *)gMC->GetStack();

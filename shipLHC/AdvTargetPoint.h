@@ -32,8 +32,8 @@ class AdvTargetPoint : public FairMCPoint
                    Double_t tof,
                    Double_t length,
                    Double_t eLoss,
-                   Int_t pdgCode,
-                   TVector3 exitpoint);
+                   Int_t pdg_code,
+                   TVector3 exit_point);
 
     /** Destructor **/
     virtual ~AdvTargetPoint();
@@ -49,15 +49,15 @@ class AdvTargetPoint : public FairMCPoint
     int constexpr GetSensor() { return (fDetectorID >> 10) % 2; }
     int constexpr GetStrip() { return (fDetectorID) % 1024; }
     int constexpr GetModule() { return advsnd::target::columns * GetRow() + 1 + GetColumn(); }
-    bool constexpr isVertical() { return GetPlane() == 0; };
-    TVector3 GetEntryPoint() const { return TVector3(2 * fX - exit_x, 2 * fY - exit_y, 2 * fZ - exit_z); }
-    TVector3 GetExitPoint() const { return TVector3(exit_x, exit_y, exit_z); }
+    bool constexpr IsVertical() { return GetPlane() == 0; };
+    TVector3 GetEntryPoint() const { return TVector3(2 * fX - fExitX, 2 * fY - fExitY, 2 * fZ - fExitZ); }
+    TVector3 GetExitPoint() const { return TVector3(fExitX, fExitY, fExitZ); }
 
   private:
     Int_t fPdgCode;
-    Double_t exit_x;
-    Double_t exit_y;
-    Double_t exit_z;
+    Double_t fExitX;
+    Double_t fExitY;
+    Double_t fExitZ;
 
     /** Copy constructor **/
     AdvTargetPoint(const AdvTargetPoint& point);

@@ -20,13 +20,13 @@ AdvTargetPoint::AdvTargetPoint(Int_t trackID,
                                Double_t tof,
                                Double_t length,
                                Double_t eLoss,
-                               Int_t pdgcode,
-                               TVector3 exitpoint)
+                               Int_t pdg_code,
+                               TVector3 exit_point)
     : FairMCPoint(trackID, detID, pos, mom, tof, length, eLoss)
-    , fPdgCode(pdgcode)
-    , exit_x(exitpoint.X())
-    , exit_y(exitpoint.Y())
-    , exit_z(exitpoint.Z())
+    , fPdgCode(pdg_code)
+    , fExitX(exit_point.X())
+    , fExitY(exit_point.Y())
+    , fExitZ(exit_point.Z())
 {
 }
 
@@ -46,5 +46,3 @@ void AdvTargetPoint::Print(const Option_t* opt) const
          << endl;
 }
 // -------------------------------------------------------------------------
-
-ClassImp(AdvTargetPoint)

@@ -50,8 +50,7 @@ class AdvTarget : public FairDetector
     /**      has to be called after each event to reset the containers      */
     virtual void Reset();
 
-    /**      This method is an example of how to add your own point
-     *       of type muonPoint to the clones array
+    /**      This method adds an AdvTargetPoint to the clones array
      */
     AdvTargetPoint *AddHit(Int_t trackID,
                            Int_t detID,
@@ -61,7 +60,7 @@ class AdvTarget : public FairDetector
                            Double_t length,
                            Double_t eLoss,
                            Int_t pdgCode,
-                           TVector3 exitpoint);
+                           TVector3 exit_point);
 
     /** The following methods can be implemented if you need to make
      *  any optional action in your detector during the transport.
@@ -84,13 +83,13 @@ class AdvTarget : public FairDetector
     /** Track information to be stored until the track leaves the
         active volume.
     */
-    Int_t fTrackID;              //!  track index
-    Int_t fVolumeID;             //!  volume id
-    TLorentzVector EntryPoint;   //!  position at entrance
-    TLorentzVector fMom;         //!  momentum at entrance
-    Double32_t fTime;            //!  time
-    Double32_t fLength;          //!  length
-    Double32_t fELoss;           //!  energy loss
+    Int_t fTrackID;               //!  track index
+    Int_t fVolumeID;              //!  volume id
+    TLorentzVector fEntryPoint;   //!  position at entrance
+    TLorentzVector fMom;          //!  momentum at entrance
+    Double32_t fTime;             //!  time
+    Double32_t fLength;           //!  length
+    Double32_t fELoss;            //!  energy loss
     /** container for data points */
     TClonesArray *fAdvTargetPointCollection;
     /** configuration parameters **/
