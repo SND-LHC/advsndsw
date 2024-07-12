@@ -55,12 +55,13 @@ class AdvTarget : public FairDetector
      */
     AdvTargetPoint *AddHit(Int_t trackID,
                            Int_t detID,
-                           TVector3 pos,
+                           TVector3 entrypoint,
                            TVector3 mom,
                            Double_t time,
                            Double_t length,
                            Double_t eLoss,
-                           Int_t pdgCode);
+                           Int_t pdgCode, 
+                           TVector3 exitpoint);
 
     /** The following methods can be implemented if you need to make
      *  any optional action in your detector during the transport.
@@ -85,7 +86,7 @@ class AdvTarget : public FairDetector
     */
     Int_t fTrackID;        //!  track index
     Int_t fVolumeID;       //!  volume id
-    TLorentzVector fPos;   //!  position at entrance
+    TLorentzVector EntryPoint;   //!  position at entrance
     TLorentzVector fMom;   //!  momentum at entrance
     Double32_t fTime;      //!  time
     Double32_t fLength;    //!  length
