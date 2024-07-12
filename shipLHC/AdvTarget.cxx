@@ -51,7 +51,7 @@ AdvTarget::AdvTarget()
     : FairDetector("AdvTarget", "", kTRUE)
     , fTrackID(-1)
     , fVolumeID(-1)
-    , fPos()
+    , EntryPoint()
     , fMom()
     , fTime(-1.)
     , fLength(-1.)
@@ -64,7 +64,7 @@ AdvTarget::AdvTarget(const char *name, Bool_t Active, const char *Title)
     : FairDetector(name, true, kAdvSNDTarget)
     , fTrackID(-1)
     , fVolumeID(-1)
-    , fPos()
+    , EntryPoint()
     , fMom()
     , fTime(-1.)
     , fLength(-1.)
@@ -231,7 +231,7 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
         fELoss = 0.;
         fTime = gMC->TrackTime() * 1.0e09;
         fLength = gMC->TrackLength();
-        gMC->TrackPosition(fPos);
+        gMC->TrackPosition(EntryPoint);
         gMC->TrackMomentum(fMom);
     }
     // Sum energy loss for all steps in the active volume
@@ -247,24 +247,25 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
 
         TParticle *p = gMC->GetStack()->GetCurrentTrack();
         Int_t pdgCode = p->GetPdgCode();
-        TLorentzVector Pos;
-        gMC->TrackPosition(Pos);
+        TLorentzVector ExitPoint;
+        gMC->TrackPosition(ExitPoint);
         TLorentzVector Mom;
         gMC->TrackMomentum(Mom);
         Int_t detID = 0;
         gMC->CurrentVolID(detID);
         fVolumeID = detID;
-        Double_t xmean = (fPos.X() + Pos.X()) / 2.;
-        Double_t ymean = (fPos.Y() + Pos.Y()) / 2.;
-        Double_t zmean = (fPos.Z() + Pos.Z()) / 2.;
+        // Double_t xmean = (EntryPoint.X() + Pos.X()) / 2.;
+        // Double_t ymean = (fPos.Y() + Pos.Y()) / 2.;
+        // Double_t zmean = (fPos.Z() + Pos.Z()) / 2.;
         AddHit(fTrackID,
                fVolumeID,
-               TVector3(xmean, ymean, zmean),
+               TVector3(EntryPoint.X(), EntryPoint.Y(), EntryPoint.Z()),
                TVector3(fMom.Px(), fMom.Py(), fMom.Pz()),
                fTime,
                fLength,
                fELoss,
-               pdgCode);
+               pdgCode,
+               TVector3(ExitPoint.X(), ExitPoint.Y(), ExitPoint.Z()));
 
         // Increment number of det points in TParticle
         ShipStack *stack = (ShipStack *)gMC->GetStack();
@@ -298,14 +299,15 @@ void AdvTarget::Reset() { fAdvTargetPointCollection->Clear(); }
 
 AdvTargetPoint *AdvTarget::AddHit(Int_t trackID,
                                   Int_t detID,
-                                  TVector3 pos,
+                                  TVector3 entrypoint,
                                   TVector3 mom,
                                   Double_t time,
                                   Double_t length,
                                   Double_t eLoss,
-                                  Int_t pdgCode)
+                                  Int_t pdgCode,
+                                  TVector3 exitpoint)
 {
     TClonesArray &clref = *fAdvTargetPointCollection;
     Int_t size = clref.GetEntriesFast();
-    return new (clref[size]) AdvTargetPoint(trackID, detID, pos, mom, time, length, eLoss, pdgCode);
+    return new (clref[size]) AdvTargetPoint(trackID, detID, entrypoint, mom, time, length, eLoss, pdgCode, exitpoint);
 }
