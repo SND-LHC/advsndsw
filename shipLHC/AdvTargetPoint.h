@@ -50,6 +50,8 @@ class AdvTargetPoint : public FairMCPoint
     int constexpr GetStrip() { return (fDetectorID) % 1024; }
     int constexpr GetModule() { return advsnd::target::columns * GetRow() + 1 + GetColumn(); }
     bool constexpr isVertical() { return GetPlane() == 0; };
+    TVector3 GetEntryPoint() const { return TVector3(2 * fX - exit_x, 2 * fY - exit_y, 2 * fZ - exit_z); }
+    TVector3 GetExitPoint() const { return TVector3(exit_x, exit_y, exit_z); }
 
   private:
     Int_t fPdgCode;
