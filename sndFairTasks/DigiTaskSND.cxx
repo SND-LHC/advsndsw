@@ -192,11 +192,9 @@ void DigiTaskSND::digitiseAdvTarget()
     for (auto* ptr : *AdvTargetPoints) {
         auto* point = dynamic_cast<AdvTargetPoint*>(ptr);
         auto detID = point->GetDetectorID();
-        int station = int(floor(detID / 1e7));
-        int plane = int(floor(detID / 1e6)) % 2;
-        int row = int(floor(detID / 1e5)) % 10;
-        int column = int(floor(detID / 1e4)) % 10;
-        int sensor_module = 2 * row + 1 + column;
+        int station = point->GetStation();
+        int plane = point->GetPlane();
+        int sensor_module = point->GetModule();
         int sensor = detID;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
@@ -265,11 +263,9 @@ void DigiTaskSND::digitiseAdvMuFilter()
     for (auto* ptr : *AdvMuFilterPoints) {
         auto* point = dynamic_cast<AdvMuFilterPoint*>(ptr);
         auto detID = point->GetDetectorID();
-        int station = int(floor(detID / 1e7));
-        int plane = int(floor(detID / 1e6)) % 2;
-        int row = int(floor(detID / 1e5)) % 10;
-        int column = int(floor(detID / 1e4)) % 10;
-        int sensor_module = 3 * row + 1 + column;
+        int station = point->GetStation();
+        int plane = point->GetPlane();
+        int sensor_module = point->GetModule();
         int sensor = detID;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
