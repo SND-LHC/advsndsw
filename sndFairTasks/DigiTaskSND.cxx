@@ -225,9 +225,6 @@ void DigiTaskSND::digitiseAdvTarget()
         int strip = floor((local_pos[1] / (advsnd::sensor_width / advsnd::strips)) + (advsnd::strips / 2));
         strip = max(0, strip);
         strip = min(advsnd::strips - 1, strip);
-        if (strip >= advsnd::strips || strip < 0) {
-            LOG(FATAL) << "Invalid strip.";
-        }
 
         auto detector_id = detID - 999 + strip;
         // Collect points by virtual strip
@@ -298,9 +295,6 @@ void DigiTaskSND::digitiseAdvMuFilter()
         int strip = floor((local_pos[1] / (advsnd::sensor_width / advsnd::strips)) + (advsnd::strips / 2));
         strip = max(0, strip);
         strip = min(advsnd::strips - 1, strip);
-        if (strip >= advsnd::strips || strip < 0) {
-            LOG(FATAL) << "Invalid strip.";
-        }
 
         auto detector_id = detID - 999 + strip;
         // Collect points by virtual strip
