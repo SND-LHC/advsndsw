@@ -3,8 +3,11 @@
 
 #include "SiSensor.h"
 #include "SndlhcHit.h"
+#include "TArrayD.h"
 
 class AdvTargetPoint;
+
+class TArrayD;
 
 class AdvTargetHit : public SndlhcHit
 {
@@ -36,6 +39,7 @@ class AdvTargetHit : public SndlhcHit
   private:
     bool flag;          ///< flag
     bool fMasked[16];   /// masked signal
+    std::vector<float> EFluct;
 
     ClassDef(AdvTargetHit, 1);
 };

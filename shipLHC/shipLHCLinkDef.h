@@ -27,4 +27,5 @@
 #pragma link C++ class AdvMuFilter + ;
 #pragma link C++ class AdvMuFilterPoint + ;
 #pragma link C++ class ChargeDivision + ;
+#pragma link C++ class SiG4UniversalFluctuation + ;
 #endif
