@@ -1,5 +1,6 @@
 #include "AdvTargetHit.h"
 
+#include "AdvTargetPoint.h"
 #include "ChargeDivision.h"
 #include "FairLogger.h"
 #include "TGeoBBox.h"
@@ -39,7 +40,12 @@ AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
     std::string inputfile =
         "advsndsw/shipLHC/data/APVShapeDeco_default.txt";   // change this full path in configuration file
     chargedivision.ReadPulseShape(inputfile);
+    EFluct = chargedivision.Divide(detID, V);
     flag = true;
+    // for (Int_t j = 0; j < 4; j++) {
+    //     EFluct[j] = 0.1+j;
+    // }
+
     for (Int_t i = 0; i < 16; i++) {
         fMasked[i] = kFALSE;
     }
