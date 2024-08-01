@@ -6,6 +6,7 @@ set(INCLUDE_DIRECTORIES
 ${BASE_INCLUDE_DIRECTORIES}
 ${CMAKE_SOURCE_DIR}/shipdata
 ${CMAKE_SOURCE_DIR}/shipLHC
+${CMAKE_SOURCE_DIR}/shipLHC/external/clhep/include
 ${CMAKE_SOURCE_DIR}/veto
 ${CMAKE_SOURCE_DIR}/genfit/core/include
 ${CMAKE_SOURCE_DIR}/genfit/trackReps/include
@@ -50,6 +51,7 @@ AdvMuFilterPoint.cxx
 SNDLHCEventHeader.cxx
 sndRecoTrack.cxx
 ChargeDivision.cxx
+SiG4UniversalFluctuation.cxx
 )
 
 Set(HEADERS )
