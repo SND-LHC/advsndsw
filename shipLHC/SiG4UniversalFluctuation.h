@@ -28,13 +28,14 @@ class SiG4UniversalFluctuation
 {
   public:
     SiG4UniversalFluctuation();
-    void InitialiseMe(Int_t pdgcode);
-    Double_t SampleFluctuations(Double_t averageLoss, Double_t mom, Double_t length);
+    ~SiG4UniversalFluctuation();
+    // void InitialiseMe(Int_t pdgcode);
+    Double_t SampleFluctuations(Double_t ParticleMass, Double_t ParticleCharge, Double_t averageLoss, Double_t mom, Double_t length);
     Double_t SampleGlandz();
 
   protected:
-    Double_t particleMass;
-    Double_t q;
+    // Double_t particleMass;
+    // Double_t q;
     Double_t m_Inv_particleMass;
     Double_t m_massrate;
     Double_t chargeSquare;
@@ -59,8 +60,7 @@ class SiG4UniversalFluctuation
     Int_t sizearray = 30;
     Double_t* rndmarray = nullptr;
 
-    virtual Double_t SampleGlandz(const Double_t tcut);
-
+    // virtual Double_t SampleGlandz();
     inline void AddExcitation(const Double_t ax, const Double_t ex, Double_t& eav, Double_t& eloss, Double_t& esig2);
 
     inline void SampleGauss(const Double_t eav, const Double_t esig2, Double_t& eloss);
