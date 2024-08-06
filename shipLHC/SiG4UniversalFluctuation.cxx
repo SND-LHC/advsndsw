@@ -56,22 +56,28 @@
 using namespace std;
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-SiG4UniversalFluctuation::SiG4UniversalFluctuation() {}
+SiG4UniversalFluctuation::SiG4UniversalFluctuation() {rndmarray = new Double_t[sizearray];}
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-void SiG4UniversalFluctuation::InitialiseMe(Int_t pdgcode)
-{
-    particleMass = TDatabasePDG::Instance()->GetParticle(pdgcode)->Mass();
-    q = TDatabasePDG::Instance()->GetParticle(pdgcode)->Charge();
+// void SiG4UniversalFluctuation::InitialiseMe(Int_t pdgcode)
+// {
+//     particleMass = TDatabasePDG::Instance()->GetParticle(pdgcode)->Mass();
+//     q = TDatabasePDG::Instance()->GetParticle(pdgcode)->Charge();
 
-    m_Inv_particleMass = 1.0 / particleMass;
-    m_massrate = ShipUnit::electron_mass_c2 * m_Inv_particleMass;
-    chargeSquare = q * q;
+//     m_Inv_particleMass = 1.0 / particleMass;
+//     m_massrate = ShipUnit::electron_mass_c2 * m_Inv_particleMass;
+//     chargeSquare = q * q;
+// }
+
+SiG4UniversalFluctuation::~SiG4UniversalFluctuation()
+{
+  delete [] rndmarray;
 }
 
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-Double_t SiG4UniversalFluctuation::SampleFluctuations(Double_t averageLoss, Double_t mom, Double_t length)
+Double_t SiG4UniversalFluctuation::SampleFluctuations(Double_t particleMass, Double_t q, Double_t averageLoss, Double_t mom, Double_t length)
 {
     // Calculate actual loss from the mean loss.
     // The model used to get the fluctuations is essentially the same
@@ -80,12 +86,19 @@ Double_t SiG4UniversalFluctuation::SampleFluctuations(Double_t averageLoss, Doub
 
     // shortcut for very small loss or from a step nearly equal to the range
     // (out of validity of the model)
-    //
+
+
+    m_Inv_particleMass = 1.0 / particleMass;
+    m_massrate = ShipUnit::electron_mass_c2 * m_Inv_particleMass;
+    chargeSquare = q * q;
+    
+
     Double_t energyLoss = 0;
 
     minLoss = 10. * ShipUnit::eV;
     if (averageLoss < minLoss) {
         energyLoss = averageLoss;
+        return energyLoss;
     }
 
     meanLoss = averageLoss;
@@ -111,6 +124,8 @@ Double_t SiG4UniversalFluctuation::SampleFluctuations(Double_t averageLoss, Doub
             std::sqrt((tmax / beta2 - 0.5 * tcut) * ShipUnit::twopi_mc2_rcl2 * length * chargeSquare * electronDensity);
 
         const Double_t sn = meanLoss / siga;
+        // cout << "siga : " << siga << " --- SN : " << sn << " --- length " << length << " --- tcut " << tcut << " --- tmax " << tmax << " --- beta2 " << beta2 << " --- m_massrate " << m_massrate << " --- gam2 " << gam2 << " --- mass " << particleMass << endl; 
+
 
         // thick target case
         if (sn >= 2.0) {
@@ -123,19 +138,21 @@ Double_t SiG4UniversalFluctuation::SampleFluctuations(Double_t averageLoss, Doub
                 energyLoss = gRandom->Gaus(meanLoss, siga);
                 // 	// Loop checking, 03-Aug-2015, Vladimir Ivanchenko
             } while (0.0 > loss || twomeanLoss < loss);
-        } else {
+        } 
+        else {
             const Double_t neff = sn * sn;
             // check the gamma function
-            TF1* f1 = new TF1("f1", "TMath::Gamma(neff,1)");
+            // TF1* f1 = new TF1("f1", "TMath::Gamma(neff,1)");
+            TF1 *f1 = new TF1("Gamma(x)","ROOT::Math::tgamma(x)",neff,1.0);
             double r = f1->GetRandom();
             gRandom->SetSeed(0);
             TRandom* rngSaved = static_cast<TRandom*>(gRandom->Clone());
             energyLoss = meanLoss * r / neff;
-            // cout << energyLoss << endl;
+ 
         }
         return energyLoss;
+        
     }
-
     if (tcut <= e0) {
         return meanLoss;
     }
@@ -144,11 +161,11 @@ Double_t SiG4UniversalFluctuation::SampleFluctuations(Double_t averageLoss, Doub
     meanLoss /= scaling;
 
     w2 = (tcut > ipotFluct) ? TMath::Log(2. * ShipUnit::electron_mass_c2 * beta2 * gam2) - beta2 : 0.0;
-
-    return SampleGlandz(tcut) * scaling;
+    //return 0.33;
+    return SampleGlandz() * scaling;
 }
 
-Double_t SiG4UniversalFluctuation::SampleGlandz(Double_t tcut)
+Double_t SiG4UniversalFluctuation::SampleGlandz()
 {
     Double_t a1(0.0), a3(0.0);
     Double_t loss = 0.0;
@@ -166,7 +183,7 @@ Double_t SiG4UniversalFluctuation::SampleGlandz(Double_t tcut)
             e1 *= fw;
         }
     }
-
+    
     const Double_t w1 = tcut / e0;
     a3 = rate * meanLoss * (tcut - e0) / (e0 * tcut * TMath::Log(w1));
     if (a1 <= 0.) {
@@ -177,14 +194,21 @@ Double_t SiG4UniversalFluctuation::SampleGlandz(Double_t tcut)
     Double_t emean = 0.;
     Double_t sig2e = 0.;
 
+    // AddExcitation(a1, e1, emean, loss, sig2e);
+
+    
+
+
     // excitation of type 1
     if (a1 > 0.0) {
         AddExcitation(a1, e1, emean, loss, sig2e);
     }
 
+   
     if (sig2e > 0.0) {
         SampleGauss(emean, sig2e, loss);
     }
+     
 
     // ionisation
     if (a3 > 0.) {
@@ -201,6 +225,7 @@ Double_t SiG4UniversalFluctuation::SampleGlandz(Double_t tcut)
             p3 = a3 - namean;
         }
 
+
         const Double_t w3 = alfa * e0;
         if (tcut > w3) {
             gRandom->SetSeed(0);
@@ -213,16 +238,20 @@ Double_t SiG4UniversalFluctuation::SampleGlandz(Double_t tcut)
                     delete[] rndmarray;
                     rndmarray = new Double_t[nnb];
                 }
-                // rndmEngineF->flatArray(nnb, rndmarray);
+                // cout << " nnb : " << nnb << endl ;
+                // // rndmEngineF->flatArray(nnb, rndmarray);
+                // for (int m = 0; m < sizeof(rndmarray); ++m){cout << " entry " << m << " " << rndmarray[m] << endl; }
+                // cout << " nnb : " << nnb << " --- w : " << w << " --- size : " << sizeof(rndmarray) << " --- w3 : " << w3 << endl; 
+
                 for (Int_t k = 0; k < nnb; ++k) {
                     loss += w3 / (1. - w * rndmarray[k]);
                 }
             }
         }
+
         if (sig2e > 0.0) {
             SampleGauss(emean, sig2e, loss);
         }
     }
-    // cout << "### loss=" << loss << endl;
     return loss;
 }
