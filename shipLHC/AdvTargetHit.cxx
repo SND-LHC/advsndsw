@@ -1,10 +1,16 @@
 #include "AdvTargetHit.h"
 
+#include "ChargeDivision.h"
 #include "FairLogger.h"
 #include "TGeoBBox.h"
 #include "TGeoManager.h"
 #include "TGeoNavigator.h"
 #include "TROOT.h"
+
+#include <iostream>
+#include <string>
+using std::cout;
+using std::endl;
 
 // -----   Default constructor   -------------------------------------------
 AdvTargetHit::AdvTargetHit()
@@ -29,6 +35,10 @@ AdvTargetHit::AdvTargetHit(Int_t detID)
 AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
     : SndlhcHit(detID)
 {
+    ChargeDivision chargedivision{};
+    std::string inputfile =
+        "advsndsw/shipLHC/data/APVShapeDeco_default.txt";   // change this full path in configuration file
+    chargedivision.ReadPulseShape(inputfile);
     flag = true;
     for (Int_t i = 0; i < 16; i++) {
         fMasked[i] = kFALSE;
