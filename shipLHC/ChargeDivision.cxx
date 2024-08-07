@@ -10,6 +10,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <algorithm>
 using namespace std;
 
 ChargeDivision::ChargeDivision() {}
@@ -38,11 +39,18 @@ void ChargeDivision::ReadPulseShape(std::string PulseFileName)
                     std::string value;
                     while (getline(ss, value, ' ')) {
                         PulseValues.push_back(
-                            stod(value));   // implement check to see if the max value of the pulse shape is 1
+                            stod(value)); 
                     }
                 }
             }
         }
+        const auto max_value = max_element(PulseValues.begin(), PulseValues.end());
+        if (abs(*max_value - 1)>numeric_limits<double>::epsilon())
+        {
+           throw invalid_argument( "Maximum value of pulse shape not 1." );
+        }
+
+        unsigned int pulset0Idx = std::distance(PulseValues.begin(), max_value);
     }
     // get the vector of beginning to max of the pulse
     // check if pulse correction is needed
@@ -113,8 +121,6 @@ std::vector<Double_t> ChargeDivision::Divide(Int_t detID, const std::vector<AdvT
                 fluctEnergy[m] = fluctEnergy[m] * rescale_ratio;
             }
         }
-
-        // Close the file
     }
     return fluctEnergy;
 }
