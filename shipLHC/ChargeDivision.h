@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include <vector>
-// void sumOfTwoNumbers(int a, int b) { std::cout << a << "yo " << b << std::endl; }
+
 class ChargeDivision
 {
   public:
@@ -17,9 +17,9 @@ class ChargeDivision
     std::vector<double> PulseValues;
 
   protected:
-    Double_t ParticleCharge; 
+    Double_t ParticleCharge;
     Double_t ParticleMass;
-    
+
     float StripPitch = 80e-6;
     float StripWidth = 0.25 * StripPitch;
     Int_t ChargeDivisionsperStrip = 10;

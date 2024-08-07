@@ -7,13 +7,12 @@
 #include "TGeoManager.h"
 #include "TGeoNavigator.h"
 #include "TROOT.h"
-
 #include "TRandom.h"
-#include <iomanip>
 
+#include <TDatabasePDG.h>
+#include <iomanip>
 #include <iostream>
 #include <string>
-#include <TDatabasePDG.h>
 using std::cout;
 using std::endl;
 
@@ -41,23 +40,22 @@ AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
     : SndlhcHit(detID)
 {
     ChargeDivision chargedivision{};
-        std::string inputfile =
+    std::string inputfile =
         "advsndsw/shipLHC/data/APVShapeDeco_default.txt";   // change this full path in configuration file
     chargedivision.ReadPulseShape(inputfile);
     EFluct = chargedivision.Divide(detID, V);
 
-    if (EFluct.empty())
-    {
+    if (EFluct.empty()) {
         EFluctSize = 0;
     } else {
         EFluctSize = size(EFluct);
     }
 
-    //std::string inputfile =
-    //    "advsndsw/shipLHC/data/APVShapeDeco_default.txt";   // change this full path in configuration file
-    //chargedivision.ReadPulseShape(inputfile);
-    
-    flag = true; 
+    // std::string inputfile =
+    //     "advsndsw/shipLHC/data/APVShapeDeco_default.txt";   // change this full path in configuration file
+    // chargedivision.ReadPulseShape(inputfile);
+
+    flag = true;
 
     for (Int_t i = 0; i < 16; i++) {
         fMasked[i] = kFALSE;
