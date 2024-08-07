@@ -29,13 +29,14 @@ class SiG4UniversalFluctuation
   public:
     SiG4UniversalFluctuation();
     ~SiG4UniversalFluctuation();
-    // void InitialiseMe(Int_t pdgcode);
-    Double_t SampleFluctuations(Double_t ParticleMass, Double_t ParticleCharge, Double_t averageLoss, Double_t mom, Double_t length);
+    Double_t SampleFluctuations(Double_t ParticleMass,
+                                Double_t ParticleCharge,
+                                Double_t averageLoss,
+                                Double_t mom,
+                                Double_t length);
     Double_t SampleGlandz();
 
   protected:
-    // Double_t particleMass;
-    // Double_t q;
     Double_t m_Inv_particleMass;
     Double_t m_massrate;
     Double_t chargeSquare;
