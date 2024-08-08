@@ -5,6 +5,7 @@
 #include "SndlhcHit.h"
 #include "TArrayD.h"
 #include "EnergyFluctUnit.h"
+#include "TVector3.h"
 
 class AdvTargetPoint;
 
@@ -40,9 +41,10 @@ class AdvTargetHit : public SndlhcHit
   private:
     bool flag;          ///< flag
     bool fMasked[16];   /// masked signal
-    std::vector<Double_t> EFluct;
-    int EFluctSize;
-    float segLen; 
+    // std::vector<Double_t> EFluct;
+    // int EFluctSize;
+    // float segLen; 
+    // std::vector<TVector3> DriftPos;
     ClassDef(AdvTargetHit, 1);
 };
 
