@@ -52,6 +52,7 @@ SNDLHCEventHeader.cxx
 sndRecoTrack.cxx
 ChargeDivision.cxx
 SiG4UniversalFluctuation.cxx
+AdvDigitisation.cxx
 )
 
 Set(HEADERS )

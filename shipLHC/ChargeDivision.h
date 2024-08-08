@@ -3,6 +3,7 @@
 
 #include "AdvTargetPoint.h"
 #include "EnergyFluctUnit.h"
+#include "TVector3.h"
 
 #include <iostream>
 #include <vector>
@@ -13,6 +14,7 @@ class ChargeDivision
     ChargeDivision();
     void ReadPulseShape(std::string PulseFileName);
     EnergyFluctUnit Divide(Int_t detID, const std::vector<AdvTargetPoint*>& V);
+    TVector3 DriftDir(TVector3 EntryPoint, TVector3 ExitPoint, float length);
 
   private:
     std::vector<double> PulseValues;
@@ -21,8 +23,8 @@ class ChargeDivision
     Double_t ParticleCharge;
     Double_t ParticleMass;
 
-    float StripPitch = 80e-6;
-    float StripWidth = 0.25 * StripPitch;
+    float StripPitch = 120e-4;
+    //float StripWidth = 0.25 * StripPitch;
     Int_t ChargeDivisionsperStrip = 10;
     Int_t NumberofSegments = 0;
     float NumberofStrips = 0;
