@@ -1,4 +1,5 @@
 #include "AdvTargetHit.h"
+#include "EnergyFluctUnit.h"
 
 #include "AdvTargetPoint.h"
 #include "ChargeDivision.h"
@@ -43,8 +44,9 @@ AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
     std::string inputfile =
         "advsndsw/shipLHC/data/APVShapeDeco_default.txt";   // change this full path in configuration file
     chargedivision.ReadPulseShape(inputfile);
-    EFluct = chargedivision.Divide(detID, V);
-
+    EnergyFluctUnit EnergyLossVector = chargedivision.Divide(detID, V);
+    EFluct = EnergyLossVector.getEfluct();
+    segLen = EnergyLossVector.getsegLen();
     if (EFluct.empty()) {
         EFluctSize = 0;
     } else {

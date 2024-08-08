@@ -2,6 +2,7 @@
 
 #include "AdvTargetPoint.h"
 #include "SiG4UniversalFluctuation.h"
+#include "EnergyFluctUnit.h"
 
 #include <TDatabasePDG.h>
 #include <cmath>
@@ -56,7 +57,7 @@ void ChargeDivision::ReadPulseShape(std::string PulseFileName)
     // check if pulse correction is needed
 }
 
-std::vector<Double_t> ChargeDivision::Divide(Int_t detID, const std::vector<AdvTargetPoint*>& V)
+EnergyFluctUnit ChargeDivision::Divide(Int_t detID, const std::vector<AdvTargetPoint*>& V)
 {
 
     std::vector<Double_t> fluctEnergy;
@@ -81,15 +82,16 @@ std::vector<Double_t> ChargeDivision::Divide(Int_t detID, const std::vector<AdvT
 
         double a = V[i]->GetEntryPoint().X() - V[i]->GetExitPoint().X();
         double b = V[i]->GetEntryPoint().Z() - V[i]->GetExitPoint().Z();
-        double c = sqrt(pow(a, 2) + pow(b, 2));
+        double c = V[i]->GetEntryPoint().Y() - V[i]->GetExitPoint().Y();
+        double len = sqrt(pow(a, 2) + pow(b, 2) +  pow(c, 2));
 
-        if (fabs(ParticleMass) < 1e-6 || ParticleCharge == 0) {
+        if (fabs(ParticleMass) < 1e-6 || ParticleCharge == 0 || len < 1e-3) {
             NumberofSegments = 1;
         } else {
-            NumberofSegments = ChargeDivisionsperStrip * abs(c / b);
+            NumberofSegments = ChargeDivisionsperStrip * abs(len / b); //check if this is the best way 
         }
 
-        segLen = (c / NumberofSegments) * 10;   // check why some are seglen are too small
+        segLen = (len / NumberofSegments) * 10;   // in mm // check why some are seglen are too small
 
         SiG4UniversalFluctuation sig4fluct{};
 
@@ -122,5 +124,6 @@ std::vector<Double_t> ChargeDivision::Divide(Int_t detID, const std::vector<AdvT
             }
         }
     }
-    return fluctEnergy;
+    EnergyFluctUnit ELossVector(fluctEnergy, segLen);
+    return ELossVector;
 }
