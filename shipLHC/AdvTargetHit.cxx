@@ -2,13 +2,14 @@
 #include "EnergyFluctUnit.h"
 
 #include "AdvTargetPoint.h"
-#include "ChargeDivision.h"
+#include "AdvDigitisation.h"
 #include "FairLogger.h"
 #include "TGeoBBox.h"
 #include "TGeoManager.h"
 #include "TGeoNavigator.h"
 #include "TROOT.h"
 #include "TRandom.h"
+#include "TVector3.h"
 
 #include <TDatabasePDG.h>
 #include <iomanip>
@@ -40,18 +41,22 @@ AdvTargetHit::AdvTargetHit(Int_t detID)
 AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
     : SndlhcHit(detID)
 {
-    ChargeDivision chargedivision{};
-    std::string inputfile =
-        "advsndsw/shipLHC/data/APVShapeDeco_default.txt";   // change this full path in configuration file
-    chargedivision.ReadPulseShape(inputfile);
-    EnergyFluctUnit EnergyLossVector = chargedivision.Divide(detID, V);
-    EFluct = EnergyLossVector.getEfluct();
-    segLen = EnergyLossVector.getsegLen();
-    if (EFluct.empty()) {
-        EFluctSize = 0;
-    } else {
-        EFluctSize = size(EFluct);
-    }
+    AdvDigitisation advdigi{};
+    advdigi.digirun(detID, V);
+    // ChargeDivision chargedivision{};
+    // std::string inputfile =
+    //     "advsndsw/shipLHC/data/APVShapeDeco_default.txt";   // change this full path in configuration file
+    // chargedivision.ReadPulseShape(inputfile);
+    // EnergyFluctUnit EnergyLossVector = chargedivision.Divide(detID, V);
+    // //EFluct = EnergyLossVector.getEfluct();
+    // segLen = EnergyLossVector.getsegLen();
+    // DriftPos = EnergyLossVector.getDriftPos();
+
+    // if (EFluct.empty()) {
+    //     EFluctSize = 0;
+    // } else {
+    //     EFluctSize = size(EFluct);
+    // }
 
     // std::string inputfile =
     //     "advsndsw/shipLHC/data/APVShapeDeco_default.txt";   // change this full path in configuration file
