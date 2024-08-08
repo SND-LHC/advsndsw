@@ -4,6 +4,7 @@
 #include "SiSensor.h"
 #include "SndlhcHit.h"
 #include "TArrayD.h"
+#include "EnergyFluctUnit.h"
 
 class AdvTargetPoint;
 
@@ -41,7 +42,7 @@ class AdvTargetHit : public SndlhcHit
     bool fMasked[16];   /// masked signal
     std::vector<Double_t> EFluct;
     int EFluctSize;
-
+    float segLen; 
     ClassDef(AdvTargetHit, 1);
 };
 
