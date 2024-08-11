@@ -274,6 +274,52 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
     return kTRUE;
 }
 
+void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
+{
+    // Calculate the detector id as per the geofile, where strips are disrespected
+    int strip = (detID) % 1024;                // actual strip ID
+    int geofile_detID = detID - strip + 999;   // the det id number needed to read the geometry
+
+    int station = geofile_detID >> 17;
+    int plane = (geofile_detID >> 16) % 2;
+    int row = (geofile_detID >> 13) % 8;
+    int column = (geofile_detID >> 11) % 4;
+    int sensor = geofile_detID;
+    int sensor_module = advsnd::target::columns * row + 1 + column;
+
+    double global_pos[3];
+    double local_pos[3] = {0, 0, 0};
+    TString path = TString::Format("/cave_1/"
+                                   "Detector_0/"
+                                   "volAdvTarget_1/"
+                                   "TrackingStation_%d/"
+                                   "TrackerPlane_%d/"
+                                   "SensorModule_%d/"
+                                   "SensorVolumeTarget_%d",
+                                   station,
+                                   plane,
+                                   sensor_module,
+                                   sensor);
+    TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
+    if (nav->CheckPath(path)) {
+        nav->cd(path);
+    } else {
+        LOG(FATAL) << path;
+    }
+    // Get the corresponding node, which is a sensor made of strips
+    TGeoNode *W = nav->GetCurrentNode();
+    TGeoBBox *S = dynamic_cast<TGeoBBox *>(W->GetVolume()->GetShape());
+    // knowing the strip, get the postion along the sensor
+    local_pos[0] = (strip - (advsnd::strips / 2)) * (advsnd::sensor_width / advsnd::strips);
+    Double_t top_pos[3] = {local_pos[0], S->GetDY(), 0};
+    Double_t bot_pos[3] = {local_pos[0], -(S->GetDY()), 0};
+    Double_t global_top_pos[3], global_bot_pos[3];
+    nav->LocalToMaster(top_pos, global_top_pos);
+    nav->LocalToMaster(bot_pos, global_bot_pos);
+    A.SetXYZ(global_top_pos[0], global_top_pos[1], global_top_pos[2]);
+    B.SetXYZ(global_bot_pos[0], global_bot_pos[1], global_bot_pos[2]);
+}
+
 void AdvTarget::EndOfEvent() { fAdvTargetPointCollection->Clear(); }
 
 void AdvTarget::Register()
