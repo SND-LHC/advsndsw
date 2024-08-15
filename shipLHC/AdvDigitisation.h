@@ -19,5 +19,6 @@ class AdvDigitisation
     int EFluctSize;
     float segLen;
     std::vector<TVector3> DriftPos;
+    std::vector<TVector3> glob_DriftPos;
 };
 #endif
