@@ -32,6 +32,8 @@ class AdvMuFilter : public FairDetector
     void SetConfPar(TString name, Float_t value) { conf_floats[name] = value; }
     void SetConfPar(TString name, Int_t value) { conf_ints[name] = value; }
     void SetConfPar(TString name, TString value) { conf_strings[name] = value; }
+    /** End-point positions of strips, centre line, associated with readout channel **/
+    void GetPosition(Int_t detID, TVector3 &A, TVector3 &B);
     Float_t GetConfParF(TString name) { return conf_floats[name]; }
     Int_t GetConfParI(TString name) { return conf_ints[name]; }
     TString GetConfParS(TString name) { return conf_strings[name]; }
