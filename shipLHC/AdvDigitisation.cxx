@@ -2,7 +2,9 @@
 
 #include "AdvTargetPoint.h"
 #include "ChargeDivision.h"
+#include "ChargeDrift.h"
 #include "EnergyFluctUnit.h"
+#include "SurfaceSignal.h"
 #include "TFile.h"
 #include "TTree.h"
 #include "TVector3.h"
@@ -22,6 +24,11 @@ void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &
     ChargeDivision chargedivision{};
     EnergyFluctUnit EnergyLossVector = chargedivision.Divide(detID, V);
 
+    ChargeDrift chargedrift{};
+    //chargedrift.Drift(EnergyLossVector);
+    SurfaceSignal DiffusionSignal = chargedrift.Drift(EnergyLossVector);
+
+
     EFluct = EnergyLossVector.getEfluct();
     segLen = EnergyLossVector.getsegLen();
     DriftPos = EnergyLossVector.getDriftPos();
@@ -32,6 +39,10 @@ void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &
     std::vector<float> temp_seglen;
     std::vector<std::vector<TVector3>> temp_driftpos;
     std::vector<std::vector<TVector3>> temp_globdriftpos;
+
+    std::vector<std::vector<TVector3>> temp_diffpos;
+    std::vector<std::vector<Double_t>> temp_diffarea;
+       
 
     Double_t xx = DriftPos[0].X();
 
@@ -47,11 +58,15 @@ void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &
     temp_driftpos.push_back(DriftPos);
     temp_globdriftpos.push_back(glob_DriftPos);
 
+    temp_diffarea.push_back(DiffusionSignal.getDiffusionArea());
+    temp_diffpos.push_back(DiffusionSignal.getSurfacePos());
+
     ofstream myfile;
     myfile.open("digi.txt", std::ios_base::app);
     for (int i = 0; i < temp_efluctsize.size(); i++) {
         for (int j = 0; j < temp_efluct[i].size(); j++) {
-            myfile << temp_efluctsize[i] << "\t" << temp_seglen[i] << "\t" << temp_efluct[i][j] << "\t" << V[i]->GetEnergyLoss() << "\t" << V[i]->PdgCode() << "\t" << sqrt(pow(V[i]->GetPx(), 2) + pow(V[i]->GetPy(), 2) + pow(V[i]->GetPz(), 2))<< "\t" << temp_driftpos[i][j].X() << "\t" << temp_driftpos[i][j].Y() << "\t" << temp_driftpos[i][j].Z() <<  "\t" << temp_globdriftpos[i][j].X() <<  "\t" << temp_globdriftpos[i][j].Y() <<  "\t" << temp_globdriftpos[i][j].Z() <<  endl;
+            
+            myfile << temp_efluctsize[i] << "\t" << temp_seglen[i] << "\t" << temp_efluct[i][j] << "\t" << V[i]->GetEnergyLoss() << "\t" << V[i]->PdgCode() << "\t" << sqrt(pow(V[i]->GetPx(), 2) + pow(V[i]->GetPy(), 2) + pow(V[i]->GetPz(), 2))<< "\t" << temp_driftpos[i][j].X() << "\t" << temp_driftpos[i][j].Y() << "\t" << temp_driftpos[i][j].Z() <<  "\t" << temp_globdriftpos[i][j].X() <<  "\t" << temp_globdriftpos[i][j].Y() <<  "\t" << temp_globdriftpos[i][j].Z() <<  "\t" << temp_diffpos[i][j].X() << "\t" << temp_diffpos[i][j].Y() << "\t" << temp_diffpos[i][j].Z() << "\t" << temp_diffarea[i][j] << endl;
         }
     }
     myfile.close();
