@@ -49,6 +49,7 @@
 #include "TF1.h"
 #include "TMath.h"
 #include "TRandom.h"
+#include <fstream>
 
 #include <SiG4UniversalFluctuation.h>
 #include <TDatabasePDG.h>
@@ -143,9 +144,11 @@ Double_t SiG4UniversalFluctuation::SampleFluctuations(Double_t particleMass,
             energyLoss = meanLoss * r / neff;
         }
         return energyLoss;
+
     }
     if (tcut <= e0) {
-        return meanLoss;
+
+        return meanLoss; 
     }
 
     const Double_t scaling = std::min(1. + 0.5 * ShipUnit::keV / tcut, 1.50);
@@ -230,8 +233,9 @@ Double_t SiG4UniversalFluctuation::SampleGlandz()
         }
 
         if (sig2e > 0.0) {
-            SampleGauss(emean, sig2e, loss);
+        SampleGauss(emean, sig2e, loss);
         }
     }
-    return loss;
+
+    return loss; 
 }

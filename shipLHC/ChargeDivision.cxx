@@ -229,11 +229,6 @@ EnergyFluctUnit ChargeDivision::Divide(Int_t detID, const std::vector<AdvTargetP
         EnergyFluctUnit ELossVector(fluctEnergy, segLen / 10, driftPos, glob_driftPos);
 
         //         //to check if local position is working 
-
-        // ofstream myfile("local_coordinate.txt", std::ios_base::app);
-        // for (int n = 0; n < size(fluctEnergy); n++) {
-        //     myfile << driftPos[n].X() << "\t" << driftPos[n].Y() << "\t" << driftPos[n].Z() << "\t" << 
-        // } 
         
         
         return ELossVector;
