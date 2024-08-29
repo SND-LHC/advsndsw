@@ -103,8 +103,6 @@ inline void SiG4UniversalFluctuation::SampleGauss(const Double_t eav, const Doub
         do {
             x = rndm->Gaus(eav, sig);
         } while (x < 0.0 || x > 2 * eav);
-         ofstream myfile("test_temp.txt", std::ios_base::app);
-        myfile << eloss << "\t" <<  "x" << "\t" << esig2 << "\t" << eav << "\t" << x  << endl; 
         // Loop checking, 23-Feb-2016, Vladimir Ivanchenko
     }
     eloss += x; 
