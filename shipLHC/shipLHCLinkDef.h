@@ -28,6 +28,7 @@
 #pragma link C++ class AdvMuFilterPoint + ;
 #pragma link C++ class ChargeDivision + ;
 #pragma link C++ class ChargeDrift +;
+#pragma link C++ class InducedCharge +;
 #pragma link C++ class SiG4UniversalFluctuation + ;
 #pragma link C++ class EnergyFluctUnit + ;
 #pragma link C++ class SurfaceSignal + ;
