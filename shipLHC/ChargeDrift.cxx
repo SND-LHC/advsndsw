@@ -15,8 +15,11 @@ SurfaceSignal ChargeDrift::Drift(EnergyFluctUnit EnergyLossVector)
 {   
     vector<Double_t> diffusionarea; 
     vector<TVector3> diffusionpos; 
+    vector<Double_t> amplitude; 
 
     DriftPos = EnergyLossVector.getDriftPos();
+    EnergyFluct = EnergyLossVector.getEfluct();
+
     for (int i = 0; i < DriftPos.size(); i ++)
     {
         DriftDistance = 0 - DriftPos[i].Z();
@@ -35,16 +38,19 @@ SurfaceSignal ChargeDrift::Drift(EnergyFluctUnit EnergyLossVector)
         DiffusionConstant = (1.38E-23 / 1.6E-19) * charge_mobility * temperature; 
        
         DiffusionArea = sqrt(2* DiffusionConstant * DriftTime); 
+        
+        Amplitude = EnergyFluct[i]> 0. ? floor(EnergyFluct[i]*1e9 / perGeV) : 0. ;
 
         diffusionarea.push_back(DiffusionArea); 
         diffusionpos.push_back(DriftPositiononSurface);
+        amplitude.push_back(Amplitude);
         
         // cout << DiffusionArea << endl; 
         // cout << DriftPositiononSurface.X() << endl; 
         
     }
 
-    SurfaceSignal DiffusionSignal(diffusionarea, diffusionpos);
+    SurfaceSignal DiffusionSignal(diffusionarea, diffusionpos, amplitude);
     
     return DiffusionSignal; 
     

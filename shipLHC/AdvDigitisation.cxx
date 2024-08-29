@@ -3,6 +3,7 @@
 #include "AdvTargetPoint.h"
 #include "ChargeDivision.h"
 #include "ChargeDrift.h"
+#include "InducedCharge.h"
 #include "EnergyFluctUnit.h"
 #include "SurfaceSignal.h"
 #include "TFile.h"
@@ -21,12 +22,20 @@ AdvDigitisation::AdvDigitisation() {}
 void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &V)
 {
 
+    std::vector<Int_t> temp_detID ; //-->need to change this
+    for(int i =0; i < V.size(); i++)
+    {
+        temp_detID.push_back(V[i]->GetDetectorID());
+    }
     ChargeDivision chargedivision{};
     EnergyFluctUnit EnergyLossVector = chargedivision.Divide(detID, V);
 
     ChargeDrift chargedrift{};
     //chargedrift.Drift(EnergyLossVector);
     SurfaceSignal DiffusionSignal = chargedrift.Drift(EnergyLossVector);
+
+    InducedCharge inducedcharge{};
+    inducedcharge.IntegrateCharge(temp_detID, DiffusionSignal);
 
 
     EFluct = EnergyLossVector.getEfluct();
@@ -70,95 +79,4 @@ void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &
         }
     }
     myfile.close();
-
-
-
-    // if (gSystem->AccessPathName("digi.root")) {
-    //     std::cout << "test does not exist" << std::endl;
-    //     TFile *file = TFile::Open("digi.root", "NEW");
-    //     TTree *tree = new TTree("digi", "digi");
-
-    //     int efluctsize = 0;
-    //     Double_t efluct = 0;
-    //     float seglen = 0;
-    //     Double_t dpX = 0;
-    //     Double_t dpY = 0;
-    //     Double_t dpZ = 0;
-    //     Double_t eloss = 0;
-    //     int num = 0;
-    //     Int_t pdg = 0;
-    //     Double_t mom = 0;
-
-    //     tree->Branch("num", &num, "num/I");
-    //     tree->Branch("efluctsize", &efluctsize, "efluctsize/I");
-    //     tree->Branch("efluct", &efluct, "efluct/D");
-    //     tree->Branch("seglen", &seglen, "seglen/F");
-    //     tree->Branch("eloss", &eloss, "eloss/D");
-    //     tree->Branch("pdgcode", &pdg, "pdgcode/I");
-    //     tree->Branch("mom", &mom, "mom/D");
-    //     tree->Branch("dpX", &dpX, "dpX/D");
-    //     tree->Branch("dpY", &dpX, "dpY/D");
-    //     tree->Branch("dpZ", &dpZ, "dpZ/D");
-
-    //     for (int i = 0; i < temp_efluctsize.size(); i++) {
-    //         for (int j = 0; j < temp_efluct[i].size(); j++) {
-    //             num = i;
-    //             efluctsize = temp_efluctsize[i];
-    //             seglen = temp_seglen[i];
-    //             efluct = temp_efluct[i][j];
-    //             eloss = V[i]->GetEnergyLoss();
-    //             pdg = V[i]->PdgCode();
-    //             mom = sqrt(pow(V[i]->GetPx(), 2) + pow(V[i]->GetPy(), 2) + pow(V[i]->GetPz(), 2));
-    //             dpX = temp_driftpos[i][j].X();
-    //             dpY = temp_driftpos[i][j].Y();
-    //             dpZ = temp_driftpos[i][j].Z();
-    //             tree->Fill();
-    //         }
-    //     }
-    //     // tree->Fill();
-    //     tree->Write();
-    //     file->Close();
-
-    // } else {
-    //     std::cout << "test exists" << std::endl;
-    //     TFile fcurrent("digi.root", "UPDATE");
-    //     TTree *input_tree = (TTree *)fcurrent.Get("digi");
-
-    //     int efluctsize;
-    //     Double_t efluct;
-    //     float seglen;
-    //     Double_t dpX, dpY, dpZ, eloss, mom;
-    //     int num;
-    //     Int_t pdg;
-
-    //     input_tree->SetBranchAddress("num", &num);
-    //     input_tree->SetBranchAddress("efluctsize", &efluctsize);
-    //     input_tree->SetBranchAddress("efluct", &efluct);
-    //     input_tree->SetBranchAddress("seglen", &seglen);
-    //     input_tree->SetBranchAddress("eloss", &eloss);
-    //     input_tree->SetBranchAddress("pdgcode", &pdg);
-    //     input_tree->SetBranchAddress("mom", &mom);
-    //     input_tree->SetBranchAddress("dpX", &dpX);
-    //     input_tree->SetBranchAddress("dpY", &dpY);
-    //     input_tree->SetBranchAddress("dpZ", &dpZ);
-
-    //     for (int i = 0; i < temp_efluctsize.size(); i++) {
-    //         for (int j = 0; j < temp_efluct[i].size(); j++) {
-    //             num = i;
-    //             efluctsize = temp_efluctsize[i];
-    //             seglen = temp_seglen[i];
-    //             efluct = temp_efluct[i][j];
-    //             eloss = V[i]->GetEnergyLoss();
-    //             pdg = V[i]->PdgCode();
-    //             mom = sqrt(pow(V[i]->GetPx(), 2) + pow(V[i]->GetPy(), 2) + pow(V[i]->GetPz(), 2));
-    //             dpX = temp_driftpos[i][j].X();
-    //             dpY = temp_driftpos[i][j].Y();
-    //             dpZ = temp_driftpos[i][j].Z();
-
-    //             input_tree->Fill();
-    //         }
-    //     }
-    //     input_tree->Write("", TObject::kOverwrite);
-    //     fcurrent.Close();
-    // }
 }
