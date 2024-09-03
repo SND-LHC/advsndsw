@@ -15,7 +15,7 @@ class ChargeDrift
     Double_t GetDriftTime(Double_t distance);
 
   protected:
-    Double_t module_thickness = 0.025; //check value
+    Double_t module_thickness = 0.05; //check value
     int depletion_voltage = 170; 
     int applied_voltage = 300; 
     int charge_mobility = 480;

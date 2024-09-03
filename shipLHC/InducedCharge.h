@@ -13,7 +13,7 @@ class InducedCharge
   public:
     InducedCharge();
     AdvSignal IntegrateCharge(SurfaceSignal DiffusionSignal);
-    std::vector<Int_t> GetStrips(std::vector<TVector3> point, std::vector<Double_t> area);
+    std::vector<Int_t> GetStrips(TVector3 point, Double_t area);
   
   protected:
     Int_t NSigma = 3; 

@@ -22,18 +22,18 @@ SurfaceSignal ChargeDrift::Drift(EnergyFluctUnit EnergyLossVector)
 
     for (int i = 0; i < DriftPos.size(); i ++)
     {
-        DriftDistance = 0 - DriftPos[i].Z();
+        DriftDistance = 0.025 - DriftPos[i].Z();
         DriftDistanceFraction = DriftDistance / module_thickness; 
         DriftDistanceFraction = DriftDistanceFraction > 0. ? DriftDistanceFraction : 0. ; 
         DriftDistanceFraction = DriftDistanceFraction < 1. ? DriftDistanceFraction : 1. ;
 
-        DriftTime = GetDriftTime(DriftDistance);
+        //DriftTime = GetDriftTime(DriftDistance);
         
-        // Double_t tn = (module_thickness * module_thickness) / (2 * depletion_voltage * charge_mobility);
-        // DriftTime = -tn * log(1 - 2 * depletion_voltage * DriftDistanceFraction / (depletion_voltage + applied_voltage)) + chargedistributionRMS;
+        Double_t tn = (module_thickness * module_thickness) / (2 * depletion_voltage * charge_mobility);
+        DriftTime = -tn * log(1 - 2 * depletion_voltage * DriftDistanceFraction / (depletion_voltage + applied_voltage)) + chargedistributionRMS;
 
         
-        DriftPositiononSurface.SetXYZ(DriftPos[i].X(), DriftPos[i].Y(), DriftPos[i].Z()+DriftDistance);
+        DriftPositiononSurface.SetXYZ(DriftPos[i].X(), DriftPos[i].Y(), DriftPos[i].Z()+DriftDistance); 
 
         DiffusionConstant = (1.38E-23 / 1.6E-19) * charge_mobility * temperature; 
        
@@ -74,7 +74,7 @@ Double_t ChargeDrift::GetDriftTime(Double_t distance)
 
     Double_t ni = 1.45e16; // in cm 
 
-    Double_t V_a = 100;
+    Double_t V_a = 300;
     Double_t V_0 = (((k*T)/e)*log((Na*Nd)/(pow(ni, 2)))) + V_a; 
 
     Double_t W = sqrt((2*epsilon*(Nd + Na)*V_0)/(e*Nd*Na));
@@ -88,7 +88,7 @@ Double_t ChargeDrift::GetDriftTime(Double_t distance)
     Double_t y[num] ;
     Double_t E_strip[num] ;
 
-    Double_t x_start = 250e-6 ;
+    Double_t x_start = 500e-6 ;
     Double_t x_end = 0; 
 
 
