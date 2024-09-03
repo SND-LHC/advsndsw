@@ -167,11 +167,6 @@ EnergyFluctUnit ChargeDivision::Divide(Int_t detID, const std::vector<AdvTargetP
         } else {
             cout << "Couldn't find particle " << pdgcode << endl;
         };
-        // cout << "MODULE : " << V[i] -> GetModule() << endl ;
-        // cout << "PLANE : " << V[i] -> GetPlane() << endl; 
-        // cout << "STATION : " << V[i] -> GetStation() << endl; 
-        // cout << "DETECTOR : " << V[i] -> GetDetectorID() << endl; 
-        
 
         // GET THE LOCAL POSITION
         TVector3 local_entry_point = getLocal(V[i] -> GetDetectorID(), V[i]->GetEntryPoint());
@@ -207,13 +202,13 @@ EnergyFluctUnit ChargeDivision::Divide(Int_t detID, const std::vector<AdvTargetP
                 // sig4fluct.SampleFluctuations(ParticleMass, ParticleCharge, Emean, momentum, segLen);
                 fluctEnergy.push_back(
                     sig4fluct.SampleFluctuations(ParticleMass, ParticleCharge, Emean, momentum, segLen));
-                driftPos.push_back(DriftDir(local_entry_point, local_exit_point, (segLen * j) / 20));
-                glob_driftPos.push_back(DriftDir(V[i]->GetEntryPoint(), V[i]->GetExitPoint(), (segLen * j) / 20));
+                driftPos.push_back(DriftDir(local_entry_point, local_exit_point, (segLen * j) / 10));
+                glob_driftPos.push_back(DriftDir(V[i]->GetEntryPoint(), V[i]->GetExitPoint(), (segLen * j) / 10));
             }
         } else {
             fluctEnergy.push_back(V[i]->GetEnergyLoss() * 1000);
-            driftPos.push_back(DriftDir(local_entry_point, local_exit_point, (segLen) / 20));
-            glob_driftPos.push_back(DriftDir(V[i]->GetEntryPoint(), V[i]->GetExitPoint(), (segLen) / 20));
+            driftPos.push_back(DriftDir(local_entry_point, local_exit_point, (segLen) / 10));
+            glob_driftPos.push_back(DriftDir(V[i]->GetEntryPoint(), V[i]->GetExitPoint(), (segLen) / 10));
         }
 
         double sume = 0;
