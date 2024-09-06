@@ -48,12 +48,6 @@ class AdvDigitisation
     AdvDigitisation();
     void digirun(Int_t detID, const std::vector<AdvTargetPoint*>& V);
     TVector3 getLocal(Int_t detID, TVector3 global_pos);
-
-  protected:
-    std::vector<Double_t> EFluct;
-    int EFluctSize;
-    float segLen;
-    std::vector<TVector3> DriftPos;
-    std::vector<TVector3> glob_DriftPos;
+    
 };
 #endif

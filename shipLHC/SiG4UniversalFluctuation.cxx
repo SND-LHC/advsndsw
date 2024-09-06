@@ -147,7 +147,6 @@ Double_t SiG4UniversalFluctuation::SampleFluctuations(Double_t particleMass,
 
     }
     if (tcut <= e0) {
-
         return meanLoss; 
     }
 
@@ -212,6 +211,7 @@ Double_t SiG4UniversalFluctuation::SampleGlandz()
             emean += namean * e0 * alfa1;
             sig2e += e0 * e0 * namean * (alfa - alfa1 * alfa1);
             p3 = a3 - namean;
+            //if(p3!=p3) {cout <<  "namean : " << namean << endl ; cout << "p3 : " << p3 << endl; cout << "a3 :" << a3 << endl;  }
         }
 
         const Double_t w3 = alfa * e0;
@@ -220,22 +220,26 @@ Double_t SiG4UniversalFluctuation::SampleGlandz()
             TRandom* rndm = static_cast<TRandom*>(gRandom->Clone());
             const Double_t w = (tcut - w3) / tcut;
             const Int_t nnb = (Int_t)gRandom->Poisson(p3);
+            //if (nnb != nnb) {cout << "p3nnb : " << p3 << endl; }
             if (nnb > 0) {
                 if (nnb > sizearray) {
                     sizearray = nnb;
                     delete[] rndmarray;
-                    rndmarray = new Double_t[nnb];
+                    rndmarray = new Double_t[nnb];                   
                 }
                 for (Int_t k = 0; k < nnb; ++k) {
                     loss += w3 / (1. - w * rndmarray[k]);
+                    //cout << "k: " << k << " ---- " << rndmarray[0] << endl; 
+                    if(rndmarray[k]!=rndmarray[k]){cout << "k: " << k << " ---- " << rndmarray[1] << " ---- " << w << endl; }
                 }
             }
+        
         }
 
         if (sig2e > 0.0) {
         SampleGauss(emean, sig2e, loss);
+        // if(loss != loss) {cout << sig2e << endl; }
         }
     }
-
     return loss; 
 }
