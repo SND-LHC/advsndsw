@@ -37,14 +37,13 @@ void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &
     InducedCharge inducedcharge{};
     AdvSignal ResponseSignal = inducedcharge.IntegrateCharge(DiffusionSignal);
 
+    std::vector<Int_t> Strips = ResponseSignal.getStrips(); 
+    std::vector<Double_t> IntegratedSignal = ResponseSignal.getIntegratedSignal();
 
     EFluct = EnergyLossVector.getEfluct();
     segLen = EnergyLossVector.getsegLen();
     DriftPos = EnergyLossVector.getDriftPos();
     glob_DriftPos = EnergyLossVector.getglobDriftPos();
-
-    std::vector<Int_t> Strips = ResponseSignal.getStrips(); 
-    std::vector<Double_t> IntegratedSignal = ResponseSignal.getIntegratedSignal();
 
     std::vector<int> temp_efluctsize;
     std::vector<std::vector<Double_t>> temp_efluct;
