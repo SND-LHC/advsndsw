@@ -11,49 +11,53 @@ using namespace std;
 
 ChargeDrift::ChargeDrift() {}
 
-SurfaceSignal ChargeDrift::Drift(EnergyFluctUnit EnergyLossVector)
+std::vector<SurfaceSignal> ChargeDrift::Drift(std::vector<EnergyFluctUnit> EnergyLossVector)
 {   
-    vector<Double_t> diffusionarea; 
-    vector<TVector3> diffusionpos; 
-    vector<Double_t> amplitude; 
-
-    DriftPos = EnergyLossVector.getDriftPos();
-    EnergyFluct = EnergyLossVector.getEfluct();
-
-    for (int i = 0; i < DriftPos.size(); i ++)
+    std::vector<SurfaceSignal> DiffusionSignal; 
+    for (int k = 0; k < EnergyLossVector.size(); k++)
     {
-        DriftDistance = 0.025 - DriftPos[i].Z();
-        DriftDistanceFraction = DriftDistance / module_thickness; 
-        DriftDistanceFraction = DriftDistanceFraction > 0. ? DriftDistanceFraction : 0. ; 
-        DriftDistanceFraction = DriftDistanceFraction < 1. ? DriftDistanceFraction : 1. ;
+        vector<Double_t> diffusionarea; 
+        vector<TVector3> diffusionpos; 
+        vector<Double_t> amplitude; 
 
-        //DriftTime = GetDriftTime(DriftDistance);
-        
-        Double_t tn = (module_thickness * module_thickness) / (2 * depletion_voltage * charge_mobility);
-        DriftTime = -tn * log(1 - 2 * depletion_voltage * DriftDistanceFraction / (depletion_voltage + applied_voltage)) + chargedistributionRMS;
+        DriftPos = EnergyLossVector[k].getDriftPos();
+        EnergyFluct = EnergyLossVector[k].getEfluct();
 
-        
-        DriftPositiononSurface.SetXYZ(DriftPos[i].X(), DriftPos[i].Y(), DriftPos[i].Z()+DriftDistance); 
+        for (int i = 0; i < DriftPos.size(); i ++)
+        {
+            DriftDistance = 0.025 - DriftPos[i].Z();
+            DriftDistanceFraction = DriftDistance / module_thickness; 
+            DriftDistanceFraction = DriftDistanceFraction > 0. ? DriftDistanceFraction : 0. ; 
+            DriftDistanceFraction = DriftDistanceFraction < 1. ? DriftDistanceFraction : 1. ;
 
-        DiffusionConstant = (1.38E-23 / 1.6E-19) * charge_mobility * temperature; 
-       
-        DiffusionArea = sqrt(2* DiffusionConstant * DriftTime); 
-        
-        Amplitude = EnergyFluct[i]> 0. ? floor(EnergyFluct[i]*1e9 / perGeV) : 0. ;
+            //DriftTime = GetDriftTime(DriftDistance);
+            
+            Double_t tn = (module_thickness * module_thickness) / (2 * depletion_voltage * charge_mobility);
+            DriftTime = -tn * log(1 - 2 * depletion_voltage * DriftDistanceFraction / (depletion_voltage + applied_voltage)) + chargedistributionRMS;
 
-        diffusionarea.push_back(DiffusionArea); 
-        diffusionpos.push_back(DriftPositiononSurface);
-        amplitude.push_back(Amplitude);
+            
+            DriftPositiononSurface.SetXYZ(DriftPos[i].X(), DriftPos[i].Y(), DriftPos[i].Z()+DriftDistance); 
+
+            DiffusionConstant = (1.38E-23 / 1.6E-19) * charge_mobility * temperature; 
         
-        // cout << DiffusionArea << endl; 
-        // cout << DriftPositiononSurface.X() << endl; 
+            DiffusionArea = sqrt(2* DiffusionConstant * DriftTime); 
+            
+            Amplitude = EnergyFluct[i]> 0. ? floor(EnergyFluct[i]*1e9 / perGeV) : 0. ;
+
+            diffusionarea.push_back(DiffusionArea); 
+            diffusionpos.push_back(DriftPositiononSurface);
+            amplitude.push_back(Amplitude);
+            
+            // cout << DiffusionArea << endl; 
+            // cout << DriftPositiononSurface.X() << endl; 
+            
+        }
+
+        SurfaceSignal Diffused(diffusionarea, diffusionpos, amplitude);
         
+        DiffusionSignal.push_back(Diffused);
     }
-
-    SurfaceSignal DiffusionSignal(diffusionarea, diffusionpos, amplitude);
-    
-    return DiffusionSignal; 
-    
+    return DiffusionSignal;
 }
 
 Double_t ChargeDrift::GetDriftTime(Double_t distance)

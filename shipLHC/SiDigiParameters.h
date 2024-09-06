@@ -6,41 +6,31 @@
 
 namespace stripsensor {
 
-const double sensor_width = 93.7 * ShipUnit::mm;
-const double sensor_length = 91.5 * ShipUnit::mm;
-const double module_length = 23.95 * ShipUnit::cm;
-const double module_width = 12.0 * ShipUnit::cm;
-const double sensor_gap = 3.1 * ShipUnit::mm;
-const int sensors = 2;
-const int strips = 768;
+const bool peakmode = 1;
+const std::string APVpeakpulse = "advsndsw/shipLHC/data/APVShapePeak_default.txt";
+const std::string APVdecopulse = "advsndsw/shipLHC/data/APVShapeDeco_default.txt";
 
-namespace target {
-const int rows = 4;
-const int columns = 2;
-const int planes = 2;
-const double module_row_gap = 0.5 * ShipUnit::mm;
-const double module_column_gap = 13.9 * ShipUnit::mm;
-}   // namespace target
+const Double_t value_per_mip = 1; // in mA
+const Double_t amplificaton_factor = value_per_mip/(30000 * 1.6 * 10e-19); // output in mA 
+const Double_t rail = 4; // in mA 
+const Double_t baseline = 2; // in mA 
+const Double_t threshold = 2.5; // in mA
 
-namespace hcal {
-const int rows = 6;
-const int columns = 3;
-const int planes = 2;
-const int stations = 5;
-const double module_row_gap = -26.3 * ShipUnit::mm + sensor_gap;
-const double module_column_gap = 2 * (sensor_length + sensor_gap) - module_length;
-const double plane_width = (2 * columns) * sensor_length + (2 * columns - 1) * sensor_gap + 2 * 6.45 * ShipUnit::mm;
-}   // namespace hcal
+const Double_t noise_mean = 0; 
+const Double_t noise_std_dev = 0.01; 
 
-namespace muon {
-const int rows = 6;
-const int columns = 3;
-const int planes = 1;
-const double module_row_gap = -26.3 * ShipUnit::mm + sensor_gap;
-const double module_column_gap = 2 * (sensor_length + sensor_gap) - module_length;
-const double plane_width = (2 * columns) * sensor_length + (2 * columns - 1) * sensor_gap + 2 * 6.45 * ShipUnit::mm;
-}   // namespace muon
 
+
+namespace drift{
+    const bool cms_approximation = 0; // 
+}
+
+namespace frontend{
+    const Int_t muxgain_register = 2; // 5 possible values with middle sized register giving gain of 1 mA/mip with +/- 20% 
+    const Double_t reference_current = 0.128; // in mA, above which is the gain 
+    // const bool peakmode = 0; // 0 for peak mode operation of the APV, 1 for deconvolution mode 
+    const Double_t gain = 0.1; // in uA. Need to check which value to use
+}
 }   // namespace advsnd
 
 #endif   // SHIPLHC_SISENSOR_H_
