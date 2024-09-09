@@ -1,15 +1,15 @@
 #pragma once
 
+#include "TChain.h"
 #include "sndMuFilterBaseCut.h"
 
-#include "TChain.h"
-
 namespace sndAnalysis {
-  
-  class DSVetoCut : public MuFilterBaseCut {
-  public :
-    DSVetoCut(TChain * ch);
-    ~DSVetoCut(){;}
+
+class DSVetoCut : public MuFilterBaseCut
+{
+  public:
+    DSVetoCut(TChain* ch);
+    ~DSVetoCut() { ; }
     bool passCut();
-  };
-}
+};
+}   // namespace sndAnalysis

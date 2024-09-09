@@ -1,21 +1,21 @@
 #pragma once
 
-#include <vector>
-
-#include "sndBaseCut.h"
-
 #include "SNDLHCEventHeader.h"
 #include "TChain.h"
+#include "sndBaseCut.h"
+
+#include <vector>
 
 namespace sndAnalysis {
-  
-  class EventHeaderBaseCut : public baseCut {
 
-  protected :
-    static SNDLHCEventHeader * header;
-    static TChain * tree;
+class EventHeaderBaseCut : public baseCut
+{
 
-    EventHeaderBaseCut(TChain * ch);
-    ~EventHeaderBaseCut(){;}
-  };
-}
+  protected:
+    static SNDLHCEventHeader* header;
+    static TChain* tree;
+
+    EventHeaderBaseCut(TChain* ch);
+    ~EventHeaderBaseCut() { ; }
+};
+}   // namespace sndAnalysis

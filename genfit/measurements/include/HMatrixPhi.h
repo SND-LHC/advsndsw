@@ -25,7 +25,6 @@
 
 #include "AbsHMatrix.h"
 
-
 namespace genfit {
 
 /**
@@ -34,36 +33,36 @@ namespace genfit {
  * For one dimensional measurements which are rotated by phi against U of the DetPlane
  * H = (0, 0, 0, cos(phi), sin(phi))
  */
-class HMatrixPhi : public AbsHMatrix {
+class HMatrixPhi : public AbsHMatrix
+{
 
- public:
+  public:
+    HMatrixPhi(double phi = 0);
 
-  HMatrixPhi(double phi = 0);
+    const TMatrixD& getMatrix() const;
 
-  const TMatrixD& getMatrix() const;
+    TVectorD Hv(const TVectorD& v) const;
 
-  TVectorD Hv(const TVectorD& v) const;
+    TMatrixD MHt(const TMatrixDSym& M) const;
+    TMatrixD MHt(const TMatrixD& M) const;
 
-  TMatrixD MHt(const TMatrixDSym& M) const;
-  TMatrixD MHt(const TMatrixD& M) const;
+    void HMHt(TMatrixDSym& M) const;
 
-  void HMHt(TMatrixDSym& M) const;
+    virtual AbsHMatrix* clone() const { return new HMatrixPhi(*this); }
 
-  virtual AbsHMatrix* clone() const {return new HMatrixPhi(*this);}
+    virtual bool isEqual(const AbsHMatrix& other) const;
 
-  virtual bool isEqual(const AbsHMatrix& other) const;
+    ClassDef(HMatrixPhi, 1)
 
-  ClassDef(HMatrixPhi,1)
+        private
+        :
 
- private:
-
-  double phi_;
-  double cosPhi_; //!
-  double sinPhi_; //!
-
+        double phi_;
+    double cosPhi_;   //!
+    double sinPhi_;   //!
 };
 
 } /* End of namespace genfit */
 /** @} */
 
-#endif // genfit_HMatrixPhi_h
+#endif   // genfit_HMatrixPhi_h

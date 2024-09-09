@@ -17,7 +17,7 @@ sndDSVetoCut.cxx
 set(LINK_DIRECTORIES
 ${FAIRROOT_LIBRARY_DIR}
 )
- 
+
 link_directories( ${LINK_DIRECTORIES})
 
 add_library(sndCuts SHARED ${SND_CUTS_SRCS})

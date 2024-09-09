@@ -1,4 +1,4 @@
-enum ShipGlobals {
-   kShipMuonsCrossSectionFactor   =  1
- };  
-
+enum ShipGlobals
+{
+    kShipMuonsCrossSectionFactor = 1
+};

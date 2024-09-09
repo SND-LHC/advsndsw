@@ -23,10 +23,9 @@
 #ifndef genfit_PlanarMeasurement_h
 #define genfit_PlanarMeasurement_h
 
-#include "AbsMeasurement.h"
 #include "AbsHMatrix.h"
+#include "AbsMeasurement.h"
 #include "MeasurementOnPlane.h"
-
 
 namespace genfit {
 
@@ -41,46 +40,53 @@ class AbsTrackRep;
  * The main feature of this type of hit is, that the detector plane
  * is defined by the detector hardware.
  */
-class PlanarMeasurement : public AbsMeasurement {
+class PlanarMeasurement : public AbsMeasurement
+{
 
- public:
-  PlanarMeasurement(int nDim = 1);
-  PlanarMeasurement(const TVectorD& rawHitCoords, const TMatrixDSym& rawHitCov, int detId, int hitId, TrackPoint* trackPoint);
+  public:
+    PlanarMeasurement(int nDim = 1);
+    PlanarMeasurement(const TVectorD& rawHitCoords,
+                      const TMatrixDSym& rawHitCov,
+                      int detId,
+                      int hitId,
+                      TrackPoint* trackPoint);
 
-  virtual ~PlanarMeasurement() {;}
+    virtual ~PlanarMeasurement() { ; }
 
-  virtual AbsMeasurement* clone() const {return new PlanarMeasurement(*this);}
+    virtual AbsMeasurement* clone() const { return new PlanarMeasurement(*this); }
 
-  int getPlaneId() const {return planeId_;}
+    int getPlaneId() const { return planeId_; }
 
-  virtual SharedPlanePtr constructPlane(const StateOnPlane& state) const;
+    virtual SharedPlanePtr constructPlane(const StateOnPlane& state) const;
 
-  virtual std::vector<MeasurementOnPlane*> constructMeasurementsOnPlane(const StateOnPlane& state) const;
+    virtual std::vector<MeasurementOnPlane*> constructMeasurementsOnPlane(const StateOnPlane& state) const;
 
-  virtual const AbsHMatrix* constructHMatrix(const AbsTrackRep*) const;
+    virtual const AbsHMatrix* constructHMatrix(const AbsTrackRep*) const;
 
-  virtual void setPlane(const SharedPlanePtr& physicalPlane, int planeId = -1) {physicalPlane_ = physicalPlane; planeId_ = planeId;}
+    virtual void setPlane(const SharedPlanePtr& physicalPlane, int planeId = -1)
+    {
+        physicalPlane_ = physicalPlane;
+        planeId_ = planeId;
+    }
 
-  /** @brief Use if the coordinate for 1D hits measured in V direction.
-   *
-   * Per default for 1D planar hits, the coordinate is measured in U direction.
-   * With this function you can set it to be measured in V direction.
-   * This affects the outcoe of constructHMatrix().
-   */
-  void setStripV(bool v = true) {stripV_ = v;}
+    /** @brief Use if the coordinate for 1D hits measured in V direction.
+     *
+     * Per default for 1D planar hits, the coordinate is measured in U direction.
+     * With this function you can set it to be measured in V direction.
+     * This affects the outcoe of constructHMatrix().
+     */
+    void setStripV(bool v = true) { stripV_ = v; }
 
- protected:
-  SharedPlanePtr physicalPlane_;   //! This is persistent, but '!' makes ROOT shut up.
-  int planeId_; // planeId id is -1 per default
-  bool stripV_;
+  protected:
+    SharedPlanePtr physicalPlane_;   //! This is persistent, but '!' makes ROOT shut up.
+    int planeId_;                    // planeId id is -1 per default
+    bool stripV_;
 
- public:
-
-  ClassDef(PlanarMeasurement,1)
-
+  public:
+    ClassDef(PlanarMeasurement, 1)
 };
 
 } /* End of namespace genfit */
 /** @} */
 
-#endif // genfit_PlanarMeasurement_h
+#endif   // genfit_PlanarMeasurement_h

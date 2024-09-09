@@ -5,7 +5,7 @@ include(CMakePrintHelpers)
 cmake_print_variables(VMC_INCLUDE_DIRS)
 
 set(INCLUDE_DIRECTORIES
-${CMAKE_SOURCE_DIR}/field 
+${CMAKE_SOURCE_DIR}/field
 ${ROOT_INCLUDE_DIR}
 ${GEANT4_VMC_INCLUDE_DIR}
 ${GEANT4_INCLUDE_DIR}
@@ -15,7 +15,7 @@ ${FMT_INCLUDE_DIR}
 ${VMC_INCLUDE_DIRS}
 )
 
-include_directories( ${INCLUDE_DIRECTORIES} 
+include_directories( ${INCLUDE_DIRECTORIES}
 )
 include_directories(SYSTEM ${SYSTEM_INCLUDE_DIRECTORIES})
 
@@ -26,12 +26,12 @@ ${GEANT4VMC_LIBRARY_DIR}
 ${GEANT4_LIBRARY_DIR}
 
 )
- 
+
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
-ShipConstField.cxx   
-ShipFieldCreator.cxx 
+ShipConstField.cxx
+ShipFieldCreator.cxx
 ShipFieldPar.cxx
 ShipBellField.cxx
 ShipBFieldMap.cxx
@@ -43,8 +43,7 @@ ShipGoliathField.cxx
 set(LINKDEF FieldLinkDef.h)
 Set(LIBRARY_NAME ShipField)
 Set(DEPENDENCIES
-    Base 
+    Base
 )
 
 GENERATE_LIBRARY()
-

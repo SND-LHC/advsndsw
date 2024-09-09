@@ -93,7 +93,7 @@ def docaLine(a,b,c,d):
    else:
        dist = n.Dot(ac)/n.Mag()
    return dist
-   
+
 
 A=ROOT.TVector3()
 B=ROOT.TVector3()
@@ -116,7 +116,7 @@ for sTree in tchain:
 #
    first = True
    for p in sTree.ScifiPoint:
-      if p.GetDetectorID()==0: 
+      if p.GetDetectorID()==0:
             print('?')
             continue
       rc = h['S'].Fill(p.station(),w)
@@ -145,7 +145,7 @@ for sTree in tchain:
    for k in range(sTree.Digi_ScifiHits.GetEntries()):
       d = sTree.Digi_ScifiHits[k]
       rc = h['Edigi_all'].Fill(d.GetEnergy())
-      if not d.isValid(): continue 
+      if not d.isValid(): continue
       rc = h['Edigi'].Fill(d.GetEnergy())
       hitDict[d.GetDetectorID()] = k
    NmuonHit = 0
@@ -187,7 +187,7 @@ for sTree in tchain:
         if vertical: delta = locCluster[0]-locPart[0]
         else:           delta = locCluster[1]-locPart[1]
         rc = h['docaCl'].Fill(delta/u.um)
-        if isMuon:     
+        if isMuon:
                rc = h['docaCl_muon'].Fill(delta/u.um)
                if debug:
                    print('delta ',delta/u.um,cl_size)
@@ -266,7 +266,7 @@ class Tracking(ROOT.FairTask):
        hitDict = {}
        for k in range(event.Digi_ScifiHits.GetEntries()):
             d = event.Digi_ScifiHits[k]
-            if not d.isValid(): continue 
+            if not d.isValid(): continue
             hitDict[d.GetDetectorID()] = k
        hitList = list(hitDict.keys())
        if len(hitList)>0:
@@ -279,7 +279,7 @@ class Tracking(ROOT.FairTask):
               for i in range(len(hitList)):
                    if i==0 and len(hitList)>1: continue
                    c=hitList[i]
-                   if (c-cprev)==1: 
+                   if (c-cprev)==1:
                         tmp.append(c)
                    if (c-cprev)!=1 or c==hitList[last]:
                         first = tmp[0]
@@ -349,7 +349,7 @@ class Tracking(ROOT.FairTask):
         measurement.setMaxDistance(0.1)
         measurement.setDetId(unSortedList[z][1])
         measurement.setHitId(unSortedList[z][2])
-        tp.addRawMeasurement(measurement) # package measurement in the TrackPoint                                          
+        tp.addRawMeasurement(measurement) # package measurement in the TrackPoint
         theTrack.insertPoint(tp)  # add point to Track
     if not theTrack.checkConsistency():
         print("track not consistent")
@@ -362,7 +362,7 @@ class Tracking(ROOT.FairTask):
     if not fitStatus.isFitConverged():
         theTrack.Delete()
         return -1
-    if self.Debug: 
+    if self.Debug:
         chi2 = fitStatus.getChi2()/fitStatus.getNdf()
         fittedState = theTrack.getFittedState()
         P = fittedState.getMomMag()
@@ -374,5 +374,3 @@ class Tracking(ROOT.FairTask):
             detID = rawM.getDetId()
             print(detID,"weights",info.getWeights()[0],info.getWeights()[1],fitStatus.getNdf())
     return theTrack
-
-

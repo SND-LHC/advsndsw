@@ -24,43 +24,49 @@
 #ifndef genfit_ThinScatterer_h
 #define genfit_ThinScatterer_h
 
-#include "SharedPlanePtr.h"
 #include "MaterialProperties.h"
+#include "SharedPlanePtr.h"
 
 #include <TObject.h>
-
 
 namespace genfit {
 
 /**
  * @brief Thin or thick scatterer
  */
-class ThinScatterer : public TObject {
+class ThinScatterer : public TObject
+{
 
- public:
+  public:
+    ThinScatterer()
+        : TObject()
+        , sharedPlane_()
+        , material_()
+    {
+        ;
+    }
+    ThinScatterer(const SharedPlanePtr& sharedPlane, const MaterialProperties& material)
+        : TObject()
+        , sharedPlane_(sharedPlane)
+        , material_(material)
+    {
+        ;
+    }
 
-  ThinScatterer() :
-    TObject(), sharedPlane_(), material_() {;}
-  ThinScatterer(const SharedPlanePtr& sharedPlane, const MaterialProperties& material) :
-    TObject(), sharedPlane_(sharedPlane), material_(material) {;}
+    SharedPlanePtr getPlane() const { return sharedPlane_; }
+    const MaterialProperties& getMaterial() const { return material_; }
 
-  SharedPlanePtr getPlane() const {return sharedPlane_;}
-  const MaterialProperties& getMaterial() const {return material_;}
+    void Print(const Option_t* = "") const;
 
-  void Print(const Option_t* = "") const;
+  private:
+    SharedPlanePtr sharedPlane_;    //! Material boundary.  '!' shuts up ROOT.
+    MaterialProperties material_;   // Material properties
 
- private:
-
-  SharedPlanePtr sharedPlane_; //! Material boundary.  '!' shuts up ROOT.
-  MaterialProperties material_; // Material properties
-
-
- public:
-  ClassDef(ThinScatterer, 1)
-
+  public:
+    ClassDef(ThinScatterer, 1)
 };
 
 } /* End of namespace genfit */
 /** @} */
 
-#endif // genfit_ThinScatterer_h
+#endif   // genfit_ThinScatterer_h

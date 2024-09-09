@@ -1,6 +1,8 @@
-""" Contains a Mongo Engine model definition for a Detector. """
+"""Contains a Mongo Engine model definition for a Detector."""
+
 from mongoengine import EmbeddedDocument, EmbeddedDocumentListField, StringField
-#evh
+
+# evh
 from databases.mongodb.models.condition import Condition
 
 
@@ -16,4 +18,4 @@ from databases.mongodb.models.condition import Condition
 class Detector(EmbeddedDocument):
     name = StringField(max_length=1000, required=True)
     conditions = EmbeddedDocumentListField(Condition)
-    subdetectors = EmbeddedDocumentListField('self')
+    subdetectors = EmbeddedDocumentListField("self")

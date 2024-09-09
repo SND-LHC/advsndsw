@@ -15,7 +15,7 @@ add_subdirectory(tools)
 set(LINK_DIRECTORIES
 ${FAIRROOT_LIBRARY_DIR}
 )
- 
+
 link_directories( ${LINK_DIRECTORIES})
 
 add_executable(neutrinoFilterGoldenSample neutrinoFilterGoldenSample.cxx)

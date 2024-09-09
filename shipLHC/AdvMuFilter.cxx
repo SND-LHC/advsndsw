@@ -450,16 +450,16 @@ void AdvMuFilter::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     double global_pos[3];
     double local_pos[3] = {0, 0, 0};
     TString path = TString::Format("/cave_1/"
-                                    "Detector_0/"
-                                    "volAdvMuFilter_0/"
-                                    "TrackingStation_%d/"
-                                    "TrackerPlane_%d/"
-                                    "SensorModule_%d/"
-                                    "SensorVolumeFilter_%d",
-                                    station,
-                                    plane,
-                                    sensor_module,
-                                    sensor);
+                                   "Detector_0/"
+                                   "volAdvMuFilter_0/"
+                                   "TrackingStation_%d/"
+                                   "TrackerPlane_%d/"
+                                   "SensorModule_%d/"
+                                   "SensorVolumeFilter_%d",
+                                   station,
+                                   plane,
+                                   sensor_module,
+                                   sensor);
 
     TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
     if (nav->CheckPath(path)) {

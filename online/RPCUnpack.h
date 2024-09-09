@@ -13,43 +13,44 @@
 
 class TClonesArray;
 
-class RPCUnpack : public ShipUnpack {
-public:
-   RPCUnpack();
+class RPCUnpack : public ShipUnpack
+{
+  public:
+    RPCUnpack();
 
-   /** Destructor. */
-   virtual ~RPCUnpack();
+    /** Destructor. */
+    virtual ~RPCUnpack();
 
-   /** Initialization. Called once, before the event loop. */
-   virtual Bool_t Init() override;
+    /** Initialization. Called once, before the event loop. */
+    virtual Bool_t Init() override;
 
-   /** Process an MBS sub-event. */
-   virtual Bool_t DoUnpack(Int_t *data, Int_t size) override;
+    /** Process an MBS sub-event. */
+    virtual Bool_t DoUnpack(Int_t *data, Int_t size) override;
 
-   /** Clear the output structures. */
-   virtual void Reset() override;
+    /** Clear the output structures. */
+    virtual void Reset() override;
 
-   /** Method for controlling the functionality. */
-   inline Int_t GetNHitsTotal() { return fNHitsTotal; }
+    /** Method for controlling the functionality. */
+    inline Int_t GetNHitsTotal() { return fNHitsTotal; }
 
-   uint16_t GetPartition() override { return fPartitionId; }
+    uint16_t GetPartition() override { return fPartitionId; }
 
-protected:
-   /** Register the output structures. */
-   virtual void Register() override;
+  protected:
+    /** Register the output structures. */
+    virtual void Register() override;
 
-private:
-   std::unique_ptr<TClonesArray> fRawData;        /**< Array of output raw items. */
-   Int_t fNHits;              /**< Number of raw items in current event. */
-   Int_t fNHitsTotal;         /**< Total number of raw items. */
-   uint16_t fPartitionId;
+  private:
+    std::unique_ptr<TClonesArray> fRawData; /**< Array of output raw items. */
+    Int_t fNHits;                           /**< Number of raw items in current event. */
+    Int_t fNHitsTotal;                      /**< Total number of raw items. */
+    uint16_t fPartitionId;
 
-   RPCUnpack(const RPCUnpack &);
-   RPCUnpack &operator=(const RPCUnpack &);
+    RPCUnpack(const RPCUnpack &);
+    RPCUnpack &operator=(const RPCUnpack &);
 
-public:
-   // Class definition
-   ClassDefOverride(RPCUnpack, 1)
+  public:
+    // Class definition
+    ClassDefOverride(RPCUnpack, 1)
 };
 
 #endif

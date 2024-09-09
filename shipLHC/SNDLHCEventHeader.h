@@ -1,9 +1,9 @@
 #ifndef SNDLHCEVENTHEADER_H
 #define SNDLHCEVENTHEADER_H 2
 
-#include <TNamed.h>
 #include "SNDLHCEventHeaderConst.h"
 
+#include <TNamed.h>
 #include <ctime>
 #include <map>
 #include <string>
@@ -18,7 +18,6 @@ class SNDLHCEventHeader : public TNamed
 {
 
   public:
-
     /** Default constructor **/
     SNDLHCEventHeader();
 
@@ -42,7 +41,7 @@ class SNDLHCEventHeader : public TNamed
     int64_t GetEventTime() { return fEventTime; }
     int GetInputFileId() { return fInputFileId; }
     int GetEventNumber() { return fEventNumber; }
-    string GetTimeAsString(); // GMT time
+    string GetTimeAsString();   // GMT time
     int64_t GetUTCtimestamp() const { return fUTCtimestamp; }
     uint16_t GetFillNumber() const { return fFillNumber; }
     int GetAccMode() const { return fAccMode; }
@@ -72,17 +71,16 @@ class SNDLHCEventHeader : public TNamed
     int64_t fUTCtimestamp;
     uint64_t fFlags;
     uint16_t fFillNumber;
-    int fAccMode; // enum class
-    int fBeamMode; // enum class
+    int fAccMode;    // enum class
+    int fBeamMode;   // enum class
     /* fBunchType = IP2*1000+IP1*100+B2*10+B1 */
     int16_t fBunchType;
-    
+
     /** Copy constructor **/
     SNDLHCEventHeader(const SNDLHCEventHeader& eventHeader);
     SNDLHCEventHeader operator=(const SNDLHCEventHeader& eventHeader);
 
-    ClassDef(SNDLHCEventHeader,2)
-
+    ClassDef(SNDLHCEventHeader, 2)
 };
 
 #endif /* SNDLHCEVENTHEADER_H */
