@@ -152,29 +152,36 @@ std::vector<std::vector<Double_t>> InducedCharge::GetPulseShape(std::string Puls
         throw invalid_argument("Maximum value of pulse shape not 1.");
     }
 
-    unsigned int pulset0Idx = std::distance(PulseValues.begin(), max_value);
-
     std::vector<std::vector<Double_t>> PulseResponse; 
     std::vector<Double_t> temp_response ;
     Double_t response_value; 
 
+    Int_t sampling_step = stripsensor::sampling / res; 
+
     for(int i = 0; i < ChargeDeposited.size(); i++)
     {
-         
+        std::vector<Double_t> temp_response ;
         Double_t amplitude_max = ChargeDeposited[i]; 
 
         std::default_random_engine generator;
         std::normal_distribution<double> dist(stripsensor::noise_mean, stripsensor::noise_std_dev);
-
-        for(int j = 0; j < PulseValues.size(); j++)
-        {  
-            response_value = ((stripsensor::baseline + (PulseValues[j] * amplitude_max * stripsensor::amplificaton_factor)) > stripsensor::rail ? stripsensor::rail : (stripsensor::baseline + (PulseValues[j] * amplitude_max * stripsensor::amplificaton_factor)));
-
-            temp_response.push_back(response_value + dist(generator));
-        }
-
+        response_value = ((stripsensor::baseline + (amplitude_max * stripsensor::amplificaton_factor)) > stripsensor::rail ? stripsensor::rail : (stripsensor::baseline + (amplitude_max * stripsensor::amplificaton_factor)));
+        temp_response.push_back(response_value + dist(generator));
         PulseResponse.push_back(temp_response);
+        //  if (stripsensor::peakmode == 1)
+        // {
+        //     response_value = ((stripsensor::baseline + (amplitude_max * stripsensor::amplificaton_factor)) > stripsensor::rail ? stripsensor::rail : (stripsensor::baseline + (amplitude_max * stripsensor::amplificaton_factor)));
+        //     temp_response.push_back(response_value + dist(generator));
+        //     PulseResponse.push_back(temp_response);
+        // }
+        // else 
+        // {
+        //     response_value = ((stripsensor::baseline + (amplitude_max * stripsensor::amplificaton_factor)) > stripsensor::rail ? stripsensor::rail : (stripsensor::baseline + (amplitude_max * stripsensor::amplificaton_factor)));
+        //     temp_response.push_back(response_value + dist(generator));
+        //     PulseResponse.push_back(temp_response);
+        // }
     } 
+   
     return PulseResponse; 
     // get the vector of beginning to max of the pulse
     // time response not included!

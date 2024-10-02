@@ -2,6 +2,7 @@
 #include "SurfaceSignal.h"
 #include "TVector3.h"
 #include "TGraph.h"
+#include "TCanvas.h"
 
 #include <iostream>
 #include <vector>
@@ -67,18 +68,18 @@ Double_t ChargeDrift::GetDriftTime(Double_t distance)
     Double_t w = 30e-6; 
     Double_t h = 5e-6; 
 
-    Double_t Na = 1e21; // in cm 
-    Double_t Nd = 1e18; // in cm 
+    Double_t Na = 1e15; // in cm 
+    Double_t Nd = 1e12; // in cm 
 
     Double_t e = 1.6e-19; // in C
 
     Double_t k = 1.38e-23; 
     Double_t T = 300;
-    Double_t epsilon = 8.854e-12*11.9; 
+    Double_t epsilon = 8.854e-14*11.9; 
 
-    Double_t ni = 1.45e16; // in cm 
+    Double_t ni = 1.45e10; // in cm 
 
-    Double_t V_a = 300;
+    Double_t V_a = 470;
     Double_t V_0 = (((k*T)/e)*log((Na*Nd)/(pow(ni, 2)))) + V_a; 
 
     Double_t W = sqrt((2*epsilon*(Nd + Na)*V_0)/(e*Nd*Na));
@@ -92,13 +93,14 @@ Double_t ChargeDrift::GetDriftTime(Double_t distance)
     Double_t y[num] ;
     Double_t E_strip[num] ;
 
-    Double_t x_start = 500e-6 ;
-    Double_t x_end = 0; 
+    Double_t x_start = 0 ; // in cm
+    Double_t x_end = 500e-4; 
 
 
     for (int j = 0; j < num ; j ++ )
     {
         x[j] = x_start + abs(j*((x_start - x_end)/num)); 
+        
     }
 
     for (int i = 0; i < num; i++)
@@ -124,10 +126,12 @@ Double_t ChargeDrift::GetDriftTime(Double_t distance)
     for(int l = 0; l < num ; l++)
     {
         //tfrac[l] = -x[l]/250e-6; 
-        dt[l] = x[l]/(480*10e-4*E_strip[l]); 
+        dt[l] = -x[l]/(480*E_strip[l]); 
     }
 
     auto gr = new TGraph (num, x, dt);
-    Double_t drifttime = gr->Eval(distance*1e-4);
+    cout << distance << endl; 
+    gr->Draw();
+    Double_t drifttime = gr->Eval(distance);
     return drifttime; 
 }
