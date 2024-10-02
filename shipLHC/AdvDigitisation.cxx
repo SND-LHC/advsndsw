@@ -9,6 +9,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TVector3.h"
+#include "TStopwatch.h"
 
 #include <TSystem.h>
 #include <fstream>
@@ -21,51 +22,40 @@ AdvDigitisation::AdvDigitisation() {}
 
 void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &V)
 {
+    
+    // ofstream timeinducedchargefile;
+    // timeinducedchargefile.open("time_inducedcharge.txt", std::ios_base::app);
+
+    // ofstream timechargedivisionfile;
+    // timechargedivisionfile.open("time_chargedivision.txt", std::ios_base::app);
+
+    // ofstream timechargedriftfile;
+    // timechargedriftfile.open("time_chargedrift.txt", std::ios_base::app);
+
+    // TStopwatch timerCSV;
+    // TStopwatch drifttimer;
+    // TStopwatch inducedtimer;
+
+    
+    // timerCSV.Start();
 
     ChargeDivision chargedivision{};
     std::vector<EnergyFluctUnit> EnergyLossVector = chargedivision.Divide(detID, V);
+    // timerCSV.Stop();
+    // timechargedivisionfile <<  timerCSV.RealTime() << endl;
 
+
+    // drifttimer.Start();
     ChargeDrift chargedrift{};
     std::vector<SurfaceSignal> DiffusionSignal = chargedrift.Drift(EnergyLossVector);
+    // drifttimer.Stop();
+    // timechargedriftfile << drifttimer.RealTime() << endl;
 
+    // inducedtimer.Start();
     InducedCharge inducedcharge{};
     std::vector<AdvSignal> ResponseSignal = inducedcharge.IntegrateCharge(DiffusionSignal);
-
-    // std::vector<Int_t> Strips = ResponseSignal.getStrips(); 
-    // std::vector<Double_t> IntegratedSignal = ResponseSignal.getIntegratedSignal();
-    // std::vector<std::vector<Double_t>> PulseResponse = ResponseSignal.getPulseResponse();
-
-    // EFluct = EnergyLossVector.getEfluct();
-    // segLen = EnergyLossVector.getsegLen();
-    // DriftPos = EnergyLossVector.getDriftPos();
-    // glob_DriftPos = EnergyLossVector.getglobDriftPos();
-
-    // std::vector<int> temp_efluctsize;
-    // std::vector<std::vector<Double_t>> temp_efluct;
-    // std::vector<float> temp_seglen;
-    // std::vector<std::vector<TVector3>> temp_driftpos;
-    // std::vector<std::vector<TVector3>> temp_globdriftpos;
-
-    // std::vector<std::vector<TVector3>> temp_diffpos;
-    // std::vector<std::vector<Double_t>> temp_diffarea;
-       
-
-    // Double_t xx = DriftPos[0].X();
-
-    // if (EFluct.empty()) {
-    //     EFluctSize = 0;
-    // } else {
-    //     EFluctSize = size(EFluct);
-    // }
-
-    // temp_efluctsize.push_back(EFluctSize);
-    // temp_efluct.push_back(EFluct);
-    // temp_seglen.push_back(segLen);
-    // temp_driftpos.push_back(DriftPos);
-    // temp_globdriftpos.push_back(glob_DriftPos);
-
-    // temp_diffarea.push_back(DiffusionSignal.getDiffusionArea());
-    // temp_diffpos.push_back(DiffusionSignal.getSurfacePos());
+    // inducedtimer.Stop();
+    // timeinducedchargefile << inducedtimer.RealTime() << endl;
 
     ofstream rawdatafile;
     rawdatafile.open("rawdata.txt", std::ios_base::app);
@@ -127,7 +117,7 @@ void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &
         {
             for (int m = 0; m < PulseResponse[l].size(); m++)
             {
-            inducedchargefile << V.size() << "\t" << V[i]->GetEnergyLoss() << "\t" << V[i]->GetEventID() << "\t" << V[i]->GetTrackID() << "\t" << V[i]->GetTime() << "\t" << V[i]->GetDetectorID() << "\t" << Strips[l] << "\t" << IntegratedSignal[l] << "\t" << PulseResponse[l][m] << endl; 
+            inducedchargefile << V.size() << "\t" << V[i]->GetEnergyLoss() << "\t" << V[i]->GetEventID() << "\t" << V[i]->GetTrackID() << "\t" << V[i]->GetTime() << "\t" << V[i]->GetDetectorID() << "\t" << Strips[l] << "\t" << IntegratedSignal[l] << "\t" << PulseResponse[l][m] << "\t" << Strips.size() << endl; 
             }
         }
     }
@@ -137,31 +127,6 @@ void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &
     chargedriftfile.close();
     inducedchargefile.close();
 
-
-
-    // ofstream myfile;
-    // myfile.open("test.txt", std::ios_base::app);
-    // for (int i = 0; i < temp_efluctsize.size(); i++) {
-    //     for (int j = 0; j < temp_efluct[i].size(); j++) {
-            
-    //         myfile << temp_efluctsize[i] << "\t" << temp_seglen[i] << "\t" << temp_efluct[i][j] << "\t" << V[i]->GetEnergyLoss() << "\t" << V[i]->PdgCode() << "\t" << sqrt(pow(V[i]->GetPx(), 2) + pow(V[i]->GetPy(), 2) + pow(V[i]->GetPz(), 2))<< "\t" << temp_driftpos[i][j].X() << "\t" << temp_driftpos[i][j].Y() << "\t" << temp_driftpos[i][j].Z() <<  "\t" << temp_globdriftpos[i][j].X() <<  "\t" << temp_globdriftpos[i][j].Y() <<  "\t" << temp_globdriftpos[i][j].Z() <<  "\t" << temp_diffpos[i][j].X() << "\t" << temp_diffpos[i][j].Y() << "\t" << temp_diffpos[i][j].Z() << "\t" << temp_diffarea[i][j] << endl;
-    //     }
-    // }
-    // TVector3 local_entry = getLocal(V[0] -> GetDetectorID(), V[0]->GetEntryPoint());
-    // TVector3 local_exit = getLocal(V[0] -> GetDetectorID(), V[0]->GetExitPoint());
-    
-    // ofstream myfile2; 
-    // myfile2.open("test2.txt", std::ios_base::app);
-    // for (int j = 0; j < Strips.size(); j ++)
-    //     {
-    //         for(int k = 0; k < PulseResponse[j].size(); k++)
-    //         {
-    //             myfile2 << V.size() << "\t" << temp_eloss[0] << "\t" << temp_eloss[0]/(3.61*1e-9) << "\t" << Strips[j] << "\t" << IntegratedSignal[j] << "\t" << local_entry.X() << "\t" << local_entry.Z() << "\t" << local_exit.X() << "\t" << local_exit.Z() << "\t" << PulseResponse[j][k] << endl; 
-        
-    //         }
-    //     }
-    // myfile.close();
-    // myfile2.close();
 }
 
 TVector3 AdvDigitisation::getLocal(Int_t detID, TVector3 point)

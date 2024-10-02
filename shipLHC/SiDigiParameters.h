@@ -6,7 +6,8 @@
 
 namespace stripsensor {
 
-const bool peakmode = 1;
+const bool peakmode = 0;
+const Double_t sampling = 25; 
 const std::string APVpeakpulse = "advsndsw/shipLHC/data/APVShapePeak_default.txt";
 const std::string APVdecopulse = "advsndsw/shipLHC/data/APVShapeDeco_default.txt";
 
@@ -15,6 +16,7 @@ const Double_t amplificaton_factor = value_per_mip/(30000 * 1.6 * 10e-19); // ou
 const Double_t rail = 4; // in mA 
 const Double_t baseline = 2; // in mA 
 const Double_t threshold = 2.5; // in mA
+const Double_t mode = 20 ; // in MHz - the frequency that output is cycled 
 
 const Double_t noise_mean = 0; 
 const Double_t noise_std_dev = 0.01; 

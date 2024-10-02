@@ -158,7 +158,7 @@ if simEngine == "PG":
   myPgun.SetPRange(options.Estart,options.Eend)
   myPgun.SetPhiRange(0, 360) # // Azimuth angle range [degree]
   myPgun.SetXYZ(options.EVx*u.cm, options.EVy*u.cm, options.EVz*u.cm) 
-  myPgun.SetThetaRange(-90,90) # // Polar angle in lab system range [degree]
+  myPgun.SetThetaRange(0,0) # // Polar angle in lab system range [degree]
   primGen.AddGenerator(myPgun)
   ROOT.FairLogger.GetLogger().SetLogScreenLevel("WARNING") # otherwise stupid printout for each event
 # -----muon DIS Background------------------------
