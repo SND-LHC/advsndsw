@@ -21,7 +21,6 @@
  *
  */
 
-
 /** @addtogroup genfit
  * @{
  */
@@ -29,8 +28,7 @@
 #ifndef genfit_AbsFinitePlane_h
 #define genfit_AbsFinitePlane_h
 
-#include <Rtypes.h> // for Option_t
-
+#include <Rtypes.h>   // for Option_t
 
 namespace genfit {
 
@@ -40,33 +38,31 @@ namespace genfit {
  * This is most important for avoiding fake intersection points in fitting of curlers.
  * This should be implemented for silicon detectors most importantly.
  */
-class AbsFinitePlane {
+class AbsFinitePlane
+{
 
- public:
+  public:
+    AbsFinitePlane() {};
+    virtual ~AbsFinitePlane() {};
 
-  AbsFinitePlane() {};
-  virtual ~AbsFinitePlane() {};
+    //! Returns whether a u,v point is in the active plane or not. Needs to be implemented
+    //! in child class.
+    virtual bool isInActive(double u, double v) const = 0;
 
-  //! Returns whether a u,v point is in the active plane or not. Needs to be implemented
-  //! in child class.
-  virtual bool isInActive(double u, double v) const = 0;
+    //! Deep copy ctor for polymorphic class.
+    virtual AbsFinitePlane* clone() const = 0;
 
-  //! Deep copy ctor for polymorphic class.
-  virtual AbsFinitePlane* clone() const = 0;
+    virtual void Print(const Option_t* = "") const = 0;
 
-  virtual void Print(const Option_t* = "") const = 0;
+  protected:
+    // protect from calling copy c'tor or assignment operator from outside the class. Use #clone() if you want a copy!
+    AbsFinitePlane(const AbsFinitePlane&) { ; }
+    AbsFinitePlane& operator=(const AbsFinitePlane&);
 
-
- protected:
-
-  // protect from calling copy c'tor or assignment operator from outside the class. Use #clone() if you want a copy!
-  AbsFinitePlane(const AbsFinitePlane&) {;}
-  AbsFinitePlane& operator=(const AbsFinitePlane&);
-
-  ClassDef(AbsFinitePlane, 1);
+    ClassDef(AbsFinitePlane, 1);
 };
 
 } /* End of namespace genfit */
 /** @} */
 
-#endif // genfit_AbsFinitePlane_h
+#endif   // genfit_AbsFinitePlane_h

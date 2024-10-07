@@ -11,53 +11,44 @@
 
 #include "hcalModule.h"
 
+#include <algorithm>
 #include <list>
 #include <map>
-#include <algorithm>
 
 class hcalModuleMC : public hcalModule
 {
-public:
-  hcalModuleMC(Int_t number, Float_t x1=0, Float_t y1=0, Float_t x2=0, Float_t y2=0);
+  public:
+    hcalModuleMC(Int_t number, Float_t x1 = 0, Float_t y1 = 0, Float_t x2 = 0, Float_t y2 = 0);
 
-  Float_t GetTrackEnergy(Int_t num) const;
-  Float_t GetTrackEnergy2(Int_t num) const;
-	
-  /** Reset all energies in module **/
-  void ResetEnergy();
-	
-  inline void SetTrackEnergy(Int_t num, Float_t energy)
-    { fTrackEnergy[num]=energy; }
-  inline void AddTrackEnergy(Int_t num, Float_t energy)
-    { fTrackEnergy[num]+=energy;}
+    Float_t GetTrackEnergy(Int_t num) const;
+    Float_t GetTrackEnergy2(Int_t num) const;
 
-  inline void SetTrackEnergy2(Int_t num, Float_t energy)
-    { fTrackEnergy2[num]=energy; }
-  inline void AddTrackEnergy2(Int_t num, Float_t energy)
-    { fTrackEnergy2[num]+=energy;}
-  
-  // same for tracks
-  Float_t GetTrackClusterEnergy(Int_t num);
+    /** Reset all energies in module **/
+    void ResetEnergy();
 
-  inline std::map<Int_t, Float_t>::const_iterator GetTrackEnergyBegin() const
-	 {return fTrackEnergy.begin();}
-  inline std::map<Int_t, Float_t>::const_iterator GetTrackEnergyEnd() const
-	 {return fTrackEnergy.end();}
+    inline void SetTrackEnergy(Int_t num, Float_t energy) { fTrackEnergy[num] = energy; }
+    inline void AddTrackEnergy(Int_t num, Float_t energy) { fTrackEnergy[num] += energy; }
 
-  inline std::map<Int_t, Float_t>::const_iterator GetTrackEnergy2Begin() const
-	 {return fTrackEnergy2.begin();}
-  inline std::map<Int_t, Float_t>::const_iterator GetTrackEnergy2End() const
-	 {return fTrackEnergy2.end();}
+    inline void SetTrackEnergy2(Int_t num, Float_t energy) { fTrackEnergy2[num] = energy; }
+    inline void AddTrackEnergy2(Int_t num, Float_t energy) { fTrackEnergy2[num] += energy; }
 
-private:
-  /**  map<TrackId, Energy in first HCAL section> **/
-  std::map<Int_t, Float_t> fTrackEnergy;
+    // same for tracks
+    Float_t GetTrackClusterEnergy(Int_t num);
 
-  /**  map<TrackId, Energy in second HCAL section> **/
-  std::map<Int_t, Float_t> fTrackEnergy2;
+    inline std::map<Int_t, Float_t>::const_iterator GetTrackEnergyBegin() const { return fTrackEnergy.begin(); }
+    inline std::map<Int_t, Float_t>::const_iterator GetTrackEnergyEnd() const { return fTrackEnergy.end(); }
 
-  ClassDef(hcalModuleMC,1);
+    inline std::map<Int_t, Float_t>::const_iterator GetTrackEnergy2Begin() const { return fTrackEnergy2.begin(); }
+    inline std::map<Int_t, Float_t>::const_iterator GetTrackEnergy2End() const { return fTrackEnergy2.end(); }
+
+  private:
+    /**  map<TrackId, Energy in first HCAL section> **/
+    std::map<Int_t, Float_t> fTrackEnergy;
+
+    /**  map<TrackId, Energy in second HCAL section> **/
+    std::map<Int_t, Float_t> fTrackEnergy2;
+
+    ClassDef(hcalModuleMC, 1);
 };
-  
 
 #endif

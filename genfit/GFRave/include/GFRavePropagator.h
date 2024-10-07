@@ -29,16 +29,14 @@
 #ifndef GFRAVEPROPAGATOR_H
 #define GFRAVEPROPAGATOR_H
 
-#include "GFRaveVertexFactory.h"
 #include "AbsTrackRep.h"
-
-#include <rave/Propagator.h>
-#include <rave/Track.h>
-#include <rave/Plane.h>
-#include <rave/Cylinder.h>
+#include "GFRaveVertexFactory.h"
 
 #include <map>
-
+#include <rave/Cylinder.h>
+#include <rave/Plane.h>
+#include <rave/Propagator.h>
+#include <rave/Track.h>
 
 namespace genfit {
 
@@ -56,25 +54,22 @@ class GFRavePropagator : public rave::Propagator
 {
   public:
     GFRavePropagator();
-    virtual GFRavePropagator* copy() const;
-    virtual rave::Track closestTo ( const rave::Track &,
-                                    const rave::Point3D &, bool transverse ) const;
-    virtual std::pair < rave::Track, double > to ( const rave::Track & orig,
-                                                   const ravesurf::Plane & ) const;
-    virtual std::pair < rave::Track, double > to ( const rave::Track & orig,
-                                                   const ravesurf::Cylinder & ) const;
+    virtual GFRavePropagator *copy() const;
+    virtual rave::Track closestTo(const rave::Track &, const rave::Point3D &, bool transverse) const;
+    virtual std::pair<rave::Track, double> to(const rave::Track &orig, const ravesurf::Plane &) const;
+    virtual std::pair<rave::Track, double> to(const rave::Track &orig, const ravesurf::Cylinder &) const;
 
     virtual ~GFRavePropagator();
 
-    void setIdGFTrackStateMap(std::map < int, genfit::trackAndState > * map);
+    void setIdGFTrackStateMap(std::map<int, genfit::trackAndState> *map);
 
   private:
-
     // data members
-    std::map < int, genfit::trackAndState > * IdGFTrackStateMap_; // pointers to genfit::tracks and measuredStateOnPlanes via rave track ID
+    std::map<int, genfit::trackAndState>
+        *IdGFTrackStateMap_;   // pointers to genfit::tracks and measuredStateOnPlanes via rave track ID
 };
 
 } /* End of namespace genfit */
 /** @} */
 
-#endif // GFRAVEPROPAGATOR_H
+#endif   // GFRAVEPROPAGATOR_H
