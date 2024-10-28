@@ -655,7 +655,7 @@ with ConfigRegistry.register_config("basic") as c:
 
     # AdvSND Target & Tracker structure
     c.AdvTarget = AttrDict(z=0 * u.cm)
-    c.AdvTarget.TargetWallX = 45 * u.cm
+    c.AdvTarget.TargetWallX = 40 * u.cm
     c.AdvTarget.TargetWallY = c.AdvTarget.TargetWallX
     c.AdvTarget.TargetWallZ = 7 * u.mm
     c.AdvTarget.AluFrameX = 60 * u.cm
@@ -663,7 +663,7 @@ with ConfigRegistry.register_config("basic") as c:
     c.AdvTarget.AluFrameZ = 7 * u.mm
 
     # Target Tracking stations
-    c.AdvTarget.TTX = 45 * u.cm
+    c.AdvTarget.TTX = 40 * u.cm
     c.AdvTarget.TTY = c.AdvTarget.TTX
     c.AdvTarget.TTZ = 4 * u.mm
     c.AdvTarget.nTT = 58
@@ -683,16 +683,16 @@ with ConfigRegistry.register_config("basic") as c:
 
     # AdvSND MuFilter Layout 2 (SQUARED)
     c.AdvMuFilter = AttrDict(z=0 * u.cm)
-    c.AdvMuFilter.MuonSysPlaneX = 45 * u.cm
+    c.AdvMuFilter.MuonSysPlaneX = 40 * u.cm
     c.AdvMuFilter.MuonSysPlaneY = c.AdvMuFilter.MuonSysPlaneX
     c.AdvMuFilter.MuonSysPlaneZ = 4 * u.mm
-    c.AdvMuFilter.FeX = 105 * u.cm
+    c.AdvMuFilter.FeX = 115.1 * u.cm
     c.AdvMuFilter.FeY = 80.0 * u.cm
     c.AdvMuFilter.FeZ = 5 * u.cm
-    c.AdvMuFilter.FeGap = 7.5 * u.cm
+    c.AdvMuFilter.FeGap = 15.5 * u.cm
     c.AdvMuFilter.Nplanes = 34
-    c.AdvMuFilter.CoilX = 41 * u.cm
+    c.AdvMuFilter.CoilX = 40 * u.cm
     c.AdvMuFilter.CoilY = c.AdvMuFilter.MuonSysPlaneY
-    c.AdvMuFilter.CoilZ = 5 * u.cm
+    c.AdvMuFilter.CoilZ = 5.5 * u.cm
     c.AdvMuFilter.Field = 1.75 * u.tesla
-    c.AdvMuFilter.CurvRadius = 4.5 * u.cm
+    c.AdvMuFilter.CurvRadius = 6.5 * u.cm
