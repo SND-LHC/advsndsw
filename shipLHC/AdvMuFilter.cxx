@@ -160,6 +160,9 @@ void AdvMuFilter::ConstructGeometry()
     Double_t fFeYokeX = (fFeX-fMuonSysPlaneX-2*fFeGap)/2.;
     Double_t fFeYokeY = (fFeY-fMuonSysPlaneY)/2.;
 
+    LOG(INFO) << " CoilX: " << fCoilX << " cm" << endl;
+    LOG(INFO) << " FeYokeX: " << fFeYokeX << " cm" << endl;
+    LOG(INFO) << " FeYokeY: " << fFeYokeY << " cm" << endl;
 
     TGeoVolumeAssembly *volAdvMuFilter = new TGeoVolumeAssembly("volAdvMuFilter");
 
@@ -177,7 +180,7 @@ void AdvMuFilter::ConstructGeometry()
                       new TGeoTranslation(-2.4244059999999976 - EmWall0_survey.X(),
                                           38.3,
                                           354.862 + 3 + 1 + fFeZ / 2. - 41.895793 + 1. - 3.854227000000008
-                                              + 3.7497190000000046 - 64.414875));   // hardcoded, try to find and elegant solution
+                                              + 3.7497190000000046 - 64.44596200000001));   // hardcoded, try to find and elegant solution
     
     // Iron and Detector's shapes
     TGeoBBox *FeBlock = new TGeoBBox("FeBlock", fFeX/2., fFeY/2., fFeZ/2.);
