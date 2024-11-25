@@ -156,14 +156,25 @@ void AdvTarget::ConstructGeometry()
     TGeoBBox *Module = new TGeoBBox("Module", fTTX/2., fTTY/2., fTTZ/2.);
     TGeoCompositeShape *AluFrame = new TGeoCompositeShape("AluFrame", "AluBlock-TargetWall");
 
-        volAdvTarget->AddNode(volTargetWall,
-                              station,
-                              new TGeoTranslation(0, 0, -fTargetWallZ / 2 + station * fTargetWallZ + station * fTTZ));
+    TGeoVolume *volTargetWall = new TGeoVolume("volTargetWall", TargetWall, tungsten);
+    TGeoVolume *volAluFrame = new TGeoVolume("volAluFrame", AluFrame, Aluminum);
+    TGeoVolume *volModule = new TGeoVolume("volModule", Module, Silicon);
+    volTargetWall->SetLineColor(kGray-4);
+    volAluFrame->SetLineColor(kGray);
+    volModule->SetLineColor(kYellow+2);
+    AddSensitiveVolume(volModule);
+    
+    volAdvTarget->AddNode(volModule, 0, new TGeoTranslation(0, 0, fTTZ/2));
+    for (auto plane = 1; plane<stations+1; plane++) {
+        Double_t station_length = 2*fTTZ+fTargetWallZ;
+        Double_t Zshift = fTTZ;
+        volAdvTarget->AddNode(volAluFrame, plane, new TGeoTranslation(0, 0, Zshift+fAluFrameZ/2+(plane-1)*station_length));
+        volAdvTarget->AddNode(volTargetWall, plane, new TGeoTranslation(0, 0, Zshift+fTargetWallZ/2+(plane-1)*station_length));
+        volAdvTarget->AddNode(volModule, plane*10, new TGeoTranslation(0, 0, Zshift+fTargetWallZ+fTTZ/2+(plane-1)*station_length));
+        if (plane == stations) continue;
+        volAdvTarget->AddNode(volModule, plane*10+1, new TGeoTranslation(0, 0, Zshift+fTargetWallZ+fTTZ+fTTZ/2+(plane-1)*station_length));
+  }
 
-        volAdvTarget->AddNode(
-            TrackingStation, station, new TGeoTranslation(0, 0, fTTZ / 2 + station * (fTargetWallZ + fTTZ)));
-        // new TGeoTranslation(0, 0, (station + 0.5) * fTargetWallZ + (station - 0.5) * 7.5 * mm));
-    }
 }
 
 Bool_t AdvTarget::ProcessHits(FairVolume *vol)
