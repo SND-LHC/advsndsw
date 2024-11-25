@@ -655,15 +655,19 @@ with ConfigRegistry.register_config("basic") as c:
 
     # AdvSND Target & Tracker structure
     c.AdvTarget = AttrDict(z=0 * u.cm)
-    c.AdvTarget.TargetWallX = 50.0 * u.cm
-    c.AdvTarget.TargetWallY = 50.0 * u.cm
+    c.AdvTarget.TargetWallX = 45 * u.cm
+    c.AdvTarget.TargetWallY = c.AdvTarget.TargetWallX
     c.AdvTarget.TargetWallZ = 7 * u.mm
+    c.AdvTarget.AluFrameX = 60 * u.cm
+    c.AdvTarget.AluFrameY = 60 * u.cm
+    c.AdvTarget.AluFrameZ = 7 * u.mm
 
     # Target Tracking stations
-    c.AdvTarget.TTX = 49.29 * u.cm
-    c.AdvTarget.TTY = 49.29 * u.cm
-    c.AdvTarget.TTZ = 8 * u.mm
-    c.AdvTarget.nTT = 100
+    c.AdvTarget.TTX = 45 * u.cm
+    c.AdvTarget.TTY = c.AdvTarget.TTX
+    c.AdvTarget.TTZ = 4 * u.mm
+    c.AdvTarget.nTT = 58
+    
 
     # AdvSND MuFilter structure
     """
@@ -679,55 +683,16 @@ with ConfigRegistry.register_config("basic") as c:
 
     # AdvSND MuFilter Layout 2 (SQUARED)
     c.AdvMuFilter = AttrDict(z=0 * u.cm)
-    c.AdvMuFilter.MuonSysPlaneX = 60.0 * u.cm
+    c.AdvMuFilter.MuonSysPlaneX = 45 * u.cm
     c.AdvMuFilter.MuonSysPlaneY = c.AdvMuFilter.MuonSysPlaneX
-    c.AdvMuFilter.CutOffset = 3.0 * u.cm
-    # c.AdvMuFilter.FeX               = 160.0 * u.cm
-    # c.AdvMuFilter.FeY               = 166.0 * u.cm #= c.AdvMuFilter.FeX
-    c.AdvMuFilter.FeZ = 8.0 * u.cm
-    c.AdvMuFilter.FeGap = 2.0 * u.cm
-    c.AdvMuFilter.Nplanes = 22
-    c.AdvMuFilter.CoilX = c.AdvMuFilter.MuonSysPlaneX
-    c.AdvMuFilter.CoilY = 9.2 * u.cm
-    c.AdvMuFilter.FeX = 2 * c.AdvMuFilter.MuonSysPlaneX
-    c.AdvMuFilter.FeY = 2 * c.AdvMuFilter.MuonSysPlaneY + 3 * c.AdvMuFilter.CoilY
+    c.AdvMuFilter.MuonSysPlaneZ = 4 * u.mm
+    c.AdvMuFilter.FeX = 105 * u.cm
+    c.AdvMuFilter.FeY = 80.0 * u.cm
+    c.AdvMuFilter.FeZ = 5 * u.cm
+    c.AdvMuFilter.FeGap = 7.5 * u.cm
+    c.AdvMuFilter.Nplanes = 34
+    c.AdvMuFilter.CoilX = 41 * u.cm
+    c.AdvMuFilter.CoilY = c.AdvMuFilter.MuonSysPlaneY
+    c.AdvMuFilter.CoilZ = 5 * u.cm
     c.AdvMuFilter.Field = 1.75 * u.tesla
-    c.AdvMuFilter.NBars = 20
-    c.AdvMuFilter.BarGap = 0.1 * u.mm
-    # AdvSND Downstream magnet
-    c.AdvMuFilter.DownCutOffset = 30.0 * u.cm
-    c.AdvMuFilter.DownFeZ = 160.0 * u.cm
-    c.AdvMuFilter.CoilThickY = 9.2 * u.cm
-    (
-        c.AdvMuFilter.MagTracker1X,
-        c.AdvMuFilter.MagTracker2X,
-        c.AdvMuFilter.MagTracker3X,
-    ) = 60 * u.cm, 70 * u.cm, 90 * u.cm
-    (
-        c.AdvMuFilter.MagTracker1Y,
-        c.AdvMuFilter.MagTracker2Y,
-        c.AdvMuFilter.MagTracker3Y,
-    ) = (
-        c.AdvMuFilter.MagTracker1X,
-        c.AdvMuFilter.MagTracker2X,
-        c.AdvMuFilter.MagTracker3X,
-    )
-    c.AdvMuFilter.MagTrackerZ = 25 * u.mm
-    # c.AdvMuFilter.DownFeX           = 200. * u.cm
-    # c.AdvMuFilter.DownFeY           = 228. * u.cm
-    c.AdvMuFilter.DownFeX = (200.0 / 120.0) * c.AdvMuFilter.MagTracker3X
-    c.AdvMuFilter.DownFeY = (228.0 / 120.0) * c.AdvMuFilter.MagTracker3Y
-    c.AdvMuFilter.DownFeYokeX = (
-        c.AdvMuFilter.DownFeX - c.AdvMuFilter.MagTracker2X
-    ) / 2.0
-    c.AdvMuFilter.DownFeYokeY = (
-        c.AdvMuFilter.DownFeY - c.AdvMuFilter.MagTracker2Y - c.AdvMuFilter.CoilThickY
-    ) / 2.0
-    c.AdvMuFilter.DownFeCutX = c.AdvMuFilter.DownFeYokeX - c.AdvMuFilter.DownCutOffset
-    c.AdvMuFilter.DownFeCutY = c.AdvMuFilter.DownFeYokeY - c.AdvMuFilter.DownCutOffset
-    c.AdvMuFilter.IronCoreZ = c.AdvMuFilter.DownFeZ
-    c.AdvMuFilter.IronCoreX1 = c.AdvMuFilter.MagTracker2X
-    c.AdvMuFilter.IronCoreX2 = c.AdvMuFilter.MagTracker3X
-    c.AdvMuFilter.IronCoreY1 = c.AdvMuFilter.IronCoreX1
-    c.AdvMuFilter.IronCoreY2 = c.AdvMuFilter.IronCoreX2
-    c.AdvMuFilter.DownField = 1.75 * u.tesla
+    c.AdvMuFilter.CurvRadius = 4.5 * u.cm
