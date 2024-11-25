@@ -194,8 +194,8 @@ void Floor::ConstructGeometry()
          Double_t CurrentTargetY = 9.564471+5.368296; // current y coordinate of the target low edge, hardcoded due to time constraints, find better way
 
          Double_t ShiftX = TargetX/2.+0.0033519999999995775+2.;
-         Double_t ShiftY = -CurrentTargetY-20.188581+4;
-         Double_t ShiftZ = -400.;
+         Double_t ShiftY = -CurrentTargetY-20.188581+4+9.078588;
+         Double_t ShiftZ = -200;
          ////////////////////////////////////////////
          auto localSND_physCS_comb = new TGeoCombiTrans("localSND_physCS",0.+ShiftX,0.+ShiftY, 0.+ShiftZ,localSND_physCS_rot);    // origin is 480m downstream of IP1, shifting the apparatus 4m upstream
          localSND_physCS_comb->RegisterYourself();
