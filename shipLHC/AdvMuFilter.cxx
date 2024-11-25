@@ -225,135 +225,19 @@ void AdvMuFilter::ConstructGeometry()
     TGeoGlobalMagField::Instance()->SetField(magField);
     volMagFe->SetField(magField);
 
-    TGeoVolume *volCoil = new TGeoVolume("volCoil", Coil, Cu);
-    volCoil->SetLineColor(kOrange + 1);
-    TGeoVolume *volVertCoil = new TGeoVolume("volVertCoil", VertCoil, Cu);
-    volVertCoil->SetLineColor(kOrange + 1);
+    volMuonSysPlane->SetLineColor(kGray-2);
+    volFeSlab->SetLineColor(kGreen-4);
+    volMagFe->SetLineColor(kGreen);
 
-    // Minimal configuration includes Silicon strip detectors, for now naive copy of AdvTarget layout
-    // Silicon tracker module
-    //
-    // See https://indico.cern.ch/event/1201858/#81-detector-simulation for technical diagrams and renders
-    //
-    // Active part
-    TGeoBBox *SensorShape =
-        new TGeoBBox("SensorShapeFilter", advsnd::sensor_length / 2, advsnd::sensor_width / 2, 0.5 * mm / 2);
-    TGeoVolume *SensorVolume = new TGeoVolume("SensorVolumeFilter", SensorShape, Silicon);
-    SensorVolume->SetLineColor(kGreen);
-    AddSensitiveVolume(SensorVolume);
-
-    volAdvMuFilter->AddNode(volVertCoil, 0, new TGeoTranslation(0, 0, 0));
-    for (int i = 0; i < fNplanes; i++) {
-        volAdvMuFilter->AddNode(volFeWall, i, new TGeoTranslation(0, 0, (fCoilY + fFeZ) / 2 + i * (fFeZ + fFeGap)));
-        volAdvMuFilter->AddNode(volMagFe, i, new TGeoTranslation(0, 0, (fCoilY + fFeZ) / 2 + i * (fFeZ + fFeGap)));
-        if (i == fNplanes - 1)
-            continue;
-
-        int station = i;
-        TGeoVolumeAssembly *TrackingStation = new TGeoVolumeAssembly("TrackingStation");
-
-        if (i < advsnd::hcal::stations) {
-            using namespace advsnd::hcal;
-
-            // Each tracking station consists of X and Y planes
-            for (auto &&plane : TSeq(planes)) {
-                TGeoVolumeAssembly *TrackerPlane = new TGeoVolumeAssembly("TrackerPlane");
-                int j = 0;
-                // Each plane consists of 4 modules
-                for (auto &&row : TSeq(rows)) {
-                    for (auto &&column : TSeq(columns)) {
-                        // Each module in turn consists of two sensors on a support
-                        TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
-                        for (auto &&sensor : TSeq(advsnd::sensors)) {
-                            int32_t sensor_id =
-                                (station << 17) + (plane << 16) + (row << 13) + (column << 11) + (sensor << 10) + 999;
-                            SensorModule->AddNode(
-                                SensorVolume,
-                                sensor_id,
-                                new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2
-                                                        + sensor * (advsnd::sensor_length + advsnd::sensor_gap),
-                                                    0,
-                                                    +3 * mm / 2 + 0.5 * mm / 2));
-                        }
-                        TrackerPlane->AddNode(
-                            SensorModule,
-                            ++j,
-                            new TGeoCombiTrans(
-                                // Offset modules as needed by row and column
-                                TGeoTranslation(-plane_width / 2. + advsnd::module_length / 2.
-                                                    + column * (advsnd::module_length + module_column_gap)
-                                                    - (column == 2 ? 43.85 * mm : 3.35 * mm),
-                                                (row - (rows - 1.) / 2.) * (advsnd::module_width + module_row_gap),
-                                                ((column + row) % columns - (columns - 1.) / 2.) * 4 * mm),
-                                // Rotate every module of the second column
-                                TGeoRotation(TString::Format("rot%d", j), 0, 0, (column != 2) ? 180 : 0)));
-                    }
-                }
-                if (plane == 0) {
-                    // X-plane
-                    TrackingStation->AddNode(TrackerPlane, plane, new TGeoTranslation(0, 0, -2 * mm));
-                } else if (plane == 1) {
-                    // Y-plane
-                    TrackingStation->AddNode(
-                        TrackerPlane,
-                        plane,
-                        new TGeoCombiTrans(TGeoTranslation(0, 0, 2 * mm), TGeoRotation("y_rot", 0, 0, 90)));
-                }
-            }
-
-        } else if (i >= advsnd::hcal::stations) {
-            using namespace advsnd::muon;
-
-            // Each tracking station consists of X and Y planes
-            for (auto &&plane : TSeq(planes)) {
-                TGeoVolumeAssembly *TrackerPlane = new TGeoVolumeAssembly("TrackerPlane");
-                int j = 0;
-                // Each plane consists of 4 modules
-                for (auto &&row : TSeq(rows)) {
-                    for (auto &&column : TSeq(columns)) {
-                        // Each module in turn consists of two sensors on a support
-                        TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
-                        for (auto &&sensor : TSeq(advsnd::sensors)) {
-                            int32_t sensor_id =
-                                (station << 17) + (plane << 16) + (row << 13) + (column << 11) + (sensor << 10) + 999;
-                            SensorModule->AddNode(
-                                SensorVolume,
-                                sensor_id,
-                                new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2
-                                                        + sensor * (advsnd::sensor_length + advsnd::sensor_gap),
-                                                    0,
-                                                    +3 * mm / 2 + 0.5 * mm / 2));
-                        }
-                        TrackerPlane->AddNode(
-                            SensorModule,
-                            ++j,
-                            new TGeoCombiTrans(
-                                // Offset modules as needed by row and column
-                                TGeoTranslation(-plane_width / 2. + advsnd::module_length / 2.
-                                                    + column * (advsnd::module_length + module_column_gap)
-                                                    - (column == 2 ? 43.85 * mm : 3.35 * mm),
-                                                (row - (rows - 1.) / 2.) * (advsnd::module_width + module_row_gap),
-                                                ((column + row) % columns - (columns - 1.) / 2.) * 4 * mm),
-                                // Rotate every module of the second column
-                                TGeoRotation(TString::Format("rot%d", j), 0, 0, (column != 2) ? 180 : 0)));
-                    }
-                }
-                if (plane == 0) {
-                    // X-plane
-                    TrackingStation->AddNode(TrackerPlane, plane);
-                } else if (plane == 1) {
-                    // Y-plane
-                    TrackingStation->AddNode(TrackerPlane,
-                                             plane,
-                                             new TGeoCombiTrans(TGeoTranslation(0, 0, +3.5 * mm + 0.5 * mm),
-                                                                TGeoRotation("y_rot", 0, 0, 90)));
-                }
-            }
-        }
-        volAdvMuFilter->AddNode(
-            TrackingStation,
-            i,
-            new TGeoTranslation(0, 0, (fCoilY + fFeZ) / 2 + (fFeZ + fFeGap) / 2. + i * (fFeZ + fFeGap)));
+    volAdvMuFilter->AddNode(volMuonSysPlane, 0, new TGeoTranslation(0, 0, fMuonSysPlaneZ/2+(fCoilZ+fCurvRadius)));
+    for (auto plane = 1; plane<fNplanes+1; plane++) {
+        Double_t station_length = 2*fMuonSysPlaneZ+fFeZ;
+        Double_t Zshift = fMuonSysPlaneZ+fCoilZ+fCurvRadius;
+        volAdvMuFilter->AddNode(volFeSlab, plane, new TGeoTranslation(0, 0, Zshift+fFeZ/2+(plane-1)*station_length));
+        volAdvMuFilter->AddNode(volMagFe, plane, new TGeoTranslation(0, 0, Zshift+fFeZ/2+(plane-1)*station_length));
+        volAdvMuFilter->AddNode(volMuonSysPlane, plane*10, new TGeoTranslation(0, 0, Zshift+fFeZ+fMuonSysPlaneZ/2+(plane-1)*station_length));
+        if (plane == fNplanes) continue;
+        volAdvMuFilter->AddNode(volMuonSysPlane, plane*10+1, new TGeoTranslation(0, 0, Zshift+fFeZ+fMuonSysPlaneZ+fMuonSysPlaneZ/2+(plane-1)*station_length));
     }
 }
 Bool_t AdvMuFilter::ProcessHits(FairVolume *vol)
