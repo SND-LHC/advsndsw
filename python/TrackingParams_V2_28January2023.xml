@@ -16,10 +16,10 @@
         or sndRecoTrack class, value 0  -->
   <genfitTrack> 0 </genfitTrack>
   <!--  Enable option to visualize the polulated Hough space. Usefull for tests -->
-  <draw> 0 </draw> 
-  
+  <draw> 0 </draw>
+
   <tracking_case name = "nu_interaction_products">
-     <!--  Which detectors to use in the tracks fit, in the format: vesfusds, 
+     <!--  Which detectors to use in the tracks fit, in the format: vesfusds,
            where [ve] is Veto, [sf] is SciFi, [us] is Upstream Muon Filter,
            and [ds] is Downstream Muon Filter. -->
      <hits_to_fit> sfusds </hits_to_fit>
@@ -41,7 +41,7 @@
      <Nhits_per_plane> 4 </Nhits_per_plane>
      <!--  Maximum number of fitted tracks per event  -->
      <max_reco_muons> 5 </max_reco_muons>
-     <!--  Maximum absolute value of reconstructed angle 
+     <!--  Maximum absolute value of reconstructed angle
            (+/- 1 rad is the maximum angle to form a triplet in the SciFi) -->
      <max_angle unit="rad"> 1. </max_angle>
      <!--  Number of random throws per measurement  -->
@@ -53,7 +53,7 @@
      <!-- Enable Gaussian smoothing of the Hough-space image.
           For 'ds' HT prediction, do a full accumulator smoothing.  -->
      <smooth_full> 1 </smooth_full>
-     <!-- Gaussian filtering parameters. 
+     <!-- Gaussian filtering parameters.
           The kernel size is determined as 2*int(truncate*sigma+0.5)+1.  -->
      <sigma> 3 </sigma>
      <truncate> 4 </truncate>
@@ -63,7 +63,7 @@
            linear (slope, intecept), or
            linear (intercept@1st, intercept@last syb-system plane) -->
      <!-- FIXME TO BE TUNED for this tracking case! -->
-     <Hough_space_format name = "normal"> 
+     <Hough_space_format name = "normal">
            <N_yH_bins> 1000 </N_yH_bins>
            <yH_min_xz unit="cm"> -80. </yH_min_xz>
            <yH_max_xz unit="cm">  0.  </yH_max_xz>
@@ -104,7 +104,7 @@
           n_quantile portion of all maxima 'slope' bins within a res range.
           If smoothing is active, n_quantile and res are not used!  -->
      <n_quantile> 0 </n_quantile>
-     <!-- It is advisable to have res consistent with detector angular resolution. 
+     <!-- It is advisable to have res consistent with detector angular resolution.
           The unit is Hough-space pixels -->
      <res> 0 </res>
      <!-- A back-up Hough space with 'space_scale'*Nbins in xH and yH axes.
@@ -113,7 +113,7 @@
   </tracking_case>
 
   <tracking_case name = "passing_mu_Sf">
-     <!--  Which detectors to use in the tracks fit, in the format: vesfusds, 
+     <!--  Which detectors to use in the tracks fit, in the format: vesfusds,
            where [ve] is Veto, [sf] is SciFi, [us] is Upstream Muon Filter,
            and [ds] is Downstream Muon Filter. -->
      <hits_to_fit> sf </hits_to_fit>
@@ -135,7 +135,7 @@
      <Nhits_per_plane> 4 </Nhits_per_plane>
      <!--  Maximum number of fitted tracks per event  -->
      <max_reco_muons> 1 </max_reco_muons>
-     <!--  Maximum absolute value of reconstructed angle 
+     <!--  Maximum absolute value of reconstructed angle
            (+/- 1 rad is the maximum angle to form a triplet in the SciFi) -->
      <max_angle unit="rad"> 1. </max_angle>
      <!--  Number of random throws per measurement  -->
@@ -147,7 +147,7 @@
      <!-- Enable Gaussian smoothing of the Hough-space image.
           No smoothing for 'sf' HT prediction. -->
      <smooth_full> 0 </smooth_full>
-     <!-- Gaussian filtering parameters. 
+     <!-- Gaussian filtering parameters.
           The kernel size is determined as 2*int(truncate*sigma+0.5)+1. -->
      <sigma> 3 </sigma>
      <truncate> 4 </truncate>
@@ -197,7 +197,7 @@
           n_quantile portion of all maxima 'slope' bins within a res range.
           If smoothing is active, n_quantile and res are not used!  -->
      <n_quantile> 0.5 </n_quantile>
-     <!-- It is advisable to have res consistent with detector angular resolution. 
+     <!-- It is advisable to have res consistent with detector angular resolution.
           The unit is Hough-space pixels -->
      <res> 50 </res>
      <!-- A back-up Hough space with 'space_scale'*Nbins in xH and yH axes.
@@ -206,7 +206,7 @@
   </tracking_case>
 
   <tracking_case name = "passing_mu_DS">
-     <!--  Which detectors to use in the tracks fit, in the format: vesfusds, 
+     <!--  Which detectors to use in the tracks fit, in the format: vesfusds,
            where [ve] is Veto, [sf] is SciFi, [us] is Upstream Muon Filter,
            and [ds] is Downstream Muon Filter. -->
      <hits_to_fit> ds </hits_to_fit>
@@ -228,7 +228,7 @@
      <Nhits_per_plane> 4 </Nhits_per_plane>
      <!--  Maximum number of fitted tracks per event  -->
      <max_reco_muons> 1 </max_reco_muons>
-     <!--  Maximum absolute value of reconstructed angle 
+     <!--  Maximum absolute value of reconstructed angle
            (+/- 1 rad is the maximum angle to form a triplet in the SciFi) -->
      <max_angle unit="rad"> 1. </max_angle>
      <!--  Number of random throws per measurement  -->
@@ -240,7 +240,7 @@
      <!-- Enable Gaussian smoothing of the Hough-space image.
           For 'ds' HT prediction, do a full accumulator smoothing. -->
      <smooth_full> 0 </smooth_full>
-     <!-- Gaussian filtering parameters. 
+     <!-- Gaussian filtering parameters.
           The kernel size is determined as 2*int(truncate*sigma+0.5)+1. -->
      <sigma> 3 </sigma>
      <truncate> 4 </truncate>
@@ -249,7 +249,7 @@
            normal (rho, theta) representation, or
            linear (slope, intecept), or
            linear (intercept@1st, intercept@last syb-system plane) -->
-     <Hough_space_format name = "normal"> 
+     <Hough_space_format name = "normal">
            <N_yH_bins> 1152 </N_yH_bins>
            <yH_min_xz unit="cm"> -576. </yH_min_xz>
            <yH_max_xz unit="cm">  576. </yH_max_xz>
@@ -290,7 +290,7 @@
           n_quantile portion of all maxima 'slope' bins within a res range.
           If smoothing is active, n_quantile and res are not used!  -->
      <n_quantile> 0.5 </n_quantile>
-     <!-- It is advisable to have res consistent with detector angular resolution. 
+     <!-- It is advisable to have res consistent with detector angular resolution.
           The unit is Hough-space pixels -->
      <res> 5 </res>
      <!-- A back-up Hough space with 'space_scale'*Nbins in xH and yH axes.
@@ -299,4 +299,3 @@
   </tracking_case>
 
 </TrackingParams>
-

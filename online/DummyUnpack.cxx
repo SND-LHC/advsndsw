@@ -1,10 +1,14 @@
 // SHiP headers
 #include "DummyUnpack.h"
-#include "ShipOnlineDataFormat.h"
+
 #include "FairLogger.h"
+#include "ShipOnlineDataFormat.h"
 
 // DummyUnpack: Constructor
-DummyUnpack::DummyUnpack(uint16_t PartitionId) : fPartitionId(PartitionId) {}
+DummyUnpack::DummyUnpack(uint16_t PartitionId)
+    : fPartitionId(PartitionId)
+{
+}
 
 // Virtual DummyUnpack: Public method
 DummyUnpack::~DummyUnpack() = default;
@@ -12,8 +16,8 @@ DummyUnpack::~DummyUnpack() = default;
 // Init: Public method
 Bool_t DummyUnpack::Init()
 {
-   Register();
-   return kTRUE;
+    Register();
+    return kTRUE;
 }
 
 // Register: Protected method
@@ -22,16 +26,21 @@ void DummyUnpack::Register() {}
 // DoUnpack: Public method
 Bool_t DummyUnpack::DoUnpack(Int_t *data, Int_t size)
 {
-   LOG(INFO) << "DummyUnpack for PartitionId " << std::hex << fPartitionId << std::dec
-             << ": Unpacking frame... size/bytes = " << size;
-   auto df = reinterpret_cast<DataFrame *>(data);
-   switch (df->header.frameTime) {
-   case SoS: LOG(INFO) << "DummyUnpack: SoS frame."; return kTRUE;
-   case EoS: LOG(INFO) << "DummyUnpack: EoS frame."; return kTRUE;
-   default: break;
-   }
+    LOG(INFO) << "DummyUnpack for PartitionId " << std::hex << fPartitionId << std::dec
+              << ": Unpacking frame... size/bytes = " << size;
+    auto df = reinterpret_cast<DataFrame *>(data);
+    switch (df->header.frameTime) {
+        case SoS:
+            LOG(INFO) << "DummyUnpack: SoS frame.";
+            return kTRUE;
+        case EoS:
+            LOG(INFO) << "DummyUnpack: EoS frame.";
+            return kTRUE;
+        default:
+            break;
+    }
 
-   return kTRUE;
+    return kTRUE;
 }
 
 // Reset: Public method
