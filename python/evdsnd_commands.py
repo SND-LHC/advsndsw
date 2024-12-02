@@ -1,21 +1,27 @@
 import ROOT
-import  eveGlobal
+import eveGlobal
 import sys
 
+
 def nextEvent():
-  SHiPDisplay = eveGlobal.SHiPDisplay
-  SHiPDisplay.NextEvent()
-  pass
+    SHiPDisplay = eveGlobal.SHiPDisplay
+    SHiPDisplay.NextEvent()
+    pass
+
 
 def transparentMode():
-  SHiPDisplay = eveGlobal.SHiPDisplay
-  if SHiPDisplay.TransparentMode == 0 : SHiPDisplay.transparentMode()
-  else: SHiPDisplay.transparentMode('off')
+    SHiPDisplay = eveGlobal.SHiPDisplay
+    if SHiPDisplay.TransparentMode == 0:
+        SHiPDisplay.transparentMode()
+    else:
+        SHiPDisplay.transparentMode("off")
+
 
 def light(step):
-  SHiPDisplay = eveGlobal.SHiPDisplay
-  SHiPDisplay.light(step)
+    SHiPDisplay = eveGlobal.SHiPDisplay
+    SHiPDisplay.light(step)
+
 
 def fittrack():
-  SHiPDisplay = eveGlobal.SHiPDisplay
-  SHiPDisplay.fittrack()
+    SHiPDisplay = eveGlobal.SHiPDisplay
+    SHiPDisplay.fittrack()

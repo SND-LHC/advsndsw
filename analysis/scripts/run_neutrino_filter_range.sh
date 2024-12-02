@@ -21,8 +21,8 @@ fi
 for i_run in `seq ${RUN_RANGE_START} ${RUN_RANGE_END}`
 do
 
-    if [ "$MODE" == "STAGE1" ] 
-    then 
+    if [ "$MODE" == "STAGE1" ]
+    then
 	# Check if only one digitized file exists in the input directory. Otherwise, skip.
 	digi_files=(${INPUT_DIR}/${i_run}/*_digCPP.root)
 
@@ -53,12 +53,12 @@ do
 
 	# Run first stage filter
 	neutrinoFilterGoldenSample ${input_file} filtered_MC_00${i_run}.root $CUT_SET
-	
+
 	# Copy output
     	mkdir -p ${BASE_OUT_DIR}/${i_run}/
     	xrdcp -f ./filtered_MC_00${i_run}.root ${BASE_OUT_DIR}/${i_run}/
     	rm -rf ./filtered_MC_00${i_run}.root
-    elif [ "$MODE" == "RECO" ] 
+    elif [ "$MODE" == "RECO" ]
     then
 
 	if [ -f "${BASE_OUT_DIR}/${i_run}/filtered_MC_00${i_run}_muonReco.root" ]
@@ -89,7 +89,7 @@ do
     	xrdcp -f ./filtered_MC_00${i_run}_muonReco.root ${BASE_OUT_DIR}/${i_run}/
 	rm ./filtered_MC_00${i_run}_muonReco.root
 
-    elif [ "$MODE" == "STAGE2" ] 
+    elif [ "$MODE" == "STAGE2" ]
     then
 
 	if [ -f "${BASE_OUT_DIR}/${i_run}/filtered_MC_00${i_run}_stage2_noscifi2.root" ]
@@ -113,9 +113,9 @@ do
     	    eval `alienv load -w $SNDBUILD_DIR --no-refresh sndsw/latest`
 	    export EOSSHIP=root://eosuser.cern.ch/
 	fi
-	
+
 	python ${SNDSW_ROOT}/analysis/neutrinoFilterGoldenSample_stage2.py -f ${BASE_OUT_DIR}/${i_run}/filtered_MC_00${i_run}.root -t ${BASE_OUT_DIR}/${i_run}/filtered_MC_00${i_run}_muonReco.root -o ./filtered_MC_00${i_run}_stage2_noscifi2.root -g ${geo_file};
-                 
+
     	xrdcp -f ./filtered_MC_00${i_run}_stage2_noscifi2.root ${BASE_OUT_DIR}/${i_run}/
 	rm ./filtered_MC_00${i_run}_stage2_noscifi2.root
     fi
