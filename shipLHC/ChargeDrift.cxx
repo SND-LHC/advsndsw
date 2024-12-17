@@ -3,6 +3,7 @@
 #include "TVector3.h"
 #include "TGraph.h"
 #include "TCanvas.h"
+#include "SiDigiParameters.h"
 
 #include <iostream>
 #include <vector>
@@ -27,23 +28,23 @@ std::vector<SurfaceSignal> ChargeDrift::Drift(std::vector<EnergyFluctUnit> Energ
         for (int i = 0; i < DriftPos.size(); i ++)
         {
             DriftDistance = 0.025 - DriftPos[i].Z();
-            DriftDistanceFraction = DriftDistance / module_thickness; 
+            DriftDistanceFraction = DriftDistance / stripsensor::drift::module_thickness; 
             DriftDistanceFraction = DriftDistanceFraction > 0. ? DriftDistanceFraction : 0. ; 
             DriftDistanceFraction = DriftDistanceFraction < 1. ? DriftDistanceFraction : 1. ;
 
             //DriftTime = GetDriftTime(DriftDistance);
             
-            Double_t tn = (module_thickness * module_thickness) / (2 * depletion_voltage * charge_mobility);
-            DriftTime = -tn * log(1 - 2 * depletion_voltage * DriftDistanceFraction / (depletion_voltage + applied_voltage)) + chargedistributionRMS;
+            Double_t tn = (stripsensor::drift::module_thickness * stripsensor::drift::module_thickness) / (2 * stripsensor::drift::depletion_voltage * stripsensor::drift::charge_mobility);
+            DriftTime = -tn * log(1 - 2 * stripsensor::drift::depletion_voltage * DriftDistanceFraction / (stripsensor::drift::depletion_voltage + stripsensor::drift::applied_voltage)) + stripsensor::drift::chargedistributionRMS;
 
             
             DriftPositiononSurface.SetXYZ(DriftPos[i].X(), DriftPos[i].Y(), DriftPos[i].Z()+DriftDistance); 
 
-            DiffusionConstant = (1.38E-23 / 1.6E-19) * charge_mobility * temperature; 
+            DiffusionConstant = (1.38E-23 / 1.6E-19) * stripsensor::drift::charge_mobility * stripsensor::drift::temperature; 
         
             DiffusionArea = sqrt(2* DiffusionConstant * DriftTime); 
             
-            Amplitude = EnergyFluct[i]> 0. ? floor(EnergyFluct[i]*1e9 / perGeV) : 0. ;
+            Amplitude = EnergyFluct[i]> 0. ? floor(EnergyFluct[i]*1e9 / stripsensor::drift::perGeV) : 0. ;
 
             diffusionarea.push_back(DiffusionArea); 
             diffusionpos.push_back(DriftPositiononSurface);

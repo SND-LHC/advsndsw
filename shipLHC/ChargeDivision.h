@@ -23,13 +23,7 @@ class ChargeDivision
   protected:
     Double_t ParticleCharge;
     Double_t ParticleMass;
-
-    float StripPitch = 120e-4;
-    //float StripWidth = 0.25 * StripPitch;
-    Int_t ChargeDivisionsperStrip = 10;
-    Int_t NumberofSegments = 0;
-    float NumberofStrips = 0;
-
+    Int_t NumberofSegments;
     float segLen;
 };
 
