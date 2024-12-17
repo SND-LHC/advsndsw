@@ -5,6 +5,7 @@
 #include "SiG4UniversalFluctuation.h"
 #include "TVector3.h"
 #include "TGeoNavigator.h"
+#include "SiDigiParameters.h"
 
 #include "FairGeoBuilder.h"
 #include "FairGeoInterface.h"
@@ -182,9 +183,9 @@ std::vector<EnergyFluctUnit> ChargeDivision::Divide(Int_t detID, const std::vect
             NumberofSegments = 1;
         } else {
             NumberofSegments = 1
-                               + (ChargeDivisionsperStrip
+                               + (stripsensor::chargedivision::ChargeDivisionsperStrip
                                   * abs((local_entry_point.X() - local_exit_point.X())
-                                        / StripPitch));   // check if this is the correct way
+                                        / stripsensor::chargedivision::StripPitch));   // check if this is the correct way
         }
 
         segLen = (len / NumberofSegments) * 10;   // in mm

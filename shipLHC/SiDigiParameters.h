@@ -21,10 +21,29 @@ const Double_t mode = 20 ; // in MHz - the frequency that output is cycled
 const Double_t noise_mean = 0; 
 const Double_t noise_std_dev = 0.01; 
 
+namespace chargedivision{
+    const Int_t ChargeDivisionsperStrip = 10;
+    const float StripPitch = 120e-4;
+}
+
 
 
 namespace drift{
     const bool cms_approximation = 0; // 
+    const Double_t module_thickness = 0.05; //check value
+    const int depletion_voltage = 170; 
+    const int applied_voltage = 300; 
+    const int charge_mobility = 480;
+    const Double_t chargedistributionRMS = 6.5e-10;
+    const int temperature = 300; 
+    const Double_t perGeV = 3.61; 
+
+}
+
+namespace inducedcharge{
+    const Int_t NSigma = 3; 
+    const Double_t strip_width = 30e-4; //in cm  
+    const Double_t strip_pitch = 120e-4; //in cm 
 }
 
 namespace frontend{

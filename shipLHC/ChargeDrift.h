@@ -15,15 +15,6 @@ class ChargeDrift
     Double_t GetDriftTime(Double_t distance);
 
   protected:
-    Double_t module_thickness = 0.05; //check value
-    int depletion_voltage = 170; 
-    int applied_voltage = 300; 
-    int charge_mobility = 480;
-    Double_t chargedistributionRMS = 6.5e-10;
-    int temperature = 300; 
-    Double_t perGeV = 3.61; 
-
-
     std::vector<TVector3> DriftPos; 
     std::vector<Double_t> EnergyFluct; 
     Double_t DriftDistance; 
