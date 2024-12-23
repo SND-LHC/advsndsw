@@ -1,20 +1,20 @@
 #pragma once
 
-#include <vector>
-
-#include "sndBaseCut.h"
-
 #include "TChain.h"
 #include "TClonesArray.h"
+#include "sndBaseCut.h"
+
+#include <vector>
 
 namespace sndAnalysis {
-  
-  class MuFilterBaseCut : public baseCut {
 
-  protected :
-    static TClonesArray * muFilterDigiHitCollection;
+class MuFilterBaseCut : public baseCut
+{
 
-    MuFilterBaseCut(TChain * ch);
-    ~MuFilterBaseCut(){;}
-  };
-}
+  protected:
+    static TClonesArray* muFilterDigiHitCollection;
+
+    MuFilterBaseCut(TChain* ch);
+    ~MuFilterBaseCut() { ; }
+};
+}   // namespace sndAnalysis
