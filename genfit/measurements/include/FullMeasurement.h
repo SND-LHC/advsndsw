@@ -23,10 +23,9 @@
 #ifndef genfit_FullMeasurement_h
 #define genfit_FullMeasurement_h
 
-#include "AbsMeasurement.h"
 #include "AbsHMatrix.h"
+#include "AbsMeasurement.h"
 #include "MeasurementOnPlane.h"
-
 
 namespace genfit {
 
@@ -39,32 +38,31 @@ class AbsTrackRep;
  * This class can e.g. be used, if the fitted track parameters measured in one subdetector should be
  * put into one "measurement".
  */
-class FullMeasurement : public AbsMeasurement {
+class FullMeasurement : public AbsMeasurement
+{
 
- public:
-  FullMeasurement(int nDim = 5);
-  FullMeasurement(const MeasuredStateOnPlane&, int detId = -1, int hitId = -1, TrackPoint* trackPoint = NULL);
+  public:
+    FullMeasurement(int nDim = 5);
+    FullMeasurement(const MeasuredStateOnPlane&, int detId = -1, int hitId = -1, TrackPoint* trackPoint = NULL);
 
-  virtual ~FullMeasurement() {;}
+    virtual ~FullMeasurement() { ; }
 
-  virtual AbsMeasurement* clone() const {return new FullMeasurement(*this);}
+    virtual AbsMeasurement* clone() const { return new FullMeasurement(*this); }
 
-  virtual SharedPlanePtr constructPlane(const StateOnPlane& state) const;
+    virtual SharedPlanePtr constructPlane(const StateOnPlane& state) const;
 
-  virtual std::vector<MeasurementOnPlane*> constructMeasurementsOnPlane(const StateOnPlane& state) const;
+    virtual std::vector<MeasurementOnPlane*> constructMeasurementsOnPlane(const StateOnPlane& state) const;
 
-  virtual const AbsHMatrix* constructHMatrix(const AbsTrackRep*) const;
+    virtual const AbsHMatrix* constructHMatrix(const AbsTrackRep*) const;
 
- protected:
-  SharedPlanePtr plane_;   //! This is persistent, but '!' makes ROOT shut up.
+  protected:
+    SharedPlanePtr plane_;   //! This is persistent, but '!' makes ROOT shut up.
 
- public:
-
-  ClassDef(FullMeasurement,1)
-
+  public:
+    ClassDef(FullMeasurement, 1)
 };
 
 } /* End of namespace genfit */
 /** @} */
 
-#endif // genfit_FullMeasurement_h
+#endif   // genfit_FullMeasurement_h

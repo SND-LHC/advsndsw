@@ -20,7 +20,6 @@
  * @{
  */
 
-
 #ifndef genfit_FieldManager_h
 #define genfit_FieldManager_h
 
@@ -38,105 +37,120 @@ namespace genfit {
 /**
  * @brief Cache B field at a position. Used by FieldManager.
  */
-struct fieldCache {
-  double posX; double posY; double posZ;
-  double Bx; double By; double Bz;
+struct fieldCache
+{
+    double posX;
+    double posY;
+    double posZ;
+    double Bx;
+    double By;
+    double Bz;
 };
 #endif
-
 
 /** @brief Singleton which provides access to magnetic field maps.
  *
  *  @author Christian H&ouml;ppner (Technische Universit&auml;t M&uuml;nchen, original author)
  *  @author Sebastian Neubert  (Technische Universit&auml;t M&uuml;nchen, original author)
  */
-class FieldManager {
+class FieldManager
+{
 
- public:
-
-  AbsBField* getField(){
-    checkInitialized();
-    return field_;
-  }
-
-  //! This does NOT use the cache!
-  TVector3 getFieldVal(const TVector3& position){
-    checkInitialized();
-    return field_->get(position);
-  }
-
-#ifdef CACHE
-  void getFieldVal(const double& posX, const double& posY, const double& posZ, double& Bx, double& By, double& Bz);
-#else
-  inline void getFieldVal(const double& posX, const double& posY, const double& posZ, double& Bx, double& By, double& Bz) {
-    checkInitialized();
-    return field_->get(posX, posY, posZ, Bx, By, Bz);
-  }
-#endif
-
-  //! set the magnetic field here. Magnetic field classes must be derived from AbsBField.
-  void init(AbsBField* b) {
-    field_=b;
-  }
-
-  bool isInitialized() { return field_ != NULL; }
-
-  void checkInitialized() {
-    if(! isInitialized()){
-      std::cerr << "FieldManager hasn't been initialized with a correct AbsBField pointer!" << std::endl;
-      std::string msg("FieldManager hasn't been initialized with a correct AbsBField pointer!");
-      std::runtime_error err(msg);
-      throw err;
+  public:
+    AbsBField* getField()
+    {
+        checkInitialized();
+        return field_;
     }
-  }
 
-  static void checkInstanciated() {
-    if(instance_==NULL){
-      std::cerr << "FieldManager hasn't been instantiated yet, call getInstance() and init() before getFieldVal()!" << std::endl;
-      std::string msg("FieldManager hasn't been instantiated yet, call getInstance() and init() before getFieldVal()!");
-      std::runtime_error err(msg);
-      throw err;
+    //! This does NOT use the cache!
+    TVector3 getFieldVal(const TVector3& position)
+    {
+        checkInitialized();
+        return field_->get(position);
     }
-  }
 
 #ifdef CACHE
-  //! Cache last lookup positions, and use stored field values if a lookup at (almost) the same position is done.
-  void useCache(bool opt = true, unsigned int nBuckets = 8);
+    void getFieldVal(const double& posX, const double& posY, const double& posZ, double& Bx, double& By, double& Bz);
 #else
-  void useCache(bool opt = true, unsigned int nBuckets = 8) {
-    std::cerr << "genfit::FieldManager::useCache() - FieldManager is compiled w/o CACHE, no caching will be done!" << std::endl;
-  }
-#endif
-
-  //! Get singleton instance.
-  static FieldManager* getInstance(){
-    if(instance_ == NULL) {
-      instance_ = new FieldManager();
+    inline void getFieldVal(const double& posX,
+                            const double& posY,
+                            const double& posZ,
+                            double& Bx,
+                            double& By,
+                            double& Bz)
+    {
+        checkInitialized();
+        return field_->get(posX, posY, posZ, Bx, By, Bz);
     }
-    return instance_;
-  }
+#endif
 
+    //! set the magnetic field here. Magnetic field classes must be derived from AbsBField.
+    void init(AbsBField* b) { field_ = b; }
 
- private:
+    bool isInitialized() { return field_ != NULL; }
 
-  FieldManager() {}
+    void checkInitialized()
+    {
+        if (!isInitialized()) {
+            std::cerr << "FieldManager hasn't been initialized with a correct AbsBField pointer!" << std::endl;
+            std::string msg("FieldManager hasn't been initialized with a correct AbsBField pointer!");
+            std::runtime_error err(msg);
+            throw err;
+        }
+    }
+
+    static void checkInstanciated()
+    {
+        if (instance_ == NULL) {
+            std::cerr
+                << "FieldManager hasn't been instantiated yet, call getInstance() and init() before getFieldVal()!"
+                << std::endl;
+            std::string msg(
+                "FieldManager hasn't been instantiated yet, call getInstance() and init() before getFieldVal()!");
+            std::runtime_error err(msg);
+            throw err;
+        }
+    }
+
 #ifdef CACHE
-  ~FieldManager() { delete cache_; }
+    //! Cache last lookup positions, and use stored field values if a lookup at (almost) the same position is done.
+    void useCache(bool opt = true, unsigned int nBuckets = 8);
 #else
-  ~FieldManager() { }
+    void useCache(bool opt = true, unsigned int nBuckets = 8)
+    {
+        std::cerr << "genfit::FieldManager::useCache() - FieldManager is compiled w/o CACHE, no caching will be done!"
+                  << std::endl;
+    }
 #endif
-  static FieldManager* instance_;
-  static AbsBField* field_;
+
+    //! Get singleton instance.
+    static FieldManager* getInstance()
+    {
+        if (instance_ == NULL) {
+            instance_ = new FieldManager();
+        }
+        return instance_;
+    }
+
+  private:
+    FieldManager() {}
+#ifdef CACHE
+    ~FieldManager() { delete cache_; }
+#else
+    ~FieldManager() {}
+#endif
+    static FieldManager* instance_;
+    static AbsBField* field_;
 
 #ifdef CACHE
-  static bool useCache_;
-  static unsigned int n_buckets_;
-  static fieldCache* cache_;
+    static bool useCache_;
+    static unsigned int n_buckets_;
+    static fieldCache* cache_;
 #endif
-
 };
 
 } /* End of namespace genfit */
 /** @} */
 
-#endif // genfit_FieldManager_h
+#endif   // genfit_FieldManager_h
