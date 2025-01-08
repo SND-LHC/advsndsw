@@ -14,6 +14,7 @@
 
 #include <TDatabasePDG.h>
 #include <iomanip>
+#include <typeinfo>
 #include <iostream>
 #include <string>
 using std::cout;
@@ -44,8 +45,20 @@ AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
 {
     AdvDigitisation advdigi{};
     advdigi.digirun(detID, V);
+    // std::vector<AdvSignal> fTest; 
+    // fTest = advdigi.digirunoutput(detID, V);
+    // flag = true;
 
-    flag = true;
+    // cout << V.size() << endl; 
+    
+    // vector<Int_t> v = {1, 2, 3, 4};
+    // for (Int_t j = 0; j < V.size(); j++)
+    // {
+         
+    //     fStrips.push_back(v);
+    //     // fCharge.push_back(v);
+
+    // }
 
     for (Int_t i = 0; i < 16; i++) {
         fMasked[i] = kFALSE;

@@ -41,10 +41,8 @@ class AdvTargetHit : public SndlhcHit
   private:
     bool flag;          ///< flag
     bool fMasked[16];   /// masked signal
-    // std::vector<Double_t> EFluct;
-    // int EFluctSize;
-    // float segLen; 
-    // std::vector<TVector3> DriftPos;
+    // std::vector<std::vector<Int_t>> fStrips; 
+    // std::vector<std::vector<Double_t>> fCharge; 
     ClassDef(AdvTargetHit, 1);
 };
 

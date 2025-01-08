@@ -2,6 +2,7 @@
 #define SHIPLHC_ADVDIGITISATION_H_
 
 #include "AdvTargetPoint.h"
+#include "AdvSignal.h"
 #include "TVector3.h"
 #include "TGeoNavigator.h"
 
@@ -48,6 +49,7 @@ class AdvDigitisation
     AdvDigitisation();
     void digirun(Int_t detID, const std::vector<AdvTargetPoint*>& V);
     TVector3 getLocal(Int_t detID, TVector3 global_pos);
+    std::vector<AdvSignal> digirunoutput(Int_t detID, const std::vector<AdvTargetPoint*>& V);
     
 };
 #endif
