@@ -86,7 +86,9 @@ std::vector<AdvSignal> InducedCharge::IntegrateCharge(std::vector<SurfaceSignal>
         Double_t rescale_ratio = r/z; 
         for (int k = 0; k < UniqueAffectedStrips.size(); k++)
         {
-            TotalChargeDeposited[k] = (TotalChargeDeposited[k] * rescale_ratio)*e ; 
+            //the total number of electrons
+            TotalChargeDeposited[k] = std::ceil(TotalChargeDeposited[k] * rescale_ratio) ;
+            // TotalChargeDeposited[k] = (TotalChargeDeposited[k] * rescale_ratio)*e ; 
         }
 
         PulseResponse = stripsensor::peakmode ? GetPulseShape(stripsensor::APVpeakpulse, TotalChargeDeposited): GetPulseShape(stripsensor::APVdecopulse, TotalChargeDeposited) ;
