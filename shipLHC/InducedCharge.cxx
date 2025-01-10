@@ -33,6 +33,7 @@ std::vector<AdvSignal> InducedCharge::IntegrateCharge(std::vector<SurfaceSignal>
         std::vector<Int_t> temp_AffectedStrips; 
         std::vector<Double_t> ChargeDeposited; 
         std::vector<Double_t> TotalChargeDeposited;
+        //AdvSignal CoupledChargeDeposit;
         std::vector<std::vector<Double_t>> PulseResponse; 
 
         Int_t N ;
@@ -91,9 +92,12 @@ std::vector<AdvSignal> InducedCharge::IntegrateCharge(std::vector<SurfaceSignal>
             // TotalChargeDeposited[k] = (TotalChargeDeposited[k] * rescale_ratio)*e ; 
         }
 
+
         PulseResponse = stripsensor::peakmode ? GetPulseShape(stripsensor::APVpeakpulse, TotalChargeDeposited): GetPulseShape(stripsensor::APVdecopulse, TotalChargeDeposited) ;
-        AdvSignal PulseSignal(UniqueAffectedStrips, TotalChargeDeposited, PulseResponse); 
-        ResponseSignal.push_back(PulseSignal); 
+
+        AdvSignal CoupledChargeDeposit = Coupling(TotalChargeDeposited, UniqueAffectedStrips, PulseResponse);
+        
+        ResponseSignal.push_back(CoupledChargeDeposit); 
     }
     return ResponseSignal;
 }
@@ -187,4 +191,43 @@ std::vector<std::vector<Double_t>> InducedCharge::GetPulseShape(std::string Puls
     return PulseResponse; 
     // get the vector of beginning to max of the pulse
     // time response not included!
+}
+
+AdvSignal InducedCharge::Coupling(std::vector<Double_t> TotalCharge, std::vector<Int_t> AffectedStrips, std::vector<std::vector<Double_t>> PulseResponse)
+{
+    std::vector<AdvSignal> CC;
+    Int_t couplingsize = stripsensor::inducedcharge::CouplingConstants.size();
+    std::vector<Double_t> CoupledCharge; 
+    if (TotalCharge.size()!=1)
+    {
+        for (int k = 1; k < couplingsize; k++){
+            AffectedStrips.emplace(AffectedStrips.begin(), AffectedStrips[k-1]- k); 
+            AffectedStrips.push_back(AffectedStrips[AffectedStrips.size()-k] + k);
+            TotalCharge.emplace(TotalCharge.begin(), 0); 
+            TotalCharge.push_back(0);
+
+        }
+        
+        CoupledCharge = TotalCharge; 
+
+        for(int n = 0; n < TotalCharge.size(); n++)
+        {
+            CoupledCharge[n] = TotalCharge[n]*stripsensor::inducedcharge::CouplingConstants[0];
+        }
+
+        for (int i = 0; i < TotalCharge.size(); i++)
+        {
+            if (TotalCharge[i] == 0)
+                continue; 
+            for (int j = 1; j < couplingsize; j++)
+            {
+                CoupledCharge[i-j] += TotalCharge[i]*stripsensor::inducedcharge::CouplingConstants[j];
+                CoupledCharge[i+j] += TotalCharge[i]*stripsensor::inducedcharge::CouplingConstants[j];
+            }
+            
+
+        }
+    }
+    AdvSignal Coupledresult(AffectedStrips, CoupledCharge, PulseResponse);
+    return Coupledresult; 
 }
