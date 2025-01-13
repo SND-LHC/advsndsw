@@ -6,12 +6,14 @@
 #include <iostream>
 #include <vector>
 
-class FrontedDriver
+class FrontendDriver
 {
   public:
-    FrontedDriver();
+    FrontendDriver();
     std::vector<AdvSignal> ADCConversion(std::vector<AdvSignal> ResponseSignal);
-    void ZeroSuppressionAlgorithms(Int_t mode, AdvSignal Signal);
+    void ZeroSuppressionAlgorithms(AdvSignal Signal);
+
+    void TestingAlgorithm();
 
   private:
     std::vector<Double_t> ADCcount;
