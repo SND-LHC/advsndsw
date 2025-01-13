@@ -11,6 +11,8 @@ class FrontedDriver
   public:
     FrontedDriver();
     std::vector<AdvSignal> ADCConversion(std::vector<AdvSignal> ResponseSignal);
+    void ZeroSuppressionAlgorithms(Int_t mode, AdvSignal Signal);
+
   private:
     std::vector<Double_t> ADCcount;
     std::vector<AdvSignal> FEDResponse;

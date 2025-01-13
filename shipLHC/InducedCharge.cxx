@@ -92,12 +92,17 @@ std::vector<AdvSignal> InducedCharge::IntegrateCharge(std::vector<SurfaceSignal>
             // TotalChargeDeposited[k] = (TotalChargeDeposited[k] * rescale_ratio)*e ; 
         }
 
+        if (stripsensor::inducedcharge::Coupling)
+        {
+            AdvSignal CoupledChargeDeposit = Coupling(TotalChargeDeposited, UniqueAffectedStrips);
+            ResponseSignal.push_back(CoupledChargeDeposit); 
 
-        PulseResponse = stripsensor::peakmode ? GetPulseShape(stripsensor::APVpeakpulse, TotalChargeDeposited): GetPulseShape(stripsensor::APVdecopulse, TotalChargeDeposited) ;
+        } else {
+            AdvSignal PulseSignal(UniqueAffectedStrips, TotalChargeDeposited); 
+            ResponseSignal.push_back(PulseSignal);
+        }
 
-        AdvSignal CoupledChargeDeposit = Coupling(TotalChargeDeposited, UniqueAffectedStrips, PulseResponse);
-        
-        ResponseSignal.push_back(CoupledChargeDeposit); 
+ 
     }
     return ResponseSignal;
 }
@@ -193,41 +198,56 @@ std::vector<std::vector<Double_t>> InducedCharge::GetPulseShape(std::string Puls
     // time response not included!
 }
 
-AdvSignal InducedCharge::Coupling(std::vector<Double_t> TotalCharge, std::vector<Int_t> AffectedStrips, std::vector<std::vector<Double_t>> PulseResponse)
+AdvSignal InducedCharge::Coupling(std::vector<Double_t> TotalCharge, std::vector<Int_t> AffectedStrips)
 {
-    std::vector<AdvSignal> CC;
+    
     Int_t couplingsize = stripsensor::inducedcharge::CouplingConstants.size();
     std::vector<Double_t> CoupledCharge; 
-    if (TotalCharge.size()!=1)
-    {
-        for (int k = 1; k < couplingsize; k++){
-            AffectedStrips.emplace(AffectedStrips.begin(), AffectedStrips[k-1]- k); 
-            AffectedStrips.push_back(AffectedStrips[AffectedStrips.size()-k] + k);
-            TotalCharge.emplace(TotalCharge.begin(), 0); 
-            TotalCharge.push_back(0);
+    std::vector<Int_t> AffectedStrips1 = AffectedStrips; 
+    for (int k = 1; k < couplingsize; k++){
+        AffectedStrips.emplace(AffectedStrips.begin(), AffectedStrips[k-1]- k); 
+        AffectedStrips.push_back(AffectedStrips[AffectedStrips.size()-k] + k);
+        TotalCharge.emplace(TotalCharge.begin(), 1); 
+        TotalCharge.push_back(1);
 
-        }
-        
-        CoupledCharge = TotalCharge; 
-
-        for(int n = 0; n < TotalCharge.size(); n++)
-        {
-            CoupledCharge[n] = TotalCharge[n]*stripsensor::inducedcharge::CouplingConstants[0];
-        }
-
-        for (int i = 0; i < TotalCharge.size(); i++)
-        {
-            if (TotalCharge[i] == 0)
-                continue; 
-            for (int j = 1; j < couplingsize; j++)
-            {
-                CoupledCharge[i-j] += TotalCharge[i]*stripsensor::inducedcharge::CouplingConstants[j];
-                CoupledCharge[i+j] += TotalCharge[i]*stripsensor::inducedcharge::CouplingConstants[j];
-            }
-            
-
-        }
     }
-    AdvSignal Coupledresult(AffectedStrips, CoupledCharge, PulseResponse);
+    
+    // CoupledCharge = TotalCharge; 
+    // cout << TotalCharge.size() << endl; 
+    // for(int n = 0; n < TotalCharge.size(); n++)
+    // {
+    //     CoupledCharge[n] = TotalCharge[n]*stripsensor::inducedcharge::CouplingConstants[0];
+    // }
+
+    // for (int i = 0; i < TotalCharge.size(); i++)
+    // {
+    //     if (TotalCharge[i] == 0)
+    //         continue; 
+    //     cout << "i : " << i << endl; 
+    //     cout << "couplingsize : " << couplingsize << endl; 
+    //     cout << "coupledchargesize : " << CoupledCharge.size() << endl ;
+    //     for (int j = 1; j < couplingsize; j++)
+    //     {
+    //         cout << i+j << endl;
+    //         CoupledCharge[i-j] += TotalCharge[i]*stripsensor::inducedcharge::CouplingConstants[j];
+    //         CoupledCharge[i+j] += TotalCharge[i]*stripsensor::inducedcharge::CouplingConstants[j];
+    //         cout << i+j << endl;
+    //     }
+        
+
+    // }
+
+    // for (int k = 0; k < CoupledCharge.size(); k++)
+    // {
+    //     cout << CoupledCharge[k] << endl; 
+    // }
+
+    // for (int k = 0; k < TotalCharge.size(); k++)
+    // {
+    //     cout << TotalCharge[k] << endl; 
+    // }
+
+    //AdvSignal Coupledresult(AffectedStrips, CoupledCharge, PulseResponse);
+    AdvSignal Coupledresult(AffectedStrips, TotalCharge);
     return Coupledresult; 
 }

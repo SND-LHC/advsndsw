@@ -44,6 +44,7 @@ namespace inducedcharge{
     const Int_t NSigma = 3; 
     const Double_t strip_width = 30e-4; //in cm  
     const Double_t strip_pitch = 120e-4; //in cm 
+    const bool Coupling = 0; 
     const std::vector<Double_t> CouplingConstants = {0.964, 0.018};
 }
 
@@ -55,6 +56,8 @@ namespace frontend{
     const bool write_digi_to_text = 1; 
     const Int_t ElectronperADC = 250; 
     const Int_t StripNoise = 5; 
+    const Int_t ZeroSuppressionMode = 1; 
+    const Int_t ZeroSuppressionMode1T = 2; 
 }
 }   // namespace advsnd
 
