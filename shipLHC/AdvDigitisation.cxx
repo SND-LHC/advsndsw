@@ -45,11 +45,11 @@ void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &
     // inducedtimer.Stop();
     // timeinducedchargefile << inducedtimer.RealTime() << endl;
 
-    FrontedDriver frontenddriver{};
-    std::vector<AdvSignal> FEDResponse = frontenddriver.ADCConversion(ResponseSignal);
+    // FrontedDriver frontenddriver{};
+    // std::vector<AdvSignal> FEDResponse = frontenddriver.ADCConversion(ResponseSignal);
 
-    Clustering clustering{};
-    clustering.FindClusters(FEDResponse);
+    // Clustering clustering{};
+    // clustering.FindClusters(FEDResponse);
 
     if (stripsensor::frontend::write_digi_to_text)
     {
@@ -94,12 +94,9 @@ void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &
 
             std::vector<Int_t> Strips; 
             std::vector<Double_t> IntegratedSignal;
-            std::vector<std::vector<Double_t>> PulseResponse;
 
             Strips = ResponseSignal[i].getStrips(); 
             IntegratedSignal = ResponseSignal[i].getIntegratedSignal();
-            PulseResponse = ResponseSignal[i].getPulseResponse();
-
             
             
             for (int j = 0; j < EFluct.size(); j++)
@@ -111,10 +108,7 @@ void AdvDigitisation::digirun(Int_t detID, const std::vector<AdvTargetPoint *> &
 
             for (int l = 0; l < Strips.size(); l++)
             {
-                for (int m = 0; m < PulseResponse[l].size(); m++)
-                {
-                inducedchargefile << V.size() << "\t" << V[i]->GetEnergyLoss() << "\t" << V[i]->GetEventID() << "\t" << V[i]->GetTrackID() << "\t" << V[i]->GetTime() << "\t" << V[i]->GetDetectorID() << "\t" << Strips[l] << "\t" << IntegratedSignal[l] << "\t" << PulseResponse[l][m] << "\t" << Strips.size() << endl; 
-                }
+                inducedchargefile << V.size() << "\t" << V[i]->GetEnergyLoss() << "\t" << V[i]->GetEventID() << "\t" << V[i]->GetTrackID() << "\t" << V[i]->GetTime() << "\t" << V[i]->GetDetectorID() << "\t" << Strips[l] << "\t" << IntegratedSignal[l] << "\t" << Strips.size() << endl; 
             }
         }
 
