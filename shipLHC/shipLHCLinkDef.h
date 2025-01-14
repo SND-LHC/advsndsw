@@ -30,6 +30,7 @@
 #pragma link C++ class ChargeDrift +;
 #pragma link C++ class InducedCharge +;
 #pragma link C++ class FrontendDriver +;
+#pragma link C++ class StripNoise +;
 #pragma link C++ class Clustering +;
 #pragma link C++ class SiG4UniversalFluctuation + ;
 #pragma link C++ class EnergyFluctUnit + ;
