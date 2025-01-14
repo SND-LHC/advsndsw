@@ -56,6 +56,9 @@ namespace frontend{
     const bool write_digi_to_text = 1; 
     const Int_t ElectronperADC = 250; 
     const Int_t StripNoise = 19; 
+    const Double_t NoiseRMS = 2; 
+    const Double_t NoiseSigmaThreshold = 2; 
+    const Int_t NumberofStrips = 768;
     const Int_t ZeroSuppressionMode = 4; 
     const Int_t ZeroSuppressionMode1T = 50; 
 }
