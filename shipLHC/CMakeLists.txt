@@ -54,6 +54,7 @@ ChargeDivision.cxx
 ChargeDrift.cxx
 InducedCharge.cxx
 FrontendDriver.cxx
+StripNoise.cxx
 Clustering.cxx
 SiG4UniversalFluctuation.cxx
 AdvDigitisation.cxx
