@@ -11,11 +11,11 @@ class StripNoise
 {
   public:
     StripNoise();
-    AdvSignal AddGaussianNoise(AdvSignal Signal);
-    AdvSignal AddGaussianTailNoise(AdvSignal Signal);
-    double generate_gaussian_tail(const double a, const double sigma); 
+    // AdvSignal AddGaussianNoise(AdvSignal Signal);
+    // void AddGaussianTailNoise(AdvSignal Signal);
+    // double generate_gaussian_tail(const double a, const double sigma); 
 
-    void TestingGaussianNoise();
+    // void TestingGaussianNoise();
 
 };
 

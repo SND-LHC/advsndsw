@@ -9,7 +9,7 @@
 #include <vector>
 #include <cmath>
 
-using namespace std; 
+// Class for drifting the charge to the surface of the detector and diffusing the charge
 
 ChargeDrift::ChargeDrift() {}
 
@@ -18,15 +18,18 @@ std::vector<SurfaceSignal> ChargeDrift::Drift(std::vector<EnergyFluctUnit> Energ
     std::vector<SurfaceSignal> DiffusionSignal; 
     for (int k = 0; k < EnergyLossVector.size(); k++)
     {
-        vector<Double_t> diffusionarea; 
-        vector<TVector3> diffusionpos; 
-        vector<Double_t> amplitude; 
+        std::vector<Double_t> diffusionarea; 
+        std::vector<TVector3> diffusionpos; 
+        std::vector<Double_t> amplitude; 
 
         DriftPos = EnergyLossVector[k].getDriftPos();
         EnergyFluct = EnergyLossVector[k].getEfluct();
 
         for (int i = 0; i < DriftPos.size(); i ++)
         {
+            
+            //Using CMS approximation for calculating the drift time 
+
             DriftDistance = 0.025 - DriftPos[i].Z();
             DriftDistanceFraction = DriftDistance / stripsensor::drift::module_thickness; 
             DriftDistanceFraction = DriftDistanceFraction > 0. ? DriftDistanceFraction : 0. ; 
@@ -37,23 +40,26 @@ std::vector<SurfaceSignal> ChargeDrift::Drift(std::vector<EnergyFluctUnit> Energ
             Double_t tn = (stripsensor::drift::module_thickness * stripsensor::drift::module_thickness) / (2 * stripsensor::drift::depletion_voltage * stripsensor::drift::charge_mobility);
             DriftTime = -tn * log(1 - 2 * stripsensor::drift::depletion_voltage * DriftDistanceFraction / (stripsensor::drift::depletion_voltage + stripsensor::drift::applied_voltage)) + stripsensor::drift::chargedistributionRMS;
 
-            
+            //Position of drifted charge on the surface of the detector
+
             DriftPositiononSurface.SetXYZ(DriftPos[i].X(), DriftPos[i].Y(), DriftPos[i].Z()+DriftDistance); 
+
+            // Calculating the diffusion area of the signal on the surface 
 
             DiffusionConstant = (1.38E-23 / 1.6E-19) * stripsensor::drift::charge_mobility * stripsensor::drift::temperature; 
         
             DiffusionArea = sqrt(2* DiffusionConstant * DriftTime); 
             
+            // Calculating the number of electrons produced per energy deposit 
+
             Amplitude = EnergyFluct[i]> 0. ? floor(EnergyFluct[i]*1e9 / stripsensor::drift::perGeV) : 0. ;
 
             diffusionarea.push_back(DiffusionArea); 
             diffusionpos.push_back(DriftPositiononSurface);
             amplitude.push_back(Amplitude);
             
-            // cout << DiffusionArea << endl; 
-            // cout << DriftPositiononSurface.X() << endl; 
-            
         }
+        // Returning the surface signal with the area of the diffusion, position at surface and the total number of electrons 
 
         SurfaceSignal Diffused(diffusionarea, diffusionpos, amplitude);
         
@@ -64,6 +70,8 @@ std::vector<SurfaceSignal> ChargeDrift::Drift(std::vector<EnergyFluctUnit> Energ
 
 Double_t ChargeDrift::GetDriftTime(Double_t distance)
 {
+    // Calculate drift time using textbook formulas for pn junction 
+
     Double_t z_width = 400e-6; // in um   
     Double_t p = 120e-6; 
     Double_t w = 30e-6; 
@@ -131,7 +139,6 @@ Double_t ChargeDrift::GetDriftTime(Double_t distance)
     }
 
     auto gr = new TGraph (num, x, dt);
-    cout << distance << endl; 
     gr->Draw();
     Double_t drifttime = gr->Eval(distance);
     return drifttime; 

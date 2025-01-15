@@ -1,10 +1,12 @@
 #ifndef SHIPLHC_SIDIGIPARAMETERS_H_
 #define SHIPLHC_SIDIGIPARAMETERS_H_
 
-/* Header-only to implement common code for CMS TOB */
 #include "ShipUnit.h"
 
+/* Parameters for strip digitization */
+
 namespace stripsensor {
+
 
 const bool peakmode = 0;
 const Double_t sampling = 25; 
@@ -22,11 +24,9 @@ const Double_t noise_mean = 0;
 const Double_t noise_std_dev = 0.01; 
 
 namespace chargedivision{
-    const Int_t ChargeDivisionsperStrip = 10;
-    const float StripPitch = 120e-4;
+    const Int_t ChargeDivisionsperStrip = 10; // Number of divisions of the track length per strip 
+    const float StripPitch = 120e-4; // Strip pitch of the detector 
 }
-
-
 
 namespace drift{
     const bool cms_approximation = 0; // 
