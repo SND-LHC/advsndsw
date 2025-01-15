@@ -3,8 +3,6 @@
 #include "AdvSignal.h"
 #include "TRandom.h"
 
-#include <gsl/gsl_sf_erf.h>
-#include <gsl/gsl_sf_result.h>
 
 #include <iostream>
 #include <vector>
@@ -43,12 +41,10 @@ AdvSignal StripNoise::AddGaussianTailNoise(AdvSignal Signal)
     std::vector<Int_t> NoiseAddedStrips = Strips;  
     std::vector<Double_t> NoiseAddedAmplitudes = Amplitude; 
 
-    gsl_sf_result result;
-    int status = gsl_sf_erf_Q_e(stripsensor::frontend::NoiseSigmaThreshold, &result);
+    double probabilityLeft = 0.5 * std::erfc(stripsensor::frontend::NoiseSigmaThreshold / std::sqrt(2.0));
 
-    float probabilityLeft = result.val;
-
-    Double_t MeanNumberofNoisyChannels = probabilityLeft * StripsSize; 
+    Double_t MeanNumberofNoisyChannels = probabilityLeft * stripsensor::frontend::NumberofStrips; 
+    cout << MeanNumberofNoisyChannels << endl ;
 
     TRandom* rndm = gRandom;
     Double_t NumberofNoisyChannels = rndm->Poisson(MeanNumberofNoisyChannels);
@@ -77,12 +73,13 @@ AdvSignal StripNoise::AddGaussianTailNoise(AdvSignal Signal)
 
 double StripNoise::generate_gaussian_tail(const double a,const double sigma) 
 {
+    // taken from CMS 
+    
   /* Returns a gaussian random variable larger than a
    * This implementation does one-sided upper-tailed deviates.
    */
     TRandom* rndm = gRandom;
     double s = a / sigma;
-    cout << s << endl; 
 
     if (s < 1) {
         /*
@@ -93,7 +90,6 @@ double StripNoise::generate_gaussian_tail(const double a,const double sigma)
 
         do {
         x = rndm->Gaus(0., 1.0);
-        cout << x << endl; 
         } while (x < s);
         return x * sigma;
 
@@ -108,26 +104,11 @@ double StripNoise::generate_gaussian_tail(const double a,const double sigma)
 
         do {
         u = rndm->Rndm();
-        cout << u << endl; 
         do {
             v = rndm->Rndm();
-            cout << v << endl; 
         } while (v == 0.0);
         x = sqrt(s * s - 2 * log(v));
-        cout << "2 : " << x << endl; 
         } while (x * u > s);
         return x * sigma;
     }
-}
-
-void TestingGaussianNoise()
-{
-    std::vector<Int_t> Strips = {100, 101, 102}; 
-    std::vector<Double_t> IntegratedSignal = {200, 600, 50};
-    
-    AdvSignal TestSignal(Strips, IntegratedSignal); 
-
-    StripNoise stripnoise; 
-    // stripnoise.AddGaussianNoise(TestSignal);
-    stripnoise.AddGaussianTailNoise(TestSignal);
 }
