@@ -6,6 +6,7 @@ set(INCLUDE_DIRECTORIES
 ${BASE_INCLUDE_DIRECTORIES}
 ${CMAKE_SOURCE_DIR}/shipdata
 ${CMAKE_SOURCE_DIR}/shipLHC
+${CMAKE_SOURCE_DIR}/shipLHC/digitisation
 ${CMAKE_SOURCE_DIR}/shipLHC/external/clhep/include
 ${CMAKE_SOURCE_DIR}/veto
 ${CMAKE_SOURCE_DIR}/genfit/core/include
@@ -50,14 +51,14 @@ AdvMuFilter.cxx
 AdvMuFilterPoint.cxx
 SNDLHCEventHeader.cxx
 sndRecoTrack.cxx
-ChargeDivision.cxx
-ChargeDrift.cxx
-InducedCharge.cxx
-FrontendDriver.cxx
-StripNoise.cxx
-Clustering.cxx
-SiG4UniversalFluctuation.cxx
-AdvDigitisation.cxx
+digitisation/ChargeDivision.cxx
+digitisation/ChargeDrift.cxx
+digitisation/InducedCharge.cxx
+digitisation/FrontendDriver.cxx
+digitisation/StripNoise.cxx
+digitisation/Clustering.cxx
+digitisation/SiG4UniversalFluctuation.cxx
+digitisation/AdvDigitisation.cxx
 )
 
 Set(HEADERS )

@@ -64,6 +64,6 @@ namespace frontend{
 }
 }   // namespace advsnd
 
-#endif   // SHIPLHC_SISENSOR_H_
+#endif   // SHIPLHC_SIDIGIPARAMETERS_H_
 
 
