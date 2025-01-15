@@ -16,7 +16,7 @@
 #include <filesystem>
 #include <random>
 
-using namespace std; 
+// Class for calculating the induced charge on the strips 
 
 InducedCharge::InducedCharge() {}
 
@@ -33,10 +33,7 @@ std::vector<AdvSignal> InducedCharge::IntegrateCharge(std::vector<SurfaceSignal>
         std::vector<Int_t> temp_AffectedStrips; 
         std::vector<Double_t> ChargeDeposited; 
         std::vector<Double_t> TotalChargeDeposited;
-        //AdvSignal CoupledChargeDeposit;
-        std::vector<std::vector<Double_t>> PulseResponse; 
 
-        Int_t N ;
         Double_t x_start; 
         Double_t x_end; 
         Double_t z_start; 
@@ -47,7 +44,11 @@ std::vector<AdvSignal> InducedCharge::IntegrateCharge(std::vector<SurfaceSignal>
 
         for (int i = 0; i < surfacepos.size(); i++)
         {
+        //Getting the strips that would see the charge for each energy segment 
+
         AffectedStrips = GetStrips(surfacepos[i], diffusionarea[i]);   
+
+            // Calculating the charge deposited by using the error function with the z position of the concerned strip 
 
             for(int j = 0; j < AffectedStrips.size(); j++)
             {
@@ -62,12 +63,16 @@ std::vector<AdvSignal> InducedCharge::IntegrateCharge(std::vector<SurfaceSignal>
             }
         }
 
+        // Getting the unique strips 
+
         std::vector<Int_t> UniqueAffectedStrips = temp_AffectedStrips;  
         sort(UniqueAffectedStrips.begin(), UniqueAffectedStrips.end());
-        vector<int>::iterator it;
+        std::vector<int>::iterator it;
         it = unique(UniqueAffectedStrips.begin(), UniqueAffectedStrips.end());  
 
         UniqueAffectedStrips.resize(distance(UniqueAffectedStrips.begin(),it));  
+
+        // Summing up the charge from each segment for each strip 
 
         Double_t z = accumulate(amplitude.begin(), amplitude.end(), 0);
 
@@ -89,8 +94,9 @@ std::vector<AdvSignal> InducedCharge::IntegrateCharge(std::vector<SurfaceSignal>
         {
             //the total number of electrons
             TotalChargeDeposited[k] = std::ceil(TotalChargeDeposited[k] * rescale_ratio) ;
-            // TotalChargeDeposited[k] = (TotalChargeDeposited[k] * rescale_ratio)*e ; 
         }
+
+        // Add coupling to neighbour strips  
 
         if (stripsensor::inducedcharge::Coupling)
         {
@@ -101,9 +107,9 @@ std::vector<AdvSignal> InducedCharge::IntegrateCharge(std::vector<SurfaceSignal>
             AdvSignal PulseSignal(UniqueAffectedStrips, TotalChargeDeposited); 
             ResponseSignal.push_back(PulseSignal);
         }
-
- 
     }
+    // Returns the strips and their amplitudes in number of electrons
+
     return ResponseSignal;
 }
 
@@ -111,13 +117,15 @@ std::vector<Int_t> InducedCharge::GetStrips(TVector3 point, Double_t area)
 {
     std::vector<Int_t> affectedstrips;
 
+    // Calculating the strips that see a charge in the Nsigma diffusion area 
+
     int fromstrip = floor(((point.X()-(stripsensor::inducedcharge::NSigma*area)) / (advsnd::sensor_width / advsnd::strips)) + (advsnd::strips / 2)); // check calculation 
-    fromstrip = max(0, fromstrip);
-    fromstrip = min(advsnd::strips - 1, fromstrip); 
+    fromstrip = std::max(0, fromstrip);
+    fromstrip = std::min(advsnd::strips - 1, fromstrip); 
 
     int tostrip = floor(((point.X()+(stripsensor::inducedcharge::NSigma*area)) / (advsnd::sensor_width / advsnd::strips)) + (advsnd::strips / 2));
-    tostrip = max(0, tostrip);
-    tostrip = min(advsnd::strips - 1, tostrip);
+    tostrip = std::max(0, tostrip);
+    tostrip = std::min(advsnd::strips - 1, tostrip);
 
     Int_t N; 
     N = tostrip - fromstrip; 
@@ -132,6 +140,8 @@ std::vector<Int_t> InducedCharge::GetStrips(TVector3 point, Double_t area)
 
 std::vector<std::vector<Double_t>> InducedCharge::GetPulseShape(std::string PulseFileName, std::vector<Double_t> ChargeDeposited)
 {
+    // For pulse response for time correction, not used currently
+
     std::vector<double> PulseValues;
 
     std::ifstream inputFile(PulseFileName);
@@ -159,8 +169,8 @@ std::vector<std::vector<Double_t>> InducedCharge::GetPulseShape(std::string Puls
         }
     }
     const auto max_value = max_element(PulseValues.begin(), PulseValues.end());
-    if (abs(*max_value - 1) > numeric_limits<double>::epsilon()) {
-        throw invalid_argument("Maximum value of pulse shape not 1.");
+    if (abs(*max_value - 1) > std::numeric_limits<Double_t>::epsilon()) {
+        throw std::invalid_argument("Maximum value of pulse shape not 1.");
     }
 
     std::vector<std::vector<Double_t>> PulseResponse; 
@@ -200,6 +210,8 @@ std::vector<std::vector<Double_t>> InducedCharge::GetPulseShape(std::string Puls
 
 AdvSignal InducedCharge::Coupling(std::vector<Double_t> TotalCharge, std::vector<Int_t> AffectedStrips)
 {
+
+    // Using the coupling constants, charge sharing between strips and their neighbours
     
     Int_t couplingsize = stripsensor::inducedcharge::CouplingConstants.size();
     std::vector<Double_t> CoupledCharge; 

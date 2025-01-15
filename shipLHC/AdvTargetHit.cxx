@@ -44,21 +44,16 @@ AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
     : SndlhcHit(detID)
 {
     AdvDigitisation advdigi{};
-    advdigi.digirun(detID, V);
-    // std::vector<AdvSignal> fTest; 
-    // fTest = advdigi.digirunoutput(detID, V);
-    // flag = true;
-
-    // cout << V.size() << endl; 
+    std::vector<AdvSignal> fTest; 
+    fTest = advdigi.digirunoutput(detID, V);
+    flag = true;
     
-    // vector<Int_t> v = {1, 2, 3, 4};
-    // for (Int_t j = 0; j < V.size(); j++)
-    // {
-         
-    //     fStrips.push_back(v);
-    //     // fCharge.push_back(v);
+    for (Int_t j = 0; j < fTest.size(); j++)
+    {
+        fStrips.push_back(fTest[j].getStrips());
+        fCharge.push_back(fTest[j].getIntegratedSignal());
 
-    // }
+    }
 
     for (Int_t i = 0; i < 16; i++) {
         fMasked[i] = kFALSE;
