@@ -1,5 +1,4 @@
 #include "ChargeDivision.h"
-
 #include "AdvTargetPoint.h"
 #include "EnergyFluctUnit.h"
 #include "SiG4UniversalFluctuation.h"
@@ -47,51 +46,20 @@
 #include <sstream>
 #include <string>
 #include <vector>
-using namespace std;
+
+/*Class for division of energy deposited along particle track in each module. 
+
+Not included : - Possibility of Lorentz angle for shift in track due to magnetic field i
+
+ */
 
 ChargeDivision::ChargeDivision() {}
 
-void ChargeDivision::ReadPulseShape(std::string PulseFileName)
-{
-    bool APVPeakMode = true;   // to be included in header configuration file
-    if (APVPeakMode == true) {
-        std::ifstream inputFile(PulseFileName);
-
-        if (!inputFile.is_open()) {
-            std::cout << "Error opening the file!" << std::endl;
-        }
-        std::string line;
-        std::string res_find = "resolution:";
-        float res;
-        std::string s;
-
-        while (getline(inputFile, line)) {
-            if ((!line.empty()) && (line.substr(0, 1) != "#")) {
-                std::stringstream ss(line);
-                if (line.find(res_find) != std::string::npos) {
-                    res = stof(line.substr(line.find(res_find) + res_find.length()));   // implement check for
-                                                                                        // resolution
-                } else {
-                    std::string value;
-                    while (getline(ss, value, ' ')) {
-                        PulseValues.push_back(stod(value));
-                    }
-                }
-            }
-        }
-        const auto max_value = max_element(PulseValues.begin(), PulseValues.end());
-        if (abs(*max_value - 1) > numeric_limits<double>::epsilon()) {
-            throw invalid_argument("Maximum value of pulse shape not 1.");
-        }
-
-        unsigned int pulset0Idx = std::distance(PulseValues.begin(), max_value);
-    }
-    // get the vector of beginning to max of the pulse
-    // time response not included!
-}
-
 TVector3 ChargeDivision::getLocal(Int_t detID, TVector3 point)
 {
+
+    /*Global to Local coordinate conversion*/
+
     TVector3 local_point; 
     // Calculate the detector id as per the geofile, where strips are disrespected
     // int strip = (detID) % 1024;                // actual strip ID
@@ -137,6 +105,8 @@ TVector3 ChargeDivision::getLocal(Int_t detID, TVector3 point)
 
 TVector3 ChargeDivision::DriftDir(TVector3 EntryPoint, TVector3 ExitPoint, float length)
 {
+    /*Getting the position of the segment by using the length and direction of the particle track*/
+
     TVector3 DriftDirUnit = (EntryPoint - ExitPoint).Unit();
     TVector3 DriftMul = DriftDirUnit * length;
     TVector3 DriftPos = EntryPoint - (DriftDirUnit * length);
@@ -149,33 +119,29 @@ std::vector<EnergyFluctUnit> ChargeDivision::Divide(Int_t detID, const std::vect
 
     for (int i = 0; i < V.size(); i++) {
 
-        // lorentz angle - check how it changes with radiation damaged sensors
-        // need to develop logic that can calculate the lorentz angle for different temperatures, depletion voltage and
-        // bias voltage !!! value below taken from "Determination of the Lorentz Angle in Microstrip Silicon Detectors
-        // with Cosmic Muons" but for magnetic field of 4T!!
-        //  float lorentz_angle = -4.5;
-        // not required for target
-
-        // mass, momentum, energy loss in MeV, segment length in mm
         std::vector<Double_t> fluctEnergy;
         std::vector<TVector3> driftPos;
         std::vector<TVector3> glob_driftPos;
         Int_t pdgcode = V[i]->PdgCode();
 
+        //Getting the mass and charge of particle, otherwise assigning pion mass and charge
 
         if (TDatabasePDG::Instance()->GetParticle(pdgcode)) {
-            ParticleMass = (TDatabasePDG::Instance()->GetParticle(V[i]->PdgCode())->Mass()) * 1000;
-            ParticleCharge = TDatabasePDG::Instance()->GetParticle(V[i]->PdgCode())->Charge();
+            ParticleMass = (TDatabasePDG::Instance()->GetParticle(V[i]->PdgCode())->Mass()) * 1000; // in MeV
+            ParticleCharge = TDatabasePDG::Instance()->GetParticle(V[i]->PdgCode())->Charge(); 
         } else {
-            cout << "Couldn't find particle " << pdgcode << endl;
+            std::cout << "Could not find particle " << pdgcode << " , assuming pion mass and charge." << std::endl;
+            ParticleMass = 139.57; 
+            ParticleCharge = 1; 
+
         };
 
-        // GET THE LOCAL POSITION
+        //Conversion of global entry and exit point to local coordinates. 
+
         TVector3 local_entry_point = getLocal(V[i] -> GetDetectorID(), V[i]->GetEntryPoint());
         TVector3 local_exit_point = getLocal(V[i] -> GetDetectorID(), V[i]->GetExitPoint());
 
-
-        int strip = (detID) % 1024;
+        //Calculating the number of segments in the track by dividing the tracklength by the number of divisions per strip. To get an approximate of the number of strips, divide delta x by the strip pitch. Number of segments is 1 if the particle is neutral or very low mass. 
 
         double len = (local_entry_point - local_exit_point).Mag();
 
@@ -185,23 +151,21 @@ std::vector<EnergyFluctUnit> ChargeDivision::Divide(Int_t detID, const std::vect
             NumberofSegments = 1
                                + (stripsensor::chargedivision::ChargeDivisionsperStrip
                                   * abs((local_entry_point.X() - local_exit_point.X())
-                                        / stripsensor::chargedivision::StripPitch));   // check if this is the correct way
+                                        / stripsensor::chargedivision::StripPitch));
         }
 
         segLen = (len / NumberofSegments) * 10;   // in mm
 
+        // Getting the energy fluctuations per segment along with the local and global segment position. 
+
         SiG4UniversalFluctuation sig4fluct{};
 
-        Double_t Etotal = V[i]->GetEnergyLoss() * 1000;
+        Double_t Etotal = V[i]->GetEnergyLoss() * 1000; // in MeV
         Double_t Emean = Etotal / NumberofSegments;
-
-        // check which coordinate to consider
         Double_t momentum = sqrt(pow(V[i]->GetPx(), 2) + pow(V[i]->GetPy(), 2) + pow(V[i]->GetPz(), 2)) * 1000;
 
         if (NumberofSegments > 1) {
             for (Int_t j = 0; j < NumberofSegments; j++) {
-
-                // sig4fluct.SampleFluctuations(ParticleMass, ParticleCharge, Emean, momentum, segLen);
                 fluctEnergy.push_back(
                     sig4fluct.SampleFluctuations(ParticleMass, ParticleCharge, Emean, momentum, segLen));
                 driftPos.push_back(DriftDir(local_entry_point, local_exit_point, (segLen * j) / 10));
@@ -212,6 +176,8 @@ std::vector<EnergyFluctUnit> ChargeDivision::Divide(Int_t detID, const std::vect
             driftPos.push_back(DriftDir(local_entry_point, local_exit_point, (segLen) / 10));
             glob_driftPos.push_back(DriftDir(V[i]->GetEntryPoint(), V[i]->GetExitPoint(), (segLen) / 10));
         }
+
+        // Scaling each fluctuation accordingly with the total energy loss 
 
         double sume = 0;
         for (int n = 0; n < size(fluctEnergy); n++) {
@@ -224,11 +190,11 @@ std::vector<EnergyFluctUnit> ChargeDivision::Divide(Int_t detID, const std::vect
             }
         }
         EnergyFluctUnit EnergyFluctuations(fluctEnergy, segLen / 10, driftPos, glob_driftPos);
-
-        //         //to check if local position is working 
-        
         ELossVector.push_back(EnergyFluctuations);
     }
+
+    // Returns the vector with segments and their energy depositon (in GeV) and position (in cm) 
+
     return ELossVector; 
 
 }

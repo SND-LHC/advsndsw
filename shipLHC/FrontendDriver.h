@@ -10,14 +10,14 @@ class FrontendDriver
 {
   public:
     FrontendDriver();
-    std::vector<AdvSignal> ADCConversion(std::vector<AdvSignal> ResponseSignal);
-    void ZeroSuppressionAlgorithms(AdvSignal Signal);
+  //   std::vector<AdvSignal> ADCConversion(std::vector<AdvSignal> ResponseSignal);
+  //   void ZeroSuppressionAlgorithms(AdvSignal Signal);
 
-    void TestingAlgorithm();
+  //   void TestingAlgorithm();
 
-  private:
-    std::vector<Double_t> ADCcount;
-    std::vector<AdvSignal> FEDResponse;
+  // private:
+  //   std::vector<Double_t> ADCcount;
+  //   std::vector<AdvSignal> FEDResponse;
 
 };
 
