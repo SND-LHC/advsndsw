@@ -4,7 +4,6 @@
 #include "SiSensor.h"
 #include "SndlhcHit.h"
 #include "TArrayD.h"
-#include "EnergyFluctUnit.h"
 #include "TVector3.h"
 
 class AdvTargetPoint;

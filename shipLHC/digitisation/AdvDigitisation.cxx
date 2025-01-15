@@ -8,11 +8,12 @@
 #include "EnergyFluctUnit.h"
 #include "SurfaceSignal.h"
 #include "AdvSignal.h"
+#include "SiDigiParameters.h"
+
 #include "TFile.h"
 #include "TTree.h"
 #include "TVector3.h"
 #include "TStopwatch.h"
-#include "SiDigiParameters.h"
 
 #include <TSystem.h>
 #include <iostream>
