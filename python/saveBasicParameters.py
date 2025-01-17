@@ -6,15 +6,15 @@ import ROOT,os,subprocess
 def retrieveGitTags(o):
     # record some basic information about version of software:
     if "FAIRSHIP_HASH" in os.environ:
-        o.FairShip = os.environ['FAIRSHIP_HASH']
-        o.FairSoft = '0000000000000000000000000000000000000000'
+        o.advsndsw = os.environ['ADVSNDSW_HASH']
+        o.FairShip = o.advsndsw
         o.FairRoot = os.environ['FAIRROOT_HASH']
     else:
-      tmp = os.environ['FAIRSHIP']+'/.git/refs/remotes/origin/master'
+      tmp = os.environ['ADVSNDSW_ROOT']+'/.git/refs/remotes/origin/master'
       if os.path.isfile(tmp):
         x = subprocess.check_output(['more',tmp]).replace('\n','')
         o.FairShip = AttrDict(origin=x)
-        tmp = os.environ['FAIRSHIP']+'/.git/refs/heads/master'
+        tmp = os.environ['ADVSNDSW_ROOT']+'/.git/refs/heads/master'
       if os.path.isfile(tmp): 
         x = subprocess.check_output(['more',tmp]).replace('\n','')
         o.FairShip = AttrDict(local=x)
