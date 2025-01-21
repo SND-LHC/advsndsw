@@ -25,7 +25,7 @@ using namespace std;
 
 AdvDigitisation::AdvDigitisation() {}
 
-std::vector<AdvSignal> AdvDigitisation::digirunoutput(Int_t detID, const std::vector<AdvTargetPoint *> &V)
+AdvSignal AdvDigitisation::digirunoutput(Int_t detID, const std::vector<AdvTargetPoint *> &V)
 {
     // Charge Division
     ChargeDivision chargedivision{};
@@ -37,7 +37,7 @@ std::vector<AdvSignal> AdvDigitisation::digirunoutput(Int_t detID, const std::ve
 
     //Induced Charge on strips
     InducedCharge inducedcharge{};
-    std::vector<AdvSignal> ResponseSignal = inducedcharge.IntegrateCharge(DiffusionSignal);
+    AdvSignal ResponseSignal = inducedcharge.IntegrateCharge(DiffusionSignal);
 
     return ResponseSignal;
 }

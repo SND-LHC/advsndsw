@@ -8,6 +8,11 @@
 class SurfaceSignal
 {
   public:
+    SurfaceSignal()
+        : DiffusionArea_(), SurfacePos_(), Amplitude_()
+    {
+    }
+
     SurfaceSignal(std::vector<Double_t> DiffusionArea, std::vector<TVector3> SurfacePos, std::vector<Double_t> Amplitude)
         : DiffusionArea_(DiffusionArea)
         , SurfacePos_(SurfacePos)
