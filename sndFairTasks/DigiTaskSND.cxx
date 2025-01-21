@@ -201,7 +201,7 @@ void DigiTaskSND::digitiseAdvTarget()
                                     "Detector_0/"
                                     "volAdvTarget_1/"
                                     "volModule_%d",
-                                    detID,
+                                    detID
                                     );
         // TODO loop by module?
         if (nav->CheckPath(path)) {
@@ -223,7 +223,7 @@ void DigiTaskSND::digitiseAdvTarget()
         strip = max(0, strip);
         strip = min(advsnd::strips - 1, strip);
 
-        auto detector_id = 10000 * detID strip;
+        auto detector_id = 10000 * detID + strip;
         // Collect points by virtual strip
         hit_collector[detector_id].emplace_back(point);
         mc_points[detector_id][point_index++] = point->GetEnergyLoss();
