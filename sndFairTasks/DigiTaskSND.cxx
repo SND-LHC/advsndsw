@@ -201,7 +201,7 @@ void DigiTaskSND::digitiseAdvTarget()
                                     "Detector_0/"
                                     "volAdvTarget_1/"
                                     "volModule_%d",
-                                    detID,
+                                    detID
                                     );
         // TODO loop by module?
         if (nav->CheckPath(path)) {
@@ -218,11 +218,12 @@ void DigiTaskSND::digitiseAdvTarget()
         double local_pos[3];
         // Move to local coordinates (including rotation) to determine strip
         nav->MasterToLocal(global_pos, local_pos);
+        double coordinate = plane ? local_pos[0]: local_pos[1]; // Choose direction of strips based on plane
         int strip = floor((local_pos[0] / (advsnd::sensor_width / advsnd::strips)) + (advsnd::strips / 2));
         strip = max(0, strip);
         strip = min(advsnd::strips - 1, strip);
 
-        auto detector_id = detID - 999 + strip;
+        auto detector_id = 10000 * detID + strip;
         // Collect points by virtual strip
         hit_collector[detector_id].emplace_back(point);
         mc_points[detector_id][point_index++] = point->GetEnergyLoss();
