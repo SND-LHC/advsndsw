@@ -5,6 +5,7 @@
 #include "SndlhcHit.h"
 #include "TArrayD.h"
 #include "TVector3.h"
+#include "digitisation/AdvSignal.h"
 
 class AdvTargetPoint;
 
@@ -28,6 +29,8 @@ class AdvTargetHit : public SndlhcHit
     bool isValid() const { return flag; }
     bool isMasked(Int_t i) const { return fMasked[i]; }
     void SetMasked(Int_t i) { fMasked[i] = kTRUE; }
+    std::vector<Int_t> GetStrips() { return fStrips; }
+    std::vector<Double_t> GetCharge() { return fCharge; }
     int constexpr GetStation() { return fDetectorID >> 17; }
     int constexpr GetPlane() { return (fDetectorID >> 16) % 2; }   // 0 is X-plane, 1 is Y-pane
     int constexpr GetRow() { return (fDetectorID >> 13) % 8; }
@@ -36,12 +39,13 @@ class AdvTargetHit : public SndlhcHit
     int constexpr GetStrip() { return (fDetectorID) % 1024; }
     int constexpr GetModule() { return advsnd::target::columns * GetRow() + 1 + GetColumn(); }
     bool constexpr isVertical() { return GetPlane() == 0; };
+    
 
   private:
     bool flag;          ///< flag
     bool fMasked[16];   /// masked signal
-    std::vector<std::vector<Int_t>> fStrips; 
-    std::vector<std::vector<Double_t>> fCharge; 
+    std::vector<Int_t> fStrips; 
+    std::vector<Double_t> fCharge; 
     ClassDef(AdvTargetHit, 1);
 };
 
