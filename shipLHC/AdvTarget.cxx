@@ -242,7 +242,7 @@ void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
                                    "Detector_0/"
                                    "volAdvTarget_1/"
                                     "volModule_%d",
-                                   detID);
+                                   geofile_detID);
     TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
     if (nav->CheckPath(path)) {
         nav->cd(path);
