@@ -6,13 +6,16 @@
 
 namespace advsnd {
 
-const double sensor_width = 93.7 * ShipUnit::mm;
-const double sensor_length = 91.5 * ShipUnit::mm;
+const double sensor_width = 40 * ShipUnit::cm;
+// const double sensor_width = 93.7 * ShipUnit::mm;
+const double sensor_length = 40 * ShipUnit::cm;
+// const double sensor_length = 91.5 * ShipUnit::mm;
 const double module_length = 23.95 * ShipUnit::cm;
 const double module_width = 12.0 * ShipUnit::cm;
 const double sensor_gap = 3.1 * ShipUnit::mm;
 const int sensors = 2;
-const int strips = 768;
+const int strips = 3279;
+// const int strips = 768;
 
 namespace target {
 const int rows = 4;
