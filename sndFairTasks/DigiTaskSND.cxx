@@ -192,21 +192,17 @@ void DigiTaskSND::digitiseAdvTarget()
     for (auto* ptr : *AdvTargetPoints) {
         auto* point = dynamic_cast<AdvTargetPoint*>(ptr);
         auto detID = point->GetDetectorID();
-        int station = point->GetStation();
-        int plane = point->GetPlane();
-        int sensor_module = point->GetModule();
-        int sensor = detID;
+        if (detID == 0) {
+            continue;
+        }
+        int station = detID / 10;
+        int plane = detID % 10;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
                                     "volAdvTarget_1/"
-                                    "TrackingStation_%d/"
-                                    "TrackerPlane_%d/"
-                                    "SensorModule_%d/"
-                                    "SensorVolumeTarget_%d",
-                                    station,
-                                    plane,
-                                    sensor_module,
-                                    sensor);
+                                    "volModule_%d",
+                                    detID,
+                                    );
         // TODO loop by module?
         if (nav->CheckPath(path)) {
             nav->cd(path);
