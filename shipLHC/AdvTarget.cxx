@@ -256,7 +256,8 @@ void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     local_pos[plane] = (strip - (advsnd::strips / 2)) * (advsnd::sensor_width / advsnd::strips);
     local_pos[(plane + 1) % 2] = S->GetDY();
     Double_t top_pos[3] = {local_pos[0], local_pos[1], 0};
-    Double_t bot_pos[3] = top_pos;
+    Double_t bot_pos[3];
+    std::copy(top_pos, top_pos+3, bot_pos);
     bot_pos[(plane + 1) % 2] *= -1;
     Double_t global_top_pos[3], global_bot_pos[3];
     nav->LocalToMaster(top_pos, global_top_pos);
