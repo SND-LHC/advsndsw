@@ -8,6 +8,11 @@
 class AdvSignal
 {
   public:
+    AdvSignal()
+        : Strips_(), IntegratedSignal_()
+    {
+    }
+
     AdvSignal(std::vector<Int_t> Strips, std::vector<Double_t> IntegratedSignal)
         : Strips_(Strips)
         , IntegratedSignal_(IntegratedSignal)
@@ -25,4 +30,4 @@ class AdvSignal
     std::vector<Double_t> IntegratedSignal_;
 };
 
-#endif
+#endif // SHIPLHC_ADVSIGNAL_H_

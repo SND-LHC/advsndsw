@@ -1,5 +1,6 @@
 #include "AdvTargetHit.h"
 #include "AdvTargetPoint.h"
+#include "digitisation/AdvSignal.h"
 #include "digitisation/AdvDigitisation.h"
 #include "FairLogger.h"
 #include "TGeoBBox.h"
@@ -42,17 +43,10 @@ AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
     : SndlhcHit(detID)
 {
     AdvDigitisation advdigi{};
-    std::vector<AdvSignal> fTest; 
-    fTest = advdigi.digirunoutput(detID, V);
+    AdvSignal DigitisedHit = advdigi.digirunoutput(detID, V);
+    fStrips = DigitisedHit.getStrips();
+    fCharge = DigitisedHit.getIntegratedSignal();
     flag = true;
-    
-    for (Int_t j = 0; j < fTest.size(); j++)
-    {
-        fStrips.push_back(fTest[j].getStrips());
-        fCharge.push_back(fTest[j].getIntegratedSignal());
-        cout << fStrips.size() << endl; 
-
-    }
 
     for (Int_t i = 0; i < 16; i++) {
         fMasked[i] = kFALSE;
