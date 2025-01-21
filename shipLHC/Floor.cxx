@@ -194,8 +194,8 @@ void Floor::ConstructGeometry()
          Double_t CurrentTargetY = 9.564471+5.368296; // current y coordinate of the target low edge, hardcoded due to time constraints, find better way
 
          Double_t ShiftX = TargetX/2.+0.0033519999999995775+2.;
-         Double_t ShiftY = -CurrentTargetY-20.188581+4;
-         Double_t ShiftZ = -400.;
+         Double_t ShiftY = -CurrentTargetY-20.188581+4+9.078588;
+         Double_t ShiftZ = -200;
          ////////////////////////////////////////////
          auto localSND_physCS_comb = new TGeoCombiTrans("localSND_physCS",0.+ShiftX,0.+ShiftY, 0.+ShiftZ,localSND_physCS_rot);    // origin is 480m downstream of IP1, shifting the apparatus 4m upstream
          localSND_physCS_comb->RegisterYourself();
@@ -368,9 +368,10 @@ void Floor::ConstructGeometry()
   LOG(DEBUG) << "shapes "<<shapes[0]->GetName()<<" "<<shapes[1]->GetName()<<" "<<shapes[2]->GetName();
   /**** Hand changes to fit the AdvSND apparatus ****/ 
   //TVector3 detdim(89.998020, 107.989308, 362.541092+2.);
-  TVector3 detdim(99.997800+6, 113.988714+25, 281.160616+2.+70); // new 2024
+  //TVector3 detdim(99.997800+6, 113.988714+25, 281.160616+2.+50); // new 2024
+  TVector3 detdim(60, 100, 200); // new Aug 2024
   //auto Detpos = new TGeoTranslation("Detpos", -0.2024000+ShiftX, 30.581334+ShiftY, 620.85947+ShiftZ);
-  auto Detpos = new TGeoTranslation("Detpos", ShiftX-99.997800/2+22., ShiftY+113.988714/2.-10, ShiftZ+2*279.160616-22.-30); // new 2024
+  auto Detpos = new TGeoTranslation("Detpos", ShiftX-99.997800/2+22., ShiftY+113.988714/2.-10, ShiftZ+2*279.160616-22.-250); // new 2024
   Detpos->RegisterYourself();
   auto DetShape = new TGeoBBox("DetShape", detdim.X(), detdim.Y(), detdim.Z());
   /////////////////////////////////////////////
