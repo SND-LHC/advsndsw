@@ -195,7 +195,7 @@ void Floor::ConstructGeometry()
 
          Double_t ShiftX = TargetX/2.+0.0033519999999995775-27;
          Double_t ShiftY = -CurrentTargetY+35.890007+0.5384230000000017;
-         Double_t ShiftZ = -200;
+         Double_t ShiftZ = -200+179;
          ////////////////////////////////////////////
          auto localSND_physCS_comb = new TGeoCombiTrans("localSND_physCS",0.+ShiftX,0.+ShiftY, 0.+ShiftZ,localSND_physCS_rot);    // origin is 480m downstream of IP1, shifting the apparatus 4m upstream
          localSND_physCS_comb->RegisterYourself();
@@ -369,13 +369,15 @@ void Floor::ConstructGeometry()
   /**** Hand changes to fit the AdvSND apparatus ****/ 
   //TVector3 detdim(89.998020, 107.989308, 362.541092+2.);
   //TVector3 detdim(99.997800+6, 113.988714+25, 281.160616+2.+50); // new 2024
-  TVector3 detdim(60, 100, 200); // new Aug 2024
+  TVector3 detdim(57.548733, 39.996040, 154.614972); // new Aug 2024
   //auto Detpos = new TGeoTranslation("Detpos", -0.2024000+ShiftX, 30.581334+ShiftY, 620.85947+ShiftZ);
-  auto Detpos = new TGeoTranslation("Detpos", ShiftX-99.997800/2+22., ShiftY+113.988714/2.-10, ShiftZ+2*279.160616-22.-250); // new 2024
+  //auto Detpos = new TGeoTranslation("Detpos", ShiftX-99.997800/2+22., ShiftY+113.988714/2.-10, ShiftZ+2*279.160616-22.-250); // new 2024
+  auto Detpos = new TGeoTranslation("Detpos", ShiftX-99.997800/2+22., ShiftY+113.988714/2.-10-9-4, ShiftZ+2*279.160616-22.-250); // new 2024
   Detpos->RegisterYourself();
   auto DetShape = new TGeoBBox("DetShape", detdim.X(), detdim.Y(), detdim.Z());
   /////////////////////////////////////////////
-  auto total = new TGeoCompositeShape("Stotal","TI18_1_union+TI18_2_union+TI18_3_union-DetShape:Detpos");
+  //auto total = new TGeoCompositeShape("Stotal","TI18_1_union+TI18_2_union+TI18_3_union-DetShape:Detpos");
+  auto total = new TGeoCompositeShape("Stotal","TI18_1_union+TI18_2_union+TI18_3_union");
   auto volT = new TGeoVolume("VTI18",total,concrete);
   volT->SetTransparency(50);
   volT->SetLineColor(kGray);
@@ -439,7 +441,7 @@ void Floor::ConstructGeometry()
   tunnel->AddNode(fluka,1, new TGeoTranslation(-350.,0,dz+zs- SND_Z-50.));  // move 50cm upstream to avoid overlap
 */
  TGeoBBox* RockDetShape = new TGeoBBox("RockDetShape", detdim.X()+30, detdim.Y()+30, detdim.Z()+180);
- auto RockDetpos = new TGeoTranslation("RockDetpos", ShiftX-99.997800/2+22., ShiftY+113.988714/2.-10, ShiftZ+2*279.160616); // new 2024
+ auto RockDetpos = new TGeoTranslation("RockDetpos", ShiftX-99.997800/2+22., ShiftY+113.988714/2.-10-20, ShiftZ+2*279.160616); // new 2024
  RockDetpos->RegisterYourself();
 
  double zs = 40900.;  // scoring plane
@@ -448,7 +450,8 @@ void Floor::ConstructGeometry()
  auto bigBox   = new TGeoBBox("BigBox", 1000.,1000. , dz);
  auto TR_1       = new TGeoTranslation("TR_1",0.,0.,-dz+geoParameters["TI18_o1"][2]-SND_Z - 50.); // move a bit more upstream to have free view from the back
  TR_1->RegisterYourself();
- auto cutOut   = new TGeoCompositeShape("cutOut", "BigBox:TR_1-Ftotal2-(TI18_1_Funion+TI18_2_Funion+TI18_3_Funion)-RockDetShape:RockDetpos");
+ //auto cutOut   = new TGeoCompositeShape("cutOut", "BigBox:TR_1-Ftotal2-(TI18_1_Funion+TI18_2_Funion+TI18_3_Funion)-RockDetShape:RockDetpos");
+ auto cutOut   = new TGeoCompositeShape("cutOut", "BigBox:TR_1-Ftotal2-(TI18_1_Funion+TI18_2_Funion+TI18_3_Funion)");
  auto volT3      = new TGeoVolume("Vrock",cutOut,rock);
  volT3->SetTransparency(75);
  volT3->SetLineColor(kRed);
