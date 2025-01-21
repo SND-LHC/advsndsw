@@ -231,29 +231,18 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
 void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
 {
     // Calculate the detector id as per the geofile, where strips are disrespected
-    int strip = (detID) % 1024;                // actual strip ID
-    int geofile_detID = detID - strip + 999;   // the det id number needed to read the geometry
+    int strip = (detID) % 10000;                // actual strip ID
+    int geofile_detID = (detID - strip) / 10000;   // the det id number needed to read the geometry
 
-    int station = geofile_detID >> 17;
-    int plane = (geofile_detID >> 16) % 2;
-    int row = (geofile_detID >> 13) % 8;
-    int column = (geofile_detID >> 11) % 4;
-    int sensor = geofile_detID;
-    int sensor_module = advsnd::target::columns * row + 1 + column;
+    int plane = geofile_detID % 10;
 
     double global_pos[3];
     double local_pos[3] = {0, 0, 0};
     TString path = TString::Format("/cave_1/"
                                    "Detector_0/"
                                    "volAdvTarget_1/"
-                                   "TrackingStation_%d/"
-                                   "TrackerPlane_%d/"
-                                   "SensorModule_%d/"
-                                   "SensorVolumeTarget_%d",
-                                   station,
-                                   plane,
-                                   sensor_module,
-                                   sensor);
+                                    "volModule_%d",
+                                   geofile_detID);
     TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
     if (nav->CheckPath(path)) {
         nav->cd(path);
@@ -264,9 +253,12 @@ void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     TGeoNode *W = nav->GetCurrentNode();
     TGeoBBox *S = dynamic_cast<TGeoBBox *>(W->GetVolume()->GetShape());
     // knowing the strip, get the postion along the sensor
-    local_pos[0] = (strip - (advsnd::strips / 2)) * (advsnd::sensor_width / advsnd::strips);
-    Double_t top_pos[3] = {local_pos[0], S->GetDY(), 0};
-    Double_t bot_pos[3] = {local_pos[0], -(S->GetDY()), 0};
+    local_pos[plane] = (strip - (advsnd::strips / 2)) * (advsnd::sensor_width / advsnd::strips);
+    local_pos[(plane + 1) % 2] = S->GetDY();
+    Double_t top_pos[3] = {local_pos[0], local_pos[1], 0};
+    Double_t bot_pos[3];
+    std::copy(top_pos, top_pos+3, bot_pos);
+    bot_pos[(plane + 1) % 2] *= -1;
     Double_t global_top_pos[3], global_bot_pos[3];
     nav->LocalToMaster(top_pos, global_top_pos);
     nav->LocalToMaster(bot_pos, global_bot_pos);
