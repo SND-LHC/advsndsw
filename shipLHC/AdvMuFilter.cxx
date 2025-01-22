@@ -310,7 +310,7 @@ void AdvMuFilter::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     TString path = TString::Format("/cave_1/"
                                    "Detector_0/"
                                    "volAdvMuFilter_0/"
-                                   "volModule_%d",
+                                   "volMuonSysPlane_%d",
                                    geofile_detID);
     TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
     if (nav->CheckPath(path)) {

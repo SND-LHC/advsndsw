@@ -266,7 +266,7 @@ void DigiTaskSND::digitiseAdvMuFilter()
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
                                     "volAdvMuFilter_0/"
-                                    "volModule_%d",
+                                    "volMuonSysPlane_%d",
                                     detID
                                     );
         // TODO loop by module?
