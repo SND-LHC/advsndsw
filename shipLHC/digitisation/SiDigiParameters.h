@@ -7,7 +7,6 @@
 
 namespace stripsensor {
 
-
 const bool peakmode = 0;
 const Double_t sampling = 25; 
 const std::string APVpeakpulse = "advsndsw/shipLHC/data/APVShapePeak_default.txt";
@@ -55,6 +54,9 @@ namespace frontend{
     const Double_t gain = 0.1; // in uA. Need to check which value to use
     const bool write_digi_to_text = 1; 
     const Int_t ElectronperADC = 250; 
+    const bool NoiseOption = 0; 
+    const bool CMNoiseOption = 0;
+    const bool ZSModeOption = 0; 
     const Int_t StripNoise = 19; 
     const Double_t NoiseRMS = 2; 
     const Double_t NoiseSigmaThreshold = 2; 

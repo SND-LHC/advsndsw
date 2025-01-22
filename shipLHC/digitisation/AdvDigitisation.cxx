@@ -4,7 +4,7 @@
 #include "ChargeDrift.h"
 #include "InducedCharge.h"
 #include "FrontendDriver.h"
-#include "Clustering.h"
+#include "StripNoise.h"
 #include "EnergyFluctUnit.h"
 #include "SurfaceSignal.h"
 #include "AdvSignal.h"
@@ -19,13 +19,20 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <map>
+#include <algorithm>
 using namespace std;
 
 // Running the digitisation 
 
+/* To be included :
+    Saturation of FED dynamic range depending on mode 
+    Add noise
+    Add FED modes */
+
 AdvDigitisation::AdvDigitisation() {}
 
-AdvSignal AdvDigitisation::digirunoutput(Int_t detID, const std::vector<AdvTargetPoint *> &V)
+std::map<std::string, std::vector<Int_t>> AdvDigitisation::digirunoutput(Int_t detID, const std::vector<AdvTargetPoint *> &V)
 {
     // Charge Division
     ChargeDivision chargedivision{};
@@ -39,5 +46,14 @@ AdvSignal AdvDigitisation::digirunoutput(Int_t detID, const std::vector<AdvTarge
     InducedCharge inducedcharge{};
     AdvSignal ResponseSignal = inducedcharge.IntegrateCharge(DiffusionSignal);
 
-    return ResponseSignal;
+    //Creating map of hit 
+    std::map<std::string, std::vector<Int_t>> DigitisedHit; 
+    std::vector<Double_t> Charge = ResponseSignal.getIntegratedSignal();
+    std::vector<Int_t> Strips = ResponseSignal.getStrips();
+    std::vector<Int_t> ADC(Charge.size()); 
+    std::transform(Charge.begin(), Charge.end(), ADC.begin(), [](Double_t x) { return (int)x;});
+    DigitisedHit["Strips"] = Strips; 
+    DigitisedHit["ADC"] = ADC; 
+    
+    return DigitisedHit;
 }
