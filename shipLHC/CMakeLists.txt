@@ -56,7 +56,6 @@ digitisation/ChargeDrift.cxx
 digitisation/InducedCharge.cxx
 digitisation/FrontendDriver.cxx
 digitisation/StripNoise.cxx
-digitisation/Clustering.cxx
 digitisation/SiG4UniversalFluctuation.cxx
 digitisation/AdvDigitisation.cxx
 )

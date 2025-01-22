@@ -16,6 +16,7 @@
 #include <typeinfo>
 #include <iostream>
 #include <string>
+#include <map>
 using std::cout;
 using std::endl;
 
@@ -43,9 +44,7 @@ AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
     : SndlhcHit(detID)
 {
     AdvDigitisation advdigi{};
-    AdvSignal DigitisedHit = advdigi.digirunoutput(detID, V);
-    fStrips = DigitisedHit.getStrips();
-    fCharge = DigitisedHit.getIntegratedSignal();
+    fDigitisedHit = advdigi.digirunoutput(detID, V);
     flag = true;
 
     for (Int_t i = 0; i < 16; i++) {
