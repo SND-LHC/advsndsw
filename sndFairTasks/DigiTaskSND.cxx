@@ -193,7 +193,7 @@ void DigiTaskSND::digitiseAdvTarget()
         auto* point = dynamic_cast<AdvTargetPoint*>(ptr);
         auto detID = point->GetDetectorID();
         if (detID == 0) {
-            continue;
+            continue; // Skip module upstream of first wall.
         }
         int station = detID / 10;
         int plane = detID % 10;
@@ -258,21 +258,17 @@ void DigiTaskSND::digitiseAdvMuFilter()
     for (auto* ptr : *AdvMuFilterPoints) {
         auto* point = dynamic_cast<AdvMuFilterPoint*>(ptr);
         auto detID = point->GetDetectorID();
-        int station = point->GetStation();
-        int plane = point->GetPlane();
-        int sensor_module = point->GetModule();
-        int sensor = detID;
+        if (detID == 0) {
+            continue; // Skip module upstream of first wall.
+        }
+        int station = detID / 10;
+        int plane = detID % 10;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
                                     "volAdvMuFilter_0/"
-                                    "TrackingStation_%d/"
-                                    "TrackerPlane_%d/"
-                                    "SensorModule_%d/"
-                                    "SensorVolumeFilter_%d",
-                                    station,
-                                    plane,
-                                    sensor_module,
-                                    sensor);
+                                    "volMuonSysPlane_%d",
+                                    detID
+                                    );
         // TODO loop by module?
         if (nav->CheckPath(path)) {
             nav->cd(path);
@@ -288,11 +284,11 @@ void DigiTaskSND::digitiseAdvMuFilter()
         double local_pos[3];
         // Move to local coordinates (including rotation) to determine strip
         nav->MasterToLocal(global_pos, local_pos);
-        int strip = floor((local_pos[0] / (advsnd::sensor_width / advsnd::strips)) + (advsnd::strips / 2));
+        int strip = floor((local_pos[plane] / (advsnd::sensor_width / advsnd::strips)) + (advsnd::strips / 2));
         strip = max(0, strip);
         strip = min(advsnd::strips - 1, strip);
 
-        auto detector_id = detID - 999 + strip;
+        auto detector_id = 10000 * detID + strip;
         // Collect points by virtual strip
         hit_collector[detector_id].emplace_back(point);
         mc_points[detector_id][point_index++] = point->GetEnergyLoss();

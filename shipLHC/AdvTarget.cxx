@@ -254,7 +254,8 @@ void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     TGeoBBox *S = dynamic_cast<TGeoBBox *>(W->GetVolume()->GetShape());
     // knowing the strip, get the postion along the sensor
     local_pos[plane] = (strip - (advsnd::strips / 2)) * (advsnd::sensor_width / advsnd::strips);
-    local_pos[(plane + 1) % 2] = S->GetDY();
+    local_pos[(plane + 1) % 2] = advsnd::sensor_length / 2;
+    assert(S->GetDY() == advsnd::sensor_length / 2);
     Double_t top_pos[3] = {local_pos[0], local_pos[1], 0};
     Double_t bot_pos[3];
     std::copy(top_pos, top_pos+3, bot_pos);
