@@ -31,7 +31,6 @@
 #pragma link C++ class digitisation/InducedCharge +;
 #pragma link C++ class digitisation/FrontendDriver +;
 #pragma link C++ class digitisation/StripNoise +;
-#pragma link C++ class digitisation/Clustering +;
 #pragma link C++ class digitisation/SiG4UniversalFluctuation + ;
 #pragma link C++ class digitisation/EnergyFluctUnit + ;
 #pragma link C++ class digitisation/SurfaceSignal + ;

@@ -81,7 +81,7 @@ AdvSignal InducedCharge::IntegrateCharge(std::vector<SurfaceSignal> DiffusionSig
         for (int m = 0; m < UniqueAffectedStrips.size(); m++)
         {
             //the total number of electrons
-            TotalChargeDeposited[m] = std::ceil(TotalChargeDeposited[m] * rescale_ratio) ;
+            TotalChargeDeposited[m] = std::ceil((TotalChargeDeposited[m]/stripsensor::frontend::ElectronperADC) * rescale_ratio) ;
         }
         // Add coupling to neighbour strips  
 

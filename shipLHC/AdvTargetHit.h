@@ -6,6 +6,7 @@
 #include "TArrayD.h"
 #include "TVector3.h"
 #include "digitisation/AdvSignal.h"
+#include <map>
 
 class AdvTargetPoint;
 
@@ -29,8 +30,7 @@ class AdvTargetHit : public SndlhcHit
     bool isValid() const { return flag; }
     bool isMasked(Int_t i) const { return fMasked[i]; }
     void SetMasked(Int_t i) { fMasked[i] = kTRUE; }
-    std::vector<Int_t> GetStrips() { return fStrips; }
-    std::vector<Double_t> GetCharge() { return fCharge; }
+    std::map<std::string, std::vector<Int_t>> GetHit() { return fDigitisedHit; }
     int constexpr GetStation() { return fDetectorID >> 17; }
     int constexpr GetPlane() { return (fDetectorID >> 16) % 2; }   // 0 is X-plane, 1 is Y-pane
     int constexpr GetRow() { return (fDetectorID >> 13) % 8; }
@@ -44,8 +44,7 @@ class AdvTargetHit : public SndlhcHit
   private:
     bool flag;          ///< flag
     bool fMasked[16];   /// masked signal
-    std::vector<Int_t> fStrips; 
-    std::vector<Double_t> fCharge; 
+    std::map<std::string, std::vector<Int_t>> fDigitisedHit; 
     ClassDef(AdvTargetHit, 1);
 };
 
