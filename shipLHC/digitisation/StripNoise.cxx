@@ -11,6 +11,10 @@
 #include <cmath>
 using namespace std;
 
+/* To Do : 
+Add Baseline Shift?
+Add Pedestals for each channel after calibration */
+
 StripNoise::StripNoise() {}
 
 AdvSignal StripNoise::AddGaussianNoise(AdvSignal Signal)
@@ -70,6 +74,27 @@ AdvSignal StripNoise::AddGaussianTailNoise(AdvSignal Signal)
 
 }
 
+AdvSignal StripNoise::AddCMNoise(AdvSignal Signal)
+{
+    Double_t CMnoise = stripsensor::frontend::CMNoise;
+    std::vector<Int_t> Strips = Signal.getStrips(); 
+    std::vector<Double_t> Charge = Signal.getIntegratedSignal(); 
+    Int_t nAPVs = int(stripsensor::frontend::NumberofStrips / 128);
+    std::vector<Double_t> CMVector ; 
+    TRandom* rndm = gRandom;
+    for (int i = 0 ; i < stripsensor::frontend::NumberofStrips; i += 128)
+    {
+        CMVector.push_back(rndm->Gaus(0, CMnoise)); 
+    }
+
+    for (int j = 0; j < Strips.size(); j ++)
+    {
+        Charge[j] += CMVector[int(Strips[j]/128)];
+    }
+
+    AdvSignal NoiseSignal(Strips, Charge);
+    return NoiseSignal; 
+}
 
 double StripNoise::generate_gaussian_tail(const double a,const double sigma) 
 {

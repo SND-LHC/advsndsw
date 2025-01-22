@@ -116,17 +116,17 @@ AdvSignal InducedCharge::Combine(std::vector<AdvSignal> Signal)
     std::vector<Int_t> UniqueAffectedStrips = CombinedStrips;  
     std::vector<Double_t> SummedCharge ;
     sort(UniqueAffectedStrips.begin(), UniqueAffectedStrips.end());
-    std::vector<int>::iterator it;
-    it = unique(UniqueAffectedStrips.begin(), UniqueAffectedStrips.end());  
-    UniqueAffectedStrips.resize(distance(UniqueAffectedStrips.begin(),it));  
+    std::vector<int>::iterator itstrip;
+    itstrip = unique(UniqueAffectedStrips.begin(), UniqueAffectedStrips.end());  
+    UniqueAffectedStrips.resize(distance(UniqueAffectedStrips.begin(),itstrip));  
 
     for (int l = 0; l < UniqueAffectedStrips.size(); l++)
     {
         Double_t temp_totalcharge = 0.0;
-        auto it = find(CombinedStrips.begin(), CombinedStrips.end(), UniqueAffectedStrips[l]); 
-        while (it != CombinedStrips.end()) { 
-            temp_totalcharge = temp_totalcharge + CombinedCharge[it - CombinedStrips.begin()];
-            it = find(it + 1, CombinedStrips.end(), UniqueAffectedStrips[l]); 
+        auto itfind = find(CombinedStrips.begin(), CombinedStrips.end(), UniqueAffectedStrips[l]); 
+        while (itfind != CombinedStrips.end()) { 
+            temp_totalcharge = temp_totalcharge + CombinedCharge[itfind - CombinedStrips.begin()];
+            itfind = find(itfind + 1, CombinedStrips.end(), UniqueAffectedStrips[l]); 
         } 
         SummedCharge.push_back(temp_totalcharge);
     }
@@ -205,7 +205,6 @@ std::vector<std::vector<Double_t>> InducedCharge::GetPulseShape(std::string Puls
 
     for(int i = 0; i < ChargeDeposited.size(); i++)
     {
-        std::vector<Double_t> temp_response ;
         Double_t amplitude_max = ChargeDeposited[i]; 
 
         std::default_random_engine generator;
