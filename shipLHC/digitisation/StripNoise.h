@@ -13,6 +13,7 @@ class StripNoise
     StripNoise();
     AdvSignal AddGaussianNoise(AdvSignal Signal);
     AdvSignal AddGaussianTailNoise(AdvSignal Signal);
+    AdvSignal AddCMNoise(AdvSignal Signal);
     double generate_gaussian_tail(const double a, const double sigma); 
 
     void TestingGaussianNoise();
