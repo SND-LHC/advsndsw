@@ -46,12 +46,19 @@ std::map<std::string, std::vector<Int_t>> AdvDigitisation::digirunoutput(Int_t d
     InducedCharge inducedcharge{};
     AdvSignal ResponseSignal = inducedcharge.IntegrateCharge(DiffusionSignal);
 
+    //FED Response 
+    FrontendDriver frontenddriver{};
+    AdvSignal FEDResponseSignal = frontenddriver.FEDResponse(ResponseSignal);
+
     //Creating map of hit 
     std::map<std::string, std::vector<Int_t>> DigitisedHit; 
-    std::vector<Double_t> Charge = ResponseSignal.getIntegratedSignal();
-    std::vector<Int_t> Strips = ResponseSignal.getStrips();
+    std::vector<Double_t> Charge = FEDResponseSignal.getIntegratedSignal();
+    std::vector<Int_t> Strips = FEDResponseSignal.getStrips();
     std::vector<Int_t> ADC(Charge.size()); 
-    std::transform(Charge.begin(), Charge.end(), ADC.begin(), [](Double_t x) { return (int)x;});
+    std::transform(Charge.begin(), Charge.end(), ADC.begin(), [](Double_t x) { 
+        if (x>0){return (int)x;}
+        else {return 0;}
+        });
     DigitisedHit["Strips"] = Strips; 
     DigitisedHit["ADC"] = ADC; 
     
