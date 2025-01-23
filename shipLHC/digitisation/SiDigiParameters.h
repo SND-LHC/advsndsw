@@ -54,16 +54,16 @@ namespace frontend{
     const Double_t gain = 0.1; // in uA. Need to check which value to use
     const bool write_digi_to_text = 1; 
     const Int_t ElectronperADC = 250; 
-    const bool NoiseOption = 0; 
+    const bool NoiseOption = 1; 
     const bool CMNoiseOption = 0;
     const bool ZSModeOption = 0; 
-    const Int_t StripNoise = 19; 
+    const Int_t StripNoise = 1; 
     const Double_t NoiseRMS = 2; 
     const Double_t NoiseSigmaThreshold = 2; 
     const Double_t CMNoise = 2; 
     const Int_t NumberofStrips = 768;
     const Int_t ZeroSuppressionMode = 4; 
-    const Int_t ZeroSuppressionMode1T = 50; 
+    const Int_t ZeroSuppressionMode1T = 2; 
 }
 }   // namespace advsnd
 
