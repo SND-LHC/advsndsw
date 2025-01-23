@@ -20,14 +20,14 @@ StripNoise::StripNoise() {}
 AdvSignal StripNoise::AddGaussianNoise(AdvSignal Signal)
 {
     std::vector<Int_t> Strips = Signal.getStrips();
-    Int_t StripsSize = Strips.size();
     std::vector<Double_t> Amplitude = Signal.getIntegratedSignal();
 
     TRandom* rndm = gRandom;
-    for (int i = 0; i < StripsSize; i++)
+    for (int i = 0; i < stripsensor::frontend::NumberofStrips; i++)
     {
         Double_t x = rndm->Gaus(0, stripsensor::frontend::NoiseRMS);
-        Amplitude[i] += x ; 
+        Strips.push_back(i); 
+        Amplitude.push_back(x);
     }
     AdvSignal NoiseSignal(Strips, Amplitude); 
     return NoiseSignal; 
@@ -45,30 +45,23 @@ AdvSignal StripNoise::AddGaussianTailNoise(AdvSignal Signal)
     std::vector<Int_t> NoiseAddedStrips = Strips;  
     std::vector<Double_t> NoiseAddedAmplitudes = Amplitude; 
 
-    double probabilityLeft = 0.5 * std::erfc(stripsensor::frontend::NoiseSigmaThreshold / std::sqrt(2.0));
-
-    Double_t MeanNumberofNoisyChannels = probabilityLeft * stripsensor::frontend::NumberofStrips; 
-    cout << MeanNumberofNoisyChannels << endl ;
-
     TRandom* rndm = gRandom;
-    Double_t NumberofNoisyChannels = rndm->Poisson(MeanNumberofNoisyChannels);
-
-    for (int i = 0; i < NumberofNoisyChannels; i++)
-    {
-        //need to check if it matches the advsignal strip channels
-        NoisyStrips.push_back(rndm->Integer(stripsensor::frontend::NumberofStrips));
-        NoisyAmplitudes.push_back(generate_gaussian_tail(stripsensor::frontend::NoiseSigmaThreshold*stripsensor::frontend::NoiseRMS, stripsensor::frontend::NoiseRMS)); 
-    }
-
     for (int j = 0; j < StripsSize; j++)
     {
         Amplitude[j] += rndm->Gaus(0, stripsensor::frontend::NoiseRMS);
     }
 
-    NoiseAddedStrips.insert(NoisyStrips.end(), NoisyStrips.begin(), NoisyStrips.end());
-    NoiseAddedAmplitudes.insert(NoisyAmplitudes.end(), NoisyAmplitudes.begin(), NoisyAmplitudes.end());
+    double probabilityLeft = 0.5 * std::erfc(stripsensor::frontend::NoiseSigmaThreshold / std::sqrt(2.0));
 
-    AdvSignal NoiseSignal(NoiseAddedStrips, NoiseAddedAmplitudes);
+    Double_t MeanNumberofNoisyChannels = probabilityLeft * stripsensor::frontend::NumberofStrips; 
+    
+    Double_t NumberofNoisyChannels = int(rndm->Poisson(MeanNumberofNoisyChannels)); 
+    for (int i = 0; i < NumberofNoisyChannels; i++)
+    {
+        Strips.push_back(rndm->Integer(stripsensor::frontend::NumberofStrips));
+        Amplitude.push_back(generate_gaussian_tail(stripsensor::frontend::NoiseSigmaThreshold*stripsensor::frontend::NoiseRMS, stripsensor::frontend::NoiseRMS)); 
+    }
+    AdvSignal NoiseSignal(Strips, Amplitude);
 
     return NoiseSignal;
 
