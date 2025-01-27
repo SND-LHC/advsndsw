@@ -25,7 +25,6 @@
 
 #include "AbsHMatrix.h"
 
-
 namespace genfit {
 
 /**
@@ -36,32 +35,29 @@ namespace genfit {
  *     (0, 0, 0, 0, 1)
  *
  */
-class HMatrixUV : public AbsHMatrix {
+class HMatrixUV : public AbsHMatrix
+{
 
+  public:
+    HMatrixUV() { ; }
 
- public:
+    const TMatrixD& getMatrix() const;
 
-  HMatrixUV() {;}
+    TVectorD Hv(const TVectorD& v) const;
 
-  const TMatrixD& getMatrix() const;
+    TMatrixD MHt(const TMatrixDSym& M) const;
+    TMatrixD MHt(const TMatrixD& M) const;
 
-  TVectorD Hv(const TVectorD& v) const;
+    void HMHt(TMatrixDSym& M) const;
 
-  TMatrixD MHt(const TMatrixDSym& M) const;
-  TMatrixD MHt(const TMatrixD& M) const;
+    virtual AbsHMatrix* clone() const { return new HMatrixUV(*this); }
 
-  void HMHt(TMatrixDSym& M) const;
+    virtual bool isEqual(const AbsHMatrix& other) const { return (dynamic_cast<const HMatrixUV*>(&other) != NULL); }
 
-  virtual AbsHMatrix* clone() const {return new HMatrixUV(*this);}
-
-  virtual bool isEqual(const AbsHMatrix& other) const {return (dynamic_cast<const HMatrixUV*>(&other) != NULL);}
-
-  ClassDef(HMatrixUV,1)
-
+    ClassDef(HMatrixUV, 1)
 };
 
 } /* End of namespace genfit */
 /** @} */
 
-
-#endif // genfit_HMatrixUV_h
+#endif   // genfit_HMatrixUV_h

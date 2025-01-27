@@ -17,7 +17,6 @@
    along with GENFIT.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include "KalmanFitStatus.h"
 
 #include <iostream>
@@ -26,20 +25,22 @@ namespace genfit {
 
 void KalmanFitStatus::Print(const Option_t*) const
 {
-  FitStatus::Print();
-  if (fittedWithDaf_) std::cout << " track has been fitted with DAF,";
-  if (fittedWithReferenceTrack_) std::cout << " track has been fitted with reference track,";
-  if (isFitted_) {
-    std::cout << " numIterations = " << numIterations_ << ", ";
-    std::cout << "track length = " << trackLen_ << ", ";
-    std::cout << "fChi2 = " << fChi2_ << ", ";
-    std::cout << "bChi2 = " << FitStatus::getChi2() << ", ";
-    std::cout << "fNdf = " << fNdf_ << ", ";
-    std::cout << "bNdf = " << FitStatus::getNdf() << ", ";
-    std::cout << "fPVal = " << getForwardPVal() << ", ";
-    std::cout << "bPVal = " << getBackwardPVal() << "\n";
-  }
-  std::cout << "\n";
+    FitStatus::Print();
+    if (fittedWithDaf_)
+        std::cout << " track has been fitted with DAF,";
+    if (fittedWithReferenceTrack_)
+        std::cout << " track has been fitted with reference track,";
+    if (isFitted_) {
+        std::cout << " numIterations = " << numIterations_ << ", ";
+        std::cout << "track length = " << trackLen_ << ", ";
+        std::cout << "fChi2 = " << fChi2_ << ", ";
+        std::cout << "bChi2 = " << FitStatus::getChi2() << ", ";
+        std::cout << "fNdf = " << fNdf_ << ", ";
+        std::cout << "bNdf = " << FitStatus::getNdf() << ", ";
+        std::cout << "fPVal = " << getForwardPVal() << ", ";
+        std::cout << "bPVal = " << getBackwardPVal() << "\n";
+    }
+    std::cout << "\n";
 }
 
 } /* End of namespace genfit */
