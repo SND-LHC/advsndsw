@@ -99,12 +99,12 @@ class AdvTarget : public FairDetector
     std::map<TString, Int_t> conf_ints;
     std::map<TString, TString> conf_strings;
 
-    ClassDef(AdvTarget, 1)
+  ClassDef(AdvTarget, 1)
 
-        protected
-        :
+      protected
+      :
 
-        Int_t InitMedium(const char *name);
+      Int_t InitMedium(const char *name);
 };
 
 #endif   // SHIPLHC_ADVTARGET_H_
