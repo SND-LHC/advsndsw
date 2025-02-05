@@ -1,5 +1,13 @@
 #!/usr/bin/env python
+import atexit
 firstEvent = 0
+
+def pyExit():
+       "nasty hack"
+       # This is needed to bypass seg violation with exiting cpp digitization
+       # Most likely related to file ownership.
+       os.system('kill '+str(os.getpid()))
+atexit.register(pyExit)
 
 import resource
 def mem_monitor():
