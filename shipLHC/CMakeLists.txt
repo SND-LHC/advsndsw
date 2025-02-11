@@ -6,6 +6,8 @@ set(INCLUDE_DIRECTORIES
 ${BASE_INCLUDE_DIRECTORIES}
 ${CMAKE_SOURCE_DIR}/shipdata
 ${CMAKE_SOURCE_DIR}/shipLHC
+${CMAKE_SOURCE_DIR}/shipLHC/digitisation
+${CMAKE_SOURCE_DIR}/shipLHC/external/clhep/include
 ${CMAKE_SOURCE_DIR}/veto
 ${CMAKE_SOURCE_DIR}/genfit/core/include
 ${CMAKE_SOURCE_DIR}/genfit/trackReps/include
@@ -23,7 +25,7 @@ ${ROOT_LIBRARY_DIR}
 ${FAIRROOT_LIBRARY_DIR}
 
 )
- 
+
 link_directories( ${LINK_DIRECTORIES})
 
 set(SRCS
@@ -49,6 +51,13 @@ AdvMuFilter.cxx
 AdvMuFilterPoint.cxx
 SNDLHCEventHeader.cxx
 sndRecoTrack.cxx
+digitisation/ChargeDivision.cxx
+digitisation/ChargeDrift.cxx
+digitisation/InducedCharge.cxx
+digitisation/FrontendDriver.cxx
+digitisation/StripNoise.cxx
+digitisation/SiG4UniversalFluctuation.cxx
+digitisation/AdvDigitisation.cxx
 )
 
 Set(HEADERS )
