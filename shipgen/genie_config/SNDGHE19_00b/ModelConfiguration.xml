@@ -4,7 +4,7 @@
 
 <!--
 ***************************************************************************************************
-This file defines defaults for the most important GENIE physics user configuration parameters. 
+This file defines defaults for the most important GENIE physics user configuration parameters.
 Multilple named lists of user physics options can be defined.
 Use the "Default" one to get the standard/default GENIE physics & tuning.
 
@@ -14,10 +14,10 @@ STFC, Rutherford Appleton Laboratory
 ***************************************************************************************************
 -->
 
- <param_set name="Default"> 
+ <param_set name="Default">
 
 
- <!-- 
+ <!--
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Specify which cross section model is to be used by each GENIE event generation thread.
   The parameter name is build as: "XSecModel@[name of thread]"

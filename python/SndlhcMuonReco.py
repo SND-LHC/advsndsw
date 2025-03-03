@@ -523,7 +523,7 @@ class MuonReco(ROOT.FairTask):
 
         # initialize detector class with EventHeader(runN), if SNDLHCEventHeader detected
         # only needed if using HT tracking manager, i.e. standalone
-        '''
+        """
         if (
             self.EventHeader.IsA().GetName() == "SNDLHCEventHeader"
             and hasattr(self, "standalone")
@@ -531,7 +531,7 @@ class MuonReco(ROOT.FairTask):
             and not self.isMC
         ):
             self.AdvTargetDet.InitEvent(self.EventHeader)
-        '''
+        """
 
         # internal storage of clusters
         if self.AdvTarget_meas:
