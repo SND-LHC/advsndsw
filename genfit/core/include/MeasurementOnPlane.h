@@ -24,13 +24,11 @@
 #ifndef genfit_MeasurementOnPlane_h
 #define genfit_MeasurementOnPlane_h
 
-#include "MeasuredStateOnPlane.h"
 #include "AbsHMatrix.h"
+#include "MeasuredStateOnPlane.h"
 
 #include <TMatrixD.h>
-
 #include <cmath>
-
 
 namespace genfit {
 
@@ -41,48 +39,59 @@ namespace genfit {
  * The HMatrix is a projetion matrix, which is used to project the track parameters
  * with the originalt dimesionality down to the measured dimensionality.
  */
-class MeasurementOnPlane : public MeasuredStateOnPlane {
+class MeasurementOnPlane : public MeasuredStateOnPlane
+{
 
- public:
+  public:
+    MeasurementOnPlane(const AbsTrackRep* rep = NULL)
+        : MeasuredStateOnPlane(rep)
+        , hMatrix_(NULL)
+        , weight_(0)
+    {
+    }
+    MeasurementOnPlane(const TVectorD& state,
+                       const TMatrixDSym& cov,
+                       SharedPlanePtr plane,
+                       const AbsTrackRep* rep,
+                       const AbsHMatrix* hMatrix,
+                       double weight = 1.)
+        : MeasuredStateOnPlane(state, cov, plane, rep)
+        , hMatrix_(hMatrix)
+        , weight_(weight)
+    {
+    }
 
-  MeasurementOnPlane(const AbsTrackRep* rep = NULL) :
-    MeasuredStateOnPlane(rep), hMatrix_(NULL), weight_(0) {}
-  MeasurementOnPlane(const TVectorD& state, const TMatrixDSym& cov, SharedPlanePtr plane, const AbsTrackRep* rep, const AbsHMatrix* hMatrix, double weight = 1.) :
-    MeasuredStateOnPlane(state, cov, plane, rep), hMatrix_(hMatrix), weight_(weight) {}
+    //! copy constructor
+    MeasurementOnPlane(const MeasurementOnPlane& other);
+    //! assignment operator
+    MeasurementOnPlane& operator=(MeasurementOnPlane other);
+    void swap(MeasurementOnPlane& other);
 
-  //! copy constructor
-  MeasurementOnPlane(const MeasurementOnPlane& other);
-  //! assignment operator
-  MeasurementOnPlane& operator=(MeasurementOnPlane other);
-  void swap(MeasurementOnPlane& other);
+    virtual ~MeasurementOnPlane() {}
 
-  virtual ~MeasurementOnPlane() {}
+    const AbsHMatrix* getHMatrix() const { return hMatrix_.get(); }
+    double getWeight() const { return weight_; }
 
-  const AbsHMatrix* getHMatrix() const {return hMatrix_.get();}
-  double getWeight() const {return weight_;}
+    TMatrixDSym getWeightedCov() { return weight_ * cov_; }
 
-  TMatrixDSym getWeightedCov() {return weight_*cov_;}
+    void setHMatrix(const AbsHMatrix* hMatrix) { hMatrix_.reset(hMatrix); }
+    void setWeight(double weight) { weight_ = fmax(weight, 1.E-10); }
 
-  void setHMatrix(const AbsHMatrix* hMatrix) {hMatrix_.reset(hMatrix);}
-  void setWeight(double weight) {weight_ = fmax(weight, 1.E-10);}
+    void Print(Option_t* option = "") const;
 
-  void Print(Option_t* option = "") const ;
-
- protected:
-
+  protected:
 #ifndef __CINT__
-  boost::scoped_ptr<const AbsHMatrix> hMatrix_; // Ownership
+    boost::scoped_ptr<const AbsHMatrix> hMatrix_;   // Ownership
 #else
-  const AbsHMatrix* hMatrix_; //! Ownership. Projection matrix
+    const AbsHMatrix* hMatrix_;   //! Ownership. Projection matrix
 #endif
-  double weight_;
+    double weight_;
 
- public:
-  ClassDef(MeasurementOnPlane,1)
-
+  public:
+    ClassDef(MeasurementOnPlane, 1)
 };
 
-} /* End of namespace   */
+}   // namespace genfit
 /** @} */
 
-#endif //  _MeasurementOnPlane_h
+#endif   //  _MeasurementOnPlane_h

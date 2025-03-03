@@ -24,59 +24,48 @@
 #ifndef genfit_AbsMaterialInterface_h
 #define genfit_AbsMaterialInterface_h
 
-#include "RKTrackRep.h"
 #include "MaterialProperties.h"
+#include "RKTrackRep.h"
 
 #include <TObject.h>
 #include <TVector3.h>
-
 
 namespace genfit {
 
 /**
  * @brief Abstract base class for geometry interfacing
  */
-class AbsMaterialInterface : public TObject {
+class AbsMaterialInterface : public TObject
+{
 
- public:
+  public:
+    AbsMaterialInterface() { ; };
+    virtual ~AbsMaterialInterface() { ; };
 
-  AbsMaterialInterface(){;};
-  virtual ~AbsMaterialInterface(){;};
+    /** @brief Initialize the navigator at given position and with given direction.  Return true if volume changed.
+     */
+    virtual bool initTrack(double posX, double posY, double posZ, double dirX, double dirY, double dirZ) = 0;
 
-  /** @brief Initialize the navigator at given position and with given direction.  Return true if volume changed.
-   */
-  virtual bool initTrack(double posX, double posY, double posZ,
-                         double dirX, double dirY, double dirZ) = 0;
+    /** @brief Get material parameters in current material
+     */
+    virtual void getMaterialParameters(double& density, double& Z, double& A, double& radiationLength, double& mEE) = 0;
 
-  /** @brief Get material parameters in current material
-   */
-  virtual void getMaterialParameters(double& density,
-                                     double& Z,
-                                     double& A,
-                                     double& radiationLength,
-                                     double& mEE) = 0;
+    virtual void getMaterialParameters(MaterialProperties& parameters) = 0;
 
-  virtual void getMaterialParameters(MaterialProperties& parameters) = 0;
+    /** @brief Make a step until maxStep or the next boundary is reached.
+     *
+     * After making a step to a boundary, the position has to be beyond the boundary,
+     * i.e. in the current material has to be that beyond the boundary.
+     * The actual step made is returned.
+     */
+    virtual double findNextBoundary(const RKTrackRep* rep, const M1x7& state7, double sMax, bool varField = true) = 0;
 
-  /** @brief Make a step until maxStep or the next boundary is reached.
-   *
-   * After making a step to a boundary, the position has to be beyond the boundary,
-   * i.e. in the current material has to be that beyond the boundary.
-   * The actual step made is returned.
-   */
-  virtual double findNextBoundary(const RKTrackRep* rep,
-                                  const M1x7& state7,
-                                  double sMax,
-                                  bool varField = true) = 0;
+    virtual double findNextBoundaryAndStepStraight(double sMax) = 0;
 
-  virtual double findNextBoundaryAndStepStraight(double sMax) = 0;
-
-
-  //ClassDef(AbsMaterialInterface, 1);
-
+    // ClassDef(AbsMaterialInterface, 1);
 };
 
 } /* End of namespace genfit */
 /** @} */
 
-#endif // genfit_AbsMaterialInterface_h
+#endif   // genfit_AbsMaterialInterface_h

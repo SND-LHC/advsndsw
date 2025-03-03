@@ -109,5 +109,5 @@ for nuevent in flukatree:
 
 # writing tree, closing file
 geniefile.cd()
-output_nutree.Write("fluka_neutrinos_selected",r.TFile.kOverwrite)
+output_nutree.Write("fluka_neutrinos_selected", r.TFile.kOverwrite)
 geniefile.Close()

@@ -117,7 +117,6 @@ if __name__ == "__main__":
         print("no other cross-sections available!")
 
     if "nevents" in args:
-
         print("Number of events to generate: ", args.nevents)
         print("Process to simulate: ", args.process)
         print("Target type: ", args.target)
