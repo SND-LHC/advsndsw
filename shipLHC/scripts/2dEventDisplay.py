@@ -108,7 +108,7 @@ for ht_task in HT_tasks.values():
     # force the output of reco task to genfit::Track
     # as the display code looks for such output
     ht_task.ForceGenfitTrackFormat()
-HT_tasks['muon_reco_task_Sf'].SetTrackingCase('passing_mu_AdvTarget')
+HT_tasks['muon_reco_task_Sf'].SetTrackingCase('nu_interaction_products')
 HT_tasks['muon_reco_task_nuInt'].SetTrackingCase('nu_interaction_products')
 
 run.Init()
@@ -262,19 +262,19 @@ def getAdvHitDensity(g, x_range=0.5):
 def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup='',verbose=0,auto=False,hitColour=None):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
  h['simpleDisplay'].cd(1)
- zStart = -300. # AdvSND MC
+ zStart = 100. # AdvSND MC
  if Setup == 'H6': zStart = 60.
  if Setup == 'TP': zStart = -50. # old coordinate system with origin in middle of target
  if 'xz' in h: 
     h.pop('xz').Delete()
     h.pop('yz').Delete()
  else:
-    h['xmin'],h['xmax'] = -100.,100. # AdvSND MC
-    h['ymin'],h['ymax'] = -100.,100. # AdvSND MC
-    h['zmin'],h['zmax'] = zStart,zStart+500.
+    h['xmin'],h['xmax'] = -80.,20. # AdvSND MC
+    h['ymin'],h['ymax'] = 0.,100. # AdvSND MC
+    h['zmin'],h['zmax'] = zStart,zStart+400.
     for d in ['xmin','xmax','ymin','ymax','zmin','zmax']: h['c'+d]=h[d]
- ut.bookHist(h,'xz','; z [cm]; x [cm]',500,h['czmin'],h['czmax'],200,h['cxmin'],h['cxmax'])
- ut.bookHist(h,'yz','; z [cm]; y [cm]',500,h['czmin'],h['czmax'],200,h['cymin'],h['cymax'])
+ ut.bookHist(h,'xz','; z [cm]; x [cm]',400,h['czmin'],h['czmax'],100,h['cxmin'],h['cxmax'])
+ ut.bookHist(h,'yz','; z [cm]; y [cm]',400,h['czmin'],h['czmax'],100,h['cymin'],h['cymax'])
 
  proj = {1:'xz',2:'yz'}
  h['xz'].SetStats(0)
@@ -633,30 +633,31 @@ def twoTrackEvent(sMin=10,dClMin=7,minDistance=1.5,sepDistance=0.5):
 
 def drawDetectors():
     """ Read the detector geometry and draw its elements on the display. """
-    nodes = {'volAdvTarget_1/volTargetWall_1':ROOT.kGray+1}
+    nodes = {'volAdvTarget_0/volWall_0/volPlate_1':ROOT.kGray+1}
     geoVer = checkGeoVersion()
     if geoVer!=2:
         print('This is an older version of the geometry and it is likely incompatible with this version of the drawDetectors function of the 2dED.')
     for i in range(geo.snd_geo.AdvTarget.nTT):
-        nodes['volAdvTarget_1/volTargetWall_{}'.format(i)]=ROOT.kGray+1
-        nodes['volAdvTarget_1/TrackingStation_{}'.format(i)]=ROOT.kBlue
+        nodes['volAdvTarget_0/volWall_{}/volPlate_1'.format(i)]=ROOT.kGray+1
+        nodes['volAdvTarget_0/Target_Layer_{}'.format(i)]=ROOT.kBlue
 
-    for i in range(geo.snd_geo.AdvMuFilter.Nplanes):
-        nodes['volAdvMuFilter_0/volFeWall_{}'.format(i)] = ROOT.kGreen -6
-        nodes['volAdvMuFilter_0/TrackingStation_{}'.format(i)] = ROOT.kRed -2
-        if i > geo.snd_geo.AdvMuFilter.Nplanes-2: continue
-        for j in range(geo.snd_geo.AdvMuFilter.Nplanes-2):
+    for i in range(ROOT.advsnd.hcal.n_XY_layers+ROOT.advsnd.hcal.n_X_layers):
+        nodes['volAdvMuFilter_0/volFeSlab{}'.format(i)] = ROOT.kGreen -6
+        nodes['volAdvMuFilter_0/volMagnetizedFe_{}'.format(i)] = ROOT.kGreen -6
+        nodes['volAdvMuFilter_0/HCAL_Layer_{}'.format(i)] = ROOT.kRed -2
+        #if i > ROOT.advsnd.hcal.n_XY_layers+ROOT.advsnd.hcal.n_X_layers-2: continue
+        for j in range(ROOT.advsnd.hcal.n_XY_layers+ROOT.advsnd.hcal.n_X_layers-2):
             if geoVer == 1:
                 nodes['volAdvMuFilter_0/volMuonSysDet_{}_{}/volBar_{}'.format(i, i, i*100+j)] = ROOT.kGray
             elif geoVer == 2:
                 nodes['volAdvMuFilter_0/volMuonSysDet_{}'.format(i)] = ROOT.kGray
     
     for i in range(2):
-        nodes['volAdvMuFilter_0/volVertCoil_{}'.format(i)] = ROOT.kOrange+1
-        nodes['volAdvMuFilter_0/volCoil_{}'.format(i)] = ROOT.kOrange+1
+        nodes['volAdvMuFilter_0/volFrontCoil_{}'.format(i)] = ROOT.kOrange+1
+        nodes['volAdvMuFilter_0/volLatCoil_{}'.format(i)] = ROOT.kOrange+1
     if geoVer != 2:
-        nodes['volAdvMuFilter_0/volMagTracker1_10000'] = ROOT.kGray   
-        nodes['volAdvMuFilter_0/volMagTracker2_10001'] = ROOT.kGray  
+        nodes['volAdvMuFilter_0/volMagTracker1_10000'] = ROOT.kGray
+        nodes['volAdvMuFilter_0/volMagTracker2_10001'] = ROOT.kGray
         nodes['volAdvMuFilter_0/volDownMagTracker_10002'] = ROOT.kGray
         nodes['volAdvMuFilter_0/volDownstreamMagnet_0/volDownVertCoil1_0'] = ROOT.kOrange+1
         nodes['volAdvMuFilter_0/volDownstreamMagnet_0/volDownVertCoil2_0'] = ROOT.kOrange+1
@@ -668,7 +669,7 @@ def drawDetectors():
     nodes['volAdvMuFilter_0/volMagTracker_10002'] = ROOT.kGray
 
     #passNodes = {'Wall','Coil', 'Block','Yoke'}
-    passNodes = {'Wall','Coil'}
+    passNodes = {'Plate','Coil'}
     proj = {'X':0, 'Y':1}
     for node_ in nodes:
         node = '/cave_1/Detector_0/'+node_
@@ -683,11 +684,10 @@ def drawDetectors():
                 if not nav.CheckPath(node): continue
                 nav.cd(node)
                 N = nav.GetCurrentNode()
-                # get rid of the Coil element for the vertical projection
-                # FIXME change the naming of the Coil and VertCoil in the geo file
+                # get rid of the LatCoil element for Y projection
                 if (N.GetVolume().GetName().find('Coil')>0
-                   and N.GetVolume().GetName().find('VertCoil')<0
-                   and p=='X'): continue                
+                   and N.GetVolume().GetName().find('LatCoil')>0):
+                     continue
                 S = N.GetVolume().GetShape()
                 scale = 1
                 if N.GetVolume().GetName().find('FeWall')>0:
@@ -695,13 +695,13 @@ def drawDetectors():
                 dx,dy,dz = S.GetDX()/scale,S.GetDY()/scale,S.GetDZ()
                 ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
                 P = {}
-                M = {}                
-                if p=='X':
+                M = {}
+                if p=='X' and N.GetVolume().GetName().find('Layer')<0:
                     P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
                     P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
                     P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
                     P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
-                elif p=='Y':
+                elif p=='Y' or N.GetVolume().GetName().find('Layer')>0:
                     P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
                     P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
                     P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
@@ -733,6 +733,15 @@ def drawDetectors():
                     X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
                 X.SetLineColor(nodes[node_])
                 X.SetLineWidth(1)
+                # Only show detector volumes if they measure the corresponding coordinate
+                if ( p=='Y' and node.find("Layer_")>0 and int(node[node.find("Layer_")+6:])%2 == 1 ) or \
+                   ( p=='X' and node.find("Layer_")>0 and int(node[node.find("Layer_")+6:])%2 == 0 ):
+                    X.SetLineWidth(0)
+                if  node.find("HCAL_Layer_")>0 and int(node[node.find("Layer_")+6:])>27:
+                  if p=='X':
+                     X.SetLineWidth(1)
+                  else:
+                     X.SetLineWidth(0)
                 h['simpleDisplay'].cd(c+1)
                 if any(passNode in node for passNode in passNodes):
                    X.SetFillColorAlpha(nodes[node_], 0.5)
