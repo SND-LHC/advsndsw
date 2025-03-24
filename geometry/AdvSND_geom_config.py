@@ -3,6 +3,11 @@
 import shipunit as u
 from ShipGeoConfig import AttrDict, ConfigRegistry
 
+if "stagger_hcal" in globals():
+    stagger_hcal = globals()["stagger_hcal"]
+else:
+    stagger_hcal = False
+
 with ConfigRegistry.register_config("basic") as c:
     # cave parameters
     c.cave = AttrDict(z=0 * u.cm)
@@ -703,3 +708,6 @@ with ConfigRegistry.register_config("basic") as c:
     c.AdvMuFilter.CoilZ = 5.5 * u.cm
     c.AdvMuFilter.Field = 1.75 * u.tesla
     c.AdvMuFilter.CurvRadius = 6.5 * u.cm
+    # Staggering of XY HCAL layers
+    if stagger_hcal:
+        c.AdvMuFilter.stagger_step = 7.5 * u.mm
