@@ -655,19 +655,25 @@ with ConfigRegistry.register_config("basic") as c:
 
     # AdvSND Target & Tracker structure
     c.AdvTarget = AttrDict(z=0 * u.cm)
-    c.AdvTarget.TargetWallX = 40 * u.cm
-    c.AdvTarget.TargetWallY = c.AdvTarget.TargetWallX
-    c.AdvTarget.TargetWallZ = 7 * u.mm
-    c.AdvTarget.AluFrameX = 60 * u.cm
-    c.AdvTarget.AluFrameY = 60 * u.cm
-    c.AdvTarget.AluFrameZ = 7 * u.mm
+    # Tungsten plates
+    c.AdvTarget.PlateX = 45 * u.cm
+    c.AdvTarget.PlateY = c.AdvTarget.PlateX
+    c.AdvTarget.PlateZ = 7 * u.mm
+    # Support frame of the plates
+    c.AdvTarget.PlateFrameX = 60 * u.cm
+    c.AdvTarget.PlateFrameY = 60 * u.cm
+    c.AdvTarget.PlateFrameZ = c.AdvTarget.PlateZ
 
-    # Target Tracking stations
-    c.AdvTarget.TTX = 40 * u.cm
-    c.AdvTarget.TTY = c.AdvTarget.TTX
-    c.AdvTarget.TTZ = 4 * u.mm
+    # Target Tracking layers
+    c.AdvTarget.TTZ = (
+        4 * u.mm
+    )  # due to module overlaps, the thickness of a layer is actually 2x4mm
     c.AdvTarget.nTT = 58
-    
+
+    # Full target volume including inactive area
+    c.AdvTarget.X = 59 * u.cm
+    c.AdvTarget.Y = c.AdvTarget.X
+    c.AdvTarget.Z = c.AdvTarget.nTT * (2 * c.AdvTarget.TTZ + c.AdvTarget.PlateZ)
 
     # AdvSND MuFilter structure
     """
@@ -681,16 +687,17 @@ with ConfigRegistry.register_config("basic") as c:
         c.AdvMuFilter.nPlanes = 22
         """
 
-    # AdvSND MuFilter Layout 2 (SQUARED)
+    # AdvSND MuFilter
     c.AdvMuFilter = AttrDict(z=0 * u.cm)
-    c.AdvMuFilter.MuonSysPlaneX = 40 * u.cm
+    c.AdvMuFilter.MuonSysPlaneX = 60 * u.cm
     c.AdvMuFilter.MuonSysPlaneY = c.AdvMuFilter.MuonSysPlaneX
-    c.AdvMuFilter.MuonSysPlaneZ = 4 * u.mm
+    c.AdvMuFilter.MuonSysPlaneZ = (
+        4 * u.mm
+    )  # due to module overlaps, the thickness of a layer is actually 2x4mm
     c.AdvMuFilter.FeX = 115.1 * u.cm
     c.AdvMuFilter.FeY = 80.0 * u.cm
     c.AdvMuFilter.FeZ = 5 * u.cm
     c.AdvMuFilter.FeGap = 15.5 * u.cm
-    c.AdvMuFilter.Nplanes = 34
     c.AdvMuFilter.CoilX = 40 * u.cm
     c.AdvMuFilter.CoilY = c.AdvMuFilter.MuonSysPlaneY
     c.AdvMuFilter.CoilZ = 5.5 * u.cm
