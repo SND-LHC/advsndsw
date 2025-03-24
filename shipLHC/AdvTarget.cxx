@@ -1,6 +1,9 @@
 //
 //  AdvTarget.cxx
 //
+//  S.Ilieva
+//  March 2025
+//
 //  O. Lantwin and D. Centanni
 //  Dec 2023
 //
@@ -115,27 +118,36 @@ void AdvTarget::ConstructGeometry()
 
     InitMedium("tungstensifon");
     TGeoMedium *tungsten = gGeoManager->GetMedium("tungstensifon");
+    InitMedium("Polystyrene");
+    TGeoMedium *Polystyrene = gGeoManager->GetMedium("Polystyrene");
     InitMedium("silicon");
-    TGeoMedium *Silicon = gGeoManager->GetMedium("silicon");
-    InitMedium("aluminium");
-    TGeoMedium *Aluminum = gGeoManager->GetMedium("aluminium");
+    TGeoMedium *silicon = gGeoManager->GetMedium("silicon");
+    InitMedium("steel");
+    TGeoMedium *steel = gGeoManager->GetMedium("steel");
 
-
-    Double_t fTargetWallX = conf_floats["AdvTarget/TargetWallX"];
-    Double_t fTargetWallY = conf_floats["AdvTarget/TargetWallY"];
-    Double_t fTargetWallZ = conf_floats["AdvTarget/TargetWallZ"];
-    Double_t fAluFrameX = conf_floats["AdvTarget/AluFrameX"];
-    Double_t fAluFrameY = conf_floats["AdvTarget/AluFrameY"];
-    Double_t fAluFrameZ = conf_floats["AdvTarget/AluFrameZ"];
-    Double_t fTTX = conf_floats["AdvTarget/TTX"];
-    Double_t fTTY = conf_floats["AdvTarget/TTY"];
+    Double_t fPlateX = conf_floats["AdvTarget/PlateX"];
+    Double_t fPlateY = conf_floats["AdvTarget/PlateY"];
+    Double_t fPlateZ = conf_floats["AdvTarget/PlateZ"];
+    Double_t fPlateFrameX = conf_floats["AdvTarget/PlateFrameX"];
+    Double_t fPlateFrameY = conf_floats["AdvTarget/PlateFrameY"];
+    Double_t fPlateFrameZ = conf_floats["AdvTarget/PlateFrameZ"];
     Double_t fTTZ = conf_floats["AdvTarget/TTZ"];
-    Int_t stations = conf_ints["AdvTarget/nTT"];   // Number of TT stations
+    Int_t fNlayers = conf_ints["AdvTarget/nTT"];   // Number of TT layers
 
-    // AdvSND layout August 2024 proposed in https://indico.cern.ch/event/1441955/
-
-    // Definition of the target box containing tungsten walls + silicon tracker (all sensitive plane for now)
+    // Definition of the target box containing tungsten walls + silicon tracker
     TGeoVolumeAssembly *volAdvTarget = new TGeoVolumeAssembly("volAdvTarget");
+
+    TGeoBBox *Plate = new TGeoBBox("Plate", fPlateX / 2., fPlateY / 2., fPlateZ / 2. + 1e-10);
+    TGeoBBox *PlateAndFrame = new TGeoBBox("PlateAndFrame", fPlateFrameX / 2., fPlateFrameY / 2., fPlateFrameZ / 2.);
+    TGeoCompositeShape *PlateFrame = new TGeoCompositeShape("PlateFrame", "PlateAndFrame-Plate");
+
+    TGeoVolume *volPlate = new TGeoVolume("volPlate", Plate, tungsten);
+    TGeoVolume *volPlateFrame = new TGeoVolume("volPlateFrame", PlateFrame, steel);
+    volPlate->SetLineColor(kGray - 4);
+    volPlateFrame->SetLineColor(kGray);
+    TGeoVolumeAssembly *volWall = new TGeoVolumeAssembly("volWall");
+    volWall->AddNode(volPlate, 1);
+    volWall->AddNode(volPlateFrame, 1);
 
     // Positioning calculations, TODO delete once the whole AdvSND apparatus is positioned correctly
     TVector3 EmWall0_survey(5.35 * cm + 42.2 / 2. * cm,
@@ -145,36 +157,122 @@ void AdvTarget::ConstructGeometry()
 
     double line_of_sight_offset = (-2.4244059999999976 + 5.203625000000001) * cm;
     detector->AddNode(volAdvTarget,
-                      1,
+                      0,
                       new TGeoTranslation(line_of_sight_offset - EmWall0_survey.X() + (40 * cm - 42.2 * cm) / 2.,
                                           EmWall0_survey.Y(),
                                           -TargetDiff + EmWall0_survey.Z() - 60 * cm
                                               - 30 * cm));   // - 60 * cm - 30 * cm to allocate a 150 cm Target
 
-    TGeoBBox *TargetWall = new TGeoBBox("TargetWall", fTargetWallX/2., fTargetWallY/2., fTargetWallZ/2.);
-    TGeoBBox *AluBlock = new TGeoBBox("AluBlock", fAluFrameX/2., fAluFrameY/2., fAluFrameZ/2.-0.001);
-    TGeoBBox *Module = new TGeoBBox("Module", fTTX/2., fTTY/2., fTTZ/2.);
-    TGeoCompositeShape *AluFrame = new TGeoCompositeShape("AluFrame", "AluBlock-TargetWall");
+    // Silicon tracker module
+    //
+    // See https://indico.cern.ch/event/1452210/contributions/6134180/attachments/2934314/5153496/Abbaneo_Sep2024.pdf
+    // for graphical layout
+    //
+    // Passive part - support with a hole to host the sensors.
+    // The support is on 4 legs, which wont be modelled for now. Instead the support_thickness is doubled (2x0.5mm) to
+    // approximate.
+    TGeoBBox *SupportPlate = new TGeoBBox(
+        "SupportPlate", advsnd::module_width / 2, advsnd::module_length / 2, advsnd::support_thickness / 2);
+    float support_hole_x_half_dim = (2 * advsnd::sensor_width + advsnd::sensor_gap) / 2.;
+    TGeoBBox *SupportHole = new TGeoBBox(
+        "SupportHole", support_hole_x_half_dim, advsnd::sensor_length / 2, advsnd::support_thickness / 2 + 1e-10);
+    TGeoTranslation *t1 = new TGeoTranslation(
+        "t1", -advsnd::module_width / 2 + advsnd::target::module_dead_space_side_small + support_hole_x_half_dim, 0, 0);
+    t1->RegisterYourself();
+    TGeoCompositeShape *Support = new TGeoCompositeShape("Support", "SupportPlate-SupportHole:t1");
 
-    TGeoVolume *volTargetWall = new TGeoVolume("volTargetWall", TargetWall, tungsten);
-    TGeoVolume *volAluFrame = new TGeoVolume("volAluFrame", AluFrame, Aluminum);
-    TGeoVolume *volModule = new TGeoVolume("volModule", Module, Silicon);
-    volTargetWall->SetLineColor(kGray-4);
-    volAluFrame->SetLineColor(kGray);
-    volModule->SetLineColor(kYellow+2);
-    AddSensitiveVolume(volModule);
-    
-    volAdvTarget->AddNode(volModule, 0, new TGeoTranslation(0, 0, fTTZ/2));
-    for (auto plane = 1; plane<stations+1; plane++) {
-        Double_t station_length = 2*fTTZ+fTargetWallZ;
-        Double_t Zshift = fTTZ;
-        volAdvTarget->AddNode(volAluFrame, plane, new TGeoTranslation(0, 0, Zshift+fAluFrameZ/2+(plane-1)*station_length));
-        volAdvTarget->AddNode(volTargetWall, plane, new TGeoTranslation(0, 0, Zshift+fTargetWallZ/2+(plane-1)*station_length));
-        volAdvTarget->AddNode(volModule, plane*10, new TGeoTranslation(0, 0, Zshift+fTargetWallZ+fTTZ/2+(plane-1)*station_length));
-        if (plane == stations) continue;
-        volAdvTarget->AddNode(volModule, plane*10+1, new TGeoTranslation(0, 0, Zshift+fTargetWallZ+fTTZ+fTTZ/2+(plane-1)*station_length));
-  }
+    TGeoVolume *SupportVolume = new TGeoVolume("SupportVolume", Support, Polystyrene);
+    SupportVolume->SetLineColor(kGray);
+    SupportVolume->SetTransparency(20);
+    // Active part  - sensors of Si strips
+    // Strips are not included in the geometry since it will become much more computationally heavy
+    TGeoBBox *SensorShape =
+        new TGeoBBox("SensorShape", advsnd::sensor_width / 2, advsnd::sensor_length / 2, advsnd::sensor_thickness / 2);
+    TGeoVolume *SensorVolume = new TGeoVolume("Target_SensorVolume", SensorShape, silicon);
+    SensorVolume->SetLineColor(kAzure + 3);
+    AddSensitiveVolume(SensorVolume);
 
+    // In detector construction, a station consists of a target(W) plate with modules mounted on the two sides.
+    // These modules measure different coordinates e.g. X modules & W & Y modules = station.
+    // In the sw the unit is instead the detective layer: modules of the same orientation (almost fully) covering
+    // the transverse size of the W plate. A detective layer is formed by the modules in between consecutive target
+    // plates. The layer measures X OR Y coordinate! The X and Y layers are alternated in the target volume e.g.
+    //           station1         +         station 2            +         station 2           +  ...
+    // X modules & W & Y modules  +  Y modules & W & X modules   +  X modules & W & Y modules  +  ...
+    // For correct detector IDs, the geometry has to be built back to front, from the bottom up
+    for (auto &&layer : TSeq(fNlayers)) {
+        // A tracking layer consists of a X OR a Y plane.
+        // X plane(vertical strips) is plane 1 and Y plane(horizontal strips) is plane 0.
+        // This is done to match the SND-LHC convention, where  plane 1 is vertical
+        int plane = layer % advsnd::target::planes;
+        TGeoVolumeAssembly *ActiveLayer = new TGeoVolumeAssembly("Target_Layer");
+        // Each layer consists of row x columns = 4x2 modules
+        int i = 0;
+        for (auto &&row : TSeq(advsnd::target::rows)) {
+            for (auto &&column : TSeq(advsnd::target::columns)) {
+                // Each module in turn consists of two sensors on a support
+                TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
+                SensorModule->AddNode(
+                    SupportVolume, 1, new TGeoTranslation(0, 0, fTTZ - advsnd::support_thickness / 2));
+                for (auto &&sensor : TSeq(advsnd::sensors)) {
+                    int32_t sensor_id =
+                        (layer << 17) + (plane << 16) + (row << 13) + (column << 11) + (sensor << 10) + 999;
+                    SensorModule->AddNode(
+                        SensorVolume,
+                        sensor_id,
+                        new TGeoTranslation(-advsnd::module_width / 2 + advsnd::hcal::module_dead_space_side_small
+                                                + advsnd::sensor_width / 2
+                                                + sensor * (advsnd::sensor_width + advsnd::sensor_gap),
+                                            -advsnd::module_length / 2 + advsnd::hcal::module_dead_space_bottom
+                                                + advsnd::sensor_length / 2,
+                                            fTTZ - advsnd::support_thickness - advsnd::sensor_thickness / 2));
+                }
+                // SensorModules one next to the other form the two columns and a little empty space(modules_column_gap)
+                // is left in between. When building rows, the overlap btw the upper 4 modules(top tandem) is denoted
+                // modules_rows_overlap. The same overlap is applied to the lower 4 modules on the bottom. Note the
+                // overlap btw the top tandem and the bottom tandem is different: tandem_modules_rows_overlap.
+                ActiveLayer->AddNode(
+                    SensorModule,
+                    ++i,
+                    new TGeoCombiTrans(
+                        // Offset modules as needed by row and column
+                        TGeoTranslation(
+                            (column % 2 ? -1 : 1) * (advsnd::module_width / 2 + advsnd::target::modules_column_gap / 2),
+                            (row + 1) * advsnd::module_length / 2
+                                + +floor((row + 1) / 2)
+                                      * (advsnd::module_length / 2 - advsnd::target::modules_rows_overlap)
+                                + floor(row / 2)
+                                      * (advsnd::module_length / 2 - advsnd::target::tandem_modules_rows_overlap),
+                            fTTZ),   // modules facing one another are offset by the module_thickness, leaving some
+                                     // clearance(air) for electronics
+                        // Rotate every module of the second column by 180 on z axis and
+                        // rotate every other row by 180 deg on y axis to arrive at back-to-front layout
+                        TGeoRotation(TString::Format("rot%d", i), 0, row % 2 * 180, column * 180)));
+            }   // columns
+        }   // rows
+
+        // Alternate target plates followed by a detecting layer.
+        // Offsets in Y are adjusted so that the center of the whole detector is positioned at 0
+        volAdvTarget->AddNode(volWall, layer, new TGeoTranslation(0, 0, fPlateZ / 2 + layer * (fPlateZ + 2 * fTTZ)));
+        if (plane == 0) {
+            // Y-plane (horizontal strips along y axis)
+            volAdvTarget->AddNode(ActiveLayer,
+                                  layer,
+                                  new TGeoTranslation(0,
+                                                      -fPlateY / 2 + advsnd::target::offset / 2,
+                                                      fPlateZ + layer * (fPlateZ + 2 * fTTZ)));
+        } else if (plane == 1) {
+            // X-plane (vertical strips along x axis)
+            volAdvTarget->AddNode(
+                ActiveLayer,
+                layer,
+                new TGeoCombiTrans(TGeoTranslation(2 * advsnd::module_length - advsnd::target::offset,
+                                                   -fPlateY / 2 + advsnd::target::offset / 2 + 2 * advsnd::module_length
+                                                       - advsnd::target::offset,
+                                                   fPlateZ + layer * (fPlateZ + 2 * fTTZ)),
+                                   TGeoRotation("y_rot", 0, 0, 90)));
+        }
+    }   // layers
 }
 
 Bool_t AdvTarget::ProcessHits(FairVolume *vol)
@@ -234,24 +332,20 @@ void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     int strip = (detID) % 1024;                // actual strip ID
     int geofile_detID = detID - strip + 999;   // the det id number needed to read the geometry
 
-    int station = geofile_detID >> 17;
-    int plane = (geofile_detID >> 16) % 2;
+    int layer = geofile_detID >> 17;
     int row = (geofile_detID >> 13) % 8;
     int column = (geofile_detID >> 11) % 4;
     int sensor = geofile_detID;
     int sensor_module = advsnd::target::columns * row + 1 + column;
 
-    double global_pos[3];
     double local_pos[3] = {0, 0, 0};
     TString path = TString::Format("/cave_1/"
                                    "Detector_0/"
-                                   "volAdvTarget_1/"
-                                   "TrackingStation_%d/"
-                                   "TrackerPlane_%d/"
+                                   "volAdvTarget_0/"
+                                   "Target_Layer_%d/"
                                    "SensorModule_%d/"
-                                   "SensorVolumeTarget_%d",
-                                   station,
-                                   plane,
+                                   "Target_SensorVolume_%d",
+                                   layer,
                                    sensor_module,
                                    sensor);
     TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
@@ -264,14 +358,14 @@ void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     TGeoNode *W = nav->GetCurrentNode();
     TGeoBBox *S = dynamic_cast<TGeoBBox *>(W->GetVolume()->GetShape());
     // knowing the strip, get the postion along the sensor
-    local_pos[0] = (strip - (advsnd::strips / 2)) * (advsnd::sensor_width / advsnd::strips);
-    Double_t top_pos[3] = {local_pos[0], S->GetDY(), 0};
-    Double_t bot_pos[3] = {local_pos[0], -(S->GetDY()), 0};
-    Double_t global_top_pos[3], global_bot_pos[3];
-    nav->LocalToMaster(top_pos, global_top_pos);
-    nav->LocalToMaster(bot_pos, global_bot_pos);
-    A.SetXYZ(global_top_pos[0], global_top_pos[1], global_top_pos[2]);
-    B.SetXYZ(global_bot_pos[0], global_bot_pos[1], global_bot_pos[2]);
+    local_pos[1] = (strip - (advsnd::strips / 2)) * (advsnd::sensor_length / advsnd::strips);
+    Double_t left_pos[3] = {S->GetDX(), local_pos[1], 0};
+    Double_t right_pos[3] = {-(S->GetDX()), local_pos[1], 0};
+    Double_t global_left_pos[3], global_right_pos[3];
+    nav->LocalToMaster(left_pos, global_left_pos);
+    nav->LocalToMaster(right_pos, global_right_pos);
+    A.SetXYZ(global_left_pos[0], global_left_pos[1], global_left_pos[2]);
+    B.SetXYZ(global_right_pos[0], global_right_pos[1], global_right_pos[2]);
 }
 
 void AdvTarget::EndOfEvent() { fAdvTargetPointCollection->Clear(); }
