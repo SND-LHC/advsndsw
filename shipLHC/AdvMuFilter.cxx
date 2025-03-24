@@ -162,6 +162,8 @@ void AdvMuFilter::ConstructGeometry()
     Double_t fCoilX = fMuonSysPlaneX + 2 * fFeGap - 2 * (fCoilZ + fCurvRadius);
     Double_t fFeYokeX = (fFeX - fMuonSysPlaneX - 2 * fFeGap) / 2.;
     Double_t fFeYokeY = (fFeY - fMuonSysPlaneY) / 2.;
+    // Parameters for staggering of XY layers
+    Float_t stagger_step = conf_floats["AdvMuFilter/stagger_step"];
 
     LOG(INFO) << " CoilX: " << fCoilX << " cm" << endl;
     LOG(INFO) << " FeYokeX: " << fFeYokeX << " cm" << endl;
@@ -323,6 +325,10 @@ void AdvMuFilter::ConstructGeometry()
         }   // rows
         // Alternate iron slabs followed by a detecting layer
         // Offsets in Y are adjusted so that the center of the whole detector is positioned at 0
+        // Allow staggering of XY layers
+        float stagger_dist = (layer < advsnd::hcal::n_XY_layers)
+                                 ? pow(-1, (layer % 2) + 1) * (2 * floor((layer % 4) / 2.) + 1) * stagger_step
+                                 : 0;
         volAdvMuFilter->AddNode(
             volFeSlab, layer, new TGeoTranslation(0, 0, Zshift + fFeZ / 2 + layer * Fe_and_layer_z));
         volAdvMuFilter->AddNode(
@@ -330,13 +336,15 @@ void AdvMuFilter::ConstructGeometry()
         if (plane == 0) {
             // Y-plane (horizontal strips along y axis)
             volAdvMuFilter->AddNode(
-                ActiveLayer, layer, new TGeoTranslation(0, -layer_DY, Zshift + fFeZ + layer * Fe_and_layer_z));
+                ActiveLayer,
+                layer,
+                new TGeoTranslation(0, stagger_dist - layer_DY, Zshift + fFeZ + layer * Fe_and_layer_z));
         } else if (plane == 1) {
             // X-plane (vertical strips along x axis)
             volAdvMuFilter->AddNode(
                 ActiveLayer,
                 layer,
-                new TGeoCombiTrans(TGeoTranslation(layer_DY, 0, Zshift + fFeZ + layer * Fe_and_layer_z),
+                new TGeoCombiTrans(TGeoTranslation(layer_DY, stagger_dist, Zshift + fFeZ + layer * Fe_and_layer_z),
                                    TGeoRotation("y_rot", 0, 0, 90)));
         }
     }   // layers
