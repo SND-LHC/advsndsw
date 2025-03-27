@@ -180,7 +180,7 @@ void AdvMuFilter::ConstructGeometry()
 
     detector->AddNode(volAdvMuFilter,
                       0,
-                      new TGeoTranslation(-2.4244059999999976 - EmWall0_survey.X(),
+                      new TGeoTranslation(-2.4244059999999976 - EmWall0_survey.X() - 1.1,
                                           38.3,
                                           354.862 + 3 + 1 + fFeZ / 2. - 41.895793 + 1. - 3.854227000000008
                                               + 3.7497190000000046
