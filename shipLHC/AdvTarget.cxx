@@ -115,38 +115,26 @@ void AdvTarget::ConstructGeometry()
 
     InitMedium("tungstensifon");
     TGeoMedium *tungsten = gGeoManager->GetMedium("tungstensifon");
-
-    InitMedium("Polystyrene");
-    TGeoMedium *Polystyrene = gGeoManager->GetMedium("Polystyrene");
     InitMedium("silicon");
     TGeoMedium *Silicon = gGeoManager->GetMedium("silicon");
+    InitMedium("aluminium");
+    TGeoMedium *Aluminum = gGeoManager->GetMedium("aluminium");
+
 
     Double_t fTargetWallX = conf_floats["AdvTarget/TargetWallX"];
     Double_t fTargetWallY = conf_floats["AdvTarget/TargetWallY"];
     Double_t fTargetWallZ = conf_floats["AdvTarget/TargetWallZ"];
+    Double_t fAluFrameX = conf_floats["AdvTarget/AluFrameX"];
+    Double_t fAluFrameY = conf_floats["AdvTarget/AluFrameY"];
+    Double_t fAluFrameZ = conf_floats["AdvTarget/AluFrameZ"];
+    Double_t fTTX = conf_floats["AdvTarget/TTX"];
+    Double_t fTTY = conf_floats["AdvTarget/TTY"];
     Double_t fTTZ = conf_floats["AdvTarget/TTZ"];
     Int_t stations = conf_ints["AdvTarget/nTT"];   // Number of TT stations
 
-    TGeoBBox *TargetWall = new TGeoBBox("TargetWall", fTargetWallX / 2., fTargetWallY / 2., fTargetWallZ / 2.);
-    TGeoVolume *volTargetWall = new TGeoVolume("volTargetWall", TargetWall, tungsten);
-    volTargetWall->SetLineColor(kRed);
+    // AdvSND layout August 2024 proposed in https://indico.cern.ch/event/1441955/
 
-    // Silicon tracker module
-    //
-    // See https://indico.cern.ch/event/1201858/#81-detector-simulation for technical diagrams and renders
-    //
-    // Passive part
-    TGeoBBox *Support = new TGeoBBox("Support", advsnd::module_length / 2, advsnd::module_width / 2, 3.0 * mm / 2);
-    TGeoVolume *SupportVolume = new TGeoVolume("SupportVolume", Support, Polystyrene);
-    SupportVolume->SetLineColor(kGray);
-    // Active part
-    TGeoBBox *SensorShape =
-        new TGeoBBox("SensorShape", advsnd::sensor_length / 2, advsnd::sensor_width / 2, 0.5 * mm / 2);
-    TGeoVolume *SensorVolume = new TGeoVolume("SensorVolumeTarget", SensorShape, Silicon);
-    SensorVolume->SetLineColor(kGreen);
-    AddSensitiveVolume(SensorVolume);
-
-    // Definition of the target box containing tungsten walls + silicon tracker
+    // Definition of the target box containing tungsten walls + silicon tracker (all sensitive plane for now)
     TGeoVolumeAssembly *volAdvTarget = new TGeoVolumeAssembly("volAdvTarget");
 
     // Positioning calculations, TODO delete once the whole AdvSND apparatus is positioned correctly
@@ -163,64 +151,30 @@ void AdvTarget::ConstructGeometry()
                                           -TargetDiff + EmWall0_survey.Z() - 60 * cm
                                               - 30 * cm));   // - 60 * cm - 30 * cm to allocate a 150 cm Target
 
-    // For correct detector IDs, the geometry has to be built back to front, from the top-level
-    for (auto &&station : TSeq(stations)) {
-        TGeoVolumeAssembly *TrackingStation = new TGeoVolumeAssembly("TrackingStation");
-        // Each tracking station consists of X and Y planes
-        for (auto &&plane : TSeq(advsnd::target::planes)) {
-            TGeoVolumeAssembly *TrackerPlane = new TGeoVolumeAssembly("TrackerPlane");
-            int i = 0;
-            // Each plane consists of 4 modules
-            for (auto &&row : TSeq(advsnd::target::rows)) {
-                for (auto &&column : TSeq(advsnd::target::columns)) {
-                    // Each module in turn consists of two sensors on a support
-                    TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
-                    SensorModule->AddNode(SupportVolume, 1);
-                    for (auto &&sensor : TSeq(advsnd::sensors)) {
-                        int32_t sensor_id =
-                            (station << 17) + (plane << 16) + (row << 13) + (column << 11) + (sensor << 10) + 999;
-                        SensorModule->AddNode(
-                            SensorVolume,
-                            sensor_id,
-                            new TGeoTranslation(-advsnd::module_length / 2 + 46.95 * mm + advsnd::sensor_length / 2
-                                                    + sensor * (advsnd::sensor_length + advsnd::sensor_gap),
-                                                0,
-                                                +3 * mm / 2 + 0.5 * mm / 2));
-                    }
-                    TrackerPlane->AddNode(
-                        SensorModule,
-                        ++i,
-                        new TGeoCombiTrans(
-                            // Offset modules as needed by row and column
-                            TGeoTranslation((column % 2 ? 1 : -1)
-                                                * (advsnd::module_length / 2 + advsnd::target::module_column_gap / 2),
-                                            (row - 1) * (-advsnd::module_width - advsnd::target::module_row_gap)
-                                                - advsnd::target::module_row_gap / 2 + advsnd::module_width / 2,
-                                            0),
-                            // Rotate every module of the second column
-                            TGeoRotation(TString::Format("rot%d", i), 0, 0, column * 180)));
-                }
-            }
-            if (plane == 0) {
-                // X-plane
-                TrackingStation->AddNode(TrackerPlane, plane, new TGeoTranslation(0, 0, -2 * mm));
-            } else if (plane == 1) {
-                // Y-plane
-                TrackingStation->AddNode(
-                    TrackerPlane,
-                    plane,
-                    new TGeoCombiTrans(TGeoTranslation(0, 0, +2 * mm), TGeoRotation("y_rot", 0, 0, 90)));
-            }
-        }
+    TGeoBBox *TargetWall = new TGeoBBox("TargetWall", fTargetWallX/2., fTargetWallY/2., fTargetWallZ/2.);
+    TGeoBBox *AluBlock = new TGeoBBox("AluBlock", fAluFrameX/2., fAluFrameY/2., fAluFrameZ/2.-0.001);
+    TGeoBBox *Module = new TGeoBBox("Module", fTTX/2., fTTY/2., fTTZ/2.);
+    TGeoCompositeShape *AluFrame = new TGeoCompositeShape("AluFrame", "AluBlock-TargetWall");
 
-        volAdvTarget->AddNode(volTargetWall,
-                              station,
-                              new TGeoTranslation(0, 0, -fTargetWallZ / 2 + station * fTargetWallZ + station * fTTZ));
+    TGeoVolume *volTargetWall = new TGeoVolume("volTargetWall", TargetWall, tungsten);
+    TGeoVolume *volAluFrame = new TGeoVolume("volAluFrame", AluFrame, Aluminum);
+    TGeoVolume *volModule = new TGeoVolume("volModule", Module, Silicon);
+    volTargetWall->SetLineColor(kGray-4);
+    volAluFrame->SetLineColor(kGray);
+    volModule->SetLineColor(kYellow+2);
+    AddSensitiveVolume(volModule);
+    
+    volAdvTarget->AddNode(volModule, 0, new TGeoTranslation(0, 0, fTTZ/2));
+    for (auto plane = 1; plane<stations+1; plane++) {
+        Double_t station_length = 2*fTTZ+fTargetWallZ;
+        Double_t Zshift = fTTZ;
+        volAdvTarget->AddNode(volAluFrame, plane, new TGeoTranslation(0, 0, Zshift+fAluFrameZ/2+(plane-1)*station_length));
+        volAdvTarget->AddNode(volTargetWall, plane, new TGeoTranslation(0, 0, Zshift+fTargetWallZ/2+(plane-1)*station_length));
+        volAdvTarget->AddNode(volModule, plane*10, new TGeoTranslation(0, 0, Zshift+fTargetWallZ+fTTZ/2+(plane-1)*station_length));
+        if (plane == stations) continue;
+        volAdvTarget->AddNode(volModule, plane*10+1, new TGeoTranslation(0, 0, Zshift+fTargetWallZ+fTTZ+fTTZ/2+(plane-1)*station_length));
+  }
 
-        volAdvTarget->AddNode(
-            TrackingStation, station, new TGeoTranslation(0, 0, fTTZ / 2 + station * (fTargetWallZ + fTTZ)));
-        // new TGeoTranslation(0, 0, (station + 0.5) * fTargetWallZ + (station - 0.5) * 7.5 * mm));
-    }
 }
 
 Bool_t AdvTarget::ProcessHits(FairVolume *vol)
