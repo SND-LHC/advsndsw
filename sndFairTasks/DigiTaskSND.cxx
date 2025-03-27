@@ -192,19 +192,16 @@ void DigiTaskSND::digitiseAdvTarget()
     for (auto* ptr : *AdvTargetPoints) {
         auto* point = dynamic_cast<AdvTargetPoint*>(ptr);
         auto detID = point->GetDetectorID();
-        int station = point->GetStation();
-        int plane = point->GetPlane();
+        int layer = point->GetLayer();
         int sensor_module = point->GetModule();
         int sensor = detID;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
-                                    "volAdvTarget_1/"
-                                    "TrackingStation_%d/"
-                                    "TrackerPlane_%d/"
+                                    "volAdvTarget_0/"
+                                    "Target_Layer_%d/"
                                     "SensorModule_%d/"
-                                    "SensorVolumeTarget_%d",
-                                    station,
-                                    plane,
+                                    "Target_SensorVolume_%d",
+                                    layer,
                                     sensor_module,
                                     sensor);
         // TODO loop by module?
@@ -222,7 +219,7 @@ void DigiTaskSND::digitiseAdvTarget()
         double local_pos[3];
         // Move to local coordinates (including rotation) to determine strip
         nav->MasterToLocal(global_pos, local_pos);
-        int strip = floor((local_pos[0] / (advsnd::sensor_width / advsnd::strips)) + (advsnd::strips / 2));
+        int strip = floor((local_pos[1] / (advsnd::sensor_length / advsnd::strips)) + (advsnd::strips / 2));
         strip = max(0, strip);
         strip = min(advsnd::strips - 1, strip);
 
@@ -262,19 +259,16 @@ void DigiTaskSND::digitiseAdvMuFilter()
     for (auto* ptr : *AdvMuFilterPoints) {
         auto* point = dynamic_cast<AdvMuFilterPoint*>(ptr);
         auto detID = point->GetDetectorID();
-        int station = point->GetStation();
-        int plane = point->GetPlane();
+        int layer = point->GetLayer();
         int sensor_module = point->GetModule();
         int sensor = detID;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
                                     "volAdvMuFilter_0/"
-                                    "TrackingStation_%d/"
-                                    "TrackerPlane_%d/"
+                                    "HCAL_Layer_%d/"
                                     "SensorModule_%d/"
-                                    "SensorVolumeFilter_%d",
-                                    station,
-                                    plane,
+                                    "HCAL_SensorVolume_%d",
+                                    layer,
                                     sensor_module,
                                     sensor);
         // TODO loop by module?
@@ -292,7 +286,7 @@ void DigiTaskSND::digitiseAdvMuFilter()
         double local_pos[3];
         // Move to local coordinates (including rotation) to determine strip
         nav->MasterToLocal(global_pos, local_pos);
-        int strip = floor((local_pos[0] / (advsnd::sensor_width / advsnd::strips)) + (advsnd::strips / 2));
+        int strip = floor((local_pos[1] / (advsnd::sensor_length / advsnd::strips)) + (advsnd::strips / 2));
         strip = max(0, strip);
         strip = min(advsnd::strips - 1, strip);
 

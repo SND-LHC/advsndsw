@@ -39,14 +39,14 @@ class AdvMuFilterPoint : public FairMCPoint
     virtual void Print(const Option_t* opt) const;
 
     Int_t PdgCode() const { return fPdgCode; }
-    int constexpr GetStation() { return fDetectorID >> 17; }
+    int constexpr GetLayer() { return fDetectorID >> 17; }
     int constexpr GetPlane() { return (fDetectorID >> 16) % 2; }   // 0 is X-plane, 1 is Y-pane
     int constexpr GetRow() { return (fDetectorID >> 13) % 8; }
     int constexpr GetColumn() { return (fDetectorID >> 11) % 4; }
     int constexpr GetSensor() { return (fDetectorID >> 10) % 2; }
     int constexpr GetStrip() { return (fDetectorID) % 1024; }
-    int constexpr GetModule() { return advsnd::muon::columns * GetRow() + 1 + GetColumn(); }
-    bool constexpr isVertical() { return GetPlane() == 0; };
+    int constexpr GetModule() { return advsnd::hcal::columns * GetRow() + 1 + GetColumn(); }
+    bool constexpr isVertical() { return GetPlane() == 1; };
 
   private:
     Int_t fPdgCode;
