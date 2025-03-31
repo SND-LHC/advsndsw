@@ -36,7 +36,7 @@ parser.add_argument("-P", "--partition", dest="partition", help="partition of da
 parser.add_argument("--server", dest="server", help="xrootd server",default=os.environ["EOSSHIP"])
 parser.add_argument("-X", dest="extraInfo", help="print extra event info",default=True)
 
-parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", default=os.environ['SNDSW_ROOT']+"/python/TrackingParams.xml")
+parser.add_argument("-par", "--parFile", dest="parFile", help="parameter file", default=os.environ['ADVSNDSW_ROOT']+"/python/TrackingParams.xml")
 parser.add_argument("-hf", "--HoughSpaceFormat", dest="HspaceFormat", help="Hough space representation. Should match the 'Hough_space_format' name in parFile, use quotes", default='linearSlopeIntercept')
 
 options = parser.parse_args()
@@ -108,7 +108,7 @@ for ht_task in HT_tasks.values():
     # force the output of reco task to genfit::Track
     # as the display code looks for such output
     ht_task.ForceGenfitTrackFormat()
-HT_tasks['muon_reco_task_Sf'].SetTrackingCase('passing_mu_AdvTarget')
+HT_tasks['muon_reco_task_Sf'].SetTrackingCase('nu_interaction_products')
 HT_tasks['muon_reco_task_nuInt'].SetTrackingCase('nu_interaction_products')
 
 run.Init()
@@ -262,19 +262,19 @@ def getAdvHitDensity(g, x_range=0.5):
 def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup='',verbose=0,auto=False,hitColour=None):
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
  h['simpleDisplay'].cd(1)
- zStart = -300. # AdvSND MC
+ zStart = 100. # AdvSND MC
  if Setup == 'H6': zStart = 60.
  if Setup == 'TP': zStart = -50. # old coordinate system with origin in middle of target
  if 'xz' in h: 
     h.pop('xz').Delete()
     h.pop('yz').Delete()
  else:
-    h['xmin'],h['xmax'] = -100.,100. # AdvSND MC
-    h['ymin'],h['ymax'] = -100.,100. # AdvSND MC
-    h['zmin'],h['zmax'] = zStart,zStart+500.
+    h['xmin'],h['xmax'] = -80.,20. # AdvSND MC
+    h['ymin'],h['ymax'] = 0.,100. # AdvSND MC
+    h['zmin'],h['zmax'] = zStart,zStart+400.
     for d in ['xmin','xmax','ymin','ymax','zmin','zmax']: h['c'+d]=h[d]
- ut.bookHist(h,'xz','; z [cm]; x [cm]',500,h['czmin'],h['czmax'],200,h['cxmin'],h['cxmax'])
- ut.bookHist(h,'yz','; z [cm]; y [cm]',500,h['czmin'],h['czmax'],200,h['cymin'],h['cymax'])
+ ut.bookHist(h,'xz','; z [cm]; x [cm]',400,h['czmin'],h['czmax'],100,h['cxmin'],h['cxmax'])
+ ut.bookHist(h,'yz','; z [cm]; y [cm]',400,h['czmin'],h['czmax'],100,h['cymin'],h['cymax'])
 
  proj = {1:'xz',2:'yz'}
  h['xz'].SetStats(0)
@@ -695,13 +695,13 @@ def drawDetectors():
                 dx,dy,dz = S.GetDX()/scale,S.GetDY()/scale,S.GetDZ()
                 ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
                 P = {}
-                M = {}                
-                if p=='X':
+                M = {}
+                if p=='X' and N.GetVolume().GetName().find('Layer')<0:
                     P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
                     P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
                     P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
                     P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
-                elif p=='Y':
+                elif p=='Y' or N.GetVolume().GetName().find('Layer')>0:
                     P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
                     P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
                     P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
@@ -733,6 +733,15 @@ def drawDetectors():
                     X.SetPoint(4,M['LeftBottom'][2],M['LeftBottom'][c])
                 X.SetLineColor(nodes[node_])
                 X.SetLineWidth(1)
+                # Only show detector volumes if they measure the corresponding coordinate
+                if ( p=='Y' and node.find("Layer_")>0 and int(node[node.find("Layer_")+6:])%2 == 1 ) or \
+                   ( p=='X' and node.find("Layer_")>0 and int(node[node.find("Layer_")+6:])%2 == 0 ):
+                    X.SetLineWidth(0)
+                if  node.find("HCAL_Layer_")>0 and int(node[node.find("Layer_")+6:])>27:
+                  if p=='X':
+                     X.SetLineWidth(1)
+                  else:
+                     X.SetLineWidth(0)
                 h['simpleDisplay'].cd(c+1)
                 if any(passNode in node for passNode in passNodes):
                    X.SetFillColorAlpha(nodes[node_], 0.5)
