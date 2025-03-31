@@ -655,15 +655,25 @@ with ConfigRegistry.register_config("basic") as c:
 
     # AdvSND Target & Tracker structure
     c.AdvTarget = AttrDict(z=0 * u.cm)
-    c.AdvTarget.TargetWallX = 50.0 * u.cm
-    c.AdvTarget.TargetWallY = 50.0 * u.cm
-    c.AdvTarget.TargetWallZ = 7 * u.mm
+    # Tungsten plates
+    c.AdvTarget.PlateX = 45 * u.cm
+    c.AdvTarget.PlateY = c.AdvTarget.PlateX
+    c.AdvTarget.PlateZ = 7 * u.mm
+    # Support frame of the plates
+    c.AdvTarget.PlateFrameX = 60 * u.cm
+    c.AdvTarget.PlateFrameY = 60 * u.cm
+    c.AdvTarget.PlateFrameZ = c.AdvTarget.PlateZ
 
-    # Target Tracking stations
-    c.AdvTarget.TTX = 49.29 * u.cm
-    c.AdvTarget.TTY = 49.29 * u.cm
-    c.AdvTarget.TTZ = 8 * u.mm
-    c.AdvTarget.nTT = 100
+    # Target Tracking layers
+    c.AdvTarget.TTZ = (
+        4 * u.mm
+    )  # due to module overlaps, the thickness of a layer is actually 2x4mm
+    c.AdvTarget.nTT = 58
+
+    # Full target volume including inactive area
+    c.AdvTarget.X = 59 * u.cm
+    c.AdvTarget.Y = c.AdvTarget.X
+    c.AdvTarget.Z = c.AdvTarget.nTT * (2 * c.AdvTarget.TTZ + c.AdvTarget.PlateZ)
 
     # AdvSND MuFilter structure
     """
