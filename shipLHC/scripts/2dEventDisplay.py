@@ -633,13 +633,13 @@ def twoTrackEvent(sMin=10,dClMin=7,minDistance=1.5,sepDistance=0.5):
 
 def drawDetectors():
     """ Read the detector geometry and draw its elements on the display. """
-    nodes = {'volAdvTarget_1/volTargetWall_1':ROOT.kGray+1}
+    nodes = {'volAdvTarget_0/volWall_0/volPlate_1':ROOT.kGray+1}
     geoVer = checkGeoVersion()
     if geoVer!=2:
         print('This is an older version of the geometry and it is likely incompatible with this version of the drawDetectors function of the 2dED.')
     for i in range(geo.snd_geo.AdvTarget.nTT):
-        nodes['volAdvTarget_1/volTargetWall_{}'.format(i)]=ROOT.kGray+1
-        nodes['volAdvTarget_1/TrackingStation_{}'.format(i)]=ROOT.kBlue
+        nodes['volAdvTarget_0/volWall_{}/volPlate_1'.format(i)]=ROOT.kGray+1
+        nodes['volAdvTarget_0/Target_Layer_{}'.format(i)]=ROOT.kBlue
 
     for i in range(geo.snd_geo.AdvMuFilter.Nplanes):
         nodes['volAdvMuFilter_0/volFeWall_{}'.format(i)] = ROOT.kGreen -6
