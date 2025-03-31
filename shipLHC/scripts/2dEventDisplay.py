@@ -641,22 +641,23 @@ def drawDetectors():
         nodes['volAdvTarget_0/volWall_{}/volPlate_1'.format(i)]=ROOT.kGray+1
         nodes['volAdvTarget_0/Target_Layer_{}'.format(i)]=ROOT.kBlue
 
-    for i in range(geo.snd_geo.AdvMuFilter.Nplanes):
-        nodes['volAdvMuFilter_0/volFeWall_{}'.format(i)] = ROOT.kGreen -6
-        nodes['volAdvMuFilter_0/TrackingStation_{}'.format(i)] = ROOT.kRed -2
-        if i > geo.snd_geo.AdvMuFilter.Nplanes-2: continue
-        for j in range(geo.snd_geo.AdvMuFilter.Nplanes-2):
+    for i in range(ROOT.advsnd.hcal.n_XY_layers+ROOT.advsnd.hcal.n_X_layers):
+        nodes['volAdvMuFilter_0/volFeSlab{}'.format(i)] = ROOT.kGreen -6
+        nodes['volAdvMuFilter_0/volMagnetizedFe_{}'.format(i)] = ROOT.kGreen -6
+        nodes['volAdvMuFilter_0/HCAL_Layer_{}'.format(i)] = ROOT.kRed -2
+        #if i > ROOT.advsnd.hcal.n_XY_layers+ROOT.advsnd.hcal.n_X_layers-2: continue
+        for j in range(ROOT.advsnd.hcal.n_XY_layers+ROOT.advsnd.hcal.n_X_layers-2):
             if geoVer == 1:
                 nodes['volAdvMuFilter_0/volMuonSysDet_{}_{}/volBar_{}'.format(i, i, i*100+j)] = ROOT.kGray
             elif geoVer == 2:
                 nodes['volAdvMuFilter_0/volMuonSysDet_{}'.format(i)] = ROOT.kGray
     
     for i in range(2):
-        nodes['volAdvMuFilter_0/volVertCoil_{}'.format(i)] = ROOT.kOrange+1
-        nodes['volAdvMuFilter_0/volCoil_{}'.format(i)] = ROOT.kOrange+1
+        nodes['volAdvMuFilter_0/volFrontCoil_{}'.format(i)] = ROOT.kOrange+1
+        nodes['volAdvMuFilter_0/volLatCoil_{}'.format(i)] = ROOT.kOrange+1
     if geoVer != 2:
-        nodes['volAdvMuFilter_0/volMagTracker1_10000'] = ROOT.kGray   
-        nodes['volAdvMuFilter_0/volMagTracker2_10001'] = ROOT.kGray  
+        nodes['volAdvMuFilter_0/volMagTracker1_10000'] = ROOT.kGray
+        nodes['volAdvMuFilter_0/volMagTracker2_10001'] = ROOT.kGray
         nodes['volAdvMuFilter_0/volDownMagTracker_10002'] = ROOT.kGray
         nodes['volAdvMuFilter_0/volDownstreamMagnet_0/volDownVertCoil1_0'] = ROOT.kOrange+1
         nodes['volAdvMuFilter_0/volDownstreamMagnet_0/volDownVertCoil2_0'] = ROOT.kOrange+1
@@ -668,7 +669,7 @@ def drawDetectors():
     nodes['volAdvMuFilter_0/volMagTracker_10002'] = ROOT.kGray
 
     #passNodes = {'Wall','Coil', 'Block','Yoke'}
-    passNodes = {'Wall','Coil'}
+    passNodes = {'Plate','Coil'}
     proj = {'X':0, 'Y':1}
     for node_ in nodes:
         node = '/cave_1/Detector_0/'+node_
@@ -683,11 +684,10 @@ def drawDetectors():
                 if not nav.CheckPath(node): continue
                 nav.cd(node)
                 N = nav.GetCurrentNode()
-                # get rid of the Coil element for the vertical projection
-                # FIXME change the naming of the Coil and VertCoil in the geo file
+                # get rid of the LatCoil element for Y projection
                 if (N.GetVolume().GetName().find('Coil')>0
-                   and N.GetVolume().GetName().find('VertCoil')<0
-                   and p=='X'): continue                
+                   and N.GetVolume().GetName().find('LatCoil')>0):
+                     continue
                 S = N.GetVolume().GetShape()
                 scale = 1
                 if N.GetVolume().GetName().find('FeWall')>0:
