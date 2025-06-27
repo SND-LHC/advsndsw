@@ -83,7 +83,7 @@ if f.FindKey('cbmsim'):
         runId = 'sim'
         if eventTree.GetBranch('AdvTargetPoint'): mc = True
 else:   
-        eventTree = f.rawConv
+        eventTree = f.Get("rawConv")
         ioman.SetTreeName('rawConv')
 
 outFile = ROOT.TMemFile('dummy','CREATE')
