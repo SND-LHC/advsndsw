@@ -168,6 +168,7 @@ if simEngine == "PG":
   myPgun.SetXYZ(options.EVx*u.cm, options.EVy*u.cm, options.EVz*u.cm) 
   myPgun.SetThetaRange(0,0) # // Polar angle in lab system range [degree]
   primGen.AddGenerator(myPgun)
+  run.SetPythiaDecayer('DecayConfigPy8.C')
   ROOT.FairLogger.GetLogger().SetLogScreenLevel("WARNING") # otherwise stupid printout for each event
 # -----muon DIS Background------------------------
 if simEngine == "muonDIS":
@@ -180,6 +181,7 @@ if simEngine == "muonDIS":
    primGen.AddGenerator(DISgen)
    options.nEvents = min(options.nEvents,DISgen.GetNevents())
    inactivateMuonProcesses = True # avoid unwanted hadronic events of "incoming" muon flying backward
+   run.SetPythiaDecayer('DecayConfigPy8.C')
    print('MuDIS position info input=',mu_start, mu_end)
    print('Generate ',options.nEvents,' with DIS input', ' first event',options.firstEvent)
 
@@ -228,6 +230,7 @@ if simEngine == "Ntuple":
    Ntuplegen.Init(inputFile,options.firstEvent)
    primGen.AddGenerator(Ntuplegen)
    options.nEvents = min(options.nEvents,Ntuplegen.GetNevents())
+   run.SetPythiaDecayer('DecayConfigPy8.C')
 
 if simEngine == "MuonBack":
 # reading muon tracks from FLUKA
