@@ -34,18 +34,18 @@ class SndlhcHit : public TObject
 
     /** Accessors **/
     Int_t    GetDetectorID()    const { return fDetectorID;  };
-    Float_t GetSignal(Int_t nChannel=0);
-    Float_t GetTime(Int_t nChannel=0);
+    Float_t GetSignal(Int_t nChannel=0) const;
+    Float_t GetTime(Int_t nChannel=0) const;
     Int_t GetnSiPMs() const { return nSiPMs;  };
     Int_t GetnSides() const { return nSides;  };
     /** Modifiers **/
     void SetDigi(Float_t s, Float_t t,Int_t i=0) { signals[i]=trunc(100*s)/100;times[i]=trunc(1000*t)/1000.; }
     void SetDetectorID(Int_t detID) { fDetectorID = detID; }
     void SetDaqID(Int_t i, Int_t k, Int_t board_id, Int_t tofpet_id, Int_t tofpet_channel) { fDaqID[i] = k*100000 + board_id * 1000 + tofpet_id * 100 + tofpet_channel; }
-    Int_t GetBoardID(Int_t i) { return int((fDaqID[i]%100000)/1000);}
-    Int_t GetTofpetID(Int_t i) { return int((fDaqID[i]%1000)/100);}
-    Int_t Getchannel(Int_t i) { return fDaqID[i]%100;}
-    Int_t GetRawHitIndex(Int_t i=0) { return int(fDaqID[i]/100000);}
+    Int_t GetBoardID(Int_t i) const { return int((fDaqID[i]%100000)/1000);}
+    Int_t GetTofpetID(Int_t i) const { return int((fDaqID[i]%1000)/100);}
+    Int_t Getchannel(Int_t i) const { return fDaqID[i]%100;}
+    Int_t GetRawHitIndex(Int_t i=0) const { return int(fDaqID[i]/100000);}
 
 // to be implemented by the subdetector
 
