@@ -59,9 +59,6 @@ if (options.inputFile.find('/TI18')>=0 and options.geoFile.find('V0_2022')>=0 ) 
      exit()
 
 geo = SndlhcGeo.GeoInterface(options.geoFile)
-lsOfGlobals = ROOT.gROOT.GetListOfGlobals()
-lsOfGlobals.Add(geo.modules['Scifi'])
-lsOfGlobals.Add(geo.modules['MuFilter'])
 
 fullPath = options.inputFile
 if options.inputFile.find('/eos')==0:
