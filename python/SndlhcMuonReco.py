@@ -420,7 +420,7 @@ class MuonReco(ROOT.FairTask):
         # Get sensor dimensions from geometry
         self.AdvTarget_dx = ROOT.advsnd.sensor_width / ROOT.advsnd.strips
         self.AdvTarget_dy = self.AdvTarget_dx
-        self.AdvTarget_dz = self.AdvTargetDet.GetConfParI("AdvTarget/TTZ")
+        self.AdvTarget_dz = self.AdvTargetDet.GetConfParF("AdvTarget/TTZ")
 
         # Get number of readout channels
         self.AdvTarget_nPlanes = self.AdvTargetDet.GetConfParI("AdvTarget/nTT")
@@ -431,10 +431,9 @@ class MuonReco(ROOT.FairTask):
         # a z_offset is used to shift detector hits so to have smaller Hough parameter space
         # Using geometers measurements! For safety, add a 5-cm-buffer in detector lengths and a 2.5-cm one to z_offset.
         # This is done to account for possible det. position shifts/mismatches going from geom. measurements and sndsw physics CS.
-        # FIXME get these form the geometry
-        det_Zlen = 200 * unit.cm
-        z_offset = -125 * unit.cm
-
+        # FIXME get these from the geometry
+        det_Zlen = self.AdvTargetDet.GetConfParF("AdvTarget/Z") + 5.0 * unit.cm
+        z_offset = 190.0 * unit.cm
         # Initialize Hough transforms for both views:
         if self.Hough_space_format == "normal":
             # rho-theta representation - must exclude theta range for tracks passing < 3 det. planes
@@ -605,7 +604,7 @@ class MuonReco(ROOT.FairTask):
         if 1:
             # if self.AdvTarget_meas:
             # no AdvTarget clustering available for now
-            # baraly any adaptation from SND to AdvSND done for this case
+            # barely any adaptation from SND to AdvSND done for this case
             if 0:
                 # Make AdvTarget clusters
                 self.clusScifi.Clear()
@@ -656,9 +655,9 @@ class MuonReco(ROOT.FairTask):
                 for adv_target_hit in self.AdvTargetHits:
                     # if not adv_target_hit.isValid(): continue
                     if adv_target_hit.isVertical():
-                        N_plane_ZX[adv_target_hit.GetStation()] += 1
+                        N_plane_ZX[adv_target_hit.GetLayer()] += 1
                     else:
-                        N_plane_ZY[adv_target_hit.GetStation()] += 1
+                        N_plane_ZY[adv_target_hit.GetLayer()] += 1
                 if self.mask_plane:
                     mask_plane_ZY = []
                     mask_plane_ZX = []
@@ -713,10 +712,10 @@ class MuonReco(ROOT.FairTask):
                     if self.mask_plane:
                         if (
                             adv_target_hit.isVertical() == 0
-                            and adv_target_hit.GetStation() in mask_plane_ZY
+                            and adv_target_hit.GetLayer() in mask_plane_ZY
                         ) or (
                             adv_target_hit.isVertical()
-                            and adv_target_hit.GetStation() in mask_plane_ZX
+                            and adv_target_hit.GetLayer() in mask_plane_ZX
                         ):
                             hit_collection["mask"].append(True)
                         else:
