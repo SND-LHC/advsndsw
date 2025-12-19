@@ -72,9 +72,13 @@ InitStatus DigiTaskSND::Init()
     // Try classic FairRoot approach first
     fMCEventHeader = static_cast<FairMCEventHeader*>(ioman->GetObject("MCEventHeader."));
     // .. with a safety net for trailing dots mischief
-    if (fMCEventHeader == nullptr) {
-        fMCEventHeader = static_cast<FairMCEventHeader*>(gROOT->FindObjectAny("MCEventHeader."));
+    if ( fMCEventHeader == nullptr ) {
+       fMCEventHeader = static_cast<FairMCEventHeader*>(gROOT->FindObjectAny("MCEventHeader."));
     }
+    // To ensure the header is updated per newly read event.
+    ioman->GetInTree()->SetBranchAddress("MCEventHeader.", &fMCEventHeader);
+    LOG(INFO) << "MCEventHeader. branch is found";
+
     // Get input MC points
     fScifiPointArray = static_cast<TClonesArray*>(ioman->GetObject("ScifiPoint"));
     fvetoPointArray = static_cast<TClonesArray*>(ioman->GetObject("vetoPoint"));
