@@ -31,10 +31,13 @@ parser.add_argument("--PG",      dest="pg",      help="Use Particle Gun", requir
 parser.add_argument("--pID",     dest="pID",     help="id of particle used by the gun (default=22)", required=False, default=22, type=int)
 parser.add_argument("--Estart",  dest="Estart",  help="start of energy range of particle gun for muflux detector (default=10 GeV)", required=False, default=10, type=float)
 parser.add_argument("--Eend",    dest="Eend",    help="end of energy range of particle gun for muflux detector (default=10 GeV)", required=False, default=10, type=float)
+
 parser.add_argument("--EVx",    dest="EVx",    help="particle gun xpos", required=False, default=0, type=float)
 parser.add_argument("--EVy",    dest="EVy",    help="particle gun ypos", required=False, default=0, type=float)
 parser.add_argument("--EVz",    dest="EVz",    help="particle gun zpos", required=False, default=0, type=float)
 parser.add_argument('--eMin_store', type=float, help="kinetic energy cut for !particle storage! in MeV", dest='emin_store', default=100.)
+
+parser.add_argument("--PGrunID", dest="PGrunID",help="PG run ID", required=False, type=int)
 parser.add_argument("--FollowMuon",dest="followMuon", help="Make muonshield active to follow muons", required=False, action="store_true")
 parser.add_argument("--FastMuon",  dest="fastMuon",  help="Only transport muons for a fast muon only background estimate", required=False, action="store_true")
 parser.add_argument('--eMin', type=float, help="energy cut", dest='ecut', default=-1.)
@@ -156,6 +159,9 @@ primGen = ROOT.FairPrimaryGenerator()
 
 # -----Particle Gun-----------------------
 if simEngine == "PG": 
+  if not options.PGrunID:
+    print("Missing option '--PGrunID', which provides PG run ID. Set it and run again!")
+    exit()
   myPgun = ROOT.FairBoxGenerator(options.pID,1)
   myPgun.SetPRange(options.Estart,options.Eend)
   myPgun.SetPhiRange(0, 360) # // Azimuth angle range [degree]
@@ -270,6 +276,12 @@ else:            run.SetStoreTraj(ROOT.kFALSE)
 
 # -----Initialize simulation run------------------------------------
 run.Init()
+
+if simEngine == "PG":
+  # set the runID for
+  theHeader = run.GetMCEventHeader()
+  theHeader.SetRunID(options.PGrunID)
+
 gMC = ROOT.TVirtualMC.GetMC()
 fStack = gMC.GetStack()
 if MCTracksWithHitsOnly:
@@ -369,7 +381,7 @@ saveBasicParameters.execute(geoFile,snd_geo)
 if options.genie == 4 :
 
     f_input = ROOT.TFile(inputFile)
-    gst = f_input.gst
+    gst = f_input.Get("gst")
 
     selection_string = "(Entry$ >= "+str(options.firstEvent)+")"
     if (options.firstEvent + options.nEvents) < gst.GetEntries() :
