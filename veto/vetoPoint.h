@@ -36,15 +36,13 @@ class vetoPoint : public FairMCPoint
     /** Output to screen **/
     virtual void Print() const;
     Int_t PdgCode() const {return fPdgCode;}
-    TVector3 LastPoint() const {return fLpos;}
-    TVector3 LastMom() const {return fLmom;}
+    TVector3 LastPoint() const {return TVector3(fLposX, fLposY, fLposZ);}
+    TVector3 LastMom() const {return TVector3(fLmomX, fLmomY, fLmomZ);}
 
   private:
-    /** Copy constructor **/
+    Double_t fLposX, fLposY, fLposZ;
+    Double_t fLmomX, fLmomY, fLmomZ;
     Int_t fPdgCode;
-    TVector3 fLpos,fLmom;
-    vetoPoint(const vetoPoint& point);
-    vetoPoint operator=(const vetoPoint& point);
 
     ClassDef(vetoPoint,3)
 
