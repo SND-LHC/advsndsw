@@ -281,6 +281,15 @@ class MuonReco(ROOT.FairTask):
 
     def Init(self):
         """Initialize the task."""
+        ROOT.gInterpreter.Declare(r"""
+        #include "TClonesArray.h"
+        #include "sndRecoTrack.h"
+
+        // Construct a *copy* of src inside arr at index i (placement new).
+        sndRecoTrack* EmplaceSndRecoTrack(TClonesArray* arr, int i, const sndRecoTrack& src) {
+            return new((*arr)[i]) sndRecoTrack(src);
+        }
+        """)
         self.logger = ROOT.FairLogger.GetLogger()
         if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
             print("Initializing muon reconstruction task!")
@@ -583,7 +592,7 @@ class MuonReco(ROOT.FairTask):
     def Exec(self, opt):
         """Core part of teh task."""
         self.kalman_tracks.Clear("C")
-
+        nStored = 0
         # Set scaling in case task is run seperately from other tracking tasks
         if self.scale > 1 and self.standalone:
             if ROOT.gRandom.Rndm() > 1.0 / self.scale:
@@ -1123,7 +1132,9 @@ class MuonReco(ROOT.FairTask):
                     this_track.setRawMeasTimes(pointTimes)
                     this_track.setTrackType(self.track_type)
                     # Save the track in sndRecoTrack format
-                    self.kalman_tracks[i_muon] = this_track
+                    self.kalman_tracks.ExpandCreate(nStored + 1)
+                    ROOT.EmplaceSndRecoTrack(self.kalman_tracks, int(nStored), this_track)
+                    nStored += 1
                     # Delete the Kalman track object
                     theTrack.Delete()
 
