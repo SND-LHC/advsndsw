@@ -1,6 +1,6 @@
 """Perform Hough Transform pattern recognition and a track fit."""
 
-import ROOT
+import  ROOT
 import numpy as np
 import scipy.ndimage
 from array import array
@@ -10,6 +10,15 @@ import shipunit as unit
 
 ROOT.gInterpreter.ProcessLine('#include "SiSensor.h"')
 
+#ROOT.gInterpreter.Declare(r"""
+##include "TClonesArray.h"
+##include "sndRecoTrack.h"
+
+#// Construct a *copy* of src inside arr at index i (placement new).
+#sndRecoTrack* EmplaceSndRecoTrack(TClonesArray* arr, int i, const sndRecoTrack& src) {
+#    return new((*arr)[i]) sndRecoTrack(src);
+#}
+#""")
 
 def hit_finder(slope, intercept, box_centers, box_ds, tol=0.0):
     """Find hits intersected by Hough line."""
@@ -46,6 +55,7 @@ class hough:
         smooth=True,
     ):
         """Initialize."""
+
         self.n_yH = n_yH
         self.n_xH = n_xH
 
@@ -281,6 +291,132 @@ class MuonReco(ROOT.FairTask):
 
     def Init(self):
         """Initialize the task."""
+        ROOT.gInterpreter.Declare(r"""
+        #include "TClonesArray.h"
+        #include "sndRecoTrack.h"
+
+        // Construct a *copy* of src inside arr at index i (placement new).
+        sndRecoTrack* EmplaceSndRecoTrack(TClonesArray* arr, int i, const sndRecoTrack& src) {
+            return new((*arr)[i]) sndRecoTrack(src);
+        }
+        """)
+        import math, json, numpy as np, traceback
+
+        import cppyy, math
+
+        def _addr(obj):
+            try:
+                return int(cppyy.addressof(obj))
+            except Exception:
+                return None
+
+        def _v3(v):
+            return (float(v.X()), float(v.Y()), float(v.Z()))
+
+        def _safe_int(x, default=None):
+            try: return int(x)
+            except Exception: return default
+
+        def _safe_float(x, default=None):
+            try: return float(x)
+            except Exception: return default
+
+        def _dump_sndRecoTrack(trk, max_points=3):
+            d = {
+                "class": trk.ClassName() if hasattr(trk, "ClassName") else type(trk).__name__,
+                "addr": _addr(trk),
+            }
+            # scalars / simple getters (use your actual getters)
+            for name, fn in [
+                ("trackType", lambda: trk.getTrackType()),
+                ("flag",      lambda: trk.getTrackFlag()),
+                ("chi2",      lambda: trk.getChi2()),
+                ("ndf",       lambda: trk.getNdf()),
+            ]:
+                try:
+                    d[name] = fn()
+                except Exception as e:
+                    d[name] = f"ERR:{e}"
+
+            # vectors
+            try:
+                pts = trk.getTrackPoints()
+                n = int(pts.size())
+                d["nTrackPoints"] = n
+                if n > 0:
+                    head = [_v3(pts[i]) for i in range(min(max_points, n))]
+                    tail = [_v3(pts[i]) for i in range(max(0, n-max_points), n)]
+                    d["trackPoints_head"] = head
+                    d["trackPoints_tail"] = tail
+            except Exception as e:
+                d["nTrackPoints"] = f"ERR:{e}"
+
+            try:
+                det = trk.getRawMeasDetIDs()
+                n = int(det.size())
+                d["nDetIDs"] = n
+                if n > 0:
+                    d["detIDs_head"] = [int(det[i]) for i in range(min(max_points, n))]
+                    d["detIDs_tail"] = [int(det[i]) for i in range(max(0, n-max_points), n)]
+            except Exception as e:
+                d["nDetIDs"] = f"ERR:{e}"
+
+            try:
+                times = trk.getRawMeasTimes()
+                n_outer = int(times.size())
+                d["nTimesOuter"] = n_outer
+                if n_outer > 0:
+                    sizes = []
+                    bad = 0
+                    for i in range(n_outer):
+                        inner = times[i]
+                        sizes.append(int(inner.size()))
+                        # quick sanity: NaN/inf check
+                        for j in range(int(inner.size())):
+                            t = float(inner[j])
+                            if not math.isfinite(t):
+                                bad += 1
+                    d["times_inner_sizes_head"] = sizes[:max_points]
+                    d["times_inner_sizes_tail"] = sizes[-max_points:] if len(sizes) > max_points else sizes
+                    d["times_nonfinite"] = bad
+            except Exception as e:
+                d["nTimesOuter"] = f"ERR:{e}"
+
+            return d
+
+        self._dump_sndRecoTrack = _dump_sndRecoTrack
+        self._addr = _addr
+
+        self.debug = True                 # flip easily
+        self.debug_max_points = 6         # print only first/last few
+        self.debug_dump_bad_only = True   # print only when something looks suspicious
+        self.debug_out = open("muonreco_debug.log", "a", buffering=1)  # line-buffered
+        self.debug_stream_test = False
+        def _is_finite(x):
+            try:
+                return math.isfinite(float(x))
+            except Exception:
+                return False
+
+        def _arr_stats(name, a):
+            a = np.asarray(a)
+            if a.size == 0:
+                return f"{name}: empty"
+            finite = np.isfinite(a.astype(np.float64, copy=False))
+            nbad = int((~finite).sum())
+            msg = (f"{name}: shape={a.shape} dtype={a.dtype} "
+                   f"min={np.nanmin(a):.6g} max={np.nanmax(a):.6g} "
+                   f"nbad={nbad}")
+            return msg
+        self._arr_stats = _arr_stats
+        def _head_tail(a, n=3):
+            a = list(a)
+            if len(a) <= 2*n:
+                return a
+            return a[:n] + ["..."] + a[-n:]
+        self._head_tail = _head_tail
+        self._is_finite = _is_finite
+        self._rows = []
         self.logger = ROOT.FairLogger.GetLogger()
         if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
             print("Initializing muon reconstruction task!")
@@ -326,7 +462,7 @@ class MuonReco(ROOT.FairTask):
         # Initialize event counters in case scaling of events is required
         self.scale = 1
         self.events_run = 0
-
+        self.genfitTrack = 0
         # Initialize hough transform - reading parameter xml file
         tree = ET.parse(self.par_file)
         root = tree.getroot()
@@ -499,12 +635,14 @@ class MuonReco(ROOT.FairTask):
 
         # check if track container exists
         if self.ioman.GetObject("Reco_MuonTracks") != None:
+            print("define kalman_tracks via GetObject!!!!!!!")
             self.kalman_tracks = self.ioman.GetObject("Reco_MuonTracks")
             if self.logger.IsLogNeeded(ROOT.fair.Severity.info):
                 print("Branch activated by another task!")
         else:
             # Now initialize output in genfit::track or sndRecoTrack format
             if self.genfitTrack:
+                print("define kalman_tracks via TObjArray!!!!!!!")
                 self.kalman_tracks = ROOT.TObjArray(50)
                 if hasattr(self, "standalone") and self.standalone:
                     self.ioman.Register(
@@ -514,11 +652,14 @@ class MuonReco(ROOT.FairTask):
                         ROOT.kTRUE,
                     )
             else:
+                print("define kalman_tracks via TClonesArray!!!!!!!")
                 self.kalman_tracks = ROOT.TClonesArray("sndRecoTrack", 50)
                 if hasattr(self, "standalone") and self.standalone:
                     self.ioman.Register(
                         "Reco_MuonTracks", "", self.kalman_tracks, ROOT.kTRUE
                     )
+        if self.debug:
+            self.debug_out.write(f"kalman_tracks class = {self.kalman_tracks.ClassName() if hasattr(self.kalman_tracks,'ClassName') else type(self.kalman_tracks)}\n")
 
         # initialize detector class with EventHeader(runN), if SNDLHCEventHeader detected
         # only needed if using HT tracking manager, i.e. standalone
@@ -600,7 +741,7 @@ class MuonReco(ROOT.FairTask):
             "time": [],
             "mask": [],
         }
-
+        #breakpoint()
         if 1:
             # if self.AdvTarget_meas:
             # no AdvTarget clustering available for now
@@ -754,6 +895,7 @@ class MuonReco(ROOT.FairTask):
                 hit_collection[key] = np.array(item, dtype=this_dtype)
 
         # Reconstruct muons until there are not enough hits in downstream muon filter
+        #breakpoint()
         for i_muon in range(self.max_reco_muons):
             n_planes_ZY = numPlanesHit(
                 hit_collection["detectorID"][~hit_collection["vert"]]
@@ -920,6 +1062,7 @@ class MuonReco(ROOT.FairTask):
             # Onto Kalman fitter (based on SndlhcTracking.py)
             posM = ROOT.TVector3(0, 0, 0.0)
             momM = ROOT.TVector3(0, 0, 100.0)  # default track with high momentum
+            #breakpoint()
 
             # approximate covariance
             covM = ROOT.TMatrixDSym(6)
@@ -1056,6 +1199,69 @@ class MuonReco(ROOT.FairTask):
                         ],
                     ]
                 )
+            #breakpoint()
+
+            if self.debug:
+                order = hit_z.argsort()
+
+                # quick stats
+                lines = []
+                lines.append(f"\n=== DEBUG EVENT {self.events_run} imu={i_muon} ===")
+                lines.append(f"nZX_hits={int(np.sum(track_hits_ZX))} nZY_hits={int(np.sum(track_hits_ZY))} nAll={len(order)}")
+                lines.append(self._arr_stats("hit_z", hit_z))
+                lines.append(self._arr_stats("hit_A0", hit_A0))
+                lines.append(self._arr_stats("hit_A1", hit_A1))
+                lines.append(self._arr_stats("hit_B0", hit_B0))
+                lines.append(self._arr_stats("hit_B1", hit_B1))
+                lines.append(self._arr_stats("hit_B2", hit_B2))
+                lines.append(self._arr_stats("hit_detid", hit_detid))
+                lines.append(self._arr_stats("kalman_spatial_sigma", kalman_spatial_sigma))
+                lines.append(self._arr_stats("kalman_max_dis", kalman_max_dis))
+
+                # detect suspicious conditions that often lead to ROOT streamer crashes later
+                suspicious = False
+
+                # NaN/inf in any float arrays
+                for arr in [hit_z, hit_A0, hit_A1, hit_B0, hit_B1, hit_B2, kalman_spatial_sigma, kalman_max_dis]:
+                    a = np.asarray(arr, dtype=np.float64)
+                    if a.size and (not np.isfinite(a).all()):
+                        suspicious = True
+
+                # negative / zero max distance or sigma (should not happen)
+                if (np.asarray(kalman_max_dis) <= 0).any(): suspicious = True
+                if (np.asarray(kalman_spatial_sigma) <= 0).any(): suspicious = True
+
+                # detid out of int range / weird
+                if np.asarray(hit_detid, dtype=np.int64).size and (np.abs(np.asarray(hit_detid, dtype=np.int64)) > 2**31-1).any():
+                    suspicious = True
+
+                # Also check times for None/NaN mixture
+                try:
+                    bad_t = 0
+                    for ch in range(len(hit_time)):
+                        tt = hit_time[ch]
+                        for i in order:
+                            t = tt[i]
+                            if t is None:
+                                continue
+                            if not self._is_finite(t):
+                                bad_t += 1
+                    if bad_t > 0:
+                        suspicious = True
+                        lines.append(f"bad_times={bad_t}")
+                except Exception as e:
+                    suspicious = True
+                    lines.append(f"times_check_failed: {e}")
+
+                if (not self.debug_dump_bad_only) or suspicious:
+                    # show a tiny “signature” of the track
+                    idx = order
+                    lines.append("z(head/tail): " + str(self._head_tail([float(hit_z[i]) for i in idx], self.debug_max_points//2)))
+                    lines.append("detid(head/tail): " + str(self._head_tail([int(hit_detid[i]) for i in idx], self.debug_max_points//2)))
+                    lines.append("sigma(head/tail): " + str(self._head_tail([float(kalman_spatial_sigma[i]) for i in idx], self.debug_max_points//2)))
+                    lines.append("maxdis(head/tail): " + str(self._head_tail([float(kalman_max_dis[i]) for i in idx], self.debug_max_points//2)))
+
+                    self.debug_out.write("\n".join(lines) + "\n")
 
             for i_z_sorted in hit_z.argsort():
                 tp = ROOT.genfit.TrackPoint()
@@ -1101,13 +1307,35 @@ class MuonReco(ROOT.FairTask):
             )  # processTrackWithRep(theTrack,rep,True)
 
             fitStatus = theTrack.getFitStatus()
+            if self.debug:
+                try:
+                    npoints = int(theTrack.getNumPoints())
+                except Exception:
+                    npoints = -1
+                self.debug_out.write(
+                    f"FIT: iev={self.events_run} imu={i_muon} "
+                    f"converged={int(fitStatus.isFitConverged())} "
+                    f"nPoints={npoints}\n"
+                )
             if not fitStatus.isFitConverged() and 0 > 1:
                 theTrack.Delete()
                 raise RuntimeError("Kalman fit did not converge.")
 
+
+
             # Now save the track if fit converged!
             theTrack.SetUniqueID(self.track_type)
             if fitStatus.isFitConverged():
+                print(f"{int(self.events_run)} event: {i_muon} is converged")
+                np.savez_compressed(
+                    f"muonReco_iev{int(self.events_run)}_imu{i_muon}.npz",
+                    hit_z=hit_z.astype(np.float32),
+                    hit_A0=hit_A0.astype(np.float32),
+                    hit_A1=hit_A1.astype(np.float32),
+                    hit_detid=hit_detid.astype(np.int32),
+                    kalman_sigma=kalman_spatial_sigma.astype(np.float32),
+                    kalman_maxdis=kalman_max_dis.astype(np.float32),
+                )
                 if self.genfitTrack:
                     self.kalman_tracks.Add(theTrack)
                 else:
@@ -1120,11 +1348,64 @@ class MuonReco(ROOT.FairTask):
                             if hit_time[ch][i_z_sorted] is not None:
                                 t_per_hit.append(hit_time[ch][i_z_sorted])
                         pointTimes.push_back(t_per_hit)
+                        # v = ROOT.std.vector("float")()
+                        # for ch in range(len(hit_timesad)):
+                        #     t = hit_time[ch][i_z_sorted]
+                        #     if t is not None:
+                        #         v.push_back(float(t))
+                        # pointTimes.push_back(v)
                     this_track.setRawMeasTimes(pointTimes)
                     this_track.setTrackType(self.track_type)
                     # Save the track in sndRecoTrack format
-                    self.kalman_tracks[i_muon] = this_track
+                    # self.kalman_tracks[i_muon] = this_track
                     # Delete the Kalman track object
+                    #breakpoint()
+                    if self.debug_stream_test:
+                        print(f"STREAMTEST START iev={int(self.events_run)} imu={i_muon} nPoints={theTrack.getNumPoints()}", flush=True)
+                        buf = ROOT.TBufferFile(ROOT.TBuffer.kWrite)
+                        # Either of these typically works; try A first.
+                        # A) Generic object write:
+                        buf.WriteObjectAny(this_track, this_track.IsA())
+                        print(f"STREAMTEST OK    iev={int(self.events_run)} imu={i_muon}", flush=True)
+                        # B) Or: this_track.Streamer(buf)   # if class has Streamer exposed
+                    print(f"kalman_tracks class = {self.kalman_tracks.ClassName() if hasattr(self.kalman_tracks,'ClassName') else type(self.kalman_tracks)}\n")
+                    this_track.Print()
+
+                    print(f"\n=== PRE-STORE iev={int(self.events_run)} imu={i_muon} ===", flush=True)
+                    try:
+                        print(self._dump_sndRecoTrack(this_track), flush=True)
+                    except Exception as e:
+                        print(f"PRE dump failed: {e}", flush=True)
+
+                    try:
+                        print(f"TClonesArray before: entries={int(self.kalman_tracks.GetEntriesFast())} "
+                              f"cap={int(self.kalman_tracks.GetSize())} "
+                              f"class={self.kalman_tracks.ClassName()} addr={self._addr(self.kalman_tracks)}",
+                              flush=True)
+                    except Exception as e:
+                        print(f"PRE clones dump failed: {e}", flush=True)
+
+                    # self.kalman_tracks[i_muon] = this_track
+                    self.kalman_tracks.ExpandCreate(i_muon + 1)
+                    ROOT.EmplaceSndRecoTrack(self.kalman_tracks, int(i_muon), this_track)
+
+                    print(f"=== POST-STORE iev={int(self.events_run)} imu={i_muon} ===", flush=True)
+                    try:
+                        stored = self.kalman_tracks.At(i_muon)
+                        print(f"stored class={stored.ClassName()} addr={self._addr(stored)}", flush=True)
+                        # Compare: if addresses match, you likely stored an alias/pointer -> dangerous
+                        print(f"addr(this_track)={self._addr(this_track)} addr(stored)={self._addr(stored)}", flush=True)
+                        # Try reading something back from the stored object
+                        try:
+                            print("stored quick:", self._dump_sndRecoTrack(stored), flush=True)
+                        except Exception as e:
+                            print(f"POST dump stored failed: {e}", flush=True)
+                    except Exception as e:
+                        print(f"POST clones At() failed: {e}", flush=True)
+
+                    self.kalman_tracks.Print()
+                    #self.kalman_tracks.Add(theTrack)
+                    print("NOT STORING TRACK INTO BRANCH", flush=True)
                     theTrack.Delete()
 
             # Remove track hits and try to find an additional track
@@ -1160,10 +1441,35 @@ class MuonReco(ROOT.FairTask):
                     raise Exception(
                         "Wrong number of dimensions found when deleting hits in iterative muon identification algorithm."
                     )
+            if self.debug:
+                try:
+                    self.debug_out.write(f"END EVENT {self.events_run}: kalman_tracks entries={int(self.kalman_tracks.GetEntries())}\n")
+                except Exception as e:
+                    self.debug_out.write(f"END EVENT {self.events_run}: cannot GetEntries: {e}\n")
+            # self._rows.append({
+            #   "iev": int(self.events_run),          # or EventHeader.GetEventID() if you have it
+            #   "imu": int(i_muon),
+            #   "slopeZY": float(ZY_hough[0]), "intZY": float(ZY_hough[1]),
+            #   "slopeZX": float(ZX_hough[0]), "intZX": float(ZX_hough[1]),
+            #   "nZY": int(n_planes_hit_ZY), "nZX": int(n_planes_hit_ZX),
+            #   "converged": int(fitStatus.isFitConverged())
+            # })
+            self._rows.append({
+              "iev": int(self.events_run),
+              "imu": int(i_muon),
+              "converged": int(fitStatus.isFitConverged()),
+              "nPoints": int(theTrack.getNumPoints()),
+              "slopeZY": float(ZY_hough[0]), "intZY": float(ZY_hough[1]),
+              "slopeZX": float(ZX_hough[0]), "intZX": float(ZX_hough[1]),
+              "nPlanesZY": int(n_planes_hit_ZY),
+              "nPlanesZX": int(n_planes_hit_ZX),
+            })
 
     def FinishTask(self):
         """End of the task."""
         print("Processed", self.events_run)
+        import pandas as pd
+        pd.DataFrame(self._rows).to_csv("muonReco_debug.csv", index=False)
         if not self.genfitTrack:
             self.kalman_tracks.Delete()
         else:
