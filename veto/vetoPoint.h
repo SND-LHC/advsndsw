@@ -40,11 +40,8 @@ class vetoPoint : public FairMCPoint
     TVector3 LastMom() const {return fLmom;}
 
   private:
-    /** Copy constructor **/
-    Int_t fPdgCode;
     TVector3 fLpos,fLmom;
-    vetoPoint(const vetoPoint& point);
-    vetoPoint operator=(const vetoPoint& point);
+    Int_t fPdgCode;
 
     ClassDef(vetoPoint,3)
 
