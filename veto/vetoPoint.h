@@ -40,8 +40,9 @@ class vetoPoint : public FairMCPoint
     TVector3 LastMom() const {return fLmom;}
 
   private:
-    TVector3 fLpos,fLmom;
+    /** Copy constructor **/
     Int_t fPdgCode;
+    TVector3 fLpos,fLmom;
 
     ClassDef(vetoPoint,3)
 
