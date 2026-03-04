@@ -34,6 +34,7 @@ parser.add_argument("--Eend",    dest="Eend",    help="end of energy range of pa
 parser.add_argument("--EVx",    dest="EVx",    help="particle gun xpos", required=False, default=0, type=float)
 parser.add_argument("--EVy",    dest="EVy",    help="particle gun ypos", required=False, default=0, type=float)
 parser.add_argument("--EVz",    dest="EVz",    help="particle gun zpos", required=False, default=0, type=float)
+parser.add_argument('--eMin_store', type=float, help="kinetic energy cut for !particle storage! in MeV", dest='emin_store', default=100.)
 parser.add_argument("--FollowMuon",dest="followMuon", help="Make muonshield active to follow muons", required=False, action="store_true")
 parser.add_argument("--FastMuon",  dest="fastMuon",  help="Only transport muons for a fast muon only background estimate", required=False, action="store_true")
 parser.add_argument('--eMin', type=float, help="energy cut", dest='ecut', default=-1.)
@@ -276,10 +277,10 @@ if MCTracksWithHitsOnly:
  fStack.SetEnergyCut(-100.*u.MeV)
 elif MCTracksWithEnergyCutOnly:
  fStack.SetMinPoints(-1)
- fStack.SetEnergyCut(100.*u.MeV)
+ fStack.SetEnergyCut(options.emin_store*u.MeV)
 elif MCTracksWithHitsOrEnergyCut: 
  fStack.SetMinPoints(1)
- fStack.SetEnergyCut(100.*u.MeV)
+ fStack.SetEnergyCut(options.emin_store*u.MeV)
 elif options.deepCopy: 
  fStack.SetMinPoints(0)
  fStack.SetEnergyCut(0.*u.MeV)
