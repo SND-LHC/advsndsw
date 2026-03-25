@@ -582,7 +582,7 @@ class MuonReco(ROOT.FairTask):
         self.standalone = 1
 
     def Exec(self, opt):
-        """Core part of teh task."""
+        """Core part of the task."""
         self.kalman_tracks.Clear("C")
 
         # Set scaling in case task is run seperately from other tracking tasks
