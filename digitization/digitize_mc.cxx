@@ -12,6 +12,7 @@
 
 #include <string>
 #include <iostream>
+#include <stdlib.h>
 
 TGeoNavigator* initGeometry(const std::string& geometry_path)
 {
@@ -28,19 +29,27 @@ TGeoNavigator* initGeometry(const std::string& geometry_path)
     return nav;
 }
 
-int main() {
-    bool use_rntuple{true};
-
+int main(int argc, char *argv[]) {
+    std::cout << "Parameters passed: " << argc << "\n"; 
+    const int n_threads = atoi(argv[1]);
+    std::cout << "Asking for " << n_threads << " threads\n";
+    if (n_threads > 1) ROOT::EnableImplicitMT(n_threads);
     ROOT::RDF::RSnapshotOptions opts;
-    if (use_rntuple) opts.fOutputFormat = ROOT::RDF::ESnapshotOutputFormat::kRNTuple;
+    opts.fOutputFormat = ROOT::RDF::ESnapshotOutputFormat::kRNTuple;
 
-    std::string input_file = use_rntuple ? "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/rntuples-sndLHC.Ntuple-TGeant4.root" : "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/sndLHC.Ntuple-TGeant4-surgery.root";
-    std::string output_file = use_rntuple ? "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/rntuples-df-compiled-sndLHC.Ntuple-TGeant4_digCPP.root" : "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/ttree-df-compiled-sndLHC.Ntuple-TGeant4_digCPP.root";
+    std::string input_file = argv[2];
+    //use_rntuple ? "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/rntuples-sndLHC.Ntuple-TGeant4.root" : "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/sndLHC.Ntuple-TGeant4-surgery.root";
+    std::string output_file = argv[3];
+    //use_rntuple ? "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/rntuples-df-compiled-sndLHC.Ntuple-TGeant4_digCPP.root" : "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/ttree-df-compiled-sndLHC.Ntuple-TGeant4_digCPP.root";
     auto df = ROOT::RDataFrame("cbmsim", input_file);
 
     std::string geometry_path = "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/geofile_full.Ntuple-TGeant4.root";
     TGeoNavigator* nav = initGeometry(geometry_path);
 
+    std::cout << df.GetColumnType("AdvTargetPoint") << std::endl;
+
+
+    // change to const ROOT::VecOps::RVec<AdvTargetPoint>&
     auto df2 = df.Define("Digi_AdvTargetHits", advsnd::DigitizePoints<AdvTargetPoint, AdvTargetHit>(nav), {"AdvTargetPoint"});
     auto df3 = df2.Define("Digi_AdvTargetHits2MCPoints", advsnd::LinkPointsToDigi<AdvTargetPoint>(nav), {"AdvTargetPoint"});
     auto df4 = df3.Define("Digi_AdvMuFilterHits", advsnd::DigitizePoints<AdvMuFilterPoint, AdvMuFilterHit>(nav), {"AdvMuFilterPoint"});
