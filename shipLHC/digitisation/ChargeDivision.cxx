@@ -63,38 +63,32 @@ TVector3 ChargeDivision::getLocal(Int_t detID, TVector3 point)
     TVector3 local_point; 
     // Calculate the detector id as per the geofile, where strips are disrespected
     // int strip = (detID) % 1024;                // actual strip ID
-    int geofile_detID = detID; // the det id number needed to read the geometry
-    int station = geofile_detID >> 17;
-    int plane = (geofile_detID >> 16) % 2;
-    int row = (geofile_detID >> 13) % 8;
-    int column = (geofile_detID >> 11) % 4;
-    int sensor = geofile_detID;
-    int sensor_module = advsnd::target::columns * row + 1 + column;
-
-    TString path = TString::Format("/cave_1/"
-                                   "Detector_0/"
-                                   "volAdvTarget_1/"
-                                   "TrackingStation_%d/"
-                                   "TrackerPlane_%d/"
-                                   "SensorModule_%d/"
-                                   "SensorVolumeTarget_%d",
-                                   station,
-                                   plane,
-                                   sensor_module,
-                                   sensor);
+    int layer = detID >> 17;
+    int sensor_module = advsnd::target::columns * ((detID >> 13) % 8) + 1 + ((detID >> 11) % 4);
+    int sensor = detID;
+    auto path = TString::Format("/cave_1/"
+                                "Detector_0/"
+                                "volAdvTarget_0/"
+                                "Target_Layer_%d/"
+                                "SensorModule_%d/"
+                                "Target_SensorVolume_%d",
+                                layer,
+                                sensor_module,
+                                sensor);
     TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
     if (nav->CheckPath(path)) {
         nav->cd(path);
     } else {
         LOG(FATAL) << path;
     }
-    // Get the corresponding node, which is a sensor made of strips
-    TGeoNode *W = nav->GetCurrentNode();
-    Double_t x = point.X();
-    Double_t y = point.Y();
-    Double_t z = point.Z();
+    auto* node = nav->GetCurrentNode();
+    // Find virtual strip by location
+    auto x = point.X();
+    auto y = point.Y();
+    auto z = point.Z();
     double global_pos[3] = {x, y, z};
     double local_pos[3];
+    // Move to local coordinates (including rotation) to determine strip
     nav->MasterToLocal(global_pos, local_pos);
 
     local_point = local_pos; 
