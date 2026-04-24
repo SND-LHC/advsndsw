@@ -16,6 +16,16 @@ const double sensor_gap = 3.1 * ShipUnit::mm;
 const int sensors = 2;
 const int strips = 768;
 
+namespace tb_target {
+const int rows = 2;
+const int columns = 1;
+const int planes = 2;
+const double module_dead_space_side_small = 6.45 * ShipUnit::mm;
+const double module_dead_space_side_large = 46.95 * ShipUnit::mm;
+const double module_dead_space_top = 13.15 * ShipUnit::mm;
+const double module_dead_space_bottom = module_dead_space_top;
+} // namespace tb_target
+
 namespace target {
 const int rows = 4;
 const int columns = 2;
