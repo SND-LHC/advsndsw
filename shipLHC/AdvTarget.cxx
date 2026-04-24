@@ -118,6 +118,8 @@ void AdvTarget::ConstructGeometry()
 
     InitMedium("tungstensifon");
     TGeoMedium *tungsten = gGeoManager->GetMedium("tungstensifon");
+    InitMedium("iron");
+    TGeoMedium *iron = gGeoManager->GetMedium("iron");
     InitMedium("Polystyrene");
     TGeoMedium *Polystyrene = gGeoManager->GetMedium("Polystyrene");
     InitMedium("silicon");
@@ -134,6 +136,19 @@ void AdvTarget::ConstructGeometry()
     Double_t fTTZ = conf_floats["AdvTarget/TTZ"];
     Int_t fNlayers = conf_ints["AdvTarget/nTT"];   // Number of TT layers
 
+    // for testbeam 2026
+    bool testbeam2026 = conf_ints["AdvTarget/testbeam2026"];
+    Double_t fWPlateX = conf_floats["AdvTarget/WPlateX"];
+    Double_t fWPlateY = conf_floats["AdvTarget/WPlateY"];
+    Double_t fWPlateZ = conf_floats["AdvTarget/WPlateZ"];
+    Double_t fFePlateX = conf_floats["AdvTarget/FePlateX"];
+    Double_t fFePlateY = conf_floats["AdvTarget/FePlateY"];
+    Double_t fFePlateZ = conf_floats["AdvTarget/FePlateZ"];
+    Int_t fnWPlates = conf_ints["AdvTarget/nWPlates"];
+    Double_t fFrameBorderX = conf_floats["AdvTarget/FrameBorderX"];
+    Double_t fFrameBorderY = conf_floats["AdvTarget/FrameBorderY"];
+    double tb_plate_z{};
+
     // Definition of the target box containing tungsten walls + silicon tracker
     TGeoVolumeAssembly *volAdvTarget = new TGeoVolumeAssembly("volAdvTarget");
 
@@ -145,9 +160,39 @@ void AdvTarget::ConstructGeometry()
     TGeoVolume *volPlateFrame = new TGeoVolume("volPlateFrame", PlateFrame, steel);
     volPlate->SetLineColor(kGray - 4);
     volPlateFrame->SetLineColor(kGray);
+
     TGeoVolumeAssembly *volWall = new TGeoVolumeAssembly("volWall");
-    volWall->AddNode(volPlate, 1);
-    volWall->AddNode(volPlateFrame, 1);
+    if (testbeam2026==false){
+      volWall->AddNode(volPlate, 1);
+      volWall->AddNode(volPlateFrame, 1);
+    }
+    else if (testbeam2026==true){
+      TGeoBBox *WPlate = new TGeoBBox("WPlate", fWPlateX / 2., fWPlateY / 2., fnWPlates*fWPlateZ / 2. + 1e-10);
+      TGeoBBox *FePlate = new TGeoBBox("FePlate", fFePlateX / 2., fFePlateY / 2., fFePlateZ / 2. + 1e-10);
+      TGeoCompositeShape *TBPlate = new TGeoCompositeShape("TBPlate", "FePlate+WPlate+FePlate");
+      tb_plate_z = fnWPlates*fWPlateZ +2*fFePlateZ;// + fPlateFrameZ;
+      TGeoVolume *volWPlate = new TGeoVolume("volWPlate", WPlate, tungsten);
+      volWPlate->SetLineColor(kGray - 4);
+      TGeoVolume *volFePlate = new TGeoVolume("volFePlate", FePlate, iron);
+      volFePlate->SetLineColor(kGreen - 4);
+      // a fake plate object to get the shape of the support frame: x-y dims to fit the borders and z as per drawings 
+      TGeoBBox *fake_Plate = new TGeoBBox("fake_Plate", fPlateFrameX / 2. - fFrameBorderX, fPlateFrameY / 2. - fFrameBorderY, fPlateFrameZ / 2.);
+      TGeoCompositeShape *TBPlateFrame = new TGeoCompositeShape("TBPlateFrame", "PlateAndFrame-fake_Plate");
+      // The steel support is holding the target plate and the modules are attached on the Fe plates directly
+      TGeoVolume *volTBPlateFrame = new TGeoVolume("volTBPlateFrame", TBPlateFrame, steel);
+      volTBPlateFrame->SetLineColor(kGray);
+      TGeoVolumeAssembly *volTBPlate = new TGeoVolumeAssembly("volTBPlate");
+      volTBPlate->AddNode(volWPlate,1);
+      volTBPlate->AddNode(volFePlate, 0, new TGeoTranslation(0, 0, - fFePlateZ / 2. - fnWPlates*fWPlateZ / 2.));
+      volTBPlate->AddNode(volFePlate, 2, new TGeoTranslation(0, 0, fnWPlates*fWPlateZ / 2. + fFePlateZ / 2.));
+      volWall->AddNode(volTBPlate, 1);
+      volWall->AddNode(volTBPlateFrame,
+                       0,
+                       new TGeoTranslation(-(TBPlateFrame->GetDX()-fFePlateX/2) + fFrameBorderX,
+                                           -(TBPlateFrame->GetDY()-fFePlateY/2) + fFrameBorderY,
+                                             fPlateFrameZ / 2. + fnWPlates*fWPlateZ / 2. + fFePlateZ ));
+
+    }
 
     // Positioning calculations, TODO delete once the whole AdvSND apparatus is positioned correctly
     TVector3 EmWall0_survey(5.35 * cm + 42.2 / 2. * cm,
@@ -204,10 +249,11 @@ void AdvTarget::ConstructGeometry()
         // A tracking layer consists of a X OR a Y plane.
         // X plane(vertical strips) is plane 1 and Y plane(horizontal strips) is plane 0.
         // This is done to match the SND-LHC convention, where  plane 1 is vertical
-        int plane = layer % advsnd::target::planes;
         TGeoVolumeAssembly *ActiveLayer = new TGeoVolumeAssembly("Target_Layer");
         // Each layer consists of row x columns = 4x2 modules
         int i = 0;
+        if (testbeam2026==false){
+        int plane = layer % advsnd::target::planes;
         for (auto &&row : TSeq(advsnd::target::rows)) {
             for (auto &&column : TSeq(advsnd::target::columns)) {
                 // Each module in turn consists of two sensors on a support
@@ -239,7 +285,7 @@ void AdvTarget::ConstructGeometry()
                         TGeoTranslation(
                             (column % 2 ? -1 : 1) * (advsnd::module_width / 2 + advsnd::target::modules_column_gap / 2),
                             (row + 1) * advsnd::module_length / 2
-                                + +floor((row + 1) / 2)
+                                + floor((row + 1) / 2)
                                       * (advsnd::module_length / 2 - advsnd::target::modules_rows_overlap)
                                 + floor(row / 2)
                                       * (advsnd::module_length / 2 - advsnd::target::tandem_modules_rows_overlap),
@@ -272,6 +318,69 @@ void AdvTarget::ConstructGeometry()
                                                    fPlateZ + layer * (fPlateZ + 2 * fTTZ)),
                                    TGeoRotation("y_rot", 0, 0, 90)));
         }
+        } // TI18
+        else{
+        int plane = layer % advsnd::tb_target::planes;
+        for (auto &&row : TSeq(advsnd::tb_target::rows)) {
+            for (auto &&column : TSeq(advsnd::tb_target::columns)) {
+                // Each module consists of two sensors on a support
+                TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
+                SensorModule->AddNode(
+                    SupportVolume, 1, new TGeoTranslation(0, 0, - advsnd::support_thickness / 2 - advsnd::sensor_thickness / 2));
+                for (auto &&sensor : TSeq(advsnd::sensors)) {
+                    int32_t sensor_id =
+                        (layer << 17) + (plane << 16) + (row << 13) + (column << 11) + (sensor << 10) + 999;
+                    SensorModule->AddNode(
+                        SensorVolume,
+                        sensor_id,
+                        new TGeoTranslation(-advsnd::module_width / 2 + advsnd::hcal::module_dead_space_side_small
+                                                + advsnd::sensor_width / 2
+                                                + sensor * (advsnd::sensor_width + advsnd::sensor_gap),
+                                            -advsnd::module_length / 2 + advsnd::hcal::module_dead_space_bottom
+                                                + advsnd::sensor_length / 2,
+                                            0.));
+                }
+                // In the testbeam 2026 setup one has one module per plane
+                // and the very first layer has only one plane
+                if (layer==0 && row==1) continue;
+                ActiveLayer->AddNode(
+                    SensorModule,
+                    ++i,
+                    new TGeoCombiTrans(
+                        // Offset modules as needed by row
+                        TGeoTranslation(
+                            advsnd::module_width / 2,
+                            ((row+1)%2) * (advsnd::module_length - advsnd::hcal::module_dead_space_bottom),
+                            // modules facing one another are offset by the module_thickness, leaving some
+                            // clearance(air) for electronics
+                            std::pow(-1,row%2) * (advsnd::sensor_thickness / 2
+                                + (fTTZ - advsnd::support_thickness - advsnd::sensor_thickness))),
+                        // Rotate every module of the second column by 180 on z axis to arrive at a back-to-front layout
+                        TGeoRotation(TString::Format("rot%d", i), 0, ((row+1)%2) * 180, 0)));
+            }   // columns
+        }   // rows
+
+        // Alternate detecting layers followed by a target plate.
+        if (plane == 0) {
+            // Y-plane (horizontal strips along y axis)
+            volAdvTarget->AddNode(ActiveLayer,
+                                  layer,
+                                  new TGeoTranslation(-advsnd::module_length,
+                                                      -advsnd::module_width/4,
+                                                       layer * (tb_plate_z + 2 * fTTZ)));
+        } else if (plane == 1) {
+            // X-plane (vertical strips along x axis)
+            volAdvTarget->AddNode(
+                ActiveLayer,
+                layer,
+                new TGeoCombiTrans(TGeoTranslation(advsnd::module_width/4,
+                                                   -advsnd::module_length,
+                                                    layer * (tb_plate_z + 2 * fTTZ)),
+                                   TGeoRotation("y_rot", 0, 0, 90)));
+        }
+        volAdvTarget->AddNode(volWall, layer, new TGeoTranslation(0, 0, fTTZ + tb_plate_z/2 + layer * (tb_plate_z + 2 * fTTZ)));//fPlateZ / 2 + layer * (fPlateZ + 2 * fTTZ)));
+        } // testbeam 2026
+
     }   // layers
 }
 
@@ -336,7 +445,8 @@ void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     int row = (geofile_detID >> 13) % 8;
     int column = (geofile_detID >> 11) % 4;
     int sensor = geofile_detID;
-    int sensor_module = advsnd::target::columns * row + 1 + column;
+    int n_columns = conf_ints["AdvTarget/testbeam2026"] ? advsnd::tb_target::columns : advsnd::target::columns;
+    int sensor_module = n_columns * row + 1 + column;
 
     double local_pos[3] = {0, 0, 0};
     TString path = TString::Format("/cave_1/"
