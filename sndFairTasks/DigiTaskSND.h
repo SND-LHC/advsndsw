@@ -5,6 +5,7 @@
 #include "FairTask.h"            // for FairTask, InitStatus
 #include "SNDLHCEventHeader.h"   // for EventHeader
 #include "Scifi.h"               // for Scifi detector
+#include "AdvTarget.h"           // for AdvTarget detector
 
 #include <Rtypes.h>       // for THashConsistencyHolder, ClassDef
 #include <RtypesCore.h>   // for Double_t, Int_t, Option_t
@@ -37,6 +38,7 @@ class DigiTaskSND : public FairTask
     void digitiseAdvTarget();
     void digitiseAdvMuFilter();
 
+    AdvTarget* AdvTargetDet;
     Scifi* scifi;
     map<Int_t, map<Int_t, array<float, 2>>> fibresSiPM;
     map<Int_t, map<Int_t, array<float, 2>>> siPMFibres;

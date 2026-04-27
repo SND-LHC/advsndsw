@@ -4,6 +4,7 @@
 #include "AdvMuFilterPoint.h"
 #include "AdvTargetHit.h"
 #include "AdvTargetPoint.h"
+#include "AdvTarget.h"           // for AdvTarget detector
 #include "FairLink.h"            // for FairLink
 #include "FairMCEventHeader.h"   // for FairMCEventHeader
 #include "FairRootManager.h"     // for FairRootManager
@@ -101,8 +102,10 @@ InitStatus DigiTaskSND::Init()
         ioman->Register("ScifiPoint", "ScifiPoints", fScifiPointArray, kTRUE);
     if (fMuFilterPointArray)
         ioman->Register("MuFilterPoint", "MuFilterPoints", fMuFilterPointArray, kTRUE);
-    ioman->Register("AdvTargetPoint", "AdvTargetPoints", AdvTargetPoints, kTRUE);
-    ioman->Register("AdvMuFilterPoint", "AdvMuFilterPoints", AdvMuFilterPoints, kTRUE);
+    if(AdvTargetPoints)
+      ioman->Register("AdvTargetPoint", "AdvTargetPoints", AdvTargetPoints, kTRUE);
+    if(AdvMuFilterPoints)
+      ioman->Register("AdvMuFilterPoint", "AdvMuFilterPoints", AdvMuFilterPoints, kTRUE);
 
     // Event header
     fEventHeader = new SNDLHCEventHeader();
@@ -127,20 +130,24 @@ InitStatus DigiTaskSND::Init()
         fMuFilterHit2MCPointsArray->BypassStreamer(kTRUE);
     }
 
-    AdvMuFilterHits = new TClonesArray("AdvMuFilterHit");
-    ioman->Register("Digi_AdvMuFilterHits", "DigiAdvMuFilterHit_det", AdvMuFilterHits, kTRUE);
-    // Branch containing links to MC truth info
-    AdvMuFilterHits2MCPoints = new TClonesArray("Hit2MCPoints");
-    ioman->Register(
-        "Digi_AdvMuFilterHits2MCPoints", "DigiAdvMuFilterHits2MCPoints_det", AdvMuFilterHits2MCPoints, kTRUE);
-    AdvMuFilterHits2MCPoints->BypassStreamer(kTRUE);
+    if(AdvTargetPoints) {
+      AdvMuFilterHits = new TClonesArray("AdvMuFilterHit");
+      ioman->Register("Digi_AdvMuFilterHits", "DigiAdvMuFilterHit_det", AdvMuFilterHits, kTRUE);
+      // Branch containing links to MC truth info
+      AdvMuFilterHits2MCPoints = new TClonesArray("Hit2MCPoints");
+      ioman->Register(
+          "Digi_AdvMuFilterHits2MCPoints", "DigiAdvMuFilterHits2MCPoints_det", AdvMuFilterHits2MCPoints, kTRUE);
+      AdvMuFilterHits2MCPoints->BypassStreamer(kTRUE);
+    }
 
-    AdvTargetHits = new TClonesArray("AdvTargetHit");
-    ioman->Register("Digi_AdvTargetHits", "DigiAdvTargetHit_det", AdvTargetHits, kTRUE);
-    // Branch containing links to MC truth info
-    AdvTargetHits2MCPoints = new TClonesArray("Hit2MCPoints");
-    ioman->Register("Digi_AdvTargetHits2MCPoints", "DigiAdvTargetHits2MCPoints_det", AdvTargetHits2MCPoints, kTRUE);
-    AdvTargetHits2MCPoints->BypassStreamer(kTRUE);
+    if(AdvTargetPoints) {
+      AdvTargetHits = new TClonesArray("AdvTargetHit");
+      ioman->Register("Digi_AdvTargetHits", "DigiAdvTargetHit_det", AdvTargetHits, kTRUE);
+      // Branch containing links to MC truth info
+      AdvTargetHits2MCPoints = new TClonesArray("Hit2MCPoints");
+      ioman->Register("Digi_AdvTargetHits2MCPoints", "DigiAdvTargetHits2MCPoints_det", AdvTargetHits2MCPoints, kTRUE);
+      AdvTargetHits2MCPoints->BypassStreamer(kTRUE);
+    }
 
     return kSUCCESS;
 }
@@ -172,8 +179,10 @@ void DigiTaskSND::Exec(Option_t* /*opt*/)
     if (fScifiPointArray) {
         digitizeScifi();
     }
-    digitiseAdvTarget();
-    digitiseAdvMuFilter();
+    if (AdvTargetPoints)
+      digitiseAdvTarget();
+    if(AdvMuFilterPoints)
+      digitiseAdvMuFilter();
 }
 
 void DigiTaskSND::digitiseAdvTarget()
@@ -185,6 +194,11 @@ void DigiTaskSND::digitiseAdvTarget()
     Hit2MCPoints mc_links;
     std::map<int, std::map<int, double>> mc_points{};
     std::map<int, double> norm{};
+    AdvTargetDet = dynamic_cast<AdvTarget*>(gROOT->GetListOfGlobals()->FindObject("AdvTarget"));
+    int setup = 0;
+    if (AdvTargetDet->GetConfParI("AdvTarget/testbeam2026")){
+       setup=1;
+    }
 
     if (!gGeoManager) {
         LOG(FATAL) << "Geofile required to get the position of AdvTargetHits.";
@@ -197,7 +211,7 @@ void DigiTaskSND::digitiseAdvTarget()
         auto* point = dynamic_cast<AdvTargetPoint*>(ptr);
         auto detID = point->GetDetectorID();
         int layer = point->GetLayer();
-        int sensor_module = point->GetModule();
+        int sensor_module = point->GetModule(setup);
         int sensor = detID;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
