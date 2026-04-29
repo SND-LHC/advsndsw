@@ -48,7 +48,11 @@ class AdvTargetPoint : public FairMCPoint
     int constexpr GetColumn() { return (fDetectorID >> 11) % 4; }
     int constexpr GetSensor() { return (fDetectorID >> 10) % 2; }
     int constexpr GetStrip() { return (fDetectorID) % 1024; }
-    int constexpr GetModule() { return advsnd::target::columns * GetRow() + 1 + GetColumn(); }
+    int constexpr GetModule(int setup = 0)
+    {
+        return (setup == 0) ? (advsnd::target::columns * GetRow() + 1 + GetColumn())
+                            : (advsnd::tb_target::columns * GetRow() + 1 + GetColumn());
+    }
     bool constexpr IsVertical() { return GetPlane() == 1; };
     TVector3 GetEntryPoint() const { return TVector3(2 * fX - fExitX, 2 * fY - fExitY, 2 * fZ - fExitZ); }
     TVector3 GetExitPoint() const { return TVector3(fExitX, fExitY, fExitZ); }
