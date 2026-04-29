@@ -16,8 +16,8 @@ with ConfigRegistry.register_config("basic") as c:
     # cave parameters
     c.cave = AttrDict(z=0 * u.cm)
 
-    c.Floor = AttrDict(z=48000.*u.cm)
-
+    c.Floor = AttrDict(z=0.*u.cm) # no tunnel, no slope
+    
     # AdvSND Target & Tracker structure
     c.AdvTarget = AttrDict(z=0 * u.cm)
     c.AdvTarget.testbeam2026 = tb_2026_mc
@@ -26,7 +26,7 @@ with ConfigRegistry.register_config("basic") as c:
     c.AdvTarget.WPlateX = 19.2 * u.cm
     c.AdvTarget.WPlateY = c.AdvTarget.WPlateX
     c.AdvTarget.nWPlates = 3
-    c.AdvTarget.WPlateZ = 1 * u.mm
+    c.AdvTarget.WPlateZ = 0.975 * u.mm
     # Iron plates
     c.AdvTarget.FePlateX = 25 * u.cm
     c.AdvTarget.FePlateY = c.AdvTarget.FePlateX
