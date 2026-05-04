@@ -57,9 +57,8 @@ detSize = {}
 # same sensors used in both the AdvTarget and the AdvMuFilter
 detSize[0] =[ROOT.advsnd.sensor_width/ROOT.advsnd.strips, 
              ROOT.advsnd.sensor_width/ROOT.advsnd.strips, 
-             geo.snd_geo.AdvTarget.TTZ]# check the channel sizes
+             ROOT.advsnd.sensor_thickness/2.]
 detSize[1] = detSize[0]
-
 mc = False
 
 
@@ -262,8 +261,6 @@ def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup=
  if 'simpleDisplay' not in h: ut.bookCanvas(h,key='simpleDisplay',title='simple event display',nx=1200,ny=1600,cx=1,cy=2)
  h['simpleDisplay'].cd(1)
  zStart = 100. # AdvSND MC
- if Setup == 'H6': zStart = 60.
- if Setup == 'TP': zStart = -50. # old coordinate system with origin in middle of target
  if 'xz' in h: 
     h.pop('xz').Delete()
     h.pop('yz').Delete()
@@ -271,6 +268,11 @@ def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup=
     h['xmin'],h['xmax'] = -80.,20. # AdvSND MC
     h['ymin'],h['ymax'] = 0.,100. # AdvSND MC
     h['zmin'],h['zmax'] = zStart,zStart+400.
+    if Setup == 'H4':
+       zStart = 163.
+       h['xmin'],h['xmax'] = -45.,-10. # AdvSND H4 TB 
+       h['ymin'],h['ymax'] = 19., 54. 
+       h['zmin'],h['zmax'] = zStart,zStart+40.
     for d in ['xmin','xmax','ymin','ymax','zmin','zmax']: h['c'+d]=h[d]
  ut.bookHist(h,'xz','; z [cm]; x [cm]',400,h['czmin'],h['czmax'],100,h['cxmin'],h['cxmax'])
  ut.bookHist(h,'yz','; z [cm]; y [cm]',400,h['czmin'],h['czmax'],100,h['cymin'],h['cymax'])
@@ -636,9 +638,27 @@ def drawDetectors():
     geoVer = checkGeoVersion()
     if geoVer!=2:
         print('This is an older version of the geometry and it is likely incompatible with this version of the drawDetectors function of the 2dED.')
+    dummy_strip = 1
+    testbeam2026 = False
+    if "testbeam2026" in geo.snd_geo.AdvTarget.keys():
+      testbeam2026 = True
     for i in range(geo.snd_geo.AdvTarget.nTT):
         nodes['volAdvTarget_0/volWall_{}/volPlate_1'.format(i)]=ROOT.kGray+1
-        nodes['volAdvTarget_0/Target_Layer_{}'.format(i)]=ROOT.kBlue
+        if not testbeam2026:
+          nodes['volAdvTarget_0/Target_Layer_{}'.format(i)]=ROOT.kBlue
+        if testbeam2026:
+          n_rows = ROOT.advsnd.tb_target.rows
+          n_columns  = ROOT.advsnd.tb_target.columns
+          nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volFePlate_0'.format(i)]=ROOT.kGreen-6
+          nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volWPlate_1'.format(i)]=ROOT.kGray+1
+          nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volFePlate_2'.format(i)]=ROOT.kGreen-6
+          for j in range(n_rows):
+            nodes['volAdvTarget_0/Target_Layer_{}/SensorModule_{}'.format(i, j+1)]=ROOT.kGray+2
+          for plane in range(2):
+            for j in range(n_rows):
+              for c in range(n_columns):
+                sensor_id = ((i << 17) | (plane << 16) | (j << 13) | (c << 11) | (dummy_strip << 10) | 999)
+                nodes['volAdvTarget_0/Target_Layer_{}/SensorModule_{}/Target_SensorVolume_{}'.format(i, j+1,sensor_id)]=ROOT.kBlue
 
     for i in range(ROOT.advsnd.hcal.n_XY_layers+ROOT.advsnd.hcal.n_X_layers):
         nodes['volAdvMuFilter_0/volFeSlab{}'.format(i)] = ROOT.kGreen -6
@@ -695,12 +715,17 @@ def drawDetectors():
                 ox,oy,oz = S.GetOrigin()[0],S.GetOrigin()[1],S.GetOrigin()[2]
                 P = {}
                 M = {}
-                if p=='X' and N.GetVolume().GetName().find('Layer')<0:
+                if (p == 'X'and N.GetVolume().GetName().find('Layer')<0
+                    and N.GetVolume().GetName().find('Module')<0
+                    and N.GetVolume().GetName().find('SensorVolume')<0):
                     P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
                     P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
                     P['RightBottom'] = array('d',[-dx+ox,oy,dz+oz])
                     P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
-                elif p=='Y' or N.GetVolume().GetName().find('Layer')>0:
+                elif( p=='Y' or (not testbeam2026 and N.GetVolume().GetName().find('Layer')>0)
+                      or (testbeam2026 and N.GetVolume().GetName().find('Layer')<0)
+                      or N.GetVolume().GetName().find('Module')>0
+                      or N.GetVolume().GetName().find('SensorVolume')>0):
                     P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
                     P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
                     P['RightBottom'] = array('d',[ox,-dy+oy,dz+oz])
@@ -733,9 +758,15 @@ def drawDetectors():
                 X.SetLineColor(nodes[node_])
                 X.SetLineWidth(1)
                 # Only show detector volumes if they measure the corresponding coordinate
-                if ( p=='Y' and node.find("Layer_")>0 and int(node[node.find("Layer_")+6:])%2 == 1 ) or \
-                   ( p=='X' and node.find("Layer_")>0 and int(node[node.find("Layer_")+6:])%2 == 0 ):
-                    X.SetLineWidth(0)
+                if node.find("Layer_")>0:
+                   if testbeam2026:
+                      if ( p=='Y' and int(node[node.find("Layer_")+6:node.find("/Sensor")])%2 == 1 ) or \
+                         ( p=='X' and int(node[node.find("Layer_")+6:node.find("/Sensor")])%2 == 0 ):
+                           X.SetLineWidth(0)
+                   else:
+                      if ( p=='Y' and int(node[node.find("Layer_")+6:])%2 == 1 ) or \
+                         ( p=='X' and int(node[node.find("Layer_")+6:])%2 == 0 ):
+                           X.SetLineWidth(0)
                 if  node.find("HCAL_Layer_")>0 and int(node[node.find("Layer_")+6:])>27:
                   if p=='X':
                      X.SetLineWidth(1)
