@@ -79,7 +79,7 @@ else:
   f=ROOT.TFile.Open(options.path+options.inputFile)
 
 if f.FindKey('cbmsim'):
-        eventTree = f.cbmsim
+        eventTree = f.Get("cbmsim")
         runId = 'sim'
         if eventTree.GetBranch('AdvTargetPoint'): mc = True
 else:   
@@ -113,7 +113,6 @@ HT_tasks['muon_reco_task_nuInt'].SetTrackingCase('nu_interaction_products')
 
 run.Init()
 OT = sink.GetOutTree()
-eventTree = ioman.GetInTree()
 eventTree.GetEvent(0)
 #if eventTree.EventHeader.ClassName() == 'SNDLHCEventHeader':
 #   geo.modules['Scifi'].InitEvent(eventTree.EventHeader)
