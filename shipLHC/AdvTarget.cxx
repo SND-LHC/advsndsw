@@ -147,6 +147,11 @@ void AdvTarget::ConstructGeometry()
     Int_t fnWPlates = conf_ints["AdvTarget/nWPlates"];
     Double_t fFrameBorderX = conf_floats["AdvTarget/FrameBorderX"];
     Double_t fFrameBorderY = conf_floats["AdvTarget/FrameBorderY"];
+    // for the steel box
+    Double_t fBoxX = conf_floats["AdvTarget/BoxX"];
+    Double_t fBoxY = conf_floats["AdvTarget/BoxY"];
+    Double_t fBoxZ = conf_floats["AdvTarget/BoxZ"];
+    Double_t fBoxSheetThickness = conf_floats["AdvTarget/BoxSheetThickness"];
     double tb_plate_z{};
 
     // Definition of the target box containing tungsten walls + silicon tracker
@@ -378,10 +383,25 @@ void AdvTarget::ConstructGeometry()
                                                     layer * (tb_plate_z + 2 * fTTZ)),
                                    TGeoRotation("y_rot", 0, 0, 90)));
         }
-        volAdvTarget->AddNode(volWall, layer, new TGeoTranslation(0, 0, fTTZ + tb_plate_z/2 + layer * (tb_plate_z + 2 * fTTZ)));//fPlateZ / 2 + layer * (fPlateZ + 2 * fTTZ)));
+        volAdvTarget->AddNode(volWall, layer, new TGeoTranslation(0, 0, fTTZ + tb_plate_z/2 + layer * (tb_plate_z + 2 * fTTZ)));
         } // testbeam 2026
 
     }   // layers
+    if (testbeam2026==true){
+        // Add a steel box containing the whole detector
+        TGeoBBox *OutterBox = new TGeoBBox("OutterBox", fBoxX / 2., fBoxY / 2., fBoxZ / 2. + 1e-10);
+        TGeoBBox *InnerBox = new TGeoBBox("InnerBox", (fBoxX - fBoxSheetThickness) / 2.,
+                                                      (fBoxY - fBoxSheetThickness) / 2.,
+                                                      (fBoxZ - fBoxSheetThickness) / 2.);
+        TGeoCompositeShape *Box = new TGeoCompositeShape("Box", "OutterBox-InnerBox");
+        TGeoVolume *volBox = new TGeoVolume("volBox", Box, steel);
+        volBox->SetLineColor(kGray + 2);
+        volBox->SetTransparency(70);
+        // use the same XY translation as for the volTBPlateFrame
+        volAdvTarget->AddNode(volBox, 0, new TGeoTranslation(-(fPlateFrameX/2-fFePlateX/2) + fFrameBorderX,
+                                                             -(fPlateFrameY/2-fFePlateY/2) + fFrameBorderY,
+                                                             fNlayers*(tb_plate_z + 2 * fTTZ) / 2.) );
+    }
 }
 
 Bool_t AdvTarget::ProcessHits(FairVolume *vol)

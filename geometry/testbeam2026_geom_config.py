@@ -37,6 +37,11 @@ with ConfigRegistry.register_config("basic") as c:
     c.AdvTarget.PlateFrameZ = 3 * u.mm
     c.AdvTarget.FrameBorderX = 7.25 * u.cm
     c.AdvTarget.FrameBorderY = c.AdvTarget.FrameBorderX
+    # Steel box closing the target
+    c.AdvTarget.BoxX = 60.6 * u.cm
+    c.AdvTarget.BoxY = 81.6 * u.cm
+    c.AdvTarget.BoxZ = 108.6 * u.cm
+    c.AdvTarget.BoxSheetThickness = 2.0 * u.mm
 
     # Target Tracking layers
     c.AdvTarget.TTZ = (
