@@ -56,7 +56,7 @@ class AdvMuFilter : public FairDetector
     virtual void Reset();
 
     /**      This method is an example of how to add your own point
-     *       of type muonPoint to the clones array
+     *       of type AdvMuFilterPoint to the clones array
      */
     AdvMuFilterPoint* AddHit(Int_t trackID,
                              Int_t detID,
@@ -65,7 +65,8 @@ class AdvMuFilter : public FairDetector
                              Double_t time,
                              Double_t length,
                              Double_t eLoss,
-                             Int_t pdgCode);
+                             Int_t pdgCode,
+                             TVector3 exit_point);
 
     /** The following methods can be implemented if you need to make
      *  any optional action in your detector during the transport.
@@ -90,7 +91,7 @@ class AdvMuFilter : public FairDetector
      */
     Int_t fTrackID;        //!  track index
     Int_t fVolumeID;       //!  volume id
-    TLorentzVector fPos;   //!  position at entrance
+    TLorentzVector fEntryPoint;   //!  position at entrance
     TLorentzVector fMom;   //!  momentum at entrance
     Double32_t fTime;      //!  time
     Double32_t fLength;    //!  length

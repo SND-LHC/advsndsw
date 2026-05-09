@@ -68,7 +68,7 @@ AdvMuFilter::AdvMuFilter()
     : FairDetector("AdvMuFilter", "", kTRUE)
     , fTrackID(-1)
     , fVolumeID(-1)
-    , fPos()
+    , fEntryPoint()
     , fMom()
     , fTime(-1.)
     , fLength(-1.)
@@ -81,7 +81,7 @@ AdvMuFilter::AdvMuFilter(const char *name, Bool_t Active, const char *Title)
     : FairDetector(name, true, kAdvSNDMuFilter)
     , fTrackID(-1)
     , fVolumeID(-1)
-    , fPos()
+    , fEntryPoint()
     , fMom()
     , fTime(-1.)
     , fLength(-1.)
@@ -358,7 +358,7 @@ Bool_t AdvMuFilter::ProcessHits(FairVolume *vol)
         fELoss = 0.;
         fTime = gMC->TrackTime() * 1.0e09;
         fLength = gMC->TrackLength();
-        gMC->TrackPosition(fPos);
+        gMC->TrackPosition(fEntryPoint);
         gMC->TrackMomentum(fMom);
     }
     // Sum energy loss for all steps in the active volume
@@ -374,8 +374,8 @@ Bool_t AdvMuFilter::ProcessHits(FairVolume *vol)
 
         TParticle *p = gMC->GetStack()->GetCurrentTrack();
         Int_t pdgCode = p->GetPdgCode();
-        TLorentzVector Pos;
-        gMC->TrackPosition(Pos);
+        TLorentzVector exit_point;
+        gMC->TrackPosition(exit_point);
         TLorentzVector Mom;
         gMC->TrackMomentum(Mom);
         Int_t detID = 0;
@@ -385,9 +385,9 @@ Bool_t AdvMuFilter::ProcessHits(FairVolume *vol)
         // Check which volume is actually hit and what detID is given
         LOG(DEBUG) << "AdvMuFilterPoint DetID " << detID << " Hit volume name " << name;
         fVolumeID = detID;
-        Double_t xmean = (fPos.X() + Pos.X()) / 2.;
-        Double_t ymean = (fPos.Y() + Pos.Y()) / 2.;
-        Double_t zmean = (fPos.Z() + Pos.Z()) / 2.;
+        Double_t xmean = (fEntryPoint.X() + exit_point.X()) / 2.;
+        Double_t ymean = (fEntryPoint.Y() + exit_point.Y()) / 2.;
+        Double_t zmean = (fEntryPoint.Z() + exit_point.Z()) / 2.;
         AddHit(fTrackID,
                detID,
                TVector3(xmean, ymean, zmean),
@@ -395,7 +395,8 @@ Bool_t AdvMuFilter::ProcessHits(FairVolume *vol)
                fTime,
                fLength,
                fELoss,
-               pdgCode);
+               pdgCode,
+               TVector3(exit_point.X(), exit_point.Y(), exit_point.Z()));
 
         // Increment number of det points in TParticle
         ShipStack *stack = (ShipStack *)gMC->GetStack();
@@ -472,14 +473,15 @@ void AdvMuFilter::Reset() { fAdvMuFilterPointCollection->Clear(); }
 
 AdvMuFilterPoint *AdvMuFilter::AddHit(Int_t trackID,
                                       Int_t detID,
-                                      TVector3 pos,
+                                      TVector3 entrypoint,
                                       TVector3 mom,
                                       Double_t time,
                                       Double_t length,
                                       Double_t eLoss,
-                                      Int_t pdgCode)
+                                      Int_t pdgCode,
+                                      TVector3 exitpoint)
 {
     TClonesArray &clref = *fAdvMuFilterPointCollection;
     Int_t size = clref.GetEntriesFast();
-    return new (clref[size]) AdvMuFilterPoint(trackID, detID, pos, mom, time, length, eLoss, pdgCode);
+    return new (clref[size]) AdvMuFilterPoint(trackID, detID, entrypoint, mom, time, length, eLoss, pdgCode, exitpoint);
 }
