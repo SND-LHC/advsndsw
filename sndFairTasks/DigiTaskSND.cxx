@@ -179,8 +179,8 @@ void DigiTaskSND::Exec(Option_t* /*opt*/)
     }
     if (AdvTargetPoints)
       digitiseAdvTarget();
-    if (AdvMuFilterPoints)
-      digitiseAdvMuFilter();
+    //if (AdvMuFilterPoints)
+    //  digitiseAdvMuFilter();
 }
 
 void DigiTaskSND::digitiseAdvTarget()
