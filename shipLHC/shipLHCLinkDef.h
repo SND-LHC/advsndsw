@@ -14,8 +14,6 @@
 #pragma link C++ class MuFilter + ;
 #pragma link C++ class MuFilterPoint + ;
 #pragma link C++ class MuFilterHit + ;
-#pragma link C++ class AdvTargetHit + ;
-#pragma link C++ class AdvMuFilterHit + ;
 #pragma link C++ class sndScifiHit + ;
 #pragma link C++ class sndCluster;
 #pragma link C++ class SNDLHCEventHeader + ;
@@ -25,6 +23,7 @@
 #pragma link C++ class AdvTarget + ;
 #pragma link C++ class AdvMuFilter + ;
 #pragma link C++ class AdvPoint + ;
+#pragma link C++ class AdvHit + ;
 #pragma link C++ class digitisation/ChargeDivision + ;
 #pragma link C++ class digitisation/ChargeDrift +;
 #pragma link C++ class digitisation/InducedCharge +;

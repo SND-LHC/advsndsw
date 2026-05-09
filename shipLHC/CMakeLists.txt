@@ -39,8 +39,6 @@ ScifiPoint.cxx
 MuFilter.cxx
 MuFilterPoint.cxx
 MuFilterHit.cxx
-AdvTargetHit.cxx
-AdvMuFilterHit.cxx
 sndScifiHit.cxx
 sndCluster.cxx
 Magnet.cxx
@@ -48,6 +46,7 @@ MagnetPoint.cxx
 AdvTarget.cxx
 AdvMuFilter.cxx
 AdvPoint.cxx
+AdvHit.cxx
 SNDLHCEventHeader.cxx
 sndRecoTrack.cxx
 digitisation/ChargeDivision.cxx
