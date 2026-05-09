@@ -652,13 +652,12 @@ def drawDetectors():
           nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volFePlate_0'.format(i)]=ROOT.kGreen-6
           nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volWPlate_1'.format(i)]=ROOT.kGray+1
           nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volFePlate_2'.format(i)]=ROOT.kGreen-6
-          for j in range(n_rows):
-            nodes['volAdvTarget_0/Target_Layer_{}/SensorModule_{}'.format(i, j+1)]=ROOT.kGray+2
-          for plane in range(2):
-            for j in range(n_rows):
-              for c in range(n_columns):
-                sensor_id = ((i << 17) | (plane << 16) | (j << 13) | (c << 11) | (dummy_strip << 10) | 999)
-                nodes['volAdvTarget_0/Target_Layer_{}/SensorModule_{}/Target_SensorVolume_{}'.format(i, j+1,sensor_id)]=ROOT.kBlue
+          for r in range(n_rows):
+            for c in range(n_columns):
+              nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0'.format(i, r, c)]=ROOT.kGray+2
+              for plane in range(2):
+                sensor_id = ((i << 17) | (plane << 16) | (r << 13) | (c << 11) | (dummy_strip << 10) | 999)
+                nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0/Target_SensorVolume_{}'.format(i, r, c ,sensor_id)]=ROOT.kBlue
 
     for i in range(ROOT.advsnd.hcal.n_XY_layers+ROOT.advsnd.hcal.n_X_layers):
         nodes['volAdvMuFilter_0/volFeSlab{}'.format(i)] = ROOT.kGreen -6
@@ -716,7 +715,7 @@ def drawDetectors():
                 P = {}
                 M = {}
                 if (p == 'X'and N.GetVolume().GetName().find('Layer')<0
-                    and N.GetVolume().GetName().find('Module')<0
+                    and N.GetVolume().GetName().find('Column')<0
                     and N.GetVolume().GetName().find('SensorVolume')<0):
                     P['LeftBottom'] = array('d',[-dx+ox,oy,-dz+oz])
                     P['LeftTop'] = array('d',[dx+ox,oy,-dz+oz])
@@ -724,7 +723,7 @@ def drawDetectors():
                     P['RightTop'] = array('d',[dx+ox,oy,dz+oz])
                 elif( p=='Y' or (not testbeam2026 and N.GetVolume().GetName().find('Layer')>0)
                       or (testbeam2026 and N.GetVolume().GetName().find('Layer')<0)
-                      or N.GetVolume().GetName().find('Module')>0
+                      or N.GetVolume().GetName().find('Column')>0
                       or N.GetVolume().GetName().find('SensorVolume')>0):
                     P['LeftBottom'] = array('d',[ox,-dy+oy,-dz+oz])
                     P['LeftTop'] = array('d',[ox,dy+oy,-dz+oz])
@@ -760,8 +759,8 @@ def drawDetectors():
                 # Only show detector volumes if they measure the corresponding coordinate
                 if node.find("Layer_")>0:
                    if testbeam2026:
-                      if ( p=='Y' and int(node[node.find("Layer_")+6:node.find("/Sensor")])%2 == 1 ) or \
-                         ( p=='X' and int(node[node.find("Layer_")+6:node.find("/Sensor")])%2 == 0 ):
+                      if ( p=='Y' and int(node[node.find("Layer_")+6:node.find("/Row_")])%2 == 1 ) or \
+                         ( p=='X' and int(node[node.find("Layer_")+6:node.find("/Row_")])%2 == 0 ):
                            X.SetLineWidth(0)
                    else:
                       if ( p=='Y' and int(node[node.find("Layer_")+6:])%2 == 1 ) or \
