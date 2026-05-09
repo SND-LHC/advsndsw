@@ -46,9 +46,8 @@ sndCluster.cxx
 Magnet.cxx
 MagnetPoint.cxx
 AdvTarget.cxx
-AdvTargetPoint.cxx
 AdvMuFilter.cxx
-AdvMuFilterPoint.cxx
+AdvPoint.cxx
 SNDLHCEventHeader.cxx
 sndRecoTrack.cxx
 digitisation/ChargeDivision.cxx

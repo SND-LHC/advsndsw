@@ -10,7 +10,7 @@
 
 #include "AdvMuFilter.h"
 
-#include "AdvMuFilterPoint.h"
+#include "AdvPoint.h"
 #include "FairGeoBuilder.h"
 #include "FairGeoInterface.h"
 #include "FairGeoLoader.h"
@@ -73,7 +73,7 @@ AdvMuFilter::AdvMuFilter()
     , fTime(-1.)
     , fLength(-1.)
     , fELoss(-1)
-    , fAdvMuFilterPointCollection(new TClonesArray("AdvMuFilterPoint"))
+    , fAdvMuFilterPointCollection(new TClonesArray("AdvPoint"))
 {
 }
 
@@ -86,7 +86,7 @@ AdvMuFilter::AdvMuFilter(const char *name, Bool_t Active, const char *Title)
     , fTime(-1.)
     , fLength(-1.)
     , fELoss(-1)
-    , fAdvMuFilterPointCollection(new TClonesArray("AdvMuFilterPoint"))
+    , fAdvMuFilterPointCollection(new TClonesArray("AdvPoint"))
 {
 }
 
@@ -471,7 +471,7 @@ TClonesArray *AdvMuFilter::GetCollection(Int_t iColl) const
 
 void AdvMuFilter::Reset() { fAdvMuFilterPointCollection->Clear(); }
 
-AdvMuFilterPoint *AdvMuFilter::AddHit(Int_t trackID,
+AdvPoint *AdvMuFilter::AddHit(Int_t trackID,
                                       Int_t detID,
                                       TVector3 entrypoint,
                                       TVector3 mom,
@@ -483,5 +483,5 @@ AdvMuFilterPoint *AdvMuFilter::AddHit(Int_t trackID,
 {
     TClonesArray &clref = *fAdvMuFilterPointCollection;
     Int_t size = clref.GetEntriesFast();
-    return new (clref[size]) AdvMuFilterPoint(trackID, detID, entrypoint, mom, time, length, eLoss, pdgCode, exitpoint);
+    return new (clref[size]) AdvPoint(trackID, detID, entrypoint, mom, time, length, eLoss, pdgCode, exitpoint);
 }

@@ -1,5 +1,5 @@
 #include "AdvDigitisation.h"
-#include "AdvTargetPoint.h"
+#include "AdvPoint.h"
 #include "ChargeDivision.h"
 #include "ChargeDrift.h"
 #include "InducedCharge.h"
@@ -32,7 +32,7 @@ using namespace std;
 
 AdvDigitisation::AdvDigitisation() {}
 
-std::map<std::string, std::vector<Int_t>> AdvDigitisation::digirunoutput(Int_t detID, const std::vector<AdvTargetPoint *> &V)
+std::map<std::string, std::vector<Int_t>> AdvDigitisation::digirunoutput(Int_t detID, const std::vector<AdvPoint *> &V)
 {
     // Charge Division
     ChargeDivision chargedivision{};

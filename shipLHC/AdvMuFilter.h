@@ -15,7 +15,7 @@
 
 #include <string>   // for string
 
-class AdvMuFilterPoint;
+class AdvPoint;
 class FairVolume;
 class TClonesArray;
 
@@ -56,9 +56,9 @@ class AdvMuFilter : public FairDetector
     virtual void Reset();
 
     /**      This method is an example of how to add your own point
-     *       of type AdvMuFilterPoint to the clones array
+     *       of type AdvPoint to the clones array
      */
-    AdvMuFilterPoint* AddHit(Int_t trackID,
+    AdvPoint* AddHit(Int_t trackID,
                              Int_t detID,
                              TVector3 pos,
                              TVector3 mom,

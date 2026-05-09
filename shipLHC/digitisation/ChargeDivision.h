@@ -1,7 +1,7 @@
 #ifndef SHIPLHC_CHARGEDIVISION_H_
 #define SHIPLHC_CHARGEDIVISION_H_
 
-#include "AdvTargetPoint.h"
+#include "AdvPoint.h"
 #include "EnergyFluctUnit.h"
 #include "TVector3.h"
 
@@ -12,7 +12,7 @@ class ChargeDivision
 {
   public:
     ChargeDivision();
-    std::vector<EnergyFluctUnit> Divide(Int_t detID, const std::vector<AdvTargetPoint*>& V);
+    std::vector<EnergyFluctUnit> Divide(Int_t detID, const std::vector<AdvPoint*>& V);
     TVector3 DriftDir(TVector3 EntryPoint, TVector3 ExitPoint, float length);
     TVector3 getLocal(Int_t detID,TVector3 point);
 

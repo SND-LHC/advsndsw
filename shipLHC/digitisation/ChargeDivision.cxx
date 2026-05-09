@@ -1,5 +1,5 @@
 #include "ChargeDivision.h"
-#include "AdvTargetPoint.h"
+#include "AdvPoint.h"
 #include "EnergyFluctUnit.h"
 #include "SiG4UniversalFluctuation.h"
 #include "TVector3.h"
@@ -109,7 +109,7 @@ TVector3 ChargeDivision::DriftDir(TVector3 EntryPoint, TVector3 ExitPoint, float
     return DriftPos;
 }
 
-std::vector<EnergyFluctUnit> ChargeDivision::Divide(Int_t detID, const std::vector<AdvTargetPoint*>& V)
+std::vector<EnergyFluctUnit> ChargeDivision::Divide(Int_t detID, const std::vector<AdvPoint*>& V)
 {
     std::vector<EnergyFluctUnit> ELossVector; 
 

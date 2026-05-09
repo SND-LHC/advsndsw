@@ -10,7 +10,7 @@
 
 #include "AdvTarget.h"
 
-#include "AdvTargetPoint.h"
+#include "AdvPoint.h"
 #include "FairGeoBuilder.h"
 #include "FairGeoInterface.h"
 #include "FairGeoLoader.h"
@@ -59,7 +59,7 @@ AdvTarget::AdvTarget()
     , fTime(-1.)
     , fLength(-1.)
     , fELoss(-1)
-    , fAdvTargetPointCollection(new TClonesArray("AdvTargetPoint"))
+    , fAdvTargetPointCollection(new TClonesArray("AdvPoint"))
 {
 }
 
@@ -72,7 +72,7 @@ AdvTarget::AdvTarget(const char *name, Bool_t Active, const char *Title)
     , fTime(-1.)
     , fLength(-1.)
     , fELoss(-1)
-    , fAdvTargetPointCollection(new TClonesArray("AdvTargetPoint"))
+    , fAdvTargetPointCollection(new TClonesArray("AdvPoint"))
 {
 }
 
@@ -420,7 +420,7 @@ Bool_t AdvTarget::ProcessHits(FairVolume *vol)
     // Sum energy loss for all steps in the active volume
     fELoss += gMC->Edep();
 
-    // Create AdvTargetPoint at exit of active volume
+    // Create AdvPoint at exit of active volume
     if (gMC->IsTrackExiting() || gMC->IsTrackStop() || gMC->IsTrackDisappeared()) {
         if (fELoss == 0.) {
             return kFALSE;
@@ -522,7 +522,7 @@ TClonesArray *AdvTarget::GetCollection(Int_t iColl) const
 
 void AdvTarget::Reset() { fAdvTargetPointCollection->Clear(); }
 
-AdvTargetPoint *AdvTarget::AddHit(Int_t trackID,
+AdvPoint *AdvTarget::AddHit(Int_t trackID,
                                   Int_t detID,
                                   TVector3 entrypoint,
                                   TVector3 mom,
@@ -534,5 +534,5 @@ AdvTargetPoint *AdvTarget::AddHit(Int_t trackID,
 {
     TClonesArray &clref = *fAdvTargetPointCollection;
     Int_t size = clref.GetEntriesFast();
-    return new (clref[size]) AdvTargetPoint(trackID, detID, entrypoint, mom, time, length, eLoss, pdgCode, exitpoint);
+    return new (clref[size]) AdvPoint(trackID, detID, entrypoint, mom, time, length, eLoss, pdgCode, exitpoint);
 }

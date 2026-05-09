@@ -11,7 +11,7 @@
 #include "Rtypes.h"   // for ShipMuonShield::Class, Bool_t, etc
 #include "TLorentzVector.h"
 
-class AdvTargetPoint;
+class AdvPoint;
 class FairVolume;
 class TVector3;
 class TClonesArray;
@@ -52,9 +52,9 @@ class AdvTarget : public FairDetector
     /**      has to be called after each event to reset the containers      */
     virtual void Reset();
 
-    /**      This method adds an AdvTargetPoint to the clones array
+    /**      This method adds an AdvPoint to the clones array
      */
-    AdvTargetPoint *AddHit(Int_t trackID,
+    AdvPoint *AddHit(Int_t trackID,
                            Int_t detID,
                            TVector3 pos,
                            TVector3 mom,

@@ -1,7 +1,7 @@
 #ifndef SHIPLHC_ADVDIGITISATION_H_
 #define SHIPLHC_ADVDIGITISATION_H_
 
-#include "AdvTargetPoint.h"
+#include "AdvPoint.h"
 #include "AdvSignal.h"
 #include "TVector3.h"
 #include "TGeoNavigator.h"
@@ -47,6 +47,6 @@ class AdvDigitisation
 {
   public:
     AdvDigitisation();
-    std::map<std::string, std::vector<Int_t>> digirunoutput(Int_t detID, const std::vector<AdvTargetPoint*>& V);    
+    std::map<std::string, std::vector<Int_t>> digirunoutput(Int_t detID, const std::vector<AdvPoint*>& V);    
 };
 #endif
