@@ -205,7 +205,10 @@ def drawAdvHits(g, colour):
               x = g.GetPointX(i)
               y = g.GetPointY(i)
 
-              h["markerCollection"].append(ROOT.TEllipse(x, y, 0.8,0.8))
+              markersize = 0.8
+              if "testbeam2026" in geo.snd_geo.AdvTarget.keys():
+                markersize = 0.25
+              h["markerCollection"].append(ROOT.TEllipse(x, y, markersize, markersize))
               h["markerCollection"][-1].SetLineWidth(0)
               h["markerCollection"][-1].SetFillColor(colour[i])
               h["markerCollection"][-1].Draw("SAME")
