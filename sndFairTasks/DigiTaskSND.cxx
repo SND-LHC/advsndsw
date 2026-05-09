@@ -1,9 +1,7 @@
 #include "DigiTaskSND.h"   // for Digitization
 
-#include "AdvMuFilterHit.h"
-#include "AdvMuFilterPoint.h"
-#include "AdvTargetHit.h"
-#include "AdvTargetPoint.h"
+#include "AdvHit.h"
+#include "AdvPoint.h"
 #include "AdvTarget.h"           // for AdvTarget detector
 #include "FairLink.h"            // for FairLink
 #include "FairMCEventHeader.h"   // for FairMCEventHeader
@@ -130,8 +128,8 @@ InitStatus DigiTaskSND::Init()
         fMuFilterHit2MCPointsArray->BypassStreamer(kTRUE);
     }
 
-    if(AdvTargetPoints) {
-      AdvMuFilterHits = new TClonesArray("AdvMuFilterHit");
+    if(AdvMuFilterPoints) {
+      AdvMuFilterHits = new TClonesArray("AdvHit");
       ioman->Register("Digi_AdvMuFilterHits", "DigiAdvMuFilterHit_det", AdvMuFilterHits, kTRUE);
       // Branch containing links to MC truth info
       AdvMuFilterHits2MCPoints = new TClonesArray("Hit2MCPoints");
@@ -141,7 +139,7 @@ InitStatus DigiTaskSND::Init()
     }
 
     if(AdvTargetPoints) {
-      AdvTargetHits = new TClonesArray("AdvTargetHit");
+      AdvTargetHits = new TClonesArray("AdvHit");
       ioman->Register("Digi_AdvTargetHits", "DigiAdvTargetHit_det", AdvTargetHits, kTRUE);
       // Branch containing links to MC truth info
       AdvTargetHits2MCPoints = new TClonesArray("Hit2MCPoints");
@@ -165,8 +163,8 @@ void DigiTaskSND::Exec(Option_t* /*opt*/)
     }
     AdvTargetHits->Clear("C");
     AdvTargetHits2MCPoints->Clear("C");
-    AdvMuFilterHits->Clear("C");
-    AdvMuFilterHits2MCPoints->Clear("C");
+    //AdvMuFilterHits->Clear("C");
+    //AdvMuFilterHits2MCPoints->Clear("C");
 
     // Set event header
     fEventHeader->SetRunId(fMCEventHeader->GetRunID());
@@ -181,7 +179,7 @@ void DigiTaskSND::Exec(Option_t* /*opt*/)
     }
     if (AdvTargetPoints)
       digitiseAdvTarget();
-    if(AdvMuFilterPoints)
+    if (AdvMuFilterPoints)
       digitiseAdvMuFilter();
 }
 
@@ -190,7 +188,7 @@ void DigiTaskSND::digitiseAdvTarget()
 
     int point_index = 0;
     int hit_index = 0;
-    std::map<int, std::vector<AdvTargetPoint*>> hit_collector{};
+    std::map<int, std::vector<AdvPoint*>> hit_collector{};
     Hit2MCPoints mc_links;
     std::map<int, std::map<int, double>> mc_points{};
     std::map<int, double> norm{};
@@ -208,7 +206,7 @@ void DigiTaskSND::digitiseAdvTarget()
     int skip = 0;
 
     for (auto* ptr : *AdvTargetPoints) {
-        auto* point = dynamic_cast<AdvTargetPoint*>(ptr);
+        auto* point = dynamic_cast<AdvPoint*>(ptr);
         auto detID = point->GetDetectorID();
         int layer = point->GetLayer();
         int row = point->GetRow();
@@ -249,10 +247,9 @@ void DigiTaskSND::digitiseAdvTarget()
         mc_points[detector_id][point_index++] = point->GetEnergyLoss();
         norm[detector_id] += point->GetEnergyLoss();
     }
-
     for (const auto& [detector_id, points] : hit_collector) {
         // Make one hit per virtual strip (detector ID sensor + strip)
-        new ((*AdvTargetHits)[hit_index++]) AdvTargetHit(detector_id, points);
+        new ((*AdvTargetHits)[hit_index++]) AdvHit(detector_id, points);
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {
             mc_links.Add(detector_id, point_id, energy_loss / norm[detector_id]);
@@ -266,7 +263,7 @@ void DigiTaskSND::digitiseAdvMuFilter()
 
     int point_index = 0;
     int hit_index = 0;
-    std::map<int, std::vector<AdvMuFilterPoint*>> hit_collector{};
+    std::map<int, std::vector<AdvPoint*>> hit_collector{};
     Hit2MCPoints mc_links;
     std::map<int, std::map<int, double>> mc_points{};
     std::map<int, double> norm{};
@@ -277,7 +274,7 @@ void DigiTaskSND::digitiseAdvMuFilter()
     TGeoNavigator* nav = gGeoManager->GetCurrentNavigator();
 
     for (auto* ptr : *AdvMuFilterPoints) {
-        auto* point = dynamic_cast<AdvMuFilterPoint*>(ptr);
+        auto* point = dynamic_cast<AdvPoint*>(ptr);
         auto detID = point->GetDetectorID();
         int layer = point->GetLayer();
         int row = point->GetRow();
@@ -321,7 +318,7 @@ void DigiTaskSND::digitiseAdvMuFilter()
 
     for (const auto& [detector_id, points] : hit_collector) {
         // Make one hit per virtual strip (detector ID sensor + strip)
-        new ((*AdvMuFilterHits)[hit_index++]) AdvMuFilterHit(detector_id, points);
+        new ((*AdvMuFilterHits)[hit_index++]) AdvHit(detector_id, points);
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {
             mc_links.Add(detector_id, point_id, energy_loss / norm[detector_id]);
