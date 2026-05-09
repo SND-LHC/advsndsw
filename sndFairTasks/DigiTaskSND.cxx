@@ -211,16 +211,18 @@ void DigiTaskSND::digitiseAdvTarget()
         auto* point = dynamic_cast<AdvTargetPoint*>(ptr);
         auto detID = point->GetDetectorID();
         int layer = point->GetLayer();
-        int sensor_module = point->GetModule(setup);
+        int row = point->GetRow();
+        int column = point->GetColumn();
         int sensor = detID;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
                                     "volAdvTarget_0/"
                                     "Target_Layer_%d/"
-                                    "SensorModule_%d/"
+                                    "Row_%d_Column_%d_0/"
                                     "Target_SensorVolume_%d",
                                     layer,
-                                    sensor_module,
+                                    row,
+                                    column,
                                     sensor);
         // TODO loop by module?
         if (nav->CheckPath(path)) {
@@ -278,16 +280,18 @@ void DigiTaskSND::digitiseAdvMuFilter()
         auto* point = dynamic_cast<AdvMuFilterPoint*>(ptr);
         auto detID = point->GetDetectorID();
         int layer = point->GetLayer();
-        int sensor_module = point->GetModule();
+        int row = point->GetRow();
+        int column = point->GetColumn();
         int sensor = detID;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
-                                    "volAdvMuFilter_0/"
-                                    "HCAL_Layer_%d/"
-                                    "SensorModule_%d/"
-                                    "HCAL_SensorVolume_%d",
+                                    "volAdvTarget_0/"
+                                    "Target_Layer_%d/"
+                                    "Row_%d_Column_%d_0/"
+                                    "Target_SensorVolume_%d",
                                     layer,
-                                    sensor_module,
+                                    row,
+                                    column,
                                     sensor);
         // TODO loop by module?
         if (nav->CheckPath(path)) {

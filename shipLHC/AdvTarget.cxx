@@ -262,7 +262,7 @@ void AdvTarget::ConstructGeometry()
         for (auto &&row : TSeq(advsnd::target::rows)) {
             for (auto &&column : TSeq(advsnd::target::columns)) {
                 // Each module in turn consists of two sensors on a support
-                TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
+                TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly(TString::Format("Row_%d_Column_%d", row, column));
                 SensorModule->AddNode(
                     SupportVolume, 1, new TGeoTranslation(0, 0, fTTZ - advsnd::support_thickness / 2));
                 for (auto &&sensor : TSeq(advsnd::sensors)) {
@@ -278,13 +278,14 @@ void AdvTarget::ConstructGeometry()
                                                 + advsnd::sensor_length / 2,
                                             fTTZ - advsnd::support_thickness - advsnd::sensor_thickness / 2));
                 }
+                i++;
                 // SensorModules one next to the other form the two columns and a little empty space(modules_column_gap)
                 // is left in between. When building rows, the overlap btw the upper 4 modules(top tandem) is denoted
                 // modules_rows_overlap. The same overlap is applied to the lower 4 modules on the bottom. Note the
                 // overlap btw the top tandem and the bottom tandem is different: tandem_modules_rows_overlap.
                 ActiveLayer->AddNode(
                     SensorModule,
-                    ++i,
+                    0,
                     new TGeoCombiTrans(
                         // Offset modules as needed by row and column
                         TGeoTranslation(
@@ -329,7 +330,7 @@ void AdvTarget::ConstructGeometry()
         for (auto &&row : TSeq(advsnd::tb_target::rows)) {
             for (auto &&column : TSeq(advsnd::tb_target::columns)) {
                 // Each module consists of two sensors on a support
-                TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
+                TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly(TString::Format("Row_%d_Column_%d", row, column));
                 SensorModule->AddNode(
                     SupportVolume, 1, new TGeoTranslation(0, 0, - advsnd::support_thickness / 2 - advsnd::sensor_thickness / 2));
                 for (auto &&sensor : TSeq(advsnd::sensors)) {
@@ -345,12 +346,13 @@ void AdvTarget::ConstructGeometry()
                                                 + advsnd::sensor_length / 2,
                                             0.));
                 }
+                i++;
                 // In the testbeam 2026 setup one has one module per plane
                 // and the very first layer has only one plane
                 if (layer==0 && row==1) continue;
                 ActiveLayer->AddNode(
                     SensorModule,
-                    ++i,
+                    0,
                     new TGeoCombiTrans(
                         // Offset modules as needed by row
                         TGeoTranslation(
@@ -465,18 +467,17 @@ void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     int row = (geofile_detID >> 13) % 8;
     int column = (geofile_detID >> 11) % 4;
     int sensor = geofile_detID;
-    int n_columns = conf_ints["AdvTarget/testbeam2026"] ? advsnd::tb_target::columns : advsnd::target::columns;
-    int sensor_module = n_columns * row + 1 + column;
 
     double local_pos[3] = {0, 0, 0};
     TString path = TString::Format("/cave_1/"
                                    "Detector_0/"
                                    "volAdvTarget_0/"
                                    "Target_Layer_%d/"
-                                   "SensorModule_%d/"
+                                   "Row_%d_Column_%d_0/"
                                    "Target_SensorVolume_%d",
                                    layer,
-                                   sensor_module,
+                                   row,
+                                   column,
                                    sensor);
     TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
     if (nav->CheckPath(path)) {

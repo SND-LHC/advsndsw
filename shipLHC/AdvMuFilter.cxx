@@ -291,7 +291,7 @@ void AdvMuFilter::ConstructGeometry()
         for (auto &&row : TSeq(advsnd::hcal::rows)) {
             for (auto &&column : TSeq(advsnd::hcal::columns)) {
                 // Each module in turn consists of two sensors on a support
-                TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly("SensorModule");
+                TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly(TString::Format("Row_%d_Column_%d", row, column));
                 SensorModule->AddNode(
                     SupportVolume, 1, new TGeoTranslation(0, 0, fMuonSysPlaneZ - advsnd::support_thickness / 2));
                 for (auto &&sensor : TSeq(advsnd::sensors)) {
@@ -307,9 +307,10 @@ void AdvMuFilter::ConstructGeometry()
                                                 + advsnd::sensor_length / 2,
                                             fMuonSysPlaneZ - advsnd::support_thickness - advsnd::sensor_thickness / 2));
                 }
+                i++;
                 ActiveLayer->AddNode(
                     SensorModule,
-                    ++i,
+                    0,
                     new TGeoCombiTrans(
                         // Offset modules as needed by column and rotate
                         TGeoTranslation(
@@ -413,17 +414,17 @@ void AdvMuFilter::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     int row = (geofile_detID >> 13) % 8;
     int column = (geofile_detID >> 11) % 4;
     int sensor = geofile_detID;
-    int sensor_module = advsnd::hcal::columns * row + 1 + column;
 
     double local_pos[3] = {0, 0, 0};
     TString path = TString::Format("/cave_1/"
                                    "Detector_0/"
                                    "volAdvMuFilter_0/"
                                    "HCAL_Layer_%d/"
-                                   "SensorModule_%d/"
+                                   "Row_%d_Column_%d_0/"
                                    "HCAL_SensorVolume_%d",
                                    layer,
-                                   sensor_module,
+                                   row,
+                                   column,
                                    sensor);
 
     TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
