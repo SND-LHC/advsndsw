@@ -42,14 +42,14 @@ class AdvTargetPoint : public FairMCPoint
     virtual void Print(const Option_t* opt) const;
 
     Int_t PdgCode() const { return fPdgCode; }
-    int constexpr GetLayer() { return fDetectorID >> 17; }
-    int constexpr GetPlane() { return (fDetectorID >> 16) % 2; }   // 0 is X-plane, 1 is Y-pane
-    int constexpr GetRow() { return (fDetectorID >> 13) % 8; }
-    int constexpr GetColumn() { return (fDetectorID >> 11) % 4; }
-    int constexpr GetSensor() { return (fDetectorID >> 10) % 2; }
-    int constexpr GetStrip() { return (fDetectorID) % 1024; }
-    int constexpr GetModule() { return advsnd::target::columns * GetRow() + 1 + GetColumn(); }
-    bool constexpr IsVertical() { return GetPlane() == 1; };
+    int constexpr GetLayer() const { return fDetectorID >> 17; }
+    int constexpr GetPlane() const { return (fDetectorID >> 16) % 2; }   // 0 is X-plane, 1 is Y-pane
+    int constexpr GetRow() const { return (fDetectorID >> 13) % 8; }
+    int constexpr GetColumn() const { return (fDetectorID >> 11) % 4; }
+    int constexpr GetSensor() const { return (fDetectorID >> 10) % 2; }
+    int constexpr GetStrip() const { return (fDetectorID) % 1024; }
+    int constexpr GetModule() const { return advsnd::target::columns * GetRow() + 1 + GetColumn(); }
+    bool constexpr IsVertical() const { return GetPlane() == 1; };
     TVector3 GetEntryPoint() const { return TVector3(2 * fX - fExitX, 2 * fY - fExitY, 2 * fZ - fExitZ); }
     TVector3 GetExitPoint() const { return TVector3(fExitX, fExitY, fExitZ); }
 
@@ -59,9 +59,6 @@ class AdvTargetPoint : public FairMCPoint
     Double_t fExitY;
     Double_t fExitZ;
 
-    /** Copy constructor **/
-    AdvTargetPoint(const AdvTargetPoint& point);
-    AdvTargetPoint operator=(const AdvTargetPoint& point);
     ClassDef(AdvTargetPoint, 1)
 };
 

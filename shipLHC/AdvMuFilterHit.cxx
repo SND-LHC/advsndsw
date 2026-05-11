@@ -36,6 +36,16 @@ AdvMuFilterHit::AdvMuFilterHit(Int_t detID, const std::vector<AdvMuFilterPoint*>
     LOG(DEBUG) << "signal created";
 }
 
+AdvMuFilterHit::AdvMuFilterHit(Int_t detID, const std::vector<const AdvMuFilterPoint*>& V)
+    : SndlhcHit(detID)
+{
+    flag = true;
+    for (Int_t i = 0; i < 16; i++) {
+        fMasked[i] = kFALSE;
+    }
+    LOG(DEBUG) << "signal created";
+}
+
 // -----   Public method Print   -------------------------------------------
 void AdvMuFilterHit::Print() const
 {

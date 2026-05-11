@@ -25,11 +25,11 @@ SndlhcHit::SndlhcHit(Int_t detID,Int_t nP,Int_t nS)
      }
   }
 
-Float_t SndlhcHit::GetSignal(Int_t nChannel)
+Float_t SndlhcHit::GetSignal(Int_t nChannel) const
 {
  return signals[nChannel];
 }
-Float_t SndlhcHit::GetTime(Int_t nChannel)
+Float_t SndlhcHit::GetTime(Int_t nChannel) const
 {
  return times[nChannel];
 }

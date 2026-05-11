@@ -43,8 +43,6 @@ class vetoPoint : public FairMCPoint
     /** Copy constructor **/
     Int_t fPdgCode;
     TVector3 fLpos,fLmom;
-    vetoPoint(const vetoPoint& point);
-    vetoPoint operator=(const vetoPoint& point);
 
     ClassDef(vetoPoint,3)
 
