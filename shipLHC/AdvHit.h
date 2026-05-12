@@ -79,7 +79,7 @@ class AdvHit : public TObject
     float signal;
     float time;
     bool flag;          ///< flag
-    std::map<std::string, std::vector<Int_t>> fDigitisedHit; 
+    std::map<std::string, std::vector<Int_t>> fDigitisedHit;  //! don't store this item
     ClassDef(AdvHit, 1);
 };
 
