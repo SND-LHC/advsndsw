@@ -56,7 +56,7 @@ namespace frontend{
     const Int_t ElectronperADC = 250; 
     const bool NoiseOption = 1; 
     const bool CMNoiseOption = 0;
-    const bool ZSModeOption = 0; 
+    const bool ZSModeOption = 1; 
     const Int_t StripNoise = 1; 
     const Double_t NoiseRMS = 2; 
     const Double_t NoiseSigmaThreshold = 2; 
