@@ -30,6 +30,9 @@ class AdvHit : public TObject
     /** Output to screen **/
     void Print() const;
     //bool isValid() const { return flag; }
+    /** Setters **/
+    void SetSignal(float set_signal) { signal=set_signal; }
+    void SetTime(float set_time) { time = set_time; }
     /** Getters **/
     float GetSignal() { return signal; }
     float GetTime() { return time; }
