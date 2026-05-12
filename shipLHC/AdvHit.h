@@ -39,13 +39,11 @@ class AdvHit : public TObject
     int GetDetectorID() { return fDetectorID; }
     //bool isMasked(Int_t i) const { return fMasked[i]; }
     //void SetMasked(Int_t i) { fMasked[i] = kTRUE; }
-    int constexpr GetLayer() { return fDetectorID >> 17; }
     std::map<std::string, std::vector<Int_t>> GetHit() { return fDigitisedHit; }
-    int constexpr GetPlane() { return (fDetectorID >> 16) % 2; }   // 0 is X-plane, 1 is Y-pane
-    int constexpr GetRow() { return (fDetectorID >> 13) % 8; }
-    int constexpr GetColumn() { return (fDetectorID >> 11) % 4; }
-    int constexpr GetSensor() { return (fDetectorID >> 10) % 2; }
-    int constexpr GetStrip() { return (fDetectorID) % 1024; }
+    int constexpr GetLayer() { return fDetectorID >> 13; }
+    int constexpr GetRow() { return (fDetectorID >> 11) & 0x3; }
+    int constexpr GetColumn() { return (fDetectorID >> 10) & 0x1; }
+    int constexpr GetStrip() { return (fDetectorID) & 0x3FF; }
     int constexpr GetModule(int system, int setup = 0)
     {
         if (system == 1)
@@ -58,7 +56,7 @@ class AdvHit : public TObject
           return advsnd::hcal::columns * GetRow() + 1 + GetColumn();
         }
     }
-    bool constexpr isVertical() { return GetPlane() == 1; };
+    bool constexpr IsVertical() { return GetLayer() % 2 == 1; }; // 0 is X-plane, 1 is Y-pane
 
     template<class Archive>
     void serialize(Archive& ar, const unsigned int version)

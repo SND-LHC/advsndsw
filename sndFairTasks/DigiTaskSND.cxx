@@ -192,11 +192,6 @@ void DigiTaskSND::digitiseAdvTarget()
     Hit2MCPoints mc_links;
     std::map<int, std::map<int, double>> mc_points{};
     std::map<int, double> norm{};
-    AdvTargetDet = dynamic_cast<AdvTarget*>(gROOT->GetListOfGlobals()->FindObject("AdvTarget"));
-    int setup = 0;
-    if (AdvTargetDet->GetConfParI("AdvTarget/testbeam2026")){
-       setup=1;
-    }
 
     if (!gGeoManager) {
         LOG(FATAL) << "Geofile required to get the position of AdvTargetHits.";
@@ -211,17 +206,17 @@ void DigiTaskSND::digitiseAdvTarget()
         int layer = point->GetLayer();
         int row = point->GetRow();
         int column = point->GetColumn();
-        int sensor = detID;
+        int module_id = detID;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
                                     "volAdvTarget_0/"
                                     "Target_Layer_%d/"
                                     "Row_%d_Column_%d_0/"
-                                    "Target_SensorVolume_%d",
+                                    "Target_DoubleSensorVolume_%d",
                                     layer,
                                     row,
                                     column,
-                                    sensor);
+                                    module_id);
         // TODO loop by module?
         if (nav->CheckPath(path)) {
             nav->cd(path);
@@ -248,7 +243,7 @@ void DigiTaskSND::digitiseAdvTarget()
         norm[detector_id] += point->GetEnergyLoss();
     }
     for (const auto& [detector_id, points] : hit_collector) {
-        // Make one hit per virtual strip (detector ID sensor + strip)
+        // Make one hit per virtual strip (detector ID module + strip)
         new ((*AdvTargetHits)[hit_index++]) AdvHit(detector_id, points);
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {
@@ -279,17 +274,17 @@ void DigiTaskSND::digitiseAdvMuFilter()
         int layer = point->GetLayer();
         int row = point->GetRow();
         int column = point->GetColumn();
-        int sensor = detID;
+        int module_id = detID;
         auto path = TString::Format("/cave_1/"
                                     "Detector_0/"
                                     "volAdvTarget_0/"
                                     "Target_Layer_%d/"
                                     "Row_%d_Column_%d_0/"
-                                    "Target_SensorVolume_%d",
+                                    "Target_DoubleSensorVolume_%d",
                                     layer,
                                     row,
                                     column,
-                                    sensor);
+                                    module_id);
         // TODO loop by module?
         if (nav->CheckPath(path)) {
             nav->cd(path);
@@ -317,7 +312,7 @@ void DigiTaskSND::digitiseAdvMuFilter()
     }
 
     for (const auto& [detector_id, points] : hit_collector) {
-        // Make one hit per virtual strip (detector ID sensor + strip)
+        // Make one hit per virtual strip (detector ID module + strip)
         new ((*AdvMuFilterHits)[hit_index++]) AdvHit(detector_id, points);
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {

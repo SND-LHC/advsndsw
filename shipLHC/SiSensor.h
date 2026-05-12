@@ -13,7 +13,6 @@ const double module_width = 23.95 * ShipUnit::cm;
 const double module_length = 12.0 * ShipUnit::cm;
 const double support_thickness = 1.8 * ShipUnit::mm;
 const double sensor_gap = 3.1 * ShipUnit::mm;
-const int sensors = 2;
 const int strips = 768;
 
 namespace tb_target {

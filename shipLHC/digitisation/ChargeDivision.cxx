@@ -63,20 +63,20 @@ TVector3 ChargeDivision::getLocal(Int_t detID, TVector3 point)
     TVector3 local_point; 
     // Calculate the detector id as per the geofile, where strips are disrespected
     // int strip = (detID) % 1024;                // actual strip ID
-    int layer = detID >> 17;
-    int row = (detID >> 13) % 8;
-    int column = (detID >> 11) % 4;
-    int sensor = detID;
+    int layer = detID >> 13;
+    int row = (detID >> 11) & 0x3;
+    int column = (detID >> 10) & 0x1;
+    int module_id = detID;
     auto path = TString::Format("/cave_1/"
                                 "Detector_0/"
                                 "volAdvTarget_0/"
                                 "Target_Layer_%d/"
                                 "Row_%d_Column_%d_0/"
-                                "Target_SensorVolume_%d",
+                                "Target_DoubleSensorVolume_%d",
                                 layer,
                                 row,
                                 column,
-                                sensor);
+                                module_id);
     TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
     if (nav->CheckPath(path)) {
         nav->cd(path);

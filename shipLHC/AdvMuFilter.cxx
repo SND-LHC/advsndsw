@@ -266,13 +266,16 @@ void AdvMuFilter::ConstructGeometry()
     TGeoVolume *SupportVolume = new TGeoVolume("SupportVolume", Support, Polystyrene);
     SupportVolume->SetLineColor(kGray);
     SupportVolume->SetTransparency(20);
-    // Active part  - sensors of Si strips
+    // Active part  - two-sensor modules, where sensors are made of Si and strips connect across the two sensors
     // Strips are not included in the geometry since it will become much more computationally heavy
     TGeoBBox *SensorShape =
         new TGeoBBox("SensorShape", advsnd::sensor_width / 2, advsnd::sensor_length / 2, advsnd::sensor_thickness / 2);
-    TGeoVolume *SensorVolume = new TGeoVolume("HCAL_SensorVolume", SensorShape, silicon);
-    SensorVolume->SetLineColor(kAzure + 3);
-    AddSensitiveVolume(SensorVolume);
+    TGeoTranslation *t2 = new TGeoTranslation("t2", advsnd::sensor_width+advsnd::sensor_gap, 0, 0);
+    t2->RegisterYourself();
+    TGeoCompositeShape *DoubleSensorShape = new TGeoCompositeShape("DoubleSensorShape", "SensorShape+SensorShape:t2");
+    TGeoVolume *DoubleSensorVolume = new TGeoVolume("HCAL_DoubleSensorVolume", DoubleSensorShape, silicon);
+    DoubleSensorVolume->SetLineColor(kAzure + 3);
+    AddSensitiveVolume(DoubleSensorVolume);
 
     // Useful dimensions when placing detector elements
     float Zshift = fMuonSysPlaneZ + fCoilZ + fCurvRadius;
@@ -285,28 +288,24 @@ void AdvMuFilter::ConstructGeometry()
         //     continue;
 
         TGeoVolumeAssembly *ActiveLayer = new TGeoVolumeAssembly("HCAL_Layer");
+        int i = 0;
         int plane = (layer < advsnd::hcal::n_XY_layers) ? layer % advsnd::hcal::planes : 1;
         // Each plane consists of row x columns = 4x2 modules
-        int i = 0;
         for (auto &&row : TSeq(advsnd::hcal::rows)) {
             for (auto &&column : TSeq(advsnd::hcal::columns)) {
                 // Each module in turn consists of two sensors on a support
                 TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly(TString::Format("Row_%d_Column_%d", row, column));
                 SensorModule->AddNode(
                     SupportVolume, 1, new TGeoTranslation(0, 0, fMuonSysPlaneZ - advsnd::support_thickness / 2));
-                for (auto &&sensor : TSeq(advsnd::sensors)) {
-                    int32_t sensor_id =
-                        (layer << 17) + (plane << 16) + (row << 13) + (column << 11) + (sensor << 10) + 999;
-                    SensorModule->AddNode(
-                        SensorVolume,
-                        sensor_id,
-                        new TGeoTranslation(-advsnd::module_width / 2 + advsnd::hcal::module_dead_space_side_small
-                                                + advsnd::sensor_width / 2
-                                                + sensor * (advsnd::sensor_width + advsnd::sensor_gap),
+                int32_t module_id = (layer << 13) | (row << 11) | (column << 10) | 999;
+                SensorModule->AddNode(
+                        DoubleSensorVolume,
+                        module_id,
+                        new TGeoTranslation(-advsnd::module_width / 2 + advsnd::target::module_dead_space_side_small
+                                            + support_hole_x_half_dim - advsnd::target::module_dead_space_side_large,
                                             -advsnd::module_length / 2 + advsnd::hcal::module_dead_space_bottom
                                                 + advsnd::sensor_length / 2,
                                             fMuonSysPlaneZ - advsnd::support_thickness - advsnd::sensor_thickness / 2));
-                }
                 i++;
                 ActiveLayer->AddNode(
                     SensorModule,
@@ -411,10 +410,10 @@ void AdvMuFilter::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     int strip = (detID) % 1024;                // actual strip ID
     int geofile_detID = detID - strip + 999;   // the det id number needed to read the geometry
 
-    int layer = geofile_detID >> 17;
-    int row = (geofile_detID >> 13) % 8;
+    int layer = geofile_detID >> 13;
+    int row = (geofile_detID >> 10) % 8;
     int column = (geofile_detID >> 11) % 4;
-    int sensor = geofile_detID;
+    int module_id = geofile_detID;
 
     double local_pos[3] = {0, 0, 0};
     TString path = TString::Format("/cave_1/"
@@ -422,11 +421,11 @@ void AdvMuFilter::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
                                    "volAdvMuFilter_0/"
                                    "HCAL_Layer_%d/"
                                    "Row_%d_Column_%d_0/"
-                                   "HCAL_SensorVolume_%d",
+                                   "HCAL_DoubleSensorVolume_%d",
                                    layer,
                                    row,
                                    column,
-                                   sensor);
+                                   module_id);
 
     TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
     if (nav->CheckPath(path)) {

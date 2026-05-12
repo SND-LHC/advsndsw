@@ -38,7 +38,6 @@ class DigiTaskSND : public FairTask
     void digitiseAdvTarget();
     void digitiseAdvMuFilter();
 
-    AdvTarget* AdvTargetDet;
     Scifi* scifi;
     map<Int_t, map<Int_t, array<float, 2>>> fibresSiPM;
     map<Int_t, map<Int_t, array<float, 2>>> siPMFibres;
