@@ -274,7 +274,7 @@ void AdvTarget::ConstructGeometry()
                         module_id,
                         new TGeoTranslation(-advsnd::module_width / 2 + advsnd::target::module_dead_space_side_small
                                             + support_hole_x_half_dim - advsnd::target::module_dead_space_side_large,
-                                            -advsnd::module_length / 2 + advsnd::hcal::module_dead_space_bottom
+                                            -advsnd::module_length / 2 + advsnd::target::module_dead_space_bottom
                                                 + advsnd::sensor_length / 2,
                                             fTTZ - advsnd::support_thickness - advsnd::sensor_thickness / 2));
 
@@ -339,7 +339,7 @@ void AdvTarget::ConstructGeometry()
                         module_id,
                         new TGeoTranslation(-advsnd::module_width / 2 + advsnd::target::module_dead_space_side_small
                                             + support_hole_x_half_dim - advsnd::target::module_dead_space_side_large,
-                                            -advsnd::module_length / 2 + advsnd::hcal::module_dead_space_bottom
+                                            -advsnd::module_length / 2 + advsnd::target::module_dead_space_bottom
                                                 + advsnd::sensor_length / 2,
                                             0.));
                 //i++;
@@ -353,7 +353,7 @@ void AdvTarget::ConstructGeometry()
                         // Offset modules as needed by row
                         TGeoTranslation(
                             advsnd::module_width / 2,
-                            ((row+1)%2) * (advsnd::module_length - advsnd::hcal::module_dead_space_bottom),
+                            ((row+1)%2) * (advsnd::module_length - advsnd::target::module_dead_space_bottom),
                             // modules facing one another are offset by the module_thickness, leaving some
                             // clearance(air) for electronics
                             std::pow(-1,row%2) * (advsnd::sensor_thickness / 2
