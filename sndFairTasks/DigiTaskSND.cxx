@@ -14,6 +14,7 @@
 #include "Scifi.h"               // for SciFi detector
 #include "ScifiPoint.h"          // for SciFi Point
 #include "SiSensor.h"
+#include "SiDigiParameters.h"
 #include "TGeoBBox.h"
 #include "TGeoManager.h"
 #include "TGeoNavigator.h"
@@ -274,13 +275,13 @@ void DigiTaskSND::digitiseAdvTarget()
         }
       }// end loop over hits in the same module.
       // At this stage one has the total changer per strip in a module.
-      // Now one writes the ADC to the respective digi hit.
+      // Now one writes the ADC to the respective digi hit, respecting saturation!
       std::vector<int> existing_hit{};
       for (auto* ptr : digihits)
       {
         auto* aHit = dynamic_cast<AdvHit*>(ptr);
         int strip = aHit->GetStrip();
-        aHit->SetSignal(sum_adc[strip]);
+        aHit->SetSignal(Saturate(sum_adc[strip]));
         existing_hit.push_back(strip);
       }
       // Add new hits for all strips that have "non-zero" charge, but were not intersected by a particle
@@ -295,7 +296,7 @@ void DigiTaskSND::digitiseAdvTarget()
         {
           auto detector_id = detID - 999 + i;
           AdvHit* aHit = new ((*AdvTargetHits)[hit_index++]) AdvHit(detector_id);
-          aHit->SetSignal(sum_adc[i]);
+          aHit->SetSignal(Saturate(sum_adc[i]));
         }
       }
       
@@ -370,6 +371,21 @@ void DigiTaskSND::digitiseAdvMuFilter()
         }
     }
     new ((*AdvMuFilterHits2MCPoints)[0]) Hit2MCPoints(mc_links);
+}
+
+// Adds strip saturation
+int DigiTaskSND::Saturate(int signal)
+{
+    if (stripsensor::frontend::ZSModeOption)
+    {
+        if (signal > 1022) signal = 255;
+        else if (signal > 253) signal = 254;
+        else if (signal < 0) signal = 0;
+    } else {
+        if (signal > 1023) signal = 1023;
+        else if (signal < 0) signal = 0;
+    }
+    return signal;
 }
 
 void DigiTaskSND::digitizeScifi()

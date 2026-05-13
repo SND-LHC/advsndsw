@@ -37,6 +37,7 @@ class DigiTaskSND : public FairTask
     void digitizeScifi();
     void digitiseAdvTarget();
     void digitiseAdvMuFilter();
+    int Saturate(int signal);
 
     Scifi* scifi;
     map<Int_t, map<Int_t, array<float, 2>>> fibresSiPM;
