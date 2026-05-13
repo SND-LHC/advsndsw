@@ -66,7 +66,7 @@ AdvSignal FrontendDriver::SaturateRange(AdvSignal Signal)
             {
                 Charge[i] = 255; 
             }
-            if (Charge[i] > 253)
+            else if (Charge[i] > 253)
             {
                 Charge[i] = 254; 
             }
