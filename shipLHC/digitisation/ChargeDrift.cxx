@@ -138,8 +138,8 @@ Double_t ChargeDrift::GetDriftTime(Double_t distance)
         dt[l] = -x[l]/(480*E_strip[l]); 
     }
 
-    auto gr = new TGraph (num, x, dt);
-    gr->Draw();
-    Double_t drifttime = gr->Eval(distance);
+    auto gr = TGraph (num, x, dt);
+    gr.Draw();
+    Double_t drifttime = gr.Eval(distance);
     return drifttime; 
 }
