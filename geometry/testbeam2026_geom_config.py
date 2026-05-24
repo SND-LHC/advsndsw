@@ -38,10 +38,14 @@ with ConfigRegistry.register_config("basic") as c:
     c.AdvTarget.FrameBorderX = 7.25 * u.cm
     c.AdvTarget.FrameBorderY = c.AdvTarget.FrameBorderX
     # Steel box closing the target
-    c.AdvTarget.BoxX = 60.6 * u.cm
+    c.AdvTarget.BoxX = 108.6 * u.cm
     c.AdvTarget.BoxY = 81.6 * u.cm
-    c.AdvTarget.BoxZ = 108.6 * u.cm
+    c.AdvTarget.BoxZ = 60.6 * u.cm
     c.AdvTarget.BoxSheetThickness = 2.0 * u.mm
+    # relative position shifts of layers wrt box
+    c.AdvTarget.BoxShiftX = 22.775 * u.cm  # 48−(18.6+7.25÷2+3)
+    c.AdvTarget.BoxShiftY = -4.0 * u.cm    # 42
+    c.AdvTarget.BoxShiftZ = 0 * u.cm
 
     # Target Tracking layers
     c.AdvTarget.TTZ = (

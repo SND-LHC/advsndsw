@@ -152,6 +152,10 @@ void AdvTarget::ConstructGeometry()
     Double_t fBoxY = conf_floats["AdvTarget/BoxY"];
     Double_t fBoxZ = conf_floats["AdvTarget/BoxZ"];
     Double_t fBoxSheetThickness = conf_floats["AdvTarget/BoxSheetThickness"];
+    // relative position shifts of layers wrt box
+    Double_t fBoxShiftX = conf_floats["AdvTarget/BoxShiftX"];
+    Double_t fBoxShiftY = conf_floats["AdvTarget/BoxShiftY"];
+    Double_t fBoxShiftZ = conf_floats["AdvTarget/BoxShiftZ"];
     double tb_plate_z{};
 
     // Definition of the target box containing tungsten walls + silicon tracker
@@ -417,9 +421,9 @@ void AdvTarget::ConstructGeometry()
         volBox->SetLineColor(kGray + 2);
         volBox->SetTransparency(70);
         // use the same XY translation as for the volTBPlateFrame
-        volAdvTarget->AddNode(volBox, 0, new TGeoTranslation(-(fPlateFrameX/2-fFePlateX/2) + fFrameBorderX,
-                                                             -(fPlateFrameY/2-fFePlateY/2) + fFrameBorderY,
-                                                             fNlayers*(tb_plate_z + 2 * fTTZ) / 2.) );
+        volAdvTarget->AddNode(volBox, 0, new TGeoTranslation(-(fPlateFrameX/2-fFePlateX/2) + fFrameBorderX + fBoxShiftX,
+                                                             -(fPlateFrameY/2-fFePlateY/2) + fFrameBorderY + fBoxShiftY,
+                                                             fNlayers*(tb_plate_z + 2 * fTTZ) / 2. + fBoxShiftZ) );
     }
 }
 
