@@ -438,7 +438,7 @@ def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup=
     moreEventInfo = []
     for collection in ['hitCollectionX','hitCollectionY']:
        h['simpleDisplay'].cd(k)
-       drawInfo(h['simpleDisplay'], k, runId, N, T)
+       drawInfo(h['simpleDisplay'], k, runId, N, T, Setup)
        k+=1
        for c in h[collection]:
           F = collection.replace('hitCollection','firedChannels')
@@ -477,7 +477,7 @@ def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup=
     k = 1
     for collection in ['hitCollectionX','hitCollectionY']:
        h['simpleDisplay'].cd(k)
-       drawInfo(h['simpleDisplay'], k, runId, N, T,moreEventInfo)
+       drawInfo(h['simpleDisplay'], k, runId, N, T, Setup, moreEventInfo)
        k+=1
             
     h['simpleDisplay'].Update()
@@ -656,11 +656,16 @@ def drawDetectors():
           nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volWPlate_1'.format(i)]=ROOT.kGray+1
           nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volFePlate_2'.format(i)]=ROOT.kGreen-6
           for r in range(n_rows):
-            for c in range(n_columns):
-              nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0'.format(i, r, c)]=ROOT.kGray+2
+            for c in range(n_columns):              
               for plane in range(2):
-                module_id = ((i << 13) | (r << 11) | (c << 10) | 999)
-                nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0/Target_DoubleSensorVolume_{}'.format(i, r, c ,module_id)]=ROOT.kBlue
+                if i%2==0:
+                  module_id = ((i << 13) | (r << 11) | (c << 10) | 999)
+                  nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0/Target_DoubleSensorVolume_{}'.format(i, r, c, module_id)]=ROOT.kBlue
+                  nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0'.format(i, r, c)]=ROOT.kGray+2
+                if i%2==1:
+                  module_id = ((i << 13) | (c << 11) | (r << 10) | 999)
+                  nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0/Target_DoubleSensorVolume_{}'.format(i, c, r, module_id)]=ROOT.kBlue
+                  nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0'.format(i, c, r)]=ROOT.kGray+2
 
     for i in range(ROOT.advsnd.hcal.n_XY_layers+ROOT.advsnd.hcal.n_X_layers):
         nodes['volAdvMuFilter_0/volFeSlab{}'.format(i)] = ROOT.kGreen -6
@@ -1061,7 +1066,7 @@ def fillNode(node):
          X.Draw('f&&same')
          X.Draw('same')   
 
-def drawInfo(pad, k, run, event, timestamp,moreEventInfo=[]):
+def drawInfo(pad, k, run, event, timestamp, setup, moreEventInfo=[]):
    drawLogo = True
    drawText = True
    if drawLogo:
@@ -1096,7 +1101,10 @@ def drawInfo(pad, k, run, event, timestamp,moreEventInfo=[]):
       textInfo.SetTextAlign(11)
       textInfo.SetTextFont(42)
       textInfo.SetTextSize(.15)
-      textInfo.DrawLatex(0, 0.6, 'Proposed AdvSND Experiment, CERN')
+      if setup == 'H4':
+         textInfo.DrawLatex(0, 0.6, 'Testbeam: Si strips prototype , CERN')
+      else:
+         textInfo.DrawLatex(0, 0.6, 'SND@HL-LHC Experiment, CERN')
       if hasattr(eventTree.EventHeader,'GetEventNumber'): N = eventTree.EventHeader.GetEventNumber()
       else: N = event
       textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(N))
