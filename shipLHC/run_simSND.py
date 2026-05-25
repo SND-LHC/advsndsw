@@ -22,7 +22,7 @@ group = parser.add_mutually_exclusive_group()
 
 group.add_argument("--AdvSND",   help="Use AdvSND setup", required=False, action="store_true")
 parser.add_argument("--H4", dest="testbeam2026", help="use geometry of 2026 testbeam setup", action="store_true")
-parser.add_argument("--Nlayers", dest="Nlayers", help="number of detective layers for 2026 H4 testbeam", required=False, default=20, type=int)
+parser.add_argument("--Nlayers", dest="Nlayers", help="number of detective layers for 2026 H4 testbeam", required=False, default=21, type=int)
 parser.add_argument("--stagger_hcal",help="Stagger HCAL for AdvSND setup",required=False,action="store_true")
 parser.add_argument("--Genie",   dest="genie",   help="Genie for reading and processing neutrino interactions (1 standard, 2 FLUKA, 3 Pythia, 4 GENIE geometry driver)", required=False, default = 0, type = int)
 parser.add_argument("--Ntuple",  dest="ntuple",  help="Use ntuple as input", required=False, action="store_true")
