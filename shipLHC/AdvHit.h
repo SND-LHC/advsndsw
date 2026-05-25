@@ -56,7 +56,7 @@ class AdvHit : public TObject
           return advsnd::hcal::columns * GetRow() + 1 + GetColumn();
         }
     }
-    bool constexpr IsVertical() { return GetLayer() % 2 == 1; }; // 0 is X-plane, 1 is Y-pane
+    bool constexpr IsVertical() { return GetLayer() % 2 == 0; }; // 1 is X-plane, 0 is Y-pane for TB26
 
     template<class Archive>
     void serialize(Archive& ar, const unsigned int version)
