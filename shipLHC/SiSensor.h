@@ -23,6 +23,8 @@ const double module_dead_space_side_small = 6.45 * ShipUnit::mm;
 const double module_dead_space_side_large = 46.95 * ShipUnit::mm;
 const double module_dead_space_top = 13.15 * ShipUnit::mm;
 const double module_dead_space_bottom = module_dead_space_top;
+const double overlap = 1.3 * ShipUnit::mm;
+const double space_to_W_plate = 2.95 * ShipUnit::mm;
 } // namespace tb_target
 
 namespace target {

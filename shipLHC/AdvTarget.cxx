@@ -195,7 +195,7 @@ void AdvTarget::ConstructGeometry()
                        0,
                        new TGeoTranslation(-(TBPlateFrame->GetDX()-fFePlateX/2) + fFrameBorderX,
                                            -(TBPlateFrame->GetDY()-fFePlateY/2) + fFrameBorderY,
-                                             fPlateFrameZ / 2. + fnWPlates*fWPlateZ / 2. + fFePlateZ ));
+                                             0));
 
     }
 
@@ -351,16 +351,19 @@ void AdvTarget::ConstructGeometry()
                                             0.));
                 //i++;
                 // In the testbeam 2026 setup one has one module per plane
-                // and the very first layer has only one plane
+                // The first and the last layers have only one plane each
                 if (layer==0 && row==1) continue;
+                if (layer==fNlayers-1 && row==0) continue;
                 ActiveLayer->AddNode(
                     SensorModule,
                     0,
                     new TGeoCombiTrans(
                         // Offset modules as needed by row
                         TGeoTranslation(
-                            advsnd::module_width / 2,
-                            ((row+1)%2) * (advsnd::module_length - advsnd::target::module_dead_space_bottom),
+                            advsnd::module_width / 2 ,
+                            -((row+1)%2) * (advsnd::module_length
+                                           - advsnd::tb_target::overlap
+                                           - 2 * advsnd::target::module_dead_space_top),
                             // modules facing one another are offset by the module_thickness, leaving some
                             // clearance(air) for electronics
                             std::pow(-1,row%2) * (advsnd::sensor_thickness / 2
@@ -371,24 +374,35 @@ void AdvTarget::ConstructGeometry()
         }   // rows
 
         // Alternate detecting layers followed by a target plate.
-        if (plane == 0) {
+        if (plane == 1) {
             // Y-plane (horizontal strips along y axis)
             volAdvTarget->AddNode(ActiveLayer,
                                   layer,
-                                  new TGeoTranslation(-advsnd::module_length,
-                                                      -advsnd::module_width/4,
-                                                       layer * (tb_plate_z + 2 * fTTZ)));
-        } else if (plane == 1) {
+                                  new TGeoTranslation(0,
+                                                      0,
+                                                      layer * (tb_plate_z + 2 * fTTZ)));
+        } else if (plane == 0) {
             // X-plane (vertical strips along x axis)
             volAdvTarget->AddNode(
                 ActiveLayer,
                 layer,
-                new TGeoCombiTrans(TGeoTranslation(advsnd::module_width/4,
-                                                   -advsnd::module_length,
+                new TGeoCombiTrans(TGeoTranslation(advsnd::sensor_width / 2.
+                                                    + advsnd::target::module_dead_space_side_small
+                                                    + advsnd::tb_target::overlap,
+                                                    advsnd::sensor_length / 2.
+                                                    - advsnd::target::module_dead_space_side_small
+                                                    - 2*advsnd::sensor_length + advsnd::tb_target::overlap,
                                                     layer * (tb_plate_z + 2 * fTTZ)),
                                    TGeoRotation("y_rot", 0, 0, 90)));
         }
-        volAdvTarget->AddNode(volWall, layer, new TGeoTranslation(0, 0, fTTZ + tb_plate_z/2 + layer * (tb_plate_z + 2 * fTTZ)));
+        if ( layer!=fNlayers-1 )
+        {
+           volAdvTarget->AddNode(volWall, layer, new TGeoTranslation(fWPlateX / 2. + advsnd::target::module_dead_space_side_small
+                                                                     - advsnd::tb_target::space_to_W_plate,
+                                                                     - fWPlateY / 2. + advsnd::sensor_length / 2.
+                                                                     + advsnd::tb_target::space_to_W_plate,
+                                                                     fTTZ + tb_plate_z/2 + layer * (tb_plate_z + 2 * fTTZ)));
+        }
         } // testbeam 2026
 
     }   // layers
