@@ -273,8 +273,8 @@ def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup=
     h['zmin'],h['zmax'] = zStart,zStart+400.
     if Setup == 'H4':
        zStart = 163.
-       h['xmin'],h['xmax'] = -45.,-10. # AdvSND H4 TB 
-       h['ymin'],h['ymax'] = 19., 54. 
+       h['xmin'],h['xmax'] = -36.,-1. # AdvSND H4 TB 
+       h['ymin'],h['ymax'] = 14., 49. 
        h['zmin'],h['zmax'] = zStart,zStart+40.
     for d in ['xmin','xmax','ymin','ymax','zmin','zmax']: h['c'+d]=h[d]
  ut.bookHist(h,'xz','; z [cm]; x [cm]',400,h['czmin'],h['czmax'],100,h['cxmin'],h['cxmax'])
@@ -658,11 +658,11 @@ def drawDetectors():
           for r in range(n_rows):
             for c in range(n_columns):              
               for plane in range(2):
-                if i%2==0:
+                if i%2==1:
                   module_id = ((i << 13) | (r << 11) | (c << 10) | 999)
                   nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0/Target_DoubleSensorVolume_{}'.format(i, r, c, module_id)]=ROOT.kBlue
                   nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0'.format(i, r, c)]=ROOT.kGray+2
-                if i%2==1:
+                if i%2==0:
                   module_id = ((i << 13) | (c << 11) | (r << 10) | 999)
                   nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0/Target_DoubleSensorVolume_{}'.format(i, c, r, module_id)]=ROOT.kBlue
                   nodes['volAdvTarget_0/Target_Layer_{}/Row_{}_Column_{}_0'.format(i, c, r)]=ROOT.kGray+2
@@ -767,8 +767,8 @@ def drawDetectors():
                 # Only show detector volumes if they measure the corresponding coordinate
                 if node.find("Layer_")>0:
                    if testbeam2026:
-                      if ( p=='Y' and int(node[node.find("Layer_")+6:node.find("/Row_")])%2 == 1 ) or \
-                         ( p=='X' and int(node[node.find("Layer_")+6:node.find("/Row_")])%2 == 0 ):
+                      if ( p=='Y' and int(node[node.find("Layer_")+6:node.find("/Row_")])%2 == 0 ) or \
+                         ( p=='X' and int(node[node.find("Layer_")+6:node.find("/Row_")])%2 == 1 ):
                            X.SetLineWidth(0)
                    else:
                       if ( p=='Y' and int(node[node.find("Layer_")+6:])%2 == 1 ) or \
