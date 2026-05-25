@@ -330,10 +330,17 @@ void AdvTarget::ConstructGeometry()
         for (auto &&row : TSeq(advsnd::tb_target::rows)) {
             for (auto &&column : TSeq(advsnd::tb_target::columns)) {
                 /// Each module in turn consists of the double Si sensor on a support
-                TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly(TString::Format("Row_%d_Column_%d", row, column));
+                std::string name_segment = "Row_"+std::to_string(row)+"_Column_"+std::to_string(column);
+                if ( layer%2 == 0) { // adjust name for rotated layers
+                    name_segment = "Row_"+std::to_string(column)+"_Column_"+std::to_string(row);
+                }
+                TGeoVolumeAssembly *SensorModule = new TGeoVolumeAssembly(name_segment.c_str());
                 SensorModule->AddNode(
                     SupportVolume, 1, new TGeoTranslation(0, 0, - advsnd::support_thickness / 2 - advsnd::sensor_thickness / 2));
                 int32_t module_id = (layer << 13) | (row << 11) | (column << 10) | (999 & 0x3FF);
+                if ( layer%2 == 0) { // adjust detID for rotated layers
+                    module_id =  (layer << 13) | (column << 11) | (row << 10) | (999 & 0x3FF);
+                }
                 SensorModule->AddNode(
                         DoubleSensorVolume,
                         module_id,
