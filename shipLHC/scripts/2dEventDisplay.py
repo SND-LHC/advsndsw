@@ -207,7 +207,7 @@ def drawAdvHits(g, colour):
 
               markersize = 0.8
               if "testbeam2026" in geo.snd_geo.AdvTarget.keys():
-                markersize = 0.25
+                markersize = 0.2
               h["markerCollection"].append(ROOT.TEllipse(x, y, markersize, markersize))
               h["markerCollection"][-1].SetLineWidth(0)
               h["markerCollection"][-1].SetFillColor(colour[i])
@@ -218,7 +218,7 @@ def drawLegend(max_density, max_QDC, n_legend_points):
        """Draws legend for hit colour"""
        h['simpleDisplay'].cd(1)
        n_legend_points = 5
-       padLegTarget = ROOT.TPad("legend","legend",0.4,0.15,0.4+0.2, 0.15+0.2)
+       padLegTarget = ROOT.TPad("legend","legend",0.4,0.15,0.4+0.3, 0.15+0.3)
        padLegTarget.SetFillStyle(4000)
        padLegTarget.Draw()
        padLegTarget.cd()
@@ -283,6 +283,12 @@ def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup=
  proj = {1:'xz',2:'yz'}
  h['xz'].SetStats(0)
  h['yz'].SetStats(0)
+ h['xz'].SetTitleSize(0.05,'XY')
+ h['yz'].SetTitleSize(0.05,'XY')
+ h['xz'].SetLabelSize(0.05,'XY')
+ h['yz'].SetLabelSize(0.05,'XY')
+ h['xz'].SetTitleOffset(0.7,'Y')
+ h['yz'].SetTitleOffset(0.7,'Y')
 
  N = -1
  Tprev = -1
@@ -422,7 +428,7 @@ def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup=
 
     if hitColour == "q" :
        for orientation in ['X', 'Y']:
-              max_density = 100              
+              max_density = 150
               max_QDC = 200 # not used for now
               density_AdvTarget = np.clip(0, max_density, getAdvHitDensity(h['hitCollection'+orientation]['AdvTarget'][1]))
               density_AdvMuFilter = np.clip(0, max_density, getAdvHitDensity(h['hitCollection'+orientation]['AdvMuFilter'][1]))
@@ -652,9 +658,9 @@ def drawDetectors():
         if testbeam2026:
           n_rows = ROOT.advsnd.tb_target.rows
           n_columns  = ROOT.advsnd.tb_target.columns
-          nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volFePlate_0'.format(i)]=ROOT.kGreen-6
+          nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volFePlate_0'.format(i)]=ROOT.kGray
           nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volWPlate_1'.format(i)]=ROOT.kGray+1
-          nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volFePlate_2'.format(i)]=ROOT.kGreen-6
+          nodes['volAdvTarget_0/volWall_{}/volTBPlate_1/volFePlate_2'.format(i)]=ROOT.kGray
           for r in range(n_rows):
             for c in range(n_columns):              
               for plane in range(2):
@@ -1100,9 +1106,9 @@ def drawInfo(pad, k, run, event, timestamp, setup, moreEventInfo=[]):
       textInfo = ROOT.TLatex()
       textInfo.SetTextAlign(11)
       textInfo.SetTextFont(42)
-      textInfo.SetTextSize(.15)
+      textInfo.SetTextSize(.2)
       if setup == 'H4':
-         textInfo.DrawLatex(0, 0.6, 'Testbeam: Si strips prototype , CERN')
+         textInfo.DrawLatex(0, 0.6, 'Si strips testbeam, CERN')
       else:
          textInfo.DrawLatex(0, 0.6, 'SND@HL-LHC Experiment, CERN')
       if hasattr(eventTree.EventHeader,'GetEventNumber'): N = eventTree.EventHeader.GetEventNumber()
@@ -1121,7 +1127,7 @@ def drawInfo(pad, k, run, event, timestamp, setup, moreEventInfo=[]):
       textInfo = ROOT.TLatex()
       textInfo.SetTextAlign(11)
       textInfo.SetTextFont(42)
-      textInfo.SetTextSize(.1)
+      textInfo.SetTextSize(.15)
       textInfo.SetTextColor(ROOT.kMagenta+2)
       dely = 0.12
       ystart = 0.85
