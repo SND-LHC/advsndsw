@@ -235,7 +235,7 @@ void DigiTaskSND::digitiseAdvTarget()
         double local_pos[3];
         // Move to local coordinates (including rotation) to determine strip
         nav->MasterToLocal(global_pos, local_pos);
-        int strip = floor((local_pos[1] / (advsnd::sensor_length / advsnd::strips)) + (advsnd::strips / 2));
+        int strip = floor( (advsnd::strips / 2) - local_pos[1] / (advsnd::sensor_length / advsnd::strips));
         strip = max(0, strip);
         strip = min(advsnd::strips - 1, strip);
 

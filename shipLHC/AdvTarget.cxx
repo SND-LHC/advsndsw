@@ -370,10 +370,10 @@ void AdvTarget::ConstructGeometry()
                                            - 2 * advsnd::target::module_dead_space_top),
                             // modules facing one another are offset by the module_thickness, leaving some
                             // clearance(air) for electronics
-                            std::pow(-1,row%2) * (advsnd::sensor_thickness / 2
+                            std::pow(-1, (layer / 2) % 2 + row % 2 )* (advsnd::sensor_thickness / 2
                                 + (fTTZ - advsnd::support_thickness - advsnd::sensor_thickness))),
                         // Rotate every module of the second column by 180 on z axis to arrive at a back-to-front layout
-                        TGeoRotation(TString::Format("rot%d", i), 0, ((row+1)%2) * 180, 0)));
+                        TGeoRotation(TString::Format("rot%d", layer*10+i), 0, 180 * fabs( int(layer/2)%2 - (row+1)%2 ) , 0)));
             }   // columns
         }   // rows
 
@@ -510,7 +510,8 @@ void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     TGeoNode *W = nav->GetCurrentNode();
     TGeoBBox *S = dynamic_cast<TGeoBBox *>(W->GetVolume()->GetShape());
     // knowing the strip, get the postion along the sensor
-    local_pos[1] = (strip - (advsnd::strips / 2)) * (advsnd::sensor_length / advsnd::strips);
+    // strip #0 is on top in the base module, where the APVs are on the left-hand side
+    local_pos[1] = ( (advsnd::strips / 2) - strip) * (advsnd::sensor_length / advsnd::strips);
     Double_t left_pos[3] = {S->GetDX(), local_pos[1], 0};
     Double_t right_pos[3] = {-(S->GetDX()), local_pos[1], 0};
     Double_t global_left_pos[3], global_right_pos[3];
