@@ -58,7 +58,7 @@ class AdvPoint : public FairMCPoint
           return advsnd::hcal::columns * GetRow() + 1 + GetColumn();
         }
     }
-    bool constexpr IsVertical() { return GetLayer() % 2 == 1; }; // 0 is X-plane, 1 is Y-pane
+    bool constexpr IsVertical() { return GetLayer() % 2 == 0; }; // 1 is X-plane, 0 is Y-pane for TB26
     TVector3 GetEntryPoint() const { return TVector3(2 * fX - fExitX, 2 * fY - fExitY, 2 * fZ - fExitZ); }
     TVector3 GetExitPoint() const { return TVector3(fExitX, fExitY, fExitZ); }
 
