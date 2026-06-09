@@ -510,8 +510,8 @@ void AdvTarget::GetPosition(Int_t detID, TVector3 &A, TVector3 &B)
     TGeoNode *W = nav->GetCurrentNode();
     TGeoBBox *S = dynamic_cast<TGeoBBox *>(W->GetVolume()->GetShape());
     // knowing the strip, get the postion along the sensor
-    // strip #0 is on top in the base module, where the APVs are on the left-hand side
-    local_pos[1] = ( (advsnd::strips / 2) - strip) * (advsnd::sensor_length / advsnd::strips);
+    // strip #0 is at the bottom in the base module, where the APVs are on the right-hand side
+    local_pos[1] = (strip - (advsnd::strips / 2)) * (advsnd::sensor_length / advsnd::strips);
     Double_t left_pos[3] = {S->GetDX(), local_pos[1], 0};
     Double_t right_pos[3] = {-(S->GetDX()), local_pos[1], 0};
     Double_t global_left_pos[3], global_right_pos[3];

@@ -235,7 +235,8 @@ void DigiTaskSND::digitiseAdvTarget()
         double local_pos[3];
         // Move to local coordinates (including rotation) to determine strip
         nav->MasterToLocal(global_pos, local_pos);
-        int strip = floor( (advsnd::strips / 2) - local_pos[1] / (advsnd::sensor_length / advsnd::strips));
+        // strip #0 is at the bottom in the base module, where the APVs are on the right-hand side
+        int strip = floor((local_pos[1] / (advsnd::sensor_length / advsnd::strips)) + (advsnd::strips / 2));
         strip = max(0, strip);
         strip = min(advsnd::strips - 1, strip);
 
