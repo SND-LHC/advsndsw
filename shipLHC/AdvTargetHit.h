@@ -3,8 +3,14 @@
 
 #include "SiSensor.h"
 #include "SndlhcHit.h"
+#include "TArrayD.h"
+#include "TVector3.h"
+#include "digitisation/AdvSignal.h"
+#include <map>
 
 class AdvTargetPoint;
+
+class TArrayD;
 
 class AdvTargetHit : public SndlhcHit
 {
@@ -25,6 +31,7 @@ class AdvTargetHit : public SndlhcHit
     bool isMasked(Int_t i) const { return fMasked[i]; }
     void SetMasked(Int_t i) { fMasked[i] = kTRUE; }
     int constexpr GetLayer() { return fDetectorID >> 17; }
+    std::map<std::string, std::vector<Int_t>> GetHit() { return fDigitisedHit; }
     int constexpr GetPlane() { return (fDetectorID >> 16) % 2; }   // 0 is X-plane, 1 is Y-pane
     int constexpr GetRow() { return (fDetectorID >> 13) % 8; }
     int constexpr GetColumn() { return (fDetectorID >> 11) % 4; }
@@ -36,7 +43,7 @@ class AdvTargetHit : public SndlhcHit
   private:
     bool flag;          ///< flag
     bool fMasked[16];   /// masked signal
-
+    std::map<std::string, std::vector<Int_t>> fDigitisedHit; 
     ClassDef(AdvTargetHit, 1);
 };
 
