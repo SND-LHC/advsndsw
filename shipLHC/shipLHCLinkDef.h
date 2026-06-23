@@ -15,7 +15,9 @@
 #pragma link C++ class MuFilterPoint+;
 #pragma link C++ class MuFilterHit+;
 #pragma link C++ class AdvTargetHit+;
+#pragma link C++ class std::vector<AdvTargetHit>+;
 #pragma link C++ class AdvMuFilterHit+;
+#pragma link C++ class std::vector<AdvMuFilterHit>+;
 #pragma link C++ class sndScifiHit+;
 #pragma link C++ class sndCluster;
 #pragma link C++ class SNDLHCEventHeader+;
@@ -24,6 +26,8 @@
 #pragma link C++ class MagnetPoint+;
 #pragma link C++ class AdvTarget+;
 #pragma link C++ class AdvTargetPoint+;
+#pragma link C++ class std::vector<AdvTargetPoint>+;
 #pragma link C++ class AdvMuFilter+;
 #pragma link C++ class AdvMuFilterPoint+;
+#pragma link C++ class std::vector<AdvMuFilterPoint>+;
 #endif

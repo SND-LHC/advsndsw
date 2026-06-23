@@ -30,12 +30,12 @@ TGeoNavigator* initGeometry(const std::string& geometry_path)
 }
 
 int main(int argc, char *argv[]) {
-    std::cout << "Parameters passed: " << argc << "\n"; 
-    const int n_threads = atoi(argv[1]);
-    std::cout << "Asking for " << n_threads << " threads\n";
-    if (n_threads > 1) ROOT::EnableImplicitMT(n_threads);
     ROOT::RDF::RSnapshotOptions opts;
-    opts.fOutputFormat = ROOT::RDF::ESnapshotOutputFormat::kRNTuple;
+    bool use_rntuple = std::stoi(argv[1]); 
+    opts.fOutputFormat = use_rntuple ? ROOT::RDF::ESnapshotOutputFormat::kRNTuple : ROOT::RDF::ESnapshotOutputFormat::kTTree;
+    opts.fVector2RVec = false;
+    opts.fCompressionAlgorithm = ROOT::RCompressionSetting::EAlgorithm::EValues::kZSTD;
+    opts.fCompressionLevel = 5;
 
     std::string input_file = argv[2];
     //use_rntuple ? "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/rntuples-sndLHC.Ntuple-TGeant4.root" : "/afs/cern.ch/work/f/fmei/private/RNTuples-for-advsndsw/dataset/sndLHC.Ntuple-TGeant4-surgery.root";
