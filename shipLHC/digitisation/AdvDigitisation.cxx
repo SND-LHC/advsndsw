@@ -32,7 +32,7 @@ using namespace std;
 
 AdvDigitisation::AdvDigitisation() {}
 
-std::map<std::string, std::vector<Int_t>> AdvDigitisation::digirunoutput(Int_t detID, const std::vector<AdvPoint *> &V)
+std::map<std::string, std::vector<Int_t>> AdvDigitisation::digirunoutput(Int_t detID, const std::vector<const AdvPoint *> &V)
 {
     // Charge Division
     ChargeDivision chargedivision{};

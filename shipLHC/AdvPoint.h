@@ -42,11 +42,11 @@ class AdvPoint : public FairMCPoint
     virtual void Print(const Option_t* opt) const;
 
     Int_t PdgCode() const { return fPdgCode; }
-    int constexpr GetLayer() { return fDetectorID >> 13; }
-    int constexpr GetRow() { return (fDetectorID >> 11) & 0x3; }
-    int constexpr GetColumn() { return (fDetectorID >> 10) & 0x1; }
-    int constexpr GetStrip() { return (fDetectorID) & 0x3FF; }
-    int constexpr GetModule(int system, int setup = 0)
+    int constexpr GetLayer() const { return fDetectorID >> 13; }
+    int constexpr GetRow() const { return (fDetectorID >> 11) & 0x3; }
+    int constexpr GetColumn() const { return (fDetectorID >> 10) & 0x1; }
+    int constexpr GetStrip() const { return (fDetectorID) & 0x3FF; }
+    int constexpr GetModule(int system, int setup = 0) const
     {
         if (system == 1)
         {
@@ -58,7 +58,7 @@ class AdvPoint : public FairMCPoint
           return advsnd::hcal::columns * GetRow() + 1 + GetColumn();
         }
     }
-    bool constexpr IsVertical() { return GetLayer() % 2 == 0; }; // 1 is X-plane, 0 is Y-pane for TB26
+    bool constexpr IsVertical() const { return GetLayer() % 2 == 0; }; // 1 is X-plane, 0 is Y-pane for TB26
     TVector3 GetEntryPoint() const { return TVector3(2 * fX - fExitX, 2 * fY - fExitY, 2 * fZ - fExitZ); }
     TVector3 GetExitPoint() const { return TVector3(fExitX, fExitY, fExitZ); }
 

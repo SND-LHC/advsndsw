@@ -109,7 +109,7 @@ TVector3 ChargeDivision::DriftDir(TVector3 EntryPoint, TVector3 ExitPoint, float
     return DriftPos;
 }
 
-std::vector<EnergyFluctUnit> ChargeDivision::Divide(Int_t detID, const std::vector<AdvPoint*>& V)
+std::vector<EnergyFluctUnit> ChargeDivision::Divide(Int_t detID, const std::vector<const AdvPoint*>& V)
 {
     std::vector<EnergyFluctUnit> ELossVector; 
 
