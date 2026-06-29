@@ -190,7 +190,7 @@ void DigiTaskSND::digitiseAdvTarget()
 
     int point_index = 0;
     int hit_index = 0;
-    std::map<int, std::vector<AdvPoint*>> hit_collector{};
+    std::map<int, std::vector<const AdvPoint*>> hit_collector{};
     std::map<int, int> module_map{};
     //std::map<int, std::vector<AdvHit*>> module_collector{};// a map of unique module_id and hits
     std::map<int, std::vector<std::map<std::string, std::vector<Int_t>>>> module_collector{};// a map of unique module_id and hits
