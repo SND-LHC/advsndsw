@@ -27,9 +27,9 @@ TGeoNavigator* initGeometry(const std::string& geometry_path)
 }
 
 int main(int argc, char *argv[]) {
-        if (argc != 5) {
+    if (argc != 5) {
         std::cerr << "4 arguments expected but " << argc - 1 << " provided\n";
-        std::cerr << "Usage: raw_to_digi <input_root_file> <output_root_file> <geometry_file> <format: ttree|rntuple>\n";
+        std::cerr << "Usage: " << argv[0] << " <input_root_file> <output_root_file> <geometry_file> <format: ttree|rntuple>\n";
         return 1;
     }
     std::string input_path(argv[1]);
@@ -61,9 +61,9 @@ int main(int argc, char *argv[]) {
     TGeoNavigator* nav = initGeometry(geo_path);
 
     auto df = ROOT::RDataFrame("cbmsim", input_path);
-    std::cout << df.GetColumnType("AdvPoint") << std::endl;
+    std::cout << df.GetColumnType("AdvTargetPoint") << std::endl;
 
-    auto df2 = df.Define("Digi_AdvHits", advsnd::DigitizePoints(nav), {"AdvPoint"})
-        .Define("Digi_AdvHits2MCPoints", advsnd::LinkPointsToDigi(nav), {"AdvPoint"});
-    df2.Snapshot("cbmsim", output_path, {"MCTrack", "AdvPoint", "Digi_AdvHits", "Digi_AdvHits2MCPoints"}, opts);
+    auto df2 = df.Define("Digi_AdvHits", advsnd::DigitizePoints(nav), {"AdvTargetPoint"})
+        .Define("Digi_AdvHits2MCPoints", advsnd::LinkPointsToDigi(nav), {"AdvTargetPoint"});
+    df2.Snapshot("cbmsim", output_path, {"MCTrack", "AdvTargetPoint", "Digi_AdvHits", "Digi_AdvHits2MCPoints"}, opts);
 }

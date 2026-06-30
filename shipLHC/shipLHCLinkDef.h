@@ -23,7 +23,9 @@
 #pragma link C++ class AdvTarget + ;
 #pragma link C++ class AdvMuFilter + ;
 #pragma link C++ class AdvPoint + ;
+#pragma link C++ class std::vector<AdvPoint> + ;
 #pragma link C++ class AdvHit + ;
+#pragma link C++ class std::vector<AdvHit> + ;
 #pragma link C++ class digitisation/ChargeDivision + ;
 #pragma link C++ class digitisation/ChargeDrift +;
 #pragma link C++ class digitisation/InducedCharge +;
