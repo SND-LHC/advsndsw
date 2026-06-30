@@ -72,3 +72,6 @@ GENERATE_LIBRARY()
 
 add_executable(run_mc_digitisation digitisation/run_mc_digitisation.cxx)
 target_link_libraries(run_mc_digitisation ${ROOT_LIBRARIES} shipLHC veto FairTools -lROOTTPython)
+
+add_executable(run_mc_conversion_to_vector digitisation/run_mc_conversion_to_vector.cxx)
+target_link_libraries(run_mc_conversion_to_vector ${ROOT_LIBRARIES} shipLHC veto)

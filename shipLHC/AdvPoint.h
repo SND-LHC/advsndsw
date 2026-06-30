@@ -68,9 +68,6 @@ class AdvPoint : public FairMCPoint
     Double_t fExitY;
     Double_t fExitZ;
 
-    /** Copy constructor **/
-    AdvPoint(const AdvPoint& point);
-    AdvPoint operator=(const AdvPoint& point);
     ClassDef(AdvPoint, 1)
 };
 
