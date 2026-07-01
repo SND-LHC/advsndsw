@@ -255,7 +255,6 @@ void DigiTaskSND::digitiseAdvTarget()
     }
     for (const auto& [detector_id, points] : hit_collector) {
         // Make one hit per virtual strip (detector ID module + strip)
-        //AdvHit* aHit = new ((*AdvTargetHits)[hit_index++]) AdvHit(detector_id, points);
         module_collector[module_map[detector_id]].emplace_back(advdigi.digirunoutput(detector_id, points));
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {
@@ -272,8 +271,6 @@ void DigiTaskSND::digitiseAdvTarget()
       std::vector<float> sum_adc(advsnd::strips, 0);
       for (const auto& fDigitisedHit : digihits)
       {
-        //auto* aHit = dynamic_cast<AdvHit*>(ptr);
-        //auto fDigitisedHit = aHit->GetHit();
         for(int a =0; a<fDigitisedHit.at("Strips").size(); a++)
         {
           sum_adc[fDigitisedHit.at("Strips")[a]] += fDigitisedHit.at("ADC")[a];
@@ -298,7 +295,6 @@ void DigiTaskSND::digitiseAdvTarget()
         }
         int detector_id = it->first;
         int strip = detector_id & 0x3FF;
-        //aHit->SetSignal(Saturate(sum_adc[strip]));
         existing_hit.push_back(strip);
       }
       // Add new hits for all strips that have "non-zero" charge, but were not intersected by a particle
@@ -381,7 +377,6 @@ void DigiTaskSND::digitiseAdvMuFilter()
 
     for (const auto& [detector_id, points] : hit_collector) {
         // Make one hit per virtual strip (detector ID module + strip)
-        //new ((*AdvMuFilterHits)[hit_index++]) AdvHit(detector_id, points);
         new ((*AdvMuFilterHits)[hit_index++]) AdvHit(detector_id);
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {
