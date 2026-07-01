@@ -10,6 +10,30 @@
 #include <string>
 #include <memory>
 
+void copy_header(const std::string& input_root_file_path, TFile* output_root_file) {
+    TFile* input_root_file = TFile::Open(input_root_file_path.c_str(), "READ");
+
+    const char* objects[] = {
+        //"cbmroot",
+        "BranchList",
+        "TimeBasedBranchList",
+        "FileHeader"
+    };
+
+    for (auto name : objects) {
+        TObject *obj = input_root_file->Get(name);
+        if (!obj) {
+            Warning("copy_objects", "Object %s not found", name);
+            continue;
+        }
+
+        output_root_file->cd();
+        obj->Write(name, TObject::kOverwrite);
+    }
+
+    output_root_file->Write();
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 4) {
         std::cerr << "3 arguments expected but " << argc - 1 << " provided\n";
@@ -68,5 +92,8 @@ int main(int argc, char *argv[]) {
     }
 
     outfile->Write();
+
+    copy_header(input_path, outfile);
+
     outfile->Close();
 }
