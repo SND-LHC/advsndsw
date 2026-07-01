@@ -19,6 +19,7 @@
 #include "TGeoManager.h"
 #include "TGeoNavigator.h"
 #include "sndScifiHit.h"   // for SciFi Hit
+#include "digitisation/AdvDigitisation.h"
 
 #include <TClonesArray.h>   // or TClonesArray
 #include <TFile.h>
@@ -189,12 +190,15 @@ void DigiTaskSND::digitiseAdvTarget()
 
     int point_index = 0;
     int hit_index = 0;
-    std::map<int, std::vector<AdvPoint*>> hit_collector{};
+    std::map<int, std::vector<const AdvPoint*>> hit_collector{};
     std::map<int, int> module_map{};
-    std::map<int, std::vector<AdvHit*>> module_collector{};// a map of unique module_id and hits
+    //std::map<int, std::vector<AdvHit*>> module_collector{};// a map of unique module_id and hits
+    std::map<int, std::vector<std::map<std::string, std::vector<Int_t>>>> module_collector{};// a map of unique module_id and hits
     Hit2MCPoints mc_links;
     std::map<int, std::map<int, double>> mc_points{};
     std::map<int, double> norm{};
+
+    AdvDigitisation advdigi{};
 
     if (!gGeoManager) {
         LOG(FATAL) << "Geofile required to get the position of AdvTargetHits.";
@@ -251,8 +255,7 @@ void DigiTaskSND::digitiseAdvTarget()
     }
     for (const auto& [detector_id, points] : hit_collector) {
         // Make one hit per virtual strip (detector ID module + strip)
-        AdvHit* aHit = new ((*AdvTargetHits)[hit_index++]) AdvHit(detector_id, points);
-        module_collector[module_map[detector_id]].emplace_back(aHit);
+        module_collector[module_map[detector_id]].emplace_back(advdigi.digirunoutput(detector_id, points));
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {
             mc_links.Add(detector_id, point_id, energy_loss / norm[detector_id]);
@@ -266,23 +269,32 @@ void DigiTaskSND::digitiseAdvTarget()
     for (const auto& [detID, digihits] : module_collector)
     {
       std::vector<float> sum_adc(advsnd::strips, 0);
-      for (auto* ptr : digihits)
+      for (const auto& fDigitisedHit : digihits)
       {
-        auto* aHit = dynamic_cast<AdvHit*>(ptr);
-        auto fDigitisedHit = aHit->GetHit();
-        for(int a =0; a<fDigitisedHit["Strips"].size(); a++)
+        for(int a =0; a<fDigitisedHit.at("Strips").size(); a++)
         {
-          sum_adc[fDigitisedHit["Strips"][a]] += fDigitisedHit["ADC"][a];
+          sum_adc[fDigitisedHit.at("Strips")[a]] += fDigitisedHit.at("ADC")[a];
         }
       }// end loop over hits in the same module.
       // At this stage one has the total changer per strip in a module.
       // Now one writes the ADC to the respective digi hit, respecting saturation!
       std::vector<int> existing_hit{};
-      for (auto* ptr : digihits)
+      for (const auto& fDigitisedHit : digihits)
       {
-        auto* aHit = dynamic_cast<AdvHit*>(ptr);
-        int strip = aHit->GetStrip();
-        aHit->SetSignal(Saturate(sum_adc[strip]));
+        // auto* aHit = dynamic_cast<AdvHit*>(ptr);
+        auto it = std::find_if(std::begin(module_map), std::end(module_map),
+              [&detID]( const auto &p )
+              {
+                return p.second == detID; 
+              } );
+              
+        if (it == std::end(module_map)) 
+        {
+            LOG(WARNING) << "detector_id not found, skipping hit.";
+            continue;
+        }
+        int detector_id = it->first;
+        int strip = detector_id & 0x3FF;
         existing_hit.push_back(strip);
       }
       // Add new hits for all strips that have "non-zero" charge, but were not intersected by a particle
@@ -365,7 +377,7 @@ void DigiTaskSND::digitiseAdvMuFilter()
 
     for (const auto& [detector_id, points] : hit_collector) {
         // Make one hit per virtual strip (detector ID module + strip)
-        new ((*AdvMuFilterHits)[hit_index++]) AdvHit(detector_id, points);
+        new ((*AdvMuFilterHits)[hit_index++]) AdvHit(detector_id);
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {
             mc_links.Add(detector_id, point_id, energy_loss / norm[detector_id]);
