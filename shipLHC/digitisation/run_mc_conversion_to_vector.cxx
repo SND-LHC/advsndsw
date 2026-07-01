@@ -35,14 +35,13 @@ void copy_header(const std::string& input_root_file_path, TFile* output_root_fil
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 4) {
-        std::cerr << "3 arguments expected but " << argc - 1 << " provided\n";
-        std::cerr << "Usage: " << argv[0] << " <input_root_file> <output_root_file> <format: ttree|rntuple>\n";
+    if (argc != 3) {
+        std::cerr << "2 arguments expected but " << argc - 1 << " provided\n";
+        std::cerr << "Usage: " << argv[0] << " <input_root_file> <output_root_file>\n";
         return 1;
     }
     std::string input_path(argv[1]);
     std::string output_path(argv[2]);
-    std::string output_format(argv[3]);
 
 
     auto chain = std::make_unique<TChain>("cbmsim");
