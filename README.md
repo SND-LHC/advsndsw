@@ -80,7 +80,7 @@ On `lxplus` or any CC7/CC8 machine with access to CVMFS, you can do the followin
     ```
 2. Source the `setUp.sh` script
     ```bash
-    source /cvmfs/sndlhc.cern.ch/SNDLHC-2024/June25/setUp.sh  # recommended latest version
+    source /cvmfs/sndlhc.cern.ch/SNDLHC-2025/Oct7/setUp.sh  # recommended latest version
     ```
 3. If you don't want to modify the `advsndsw` package, skip step 3:
     ```bash
