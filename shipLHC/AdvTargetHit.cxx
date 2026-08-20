@@ -1,10 +1,24 @@
 #include "AdvTargetHit.h"
-
+#include "AdvTargetPoint.h"
+#include "digitisation/AdvSignal.h"
+#include "digitisation/AdvDigitisation.h"
 #include "FairLogger.h"
 #include "TGeoBBox.h"
 #include "TGeoManager.h"
 #include "TGeoNavigator.h"
 #include "TROOT.h"
+#include "TRandom.h"
+#include "TVector3.h"
+#include "TStopwatch.h"
+
+#include <TDatabasePDG.h>
+#include <iomanip>
+#include <typeinfo>
+#include <iostream>
+#include <string>
+#include <map>
+using std::cout;
+using std::endl;
 
 // -----   Default constructor   -------------------------------------------
 AdvTargetHit::AdvTargetHit()
@@ -29,7 +43,10 @@ AdvTargetHit::AdvTargetHit(Int_t detID)
 AdvTargetHit::AdvTargetHit(Int_t detID, const std::vector<AdvTargetPoint*>& V)
     : SndlhcHit(detID)
 {
+    AdvDigitisation advdigi{};
+    fDigitisedHit = advdigi.digirunoutput(detID, V);
     flag = true;
+
     for (Int_t i = 0; i < 16; i++) {
         fMasked[i] = kFALSE;
     }
