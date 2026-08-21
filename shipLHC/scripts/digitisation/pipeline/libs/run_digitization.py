@@ -8,7 +8,7 @@ def run_digitization(directories, run_number):
     input_root_file = (directories['converted'] / f"run{run_number:06d}" / f"run{run_number:06d}_converted.root")
 
     source_advsndsw = "source /cvmfs/sndlhc.cern.ch/SNDLHC-2025/Oct7/setUp.sh"
-    alienv = f"cd {directories['advsndsw']} && alienv enter advsndsw/latest"
+    alienv = f"cd {directories['advsndsw']} && eval $(alienv load advsndsw/latest --no-refresh)"
     # Different tb have different mapping
     mapping_file = (
         "shipLHC/digitisation/rawToDigi/mapping/detector_info_tb_5_2026.csv"
