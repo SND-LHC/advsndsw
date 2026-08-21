@@ -1,7 +1,6 @@
 import subprocess
 import logging
 import time
-import os
 
 def run_dqm(directories, run_number):
     tag = f"[run {run_number:06d}]"
@@ -9,18 +8,23 @@ def run_dqm(directories, run_number):
     input_root_file = directories['converted'] / f"run{run_number:06d}" / f"run{run_number:06d}_digi_rntuple.root"
     output_root_file = directories['histos'] / f"run{run_number:06d}_dqm.root"
 
-    advsndsw_base = os.environ["ADVSNDSW_ROOT"]
-
     source_advsndsw = "source /cvmfs/sndlhc.cern.ch/SNDLHC-2025/Oct7/setUp.sh"
     alienv = f"cd {directories['advsndsw']} && alienv enter advsndsw/latest"
 
     # Different tb have different mapping
-    detinfo_csv = os.path.join(advsndsw_base, "shipLHC/digitisation/rawToDigi/mapping/detector_info_tb_5_2026.csv") if run_number <= 386 else os.path.join(advsndsw_base, "shipLHC/digitisation/rawToDigi/mapping/detector_info_tb_7_2026.csv")
-    executable = os.path.join(advsndsw_base, "bin/run_real_time_monitoring")
+    mapping_file = (
+        "shipLHC/digitisation/rawToDigi/mapping/detector_info_tb_5_2026.csv"
+        if run_number <= 386
+        else "shipLHC/digitisation/rawToDigi/mapping/detector_info_tb_7_2026.csv"
+    )
 
-    real_time_monitoring = f"{executable} {input_root_file} {detinfo_csv} {directories['geometry']} {output_root_file} 2"
-
-    command = (f"{source_advsndsw} && {alienv} && {real_time_monitoring}")
+    command = f"""
+        {source_advsndsw} &&
+        {alienv} &&
+        executable="$ADVSNDSW_ROOT/bin/run_real_time_monitoring" &&
+        detinfo_csv="$ADVSNDSW_ROOT/{mapping_file}" &&
+        "$executable" "{input_root_file}" "$detinfo_csv" "{directories['geometry']}" "{output_root_file}" 2
+        """
 
     logging.debug("%s Running DQM command: %s", tag, command)
 
