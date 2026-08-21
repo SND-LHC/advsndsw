@@ -13,6 +13,7 @@
 #include "TFile.h"
 #include "TDirectory.h"
 #include "SiStripIO.h"
+#include "AdvHit.h"
 #include "SiStripRawToDigi.h"
 #include "SiStripDigiClustering.h"
 #include "SiStripDetInfo.h"
@@ -52,19 +53,17 @@ int main(int argc, char* argv[]){
 
     auto df = ROOT::RDataFrame("Events", input_root_file);
     // Perform digitization + clustering
-    //df.Define("FedChannelDigis", SiStripRawToDigi(detector_info_path), {"FEDRawDataCollection_rawDataCollector__LHC."})
     auto df2 = df.Define("ClusteringProducts", SiStripDigiClustering(), {"FedChannelDigis"})
         .Define("FedChannelDigis_Clust", [](const SiStripClusteringProducts& p) { return p.digis; }, {"ClusteringProducts"})
         .Define("Cluster", [](const SiStripClusteringProducts& p) { return p.clusters; }, {"ClusteringProducts"});
     // Prepare columns for histos
-    auto df3 = df2.Define("adc", ExtractRVec<SiStripDigi, uint16_t>(&SiStripDigi::GetSignal), {"FedChannelDigis_Clust"})
-        .Define("strip", ExtractRVec<SiStripDigi, uint16_t>(&SiStripDigi::GetStrip), {"FedChannelDigis_Clust"})
-        .Define("fed_key", ExtractRVec<SiStripDigi, uint32_t>(&SiStripDigi::GetFedKey), {"FedChannelDigis_Clust"})
-        .Define("layer", ExtractRVec<SiStripDigi, int>(&SiStripDigi::GetLayer), {"FedChannelDigis_Clust"})
-        .Define("row", ExtractRVec<SiStripDigi, int>(&SiStripDigi::GetRow), {"FedChannelDigis_Clust"})
-        .Define("column", ExtractRVec<SiStripDigi, int>(&SiStripDigi::GetColumn), {"FedChannelDigis_Clust"})
-        .Define("detector_id", ExtractRVec<SiStripDigi, uint32_t>(&SiStripDigi::GetDetectorId), {"FedChannelDigis_Clust"})
-        .Define("is_vertical", ExtractRVec<SiStripDigi, bool>(&SiStripDigi::IsVertical), {"FedChannelDigis_Clust"})
+    auto df3 = df2.Define("adc", ExtractRVec<AdvHit, uint16_t>(&AdvHit::GetSignal), {"FedChannelDigis_Clust"})
+        .Define("strip", ExtractRVec<AdvHit, uint16_t>(&AdvHit::GetStrip), {"FedChannelDigis_Clust"})
+        .Define("layer", ExtractRVec<AdvHit, int>(&AdvHit::GetLayer), {"FedChannelDigis_Clust"})
+        .Define("row", ExtractRVec<AdvHit, int>(&AdvHit::GetRow), {"FedChannelDigis_Clust"})
+        .Define("column", ExtractRVec<AdvHit, int>(&AdvHit::GetColumn), {"FedChannelDigis_Clust"})
+        .Define("detector_id", ExtractRVec<AdvHit, uint32_t>(&AdvHit::GetDetectorID), {"FedChannelDigis_Clust"})
+        .Define("is_vertical", ExtractRVec<AdvHit, bool>(&AdvHit::IsVertical), {"FedChannelDigis_Clust"})
         .Define("position", [](const ROOT::VecOps::RVec<uint32_t>& detids) {return ROOT::VecOps::Map(detids, GetSiStripPosition);}, {"detector_id"})
         .Define("x", [](const ROOT::VecOps::RVec<ROOT::Math::XYZPoint>& points) {return ROOT::VecOps::Map(points, [](const auto& p) { return p.X(); });}, {"position"})
         .Define("y", [](const ROOT::VecOps::RVec<ROOT::Math::XYZPoint>& points) {return ROOT::VecOps::Map(points, [](const auto& p) { return p.Y(); });}, {"position"})
@@ -78,7 +77,7 @@ int main(int argc, char* argv[]){
         .Define("cluster_layer", ExtractRVec<SiStripCluster, int>(&SiStripCluster::GetLayer), {"Cluster"})
         .Define("cluster_row", ExtractRVec<SiStripCluster, int>(&SiStripCluster::GetRow), {"Cluster"})
         .Define("cluster_column", ExtractRVec<SiStripCluster, int>(&SiStripCluster::GetColumn), {"Cluster"})
-        .Define("cluster_detector_id", ExtractRVec<SiStripCluster, uint32_t>(&SiStripCluster::GetDetectorId), {"Cluster"})
+        .Define("cluster_detector_id", ExtractRVec<SiStripCluster, uint32_t>(&SiStripCluster::GetDetectorID), {"Cluster"})
         .Define("cluster_is_vertical", ExtractRVec<SiStripCluster, bool>(&SiStripCluster::IsVertical), {"Cluster"})
         .Define("cluster_position", [](const ROOT::VecOps::RVec<uint32_t>& detids) {return ROOT::VecOps::Map(detids, GetSiStripPosition);}, {"cluster_detector_id"})
         .Define("cluster_x", [](const ROOT::VecOps::RVec<ROOT::Math::XYZPoint>& points) {return ROOT::VecOps::Map(points, [](const auto& p) { return p.X(); });}, {"cluster_position"})

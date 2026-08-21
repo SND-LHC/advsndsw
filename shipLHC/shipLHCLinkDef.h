@@ -43,6 +43,4 @@
 #pragma link C++ class FEDRawData+;
 #pragma link C++ class FEDRawDataCollection+;
 #pragma link C++ class edm::Wrapper<FEDRawDataCollection>+;
-#pragma link C++ class SiStripDigi+;
-#pragma link C++ class std::vector<SiStripDigi>+;
 #endif

@@ -1,6 +1,7 @@
 #ifndef SNDHLLHC_SISTRIP_CLUSTER_H
 #define SNDHLLHC_SISTRIP_CLUSTER_H
 
+#include "AdvHit.h"
 #include <cstdint>
 
 struct Module {
@@ -18,7 +19,7 @@ public:
     SiStripCluster(uint32_t detector_id, uint32_t adc, size_t size, int layer, int row, int column, bool is_vertical) : 
         detector_id_(detector_id), adc_(adc), size_(size), layer_(layer), row_(row), column_(column), is_vertical_(is_vertical) {}
 
-    inline uint32_t GetDetectorId() const { return detector_id_; }
+    inline uint32_t GetDetectorID() const { return detector_id_; }
     inline uint32_t GetSignal() const { return adc_; }
     inline size_t GetSize() const { return size_; }
     inline int GetLayer() const { return layer_; }
@@ -37,7 +38,7 @@ private:
 };
 
 struct SiStripClusteringProducts {
-    std::vector<SiStripDigi> digis;
+    std::vector<AdvHit> digis;
     std::vector<SiStripCluster> clusters;
 };
 

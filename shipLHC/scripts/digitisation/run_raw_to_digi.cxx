@@ -5,6 +5,7 @@
 #include "ROOT/RDataFrame.hxx"
 
 #include "SiStripIO.h"
+#include "AdvHit.h"
 #include "SiStripRawToDigi.h"
 
 int main(int argc, char* argv[]){

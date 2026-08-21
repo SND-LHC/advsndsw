@@ -2,6 +2,7 @@
 #define SNDHLLHC_SISTRIP_RAWTODIGI_H
 
 #include "SiStripIO.h"
+#include "AdvHit.h"
 #include "SiStripHardwareConstants.h"
 #include "SiStripFEDBuffer.h"
 #include "SiStripFEDChannel.h"
@@ -20,13 +21,13 @@ constexpr uint16_t getADC_W(const uint8_t* data, uint_fast16_t offset, uint8_t b
 class SiStripRawToDigi {
     public:
         SiStripRawToDigi(const std::string& detinfo_file_name) : detector_info_(GetDetectorInfo(detinfo_file_name)) { ; }
-        std::vector<SiStripDigi> operator()(const edm::Wrapper<FEDRawDataCollection>& sistrip_raw) const;
+        std::vector<AdvHit> operator()(const edm::Wrapper<FEDRawDataCollection>& sistrip_raw) const;
     private:
         std::vector<DetectorInfo> detector_info_;
 };
 
-std::vector<SiStripDigi> SiStripRawToDigi::operator()(const edm::Wrapper<FEDRawDataCollection>& sistrip_raw) const {
-    std::vector<SiStripDigi> digis;
+std::vector<AdvHit> SiStripRawToDigi::operator()(const edm::Wrapper<FEDRawDataCollection>& sistrip_raw) const {
+    std::vector<AdvHit> digis;
     // Create set of unique def_ids
     std::unordered_set<size_t> fed_ids;
     std::for_each(detector_info_.begin(), detector_info_.end(), [&] (const DetectorInfo& d){ fed_ids.insert(static_cast<size_t>(d.fedid)); });
@@ -92,7 +93,7 @@ std::vector<SiStripDigi> SiStripRawToDigi::operator()(const edm::Wrapper<FEDRawD
                 const uint16_t module_strip_id = SISTRIPS_PER_APV_PAIR * GetApvPair(detector_info) + (stripStart + firstStrip + inCluster);
 
                 // For the moment set time to 0
-                digis.emplace_back(SiStripDigi(module_strip_id, getADC_W<num_words>(data, offset, bits_shift), fed_key, 0, detector_info));
+                digis.emplace_back(AdvHit(module_strip_id, getADC_W<num_words>(data, offset, bits_shift), 0, detector_info));
                 offset += num_words;
                 ++inCluster;
             }

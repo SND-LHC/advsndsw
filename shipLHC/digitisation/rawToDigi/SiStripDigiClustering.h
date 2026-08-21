@@ -2,6 +2,7 @@
 #define SNDHLLHC_SISTRIP_DIGI_CLUSTERING_H
 
 #include "SiStripIO.h"
+#include "AdvHit.h"
 #include "SiStripHardwareConstants.h"
 #include <vector>
 #include <map>
@@ -10,14 +11,14 @@
 class SiStripDigiClustering {
     public:
         SiStripDigiClustering() { ; }
-        SiStripClusteringProducts operator()(const std::vector<SiStripDigi>& input_digis) const;
+        SiStripClusteringProducts operator()(const std::vector<AdvHit>& input_digis) const;
 };
 
-SiStripClusteringProducts SiStripDigiClustering::operator()(const std::vector<SiStripDigi>& input_digis) const
+SiStripClusteringProducts SiStripDigiClustering::operator()(const std::vector<AdvHit>& input_digis) const
 {
-    std::map<Module, std::vector<SiStripDigi>> grouped;
+    std::map<Module, std::vector<AdvHit>> grouped;
     std::vector<SiStripCluster> clusters;
-    std::vector<SiStripDigi> clustered_output;
+    std::vector<AdvHit> clustered_output;
     clustered_output.reserve(input_digis.size());
 
     // Group by module
@@ -33,14 +34,14 @@ SiStripClusteringProducts SiStripDigiClustering::operator()(const std::vector<Si
     // Cluster each module independently
     for (auto& [mod, digis] : grouped)
     {
-        std::sort(digis.begin(), digis.end(), [](const SiStripDigi& a, const SiStripDigi& b) { return a.GetStrip() < b.GetStrip();});
+        std::sort(digis.begin(), digis.end(), [](const AdvHit& a, const AdvHit& b) { return a.GetStrip() < b.GetStrip();});
         std::vector<uint8_t> used(digis.size(), 0);
 
         for (size_t i = 0; i < digis.size(); ++i)
         {
             if (used[i]) continue;
 
-            const SiStripDigi& seed = digis[i];
+            const AdvHit& seed = digis[i];
 
             if (seed.GetSignal() <= seed_thr)
                 continue;
@@ -60,7 +61,7 @@ SiStripClusteringProducts SiStripDigiClustering::operator()(const std::vector<Si
             {
                 if (used[j]) continue;
 
-                const SiStripDigi& d = digis[j];
+                const AdvHit& d = digis[j];
 
                 if (d.GetStrip() != last_strip + 1)
                     break;
@@ -81,7 +82,7 @@ SiStripClusteringProducts SiStripDigiClustering::operator()(const std::vector<Si
             {
                 if (used[j]) continue;
 
-                const SiStripDigi& d = digis[j];
+                const AdvHit& d = digis[j];
 
                 if (d.GetStrip() != last_strip - 1)
                     break;
@@ -106,7 +107,7 @@ SiStripClusteringProducts SiStripDigiClustering::operator()(const std::vector<Si
                         digi_with_most_signal = idx;
                     }
                 }
-                clusters.emplace_back(digis[digi_with_most_signal].GetDetectorId(), sum_signal, cluster.size(), mod.layer, mod.row, mod.col, digis[digi_with_most_signal].IsVertical());
+                clusters.emplace_back(digis[digi_with_most_signal].GetDetectorID(), sum_signal, cluster.size(), mod.layer, mod.row, mod.col, digis[digi_with_most_signal].IsVertical());
             }
             else
             {

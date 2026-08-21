@@ -5,5 +5,4 @@
 #include "edm__DoNotRecordParents.h"
 #include "FEDRawData.h"
 
-#include "SiStripDigi.h"
 #include "SiStripCluster.h"
