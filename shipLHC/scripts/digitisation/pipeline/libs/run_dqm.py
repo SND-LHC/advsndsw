@@ -1,6 +1,7 @@
 import subprocess
 import logging
 import time
+import os
 
 def run_dqm(directories, run_number):
     tag = f"[run {run_number:06d}]"
