@@ -1,3 +1,5 @@
+#include "digitisation/rawSiStripHeaders/SiStripIO.h"
+
 #ifdef __CINT__
 
 #pragma link off all globals;
@@ -35,4 +37,12 @@
 #pragma link C++ class digitisation/EnergyFluctUnit + ;
 #pragma link C++ class digitisation/SurfaceSignal + ;
 #pragma link C++ class digitisation/AdvDigitisation + ;
+#pragma link C++ class edm::ViewTypeChecker+;
+#pragma link C++ class edm::WrapperBase+;
+#pragma link C++ class edm::DoNotRecordParents+;
+#pragma link C++ class FEDRawData+;
+#pragma link C++ class FEDRawDataCollection+;
+#pragma link C++ class edm::Wrapper<FEDRawDataCollection>+;
+#pragma link C++ class SiStripDigi+;
+#pragma link C++ class std::vector<SiStripDigi>+;
 #endif

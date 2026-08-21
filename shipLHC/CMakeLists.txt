@@ -7,6 +7,8 @@ ${BASE_INCLUDE_DIRECTORIES}
 ${CMAKE_SOURCE_DIR}/shipdata
 ${CMAKE_SOURCE_DIR}/shipLHC
 ${CMAKE_SOURCE_DIR}/shipLHC/digitisation
+${CMAKE_SOURCE_DIR}/shipLHC/digitisation/rawSiStripHeaders
+${CMAKE_SOURCE_DIR}/shipLHC/digitisation/rawToDigi
 ${CMAKE_SOURCE_DIR}/shipLHC/external/clhep/include
 ${CMAKE_SOURCE_DIR}/veto
 ${CMAKE_SOURCE_DIR}/genfit/core/include
@@ -56,6 +58,8 @@ digitisation/FrontendDriver.cxx
 digitisation/StripNoise.cxx
 digitisation/SiG4UniversalFluctuation.cxx
 digitisation/AdvDigitisation.cxx
+digitisation/rawToDigi/SiStripFEDBuffer.cxx
+digitisation/rawSiStripHeaders/SiStripIO.cxx
 )
 
 Set(HEADERS )
@@ -75,3 +79,9 @@ target_link_libraries(run_mc_digitisation ${ROOT_LIBRARIES} shipLHC veto FairToo
 
 add_executable(run_mc_conversion_to_vector scripts/digitisation/run_mc_conversion_to_vector.cxx)
 target_link_libraries(run_mc_conversion_to_vector ${ROOT_LIBRARIES} shipLHC veto)
+
+add_executable(run_raw_to_digi scripts/digitisation/run_raw_to_digi.cxx)
+target_link_libraries(run_raw_to_digi ${ROOT_LIBRARIES} shipLHC veto)
+
+add_executable(run_real_time_monitoring scripts/digitisation/run_real_time_monitoring.cxx)
+target_link_libraries(run_real_time_monitoring ${ROOT_LIBRARIES} shipLHC veto)
