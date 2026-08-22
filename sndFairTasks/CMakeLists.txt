@@ -7,6 +7,7 @@ ${BASE_INCLUDE_DIRECTORIES}
 ${CMAKE_SOURCE_DIR}/shipdata
 ${CMAKE_SOURCE_DIR}/shipLHC
 ${CMAKE_SOURCE_DIR}/shipLHC/digitisation
+${CMAKE_SOURCE_DIR}/shipLHC/digitisation/rawToDigi
 ${CMAKE_SOURCE_DIR}/sndFairTasks
 ${CMAKE_SOURCE_DIR}/veto
 ${ROOT_INCLUDE_DIR}

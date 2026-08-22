@@ -2,6 +2,7 @@
 #define SHIPLHC_ADVHIT_H_
 
 #include "SiSensor.h"
+#include "SiStripDetInfo.h"
 #include "TObject.h"
 #include <vector>
 #include <cstdint>
@@ -11,6 +12,8 @@ class AdvHit : public TObject
   public:
     /** Default constructor **/
     AdvHit() : detector_id_(0), daq_id_(0), time_(0), signal_(0.0), is_valid_(true) {}
+
+    AdvHit(uint16_t strip, uint16_t adc, float time, const DetectorInfo& detinfo); // From raw data
 
     explicit AdvHit(uint32_t detID) : detector_id_(detID), daq_id_(0), time_(0), signal_(0.0), is_valid_(true) {}
 
