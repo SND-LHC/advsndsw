@@ -7,14 +7,14 @@
 #include <cstring>
 
 FEDBuffer::FEDBuffer(const FEDRawData& fedBuffer) : originalBuffer_(fedBuffer.data()), orderedBuffer_(originalBuffer_), bufferSize_(fedBuffer.size()), validChannels_(0) {
-  channels_.reserve(FEDCH_PER_FED);
+  channels_.reserve(stripsensor::FEDCH_PER_FED);
   constexpr size_t header_lenght_in_bytes{128};
   feHeader_ = std::unique_ptr<FEDFullDebugHeader>(new FEDFullDebugHeader(getPointerToDataAfterTrackerSpecialHeader()));
   payloadPointer_ = getPointerToDataAfterTrackerSpecialHeader() + header_lenght_in_bytes;
   payloadLength_ = getPointerToByteAfterEndOfPayload() - payloadPointer_;
 
   if (feHeader_) {
-    for (uint8_t iFE = 0; iFE < FEUNITS_PER_FED; ++iFE) {
+    for (uint8_t iFE = 0; iFE < stripsensor::FEUNITS_PER_FED; ++iFE) {
       fePresent_[iFE] = feHeader_->fePresent(iFE);
     }
   }
@@ -28,11 +28,11 @@ const uint8_t* FEDBuffer::getPointerToByteAfterEndOfPayload() const {
 
 void FEDBuffer::findChannels() {
   uint16_t offsetBeginningOfChannel = 0;
-  for (uint16_t i{0}; i < FEDCH_PER_FED; ++i) {
-    if (!(fePresent(i / FEDCH_PER_FEUNIT))) { // should also check for feEnabled but it seems always true
-      channels_.insert(channels_.end(), static_cast<uint16_t>(FEDCH_PER_FEUNIT), FEDChannel(payloadPointer_, 0, 0));
-      i += FEDCH_PER_FEUNIT - 1;
-      validChannels_ += FEDCH_PER_FEUNIT;
+  for (uint16_t i{0}; i < stripsensor::FEDCH_PER_FED; ++i) {
+    if (!(fePresent(i / stripsensor::FEDCH_PER_FEUNIT))) { // should also check for feEnabled but it seems always true
+      channels_.insert(channels_.end(), static_cast<uint16_t>(stripsensor::FEDCH_PER_FEUNIT), FEDChannel(payloadPointer_, 0, 0));
+      i += stripsensor::FEDCH_PER_FEUNIT - 1;
+      validChannels_ += stripsensor::FEDCH_PER_FEUNIT;
       continue;
     }
     channels_.emplace_back(payloadPointer_, offsetBeginningOfChannel);
@@ -41,7 +41,7 @@ void FEDBuffer::findChannels() {
     validChannels_++;
     const uint16_t offsetEndOfChannel = offsetBeginningOfChannel + channelLength;
     // Add padding if necessary and calculate offset for begining of next channel
-    if (!((i + 1) % FEDCH_PER_FEUNIT)) {
+    if (!((i + 1) % stripsensor::FEDCH_PER_FEUNIT)) {
       uint8_t numPaddingBytes = 8 - (offsetEndOfChannel % 8);
       if (numPaddingBytes == 8)
         numPaddingBytes = 0;

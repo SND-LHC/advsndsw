@@ -103,11 +103,11 @@ int main(int argc, char* argv[]){
 
     const int max_layer = layer_map.rbegin()->first;
     constexpr double x_min = -30.0;
-    constexpr double x_max = 0.0;
-    constexpr double y_min = 15.0;
+    constexpr double x_max = -5.0;
+    constexpr double y_min = 20.0;
     constexpr double y_max = 45.0;
     constexpr double z_min = 165.0;
-    constexpr double z_max = 195.0;
+    constexpr double z_max = 200.0;
 
     auto df4 = df3.Define("layer_vec", [max_layer]() {
             ROOT::RVec<int> l_vec(max_layer + 1);
@@ -209,24 +209,24 @@ int main(int argc, char* argv[]){
                 .Define("cluster_adc_module", select_cluster_adc).Define("cluster_size_module", select_cluster_size).Define("n_clusters_module", "cluster_adc_module.size()");
 
             histos_1d[layer].emplace_back(df_module.Histo1D<ROOT::RVec<uint16_t>>({h_adc_name.c_str(), (h_adc_name + std::string(";adc;Entries")).c_str(), 256, 0, 256}, "adc_module"));
-            histos_1d[layer].emplace_back(df_module.Histo1D<ROOT::RVec<uint16_t>>({h_strip_name.c_str(), (h_strip_name + std::string(";strip;Entries")).c_str(), MAX_SISTRIPS_PER_MODULE, 0, static_cast<double>(MAX_SISTRIPS_PER_MODULE)}, "sistrip_module"));
-            histos_1d[layer].emplace_back(df_module.Histo1D<std::size_t>({h_nhits_name.c_str(), (h_nhits_name + std::string(";nhits;Entries")).c_str(), MAX_SISTRIPS_PER_MODULE, 0, static_cast<double>(MAX_SISTRIPS_PER_MODULE)}, "nhits_module"));
+            histos_1d[layer].emplace_back(df_module.Histo1D<ROOT::RVec<uint16_t>>({h_strip_name.c_str(), (h_strip_name + std::string(";strip;Entries")).c_str(), stripsensor::MAX_SISTRIPS_PER_MODULE, 0, static_cast<double>(stripsensor::MAX_SISTRIPS_PER_MODULE)}, "sistrip_module"));
+            histos_1d[layer].emplace_back(df_module.Histo1D<std::size_t>({h_nhits_name.c_str(), (h_nhits_name + std::string(";nhits;Entries")).c_str(), stripsensor::MAX_SISTRIPS_PER_MODULE, 0, static_cast<double>(stripsensor::MAX_SISTRIPS_PER_MODULE)}, "nhits_module"));
             histos_1d[layer].emplace_back(df_module.Histo1D<ROOT::RVec<uint32_t>>({h_cluster_adc_name.c_str(), (h_cluster_adc_name + std::string(";adc;Entries")).c_str(), 3000, 0, 3000}, "cluster_adc_module"));
             histos_1d[layer].emplace_back(df_module.Histo1D<ROOT::RVec<size_t>>({h_cluster_size_name.c_str(), (h_cluster_size_name + std::string(";size;Entries")).c_str(), 100, 0, 100}, "cluster_size_module"));
-            histos_1d[layer].emplace_back(df_module.Histo1D<std::size_t>({h_n_clusters_name.c_str(), (h_n_clusters_name + std::string(";n clusters;Entries")).c_str(), MAX_SISTRIPS_PER_MODULE / 8, 0, static_cast<double>(MAX_SISTRIPS_PER_MODULE / 8)}, "n_clusters_module"));
+            histos_1d[layer].emplace_back(df_module.Histo1D<std::size_t>({h_n_clusters_name.c_str(), (h_n_clusters_name + std::string(";n clusters;Entries")).c_str(), stripsensor::MAX_SISTRIPS_PER_MODULE / 8, 0, static_cast<double>(stripsensor::MAX_SISTRIPS_PER_MODULE / 8)}, "n_clusters_module"));
             histos_1d[layer].emplace_back(df_module.Histo1D<float>({h_saturated_percentage_name.c_str(), (h_saturated_percentage_name + std::string(";saturated %;Entries")).c_str(), 101, 0, 101}, "saturated_percentage_module"));
-            histos_2d[layer].emplace_back(df_module.Histo2D<ROOT::RVec<uint16_t>, ROOT::RVec<uint16_t>>({h_adc_vs_strip_name.c_str(), (h_adc_vs_strip_name + std::string(";strip;adc;Entries")).c_str(),  MAX_SISTRIPS_PER_MODULE, 0, static_cast<double>(MAX_SISTRIPS_PER_MODULE), 256, 0, 256}, "sistrip_module", "adc_module"));
+            histos_2d[layer].emplace_back(df_module.Histo2D<ROOT::RVec<uint16_t>, ROOT::RVec<uint16_t>>({h_adc_vs_strip_name.c_str(), (h_adc_vs_strip_name + std::string(";strip;adc;Entries")).c_str(),  stripsensor::MAX_SISTRIPS_PER_MODULE, 0, static_cast<double>(stripsensor::MAX_SISTRIPS_PER_MODULE), 256, 0, 256}, "sistrip_module", "adc_module"));
             histos_2d[layer].emplace_back(df_module.Histo2D<ROOT::RVec<size_t>, ROOT::RVec<uint32_t>>({h_cluster_adc_vs_size_name.c_str(), (h_cluster_adc_vs_size_name + std::string(";size;adc;Entries")).c_str(), 100, 0, 100, 3000, 0, 3000}, "cluster_size_module", "cluster_adc_module"));
 
             if (layer % 2 == 0) {
                 std::string h_x_vs_strip_name = Form("x vs strip Layer %d Row %d Column %d", layer, row, col);
                 auto df_debug = df_module.Define("x_module", Form("x[(layer == %d) && (row == %d) && (column == %d) && is_vertical]", layer, row, col));
-                histos_2d[layer].emplace_back(df_debug.Histo2D<ROOT::RVec<uint16_t>, ROOT::RVec<double>>({h_x_vs_strip_name.c_str(), (h_x_vs_strip_name + std::string(";strip;x [cm];Entries")).c_str(), MAX_SISTRIPS_PER_MODULE, 0, static_cast<double>(MAX_SISTRIPS_PER_MODULE), 1000, x_min, x_max}, "sistrip_module", "x_module"));
+                histos_2d[layer].emplace_back(df_debug.Histo2D<ROOT::RVec<uint16_t>, ROOT::RVec<double>>({h_x_vs_strip_name.c_str(), (h_x_vs_strip_name + std::string(";strip;x [cm];Entries")).c_str(), stripsensor::MAX_SISTRIPS_PER_MODULE, 0, static_cast<double>(stripsensor::MAX_SISTRIPS_PER_MODULE), 1000, x_min, x_max}, "sistrip_module", "x_module"));
             }
             else {
                 std::string h_y_vs_strip_name = Form("y vs strip Layer %d Row %d Column %d", layer, row, col);
                 auto df_debug = df_module.Define("y_module", Form("y[(layer == %d) && (row == %d) && (column == %d) && (is_vertical == false)]", layer, row, col));
-                histos_2d[layer].emplace_back(df_debug.Histo2D<ROOT::RVec<uint16_t>, ROOT::RVec<double>>({h_y_vs_strip_name.c_str(), (h_y_vs_strip_name + std::string(";strip;y [cm];Entries")).c_str(), MAX_SISTRIPS_PER_MODULE, 0, static_cast<double>(MAX_SISTRIPS_PER_MODULE), 1000, y_min, y_max}, "sistrip_module", "y_module"));
+                histos_2d[layer].emplace_back(df_debug.Histo2D<ROOT::RVec<uint16_t>, ROOT::RVec<double>>({h_y_vs_strip_name.c_str(), (h_y_vs_strip_name + std::string(";strip;y [cm];Entries")).c_str(), stripsensor::MAX_SISTRIPS_PER_MODULE, 0, static_cast<double>(stripsensor::MAX_SISTRIPS_PER_MODULE), 1000, y_min, y_max}, "sistrip_module", "y_module"));
             }
         }
     }

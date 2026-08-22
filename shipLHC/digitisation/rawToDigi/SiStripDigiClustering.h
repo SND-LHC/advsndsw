@@ -27,9 +27,9 @@ SiStripClusteringProducts SiStripDigiClustering::operator()(const std::vector<Ad
         grouped[{d.GetLayer(), d.GetRow(), d.GetColumn()}].push_back(d);
     }
 
-    constexpr uint16_t seed_thr  = 3 * SISTRIP_NOISE_ADC;
-    constexpr uint16_t neigh_thr = 2 * SISTRIP_NOISE_ADC;
-    constexpr uint16_t cluster_cut_factor = SISTRIP_NOISE_ADC * SISTRIP_NOISE_ADC;
+    constexpr uint16_t seed_thr  = 3 * stripsensor::SISTRIP_NOISE_ADC;
+    constexpr uint16_t neigh_thr = 2 * stripsensor::SISTRIP_NOISE_ADC;
+    constexpr uint16_t cluster_cut_factor = stripsensor::SISTRIP_NOISE_ADC * stripsensor::SISTRIP_NOISE_ADC;
 
     // Cluster each module independently
     for (auto& [mod, digis] : grouped)

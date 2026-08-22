@@ -32,7 +32,7 @@ class FEDBuffer {
     size_t bufferSize_;
     uint16_t payloadLength_;
     uint8_t validChannels_;
-    bool fePresent_[FEUNITS_PER_FED];
+    bool fePresent_[stripsensor::FEUNITS_PER_FED];
 };
 
 #endif

@@ -57,7 +57,7 @@ std::vector<AdvHit> SiStripRawToDigi::operator()(const edm::Wrapper<FEDRawDataCo
 
         buffer.findChannels();
         // Loop on FED channels
-        for (uint8_t i_ch{0}; i_ch < FEDCH_PER_FED; ++i_ch) {
+        for (uint8_t i_ch{0}; i_ch < stripsensor::FEDCH_PER_FED; ++i_ch) {
             // TODO skip bad channels
             const auto channel = buffer.channel(i_ch);
             if (channel.length() == 0) {
@@ -90,7 +90,7 @@ std::vector<AdvHit> SiStripRawToDigi::operator()(const edm::Wrapper<FEDRawDataCo
                 auto& detector_info = *(it_detinfo->second);
                 
                 // The strip id in a module ranges 0 - 756, depending on the APV
-                const uint16_t module_strip_id = SISTRIPS_PER_APV_PAIR * GetApvPair(detector_info) + (stripStart + firstStrip + inCluster);
+                const uint16_t module_strip_id = stripsensor::SISTRIPS_PER_APV_PAIR * GetApvPair(detector_info) + (stripStart + firstStrip + inCluster);
 
                 // For the moment set time to 0
                 digis.emplace_back(AdvHit(module_strip_id, getADC_W<num_words>(data, offset, bits_shift), 0, detector_info));
