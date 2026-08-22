@@ -8,7 +8,7 @@ def run_dqm(directories, run_number):
     input_root_file = directories['converted'] / f"run{run_number:06d}" / f"run{run_number:06d}_digi_rntuple.root"
     output_root_file = directories['histos'] / f"run{run_number:06d}_dqm.root"
 
-    source_advsndsw = "source /cvmfs/sndlhc.cern.ch/SNDLHC-2025/Oct7/setUp.sh"
+    source_advsndsw = "source /opt/run4/software/setUp.sh"
     alienv = f"cd {directories['advsndsw']} && eval $(alienv load advsndsw/latest --no-refresh)"
 
     # Different tb have different mapping
