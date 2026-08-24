@@ -271,7 +271,7 @@ def numPlanesHit(detector_ids):
     """Return how many planes have a hit."""
     adv_target_stations = []
 
-    adv_target_stations.append(detector_ids >> 17)
+    adv_target_stations.append(detector_ids >> 11)
 
     return len(np.unique(adv_target_stations))
 
@@ -300,6 +300,8 @@ class MuonReco(ROOT.FairTask):
         eventTree = None
         if sink:
             eventTree = sink.GetOutTree()
+        if not eventTree:
+           eventTree=self.ioman.GetInTree()
         if eventTree:
             self.AdvTargetHits = eventTree.Digi_AdvTargetHits
             self.EventHeader = eventTree.EventHeader
@@ -423,7 +425,7 @@ class MuonReco(ROOT.FairTask):
         self.AdvTarget_dz = self.AdvTargetDet.GetConfParI("AdvTarget/TTZ")
 
         # Get number of readout channels
-        self.AdvTarget_nPlanes = self.AdvTargetDet.GetConfParI("AdvTarget/nTT")
+        self.AdvTarget_nPlanes = self.AdvTargetDet.GetConfParI("AdvTarget/nTT")+1
         self.max_n_hits_plane = 3
         self.max_n_AdvTarget_hits = self.max_n_hits_plane * 2 * self.AdvTarget_nPlanes
 
@@ -653,12 +655,14 @@ class MuonReco(ROOT.FairTask):
                 for i in range(self.AdvTarget_nPlanes):
                     N_plane_ZY[i] = 0
                     N_plane_ZX[i] = 0
+                if not self.AdvTargetHits: 
+                  return
                 for adv_target_hit in self.AdvTargetHits:
                     # if not adv_target_hit.isValid(): continue
-                    if adv_target_hit.isVertical():
-                        N_plane_ZX[adv_target_hit.GetStation()] += 1
+                    if adv_target_hit.IsVertical():
+                        N_plane_ZX[adv_target_hit.GetLayer()] += 1
                     else:
-                        N_plane_ZY[adv_target_hit.GetStation()] += 1
+                        N_plane_ZY[adv_target_hit.GetLayer()] += 1
                 if self.mask_plane:
                     mask_plane_ZY = []
                     mask_plane_ZX = []
@@ -705,18 +709,18 @@ class MuonReco(ROOT.FairTask):
                     hit_collection["d"][1].append(self.AdvTarget_dy)
                     hit_collection["d"][2].append(self.AdvTarget_dz)
 
-                    hit_collection["vert"].append(adv_target_hit.isVertical())
+                    hit_collection["vert"].append(adv_target_hit.IsVertical())
                     hit_collection["index"].append(i_hit)
 
                     hit_collection["detectorID"].append(adv_target_hit.GetDetectorID())
 
                     if self.mask_plane:
                         if (
-                            adv_target_hit.isVertical() == 0
-                            and adv_target_hit.GetStation() in mask_plane_ZY
+                            adv_target_hit.IsVertical() == 0
+                            and adv_target_hit.GetLayer() in mask_plane_ZY
                         ) or (
-                            adv_target_hit.isVertical()
-                            and adv_target_hit.GetStation() in mask_plane_ZX
+                            adv_target_hit.IsVertical()
+                            and adv_target_hit.GetLayer() in mask_plane_ZX
                         ):
                             hit_collection["mask"].append(True)
                         else:
@@ -759,12 +763,14 @@ class MuonReco(ROOT.FairTask):
             n_planes_ZY = numPlanesHit(
                 hit_collection["detectorID"][~hit_collection["vert"]]
             )
+
             if n_planes_ZY < self.min_planes_hit:
                 break
 
             n_planes_ZX = numPlanesHit(
                 hit_collection["detectorID"][hit_collection["vert"]]
             )
+
             if n_planes_ZX < self.min_planes_hit:
                 break
 

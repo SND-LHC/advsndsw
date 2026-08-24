@@ -117,7 +117,7 @@
            to start pattern recognition.
            Also, the required minimum number of planes intersected by
            the Hough line prediction to proceed to track fitting. -->
-     <min_planes_hit> 5 </min_planes_hit>
+     <min_planes_hit> 3 </min_planes_hit>
      <!--  Mask a detector plane if its number of hits is larger than Nhits_per_plane.
            Masking is only applied to detectors used for Hough transform.
            Plane masking always leaves at least <min_planes_hit> active planes
@@ -158,12 +158,12 @@
            <xH_max_yz unit="rad">  1.57 </xH_max_yz>
      </Hough_space_format>
      <Hough_space_format name = "linearSlopeIntercept">
-           <N_yH_bins> 7000 </N_yH_bins>
-           <yH_min_xz unit="cm"> -20. </yH_min_xz>
-           <yH_max_xz unit="cm">  20.  </yH_max_xz>
-           <yH_min_yz unit="cm"> -20.  </yH_min_yz>
-           <yH_max_yz unit="cm">  20. </yH_max_yz>
-           <N_xH_bins> 7000 </N_xH_bins>
+           <N_yH_bins> 1000 </N_yH_bins>
+           <yH_min_xz unit="cm"> -30. </yH_min_xz>
+           <yH_max_xz unit="cm">  -5. </yH_max_xz>
+           <yH_min_yz unit="cm"> 20.  </yH_min_yz>
+           <yH_max_yz unit="cm">  45. </yH_max_yz>
+           <N_xH_bins> 1000 </N_xH_bins>
            <xH_min_xz unit="rad"> -1.43 </xH_min_xz>
            <xH_max_xz unit="rad">  1.43 </xH_max_xz>
            <xH_min_yz unit="rad"> -1.43 </xH_min_yz>

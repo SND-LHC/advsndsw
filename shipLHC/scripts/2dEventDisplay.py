@@ -91,7 +91,7 @@ run.SetSource(source)
 sink = ROOT.FairRootFileSink(outFile)
 run.SetSink(sink)
 
-HT_tasks = {'muon_reco_task_Sf':SndlhcMuonReco.MuonReco(),
+HT_tasks = {'muon_reco_task_Target':SndlhcMuonReco.MuonReco(),
             'muon_reco_task_nuInt':SndlhcMuonReco.MuonReco()}
 for ht_task in HT_tasks.values():
     run.AddTask(ht_task)
@@ -107,7 +107,7 @@ for ht_task in HT_tasks.values():
     # force the output of reco task to genfit::Track
     # as the display code looks for such output
     ht_task.ForceGenfitTrackFormat()
-HT_tasks['muon_reco_task_Sf'].SetTrackingCase('nu_interaction_products')
+HT_tasks['muon_reco_task_Target'].SetTrackingCase('passing_mu_AdvTarget')
 HT_tasks['muon_reco_task_nuInt'].SetTrackingCase('nu_interaction_products')
 
 run.Init()
@@ -316,9 +316,7 @@ def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup=
        for ht_task in HT_tasks.values():
            ht_task.kalman_tracks.Delete()
        if withHoughTrack==1:
-            HT_tasks['muon_reco_task_Sf'].Exec(0)
-       elif withHoughTrack==2:
-            HT_tasks['muon_reco_task_Sf'].Exec(0)
+            HT_tasks['muon_reco_task_Target'].Exec(0)
        elif withHoughTrack==4:
             HT_tasks['muon_reco_task_nuInt'].Exec(0)
        # Save the tracks in OT.Reco_MuonTracks object
@@ -458,9 +456,9 @@ def loopEvents(start=0,save=False,withHoughTrack=-1,nTracks=0,option=None,Setup=
           if h[collection][c][1].GetN()<1: continue
           if hitColour not in ["q"] :
               h[collection][c][1].SetMarkerStyle(20)
-              h[collection][c][1].SetMarkerSize(0.5)
+              h[collection][c][1].SetMarkerSize(1.2)
               if c=='AdvTarget':
-                h[collection][c][1].SetMarkerColor(ROOT.kBlue+2)
+                h[collection][c][1].SetMarkerColor(ROOT.kOrange+7)
               else: 
                 h[collection][c][1].SetMarkerColor(ROOT.kRed+2)
               rc=h[collection][c][1].Draw('sameP')
@@ -1090,7 +1088,7 @@ def drawInfo(pad, k, run, event, timestamp, setup, moreEventInfo=[]):
    if drawText:
     if k==1 or len(moreEventInfo)<5:
       runNumber = eventTree.EventHeader.GetRunId()
-      if eventTree.GetBranch('MCTrack'):
+      if eventTree.GetBranch('MCTrack') or setup == 'H4':
         timestamp_start = False
       else:
         timestamp_start = getStartTime(runNumber)
@@ -1116,7 +1114,7 @@ def drawInfo(pad, k, run, event, timestamp, setup, moreEventInfo=[]):
       textInfo.DrawLatex(0, 0.4, 'Run / Event: '+str(run)+' / '+str(N))
       if timestamp_start:
            textInfo.DrawLatex(0, 0.2, 'Time (GMT): {}'.format(time_event))
-      else:
+      elif eventTree.GetBranch('MCTrack'):
            textInfo.DrawLatex(0, 0.2, 'MC simulation')
       pad.cd(k)
     elif options.extraInfo:
