@@ -14,7 +14,22 @@ using namespace std;
 
 FrontendDriver::FrontendDriver() {}
 
-AdvSignal FrontendDriver::FEDResponse(AdvSignal Signal)
+AdvSignal FrontendDriver::FEDResponse(Int_t detID)
+{
+    std::vector<AdvSignal> temp_FEDResponseSignal;
+
+    StripNoise stripnoise{}; 
+    InducedCharge inducedcharge{}; 
+
+    AdvSignal noisesignal = stripnoise.AddGaussianNoise(detID); 
+    temp_FEDResponseSignal.push_back(noisesignal); 
+    AdvSignal FEDResponseSignal = inducedcharge.Combine(temp_FEDResponseSignal); 
+    FEDResponseSignal = ZeroSuppressionAlgorithms(FEDResponseSignal);
+    FEDResponseSignal = SaturateRange(FEDResponseSignal);
+    return FEDResponseSignal; 
+}
+
+AdvSignal FrontendDriver::FEDResponse(Int_t detID, AdvSignal Signal)
 {
     AdvSignal ADCResponse = ADCConversion(Signal); 
 
@@ -24,16 +39,18 @@ AdvSignal FrontendDriver::FEDResponse(AdvSignal Signal)
     StripNoise stripnoise{}; 
     InducedCharge inducedcharge{}; 
     
-    if (stripsensor::frontend::ZSModeOption && stripsensor::frontend::NoiseOption)
+    if (stripsensor::frontend::ZSModeOption)
     {
+        AdvSignal noisesignal = stripnoise.AddGaussianNoise(detID);
         FEDResponseSignal = stripnoise.AddGaussianTailNoise(Signal); 
         temp_FEDResponseSignal.push_back(FEDResponseSignal);
+        temp_FEDResponseSignal.push_back(noisesignal);
         FEDResponseSignal = inducedcharge.Combine(temp_FEDResponseSignal); 
         FEDResponseSignal = ZeroSuppressionAlgorithms(FEDResponseSignal);
     }
     if (!stripsensor::frontend::ZSModeOption)
     {
-        FEDResponseSignal = stripnoise.AddGaussianNoise(Signal);
+        //FEDResponseSignal = stripnoise.AddGaussianNoise(Signal);
         FEDResponseSignal = stripnoise.AddCMNoise(FEDResponseSignal); 
         temp_FEDResponseSignal.push_back(FEDResponseSignal);
         FEDResponseSignal = inducedcharge.Combine(temp_FEDResponseSignal); 

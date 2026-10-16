@@ -1,6 +1,8 @@
 #include "DigiTaskSND.h"   // for Digitization
 
 #include "AdvHit.h"
+#include "StripNoise.h"
+#include "SiDigiParameters.h"
 #include "AdvPoint.h"
 #include "AdvTarget.h"           // for AdvTarget detector
 #include "FairLink.h"            // for FairLink
@@ -30,6 +32,7 @@
 #include <algorithm>   // std::sort
 #include <iostream>    // for operator<<, basic_ostream, endl
 #include <vector>      // std::vector
+#include <map>
 
 using namespace std;
 
@@ -139,6 +142,14 @@ InitStatus DigiTaskSND::Init()
           "Digi_AdvMuFilterHits2MCPoints", "DigiAdvMuFilterHits2MCPoints_det", AdvMuFilterHits2MCPoints, kTRUE);
       AdvMuFilterHits2MCPoints->BypassStreamer(kTRUE);
     }
+
+    StripNoise stripnoise;  
+    if (!stripsensor::frontend::NoiseOption)
+    {
+        stripnoise.CreateNoiseProfile();
+    }
+
+    stripnoise.CreateDetIDs(); 
 
     if(AdvTargetPoints) {
       AdvTargetHits = new TClonesArray("AdvHit");
@@ -254,14 +265,30 @@ void DigiTaskSND::digitiseAdvTarget()
         norm[detector_id] += point->GetEnergyLoss();
     }
     for (const auto& [detector_id, points] : hit_collector) {
+
+        int module_detid = ((detector_id & ~0x3FF) | (0 & 0x3FF));
+        auto it = std::find(StripNoise::detids.begin(),
+                            StripNoise::detids.end(),
+                            module_detid);
+
+        if (it != StripNoise::detids.end())
+        {
+            StripNoise::detids.erase(it);
+        }
         // Make one hit per virtual strip (detector ID module + strip)
         module_collector[module_map[detector_id]].emplace_back(advdigi.digirunoutput(detector_id, points));
         auto point_map = mc_points[detector_id];
         for (const auto& [point_id, energy_loss] : point_map) {
             mc_links.Add(detector_id, point_id, energy_loss / norm[detector_id]);
         }
-
     }
+    for (const auto detector_id : StripNoise::detids)
+    {
+        module_map[detector_id] = detector_id; 
+        module_collector[module_map[detector_id]].emplace_back(advdigi.digirunoutput(detector_id));
+    }
+
+
     new ((*AdvTargetHits2MCPoints)[0]) Hit2MCPoints(mc_links);
 
     // Loop over hits in an unique module and sum the charges per unique strip
@@ -273,30 +300,31 @@ void DigiTaskSND::digitiseAdvTarget()
       {
         for(int a =0; a<fDigitisedHit.at("Strips").size(); a++)
         {
-          sum_adc[fDigitisedHit.at("Strips")[a]] += fDigitisedHit.at("ADC")[a];
+          sum_adc[fDigitisedHit.at("Strips")[a]] = fDigitisedHit.at("ADC")[a];
         }
       }// end loop over hits in the same module.
-      // At this stage one has the total changer per strip in a module.
-      // Now one writes the ADC to the respective digi hit, respecting saturation!
-      std::vector<int> existing_hit{};
-      for (const auto& fDigitisedHit : digihits)
-      {
-        // auto* aHit = dynamic_cast<AdvHit*>(ptr);
-        auto it = std::find_if(std::begin(module_map), std::end(module_map),
-              [&detID]( const auto &p )
-              {
-                return p.second == detID; 
-              } );
+    //   // At this stage one has the total changer per strip in a module.
+    //   // Now one writes the ADC to the respective digi hit, respecting saturation!
+    //   std::vector<int> existing_hit{};
+    //   for (const auto& fDigitisedHit : digihits)
+    //   {
+    //     // auto* aHit = dynamic_cast<AdvHit*>(ptr);
+    //     auto it = std::find_if(std::begin(module_map), std::end(module_map),
+    //           [&detID]( const auto &p )
+    //           {
+    //             return p.second == detID; 
+    //           } );
               
-        if (it == std::end(module_map)) 
-        {
-            LOG(WARNING) << "detector_id not found, skipping hit.";
-            continue;
-        }
-        int detector_id = it->first;
-        int strip = detector_id & 0x3FF;
-        existing_hit.push_back(strip);
-      }
+    //     if (it == std::end(module_map)) 
+    //     {
+    //         LOG(WARNING) << "detector_id not found, skipping hit.";
+    //         continue;
+    //     }
+    //     int detector_id = it->first;
+    //     int strip = detector_id & 0x3FF;
+    //     existing_hit.push_back(strip);
+    //   }
+
       // Add new hits for all strips that have "non-zero" charge, but were not intersected by a particle
       // meaning one now adds noise hits.
       // Beware "non-zero charge" in Virgin Raw is real non-zero, while for Zero Suppression it means charge
@@ -304,10 +332,11 @@ void DigiTaskSND::digitiseAdvTarget()
       for (auto i=0; i < advsnd::strips; i++ )
       {
         if (sum_adc[i] == 0) continue;
-        if (count(existing_hit.begin(), existing_hit.end(), i)) continue;
+        //if (count(existing_hit.begin(), existing_hit.end(), i)) continue;
         else
         {
-          auto detector_id = detID - 999 + i;
+          //auto detector_id = detID - 999 + i;
+          auto detector_id = ((detID & ~0x3FF) | (i & 0x3FF));
           AdvHit* aHit = new ((*AdvTargetHits)[hit_index++]) AdvHit(detector_id);
           aHit->SetSignal(Saturate(sum_adc[i]));
         }

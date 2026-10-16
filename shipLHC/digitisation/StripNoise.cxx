@@ -2,13 +2,15 @@
 #include "SiDigiParameters.h"
 #include "AdvSignal.h"
 #include "TRandom.h"
-
+#include "TGeoManager.h"
 
 #include <iostream>
 #include <vector>
 #include <fstream>
 #include <algorithm>
 #include <cmath>
+#include <map>
+#include <bits/stdc++.h>
 using namespace std;
 
 /* To Do : 
@@ -17,17 +19,116 @@ Add Pedestals for each channel after calibration */
 
 StripNoise::StripNoise() {}
 
-AdvSignal StripNoise::AddGaussianNoise(AdvSignal Signal)
+std::map<int, int> StripNoise::noise_map;
+std::vector<int> StripNoise::detids; 
+
+void StripNoise::CreateDetIDs()
 {
-    std::vector<Int_t> Strips = Signal.getStrips();
-    std::vector<Double_t> Amplitude = Signal.getIntegratedSignal();
+    TString path = TString::Format("/cave_1/"
+                                   "Detector_0/"
+                                   "volAdvTarget_0/");
+    TGeoNavigator *nav = gGeoManager->GetCurrentNavigator();
+    if (nav->CheckPath(path)) {
+        nav->cd(path);
+        
+        TGeoNode *currentnode = nav->GetCurrentNode();
+
+        int nDaughters = currentnode->GetNdaughters();
+
+        for (int n = 0; n < nDaughters; n++)
+        {
+            TGeoNode* currentdaughternode = currentnode -> GetDaughter(n); 
+            string name = currentdaughternode->GetName(); 
+            int start_index = name.find("Target_Layer_"); 
+
+
+            if (start_index == 0){
+                int layer = stoi(name.erase(0,13));
+                TGeoNode* currentsensornode = currentdaughternode->GetDaughter(0); 
+                string sensorname = currentsensornode->GetName(); 
+                
+                int start_sensor_row_index = sensorname.find("Row_"); 
+                int start_sensor_column_index = sensorname.find("Column_"); 
+                
+                int row = stoi(sensorname.substr(4 + start_sensor_row_index, 1));
+                int column = stoi(sensorname.substr(7 + start_sensor_column_index, 1)); 
+
+                int strip = 0; 
+
+                int detid = ((layer )   << 13)
+                            | ((row     & 0x3)   << 11)
+                            | ((column  & 0x1)   << 10)
+                            |  (strip   & 0x3FF);
+
+                detids.push_back(detid);
+            } 
+            
+        }
+
+    } else {
+        std::cout << " ====== PATH DOES NOT EXIST  ====== " << path << std::endl; 
+    }
+}
+
+void StripNoise::CreateNoiseProfile()
+{
+    ifstream noiseavgfile(stripsensor::frontend::NoiseProfile); 
+    if (!noiseavgfile.is_open()) {
+        cout << "Noise Profile file doesn't exist!" << endl;
+        cout << "Using standard noise from SiDigiParameters.h" << endl; 
+        return; 
+    } 
+    
+    std::string line ; 
+
+    while(getline(noiseavgfile, line))
+
+    {
+        if (line.empty()) continue; 
+
+        stringstream ss(line);
+
+        string key_str, value_str;
+
+        if ((getline(ss, key_str, ',')) && (getline(ss, value_str, ','))){
+            int key = stoi(key_str); 
+            int value = stoi(value_str);
+            noise_map[key] = value; 
+        }
+    }
+
+    noiseavgfile.close();
+}
+
+AdvSignal StripNoise::AddGaussianNoise(Int_t detID)
+{
+    std::vector<Int_t> Strips;
+    std::vector<Double_t> Amplitude;
 
     TRandom* rndm = gRandom;
     for (int i = 0; i < stripsensor::frontend::NumberofStrips; i++)
     {
-        Double_t x = rndm->Gaus(0, stripsensor::frontend::NoiseRMS);
-        Strips.push_back(i); 
-        Amplitude.push_back(x);
+        if (stripsensor::frontend::NoiseOption)
+        {
+            Double_t x = rndm->Gaus(0, stripsensor::frontend::NoiseRMS);
+            Strips.push_back(i); 
+            Amplitude.push_back(x);
+        }
+        else
+        {
+            Int_t current_detid = (((detID) & ~0x3FF) | i); 
+            Strips.push_back(i); 
+            if (noise_map[current_detid])
+            {
+                //Double_t x = rndm->Gaus(0, noise_map[current_detid]); 
+                Double_t x = noise_map[current_detid];
+                Amplitude.push_back(x);        
+            }
+            else 
+            {
+                Amplitude.push_back(0); 
+            }
+        }
     }
     AdvSignal NoiseSignal(Strips, Amplitude); 
     return NoiseSignal; 
@@ -91,7 +192,7 @@ AdvSignal StripNoise::AddCMNoise(AdvSignal Signal)
 
 double StripNoise::generate_gaussian_tail(const double a,const double sigma) 
 {
-    // taken from CMS 
+    // taken from CMSSW 
     
   /* Returns a gaussian random variable larger than a
    * This implementation does one-sided upper-tailed deviates.
