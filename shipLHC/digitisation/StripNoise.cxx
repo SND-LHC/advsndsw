@@ -20,6 +20,7 @@ Add Pedestals for each channel after calibration */
 StripNoise::StripNoise() {}
 
 std::map<int, int> StripNoise::noise_map;
+std::map<int, std::vector<int>> StripNoise::pedestal_map; 
 std::vector<int> StripNoise::detids; 
 
 void StripNoise::CreateDetIDs()
@@ -100,6 +101,40 @@ void StripNoise::CreateNoiseProfile()
     noiseavgfile.close();
 }
 
+void StripNoise::CreatePedestalProfile()
+{
+
+    ifstream pedestalavgfile(stripsensor::frontend::PedestalProfile); 
+    if (!pedestalavgfile.is_open()) {
+        cout << "Pedestal Profile file doesn't exist!" << endl;
+        cout << "Using standard pedestal from SiDigiParameters.h" << endl; 
+        return; 
+    } 
+    
+    std::string line ; 
+
+    while(getline(pedestalavgfile, line))
+
+    {
+        if (line.empty()) continue; 
+
+        stringstream ss(line);
+
+        string key_str, value_str, error_str;
+
+        if ((getline(ss, key_str, ',')) && (getline(ss, value_str, ',')) && (getline(ss, error_str, ','))){
+            int key = stoi(key_str); 
+            int value = stoi(value_str);
+            int error = stoi(error_str);
+            pedestal_map[key].push_back(value);
+            pedestal_map[key].push_back(error); 
+        }
+    }
+
+    pedestalavgfile.close();     
+
+}
+
 AdvSignal StripNoise::AddGaussianNoise(Int_t detID)
 {
     std::vector<Int_t> Strips;
@@ -133,6 +168,46 @@ AdvSignal StripNoise::AddGaussianNoise(Int_t detID)
     AdvSignal NoiseSignal(Strips, Amplitude); 
     return NoiseSignal; 
 }
+
+AdvSignal StripNoise::AddPedestals(Int_t detID)
+{
+    std::vector<Int_t> Strips(stripsensor::frontend::NumberofStrips);
+    std::vector<Double_t> Amplitude(stripsensor::frontend::NumberofStrips);
+    TRandom* rndm = gRandom;
+    for (int i = 0; i < stripsensor::frontend::NumberofStrips; i++)
+    {
+        if (stripsensor::frontend::PedestalOption)
+        {
+            Double_t x = rndm->Gaus(0, stripsensor::frontend::Pedestal);
+            Strips[i] = i; 
+            Amplitude[i] = x;
+        }
+        else
+        {
+            Int_t current_detid = (((detID) & ~0x3FF) | i); 
+
+            Double_t x ; 
+        
+            if (pedestal_map[current_detid].size() ==0)
+            {
+                x = 0; 
+                            Strips[i] = i; 
+            Amplitude[i] = x;
+            }
+            else 
+            { 
+                x = rndm->Gaus(0, pedestal_map[current_detid][1]); 
+                            Strips[i] = i; 
+            Amplitude[i] = x;
+            }
+
+        }        
+
+    }
+    AdvSignal PedestalSignal(Strips, Amplitude); 
+    return PedestalSignal; 
+}
+
 
 AdvSignal StripNoise::AddGaussianTailNoise(AdvSignal Signal)
 {

@@ -147,6 +147,10 @@ InitStatus DigiTaskSND::Init()
     if (!stripsensor::frontend::NoiseOption)
     {
         stripnoise.CreateNoiseProfile();
+    }  
+    if (!stripsensor::frontend::PedestalOption)
+    {
+        stripnoise.CreatePedestalProfile();
     }
 
     stripnoise.CreateDetIDs(); 

@@ -53,14 +53,17 @@ namespace frontend{
     // const bool peakmode = 0; // 0 for peak mode operation of the APV, 1 for deconvolution mode 
     const Double_t gain = 0.1; // in uA. Need to check which value to use
     const bool write_digi_to_text = 1; 
-    const Int_t ElectronperADC = 250; 
+    const Int_t ElectronperADC = 330; 
     const bool NoiseOption = 0; //0 = using the noise profile, 1 = using the static values for all strips 
     const bool CMNoiseOption = 0;
     const bool ZSModeOption = 1; 
-    const Int_t StripNoise = 1; 
+    const Int_t StripNoise = 3; 
     const Double_t NoiseRMS = 2; 
     const Double_t NoiseSigmaThreshold = 2; 
+    const bool PedestalOption = 0; 
+    const Int_t Pedestal = 250; 
     const std::string NoiseProfile = "advsndsw/shipLHC/digitisation/tbmay_noiseprofile.csv";
+    const std::string PedestalProfile = "advsndsw/shipLHC/digitisation/tbmay_pedestalprofile.csv";
     const Double_t CMNoise = 2; 
     const Int_t NumberofStrips = 768;
     const Int_t ZeroSuppressionMode = 4; 
