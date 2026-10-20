@@ -15,7 +15,7 @@ class FrontendDriver
     AdvSignal FEDResponse(Int_t detID, AdvSignal Signal);
     AdvSignal ADCConversion(AdvSignal ResponseSignal);
     AdvSignal SaturateRange(AdvSignal Signal);
-    AdvSignal ZeroSuppressionAlgorithms(AdvSignal Signal);
+    AdvSignal ZeroSuppressionAlgorithms(Int_t detID, AdvSignal Signal);
 
     void TestingAlgorithm();
 

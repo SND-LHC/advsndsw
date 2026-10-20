@@ -26,7 +26,7 @@ AdvSignal FrontendDriver::FEDResponse(Int_t detID)
     //temp_FEDResponseSignal.push_back(noisesignal); 
     temp_FEDResponseSignal.push_back(pedestalsignal); 
     AdvSignal FEDResponseSignal = inducedcharge.Combine(temp_FEDResponseSignal); 
-    FEDResponseSignal = ZeroSuppressionAlgorithms(FEDResponseSignal);
+    FEDResponseSignal = ZeroSuppressionAlgorithms(detID, FEDResponseSignal);
     FEDResponseSignal = SaturateRange(FEDResponseSignal);
     return FEDResponseSignal; 
 }
@@ -50,7 +50,7 @@ AdvSignal FrontendDriver::FEDResponse(Int_t detID, AdvSignal Signal)
         temp_FEDResponseSignal.push_back(pedestalsignal);
         //temp_FEDResponseSignal.push_back(noisesignal);
         FEDResponseSignal = inducedcharge.Combine(temp_FEDResponseSignal); 
-        FEDResponseSignal = ZeroSuppressionAlgorithms(FEDResponseSignal);
+        FEDResponseSignal = ZeroSuppressionAlgorithms(detID, FEDResponseSignal);
     }
     if (!stripsensor::frontend::ZSModeOption)
     {
@@ -111,7 +111,7 @@ AdvSignal FrontendDriver::SaturateRange(AdvSignal Signal)
     return SaturatedSignal; 
 }
 
-AdvSignal FrontendDriver::ZeroSuppressionAlgorithms(AdvSignal Signal)
+AdvSignal FrontendDriver::ZeroSuppressionAlgorithms(Int_t detID, AdvSignal Signal)
 {
     std::vector<Double_t> Amplitude = Signal.getIntegratedSignal(); 
     std::vector<Int_t> Strips = Signal.getStrips();
@@ -128,7 +128,8 @@ AdvSignal FrontendDriver::ZeroSuppressionAlgorithms(AdvSignal Signal)
         case 1:
             for (int i = 0; i < Amplitude.size(); i++)
             {
-                if (Amplitude[i] > stripsensor::frontend::ZeroSuppressionMode1T*stripsensor::frontend::StripNoise)
+                Int_t current_detid = ((detID & ~0x3FF) | (Strips[i] & 0x3FF)); 
+                if (Amplitude[i] > stripsensor::frontend::ZeroSuppressionMode1T*StripNoise::noise_map[current_detid])
                 {
                     ClusterStrips.push_back(Strips[i]);
                     ClusterAmplitudes.push_back(Amplitude[i]);
@@ -138,7 +139,8 @@ AdvSignal FrontendDriver::ZeroSuppressionAlgorithms(AdvSignal Signal)
         case 2:
             for (int i = 0; i < Amplitude.size(); i++)
             {
-                if (Amplitude[i] > 2*stripsensor::frontend::StripNoise)
+                Int_t current_detid = ((detID & ~0x3FF) | (Strips[i] & 0x3FF)); 
+                if (Amplitude[i] > 2*StripNoise::noise_map[current_detid])
                 {
                     temp_ClusterStrips.push_back(Strips[i]); 
                     temp_ClusterAmplitudes.push_back(Amplitude[i]); 
@@ -149,7 +151,8 @@ AdvSignal FrontendDriver::ZeroSuppressionAlgorithms(AdvSignal Signal)
             {
                 if((std::find(temp_ClusterStrips.begin(), temp_ClusterStrips.end(), temp_ClusterStrips[j]+1)==temp_ClusterStrips.end()) && (std::find(temp_ClusterStrips.begin(), temp_ClusterStrips.end(), temp_ClusterStrips[j]-1)==temp_ClusterStrips.end())) 
                 {
-                    if (temp_ClusterAmplitudes[j] > 5*stripsensor::frontend::StripNoise)
+                    Int_t current_detid = ((detID & ~0x3FF) | (temp_ClusterStrips[j] & 0x3FF)); 
+                    if (temp_ClusterAmplitudes[j] > 5*StripNoise::noise_map[current_detid])
                     {
                         ClusterStrips.push_back(temp_ClusterStrips[j]); ClusterAmplitudes.push_back(temp_ClusterAmplitudes[j]);
                     }
@@ -161,7 +164,8 @@ AdvSignal FrontendDriver::ZeroSuppressionAlgorithms(AdvSignal Signal)
         case 3:
             for (int i = 0; i < Amplitude.size(); i++)
             {
-                if (Amplitude[i] > 3*stripsensor::frontend::StripNoise)
+                Int_t current_detid = ((detID & ~0x3FF) | (Strips[i] & 0x3FF));
+                if (Amplitude[i] > 3*StripNoise::noise_map[current_detid])
                 {
                     temp_ClusterStrips.push_back(Strips[i]); 
                     temp_ClusterAmplitudes.push_back(Amplitude[i]); 
@@ -202,7 +206,8 @@ AdvSignal FrontendDriver::ZeroSuppressionAlgorithms(AdvSignal Signal)
 
             for (int i = 0; i < Amplitude.size(); i++)
             {
-                if (Amplitude[i] > 3*stripsensor::frontend::StripNoise)
+                Int_t current_detid = ((detID & ~0x3FF) | (Strips[i] & 0x3FF));
+                if (Amplitude[i] > 3*StripNoise::noise_map[current_detid])
                 {
                     temp_ClusterStrips.push_back(Strips[i]); 
                     temp_ClusterAmplitudes.push_back(Amplitude[i]); 
@@ -224,7 +229,8 @@ AdvSignal FrontendDriver::ZeroSuppressionAlgorithms(AdvSignal Signal)
                         ClusterAmplitudes.push_back(temp_ClusterAmplitudes[j]);   
                     }
                     auto it = std::find(temp_ClusterStrips.begin(), temp_ClusterStrips.end(), temp_ClusterStrips[j]+neighbhour );
-                    if ((temp_ClusterAmplitudes[it - temp_ClusterStrips.begin()])>2*stripsensor::frontend::StripNoise)
+                    Int_t current_detid = ((detID & ~0x3FF) | ((temp_ClusterStrips[it - temp_ClusterStrips.begin()]) & 0x3FF)); 
+                    if ((temp_ClusterAmplitudes[it - temp_ClusterStrips.begin()])>2*StripNoise::noise_map[current_detid])
                     {
                         ClusterStrips.push_back(temp_ClusterStrips[it - temp_ClusterStrips.begin()]);
                         ClusterAmplitudes.push_back(temp_ClusterAmplitudes[it - temp_ClusterStrips.begin()]);
@@ -240,25 +246,25 @@ AdvSignal FrontendDriver::ZeroSuppressionAlgorithms(AdvSignal Signal)
                 j = j + neighbhour; 
             }
   
-            for (int l = 0; l < Clusters.size(); l+=2)
-            {
-                for (int m = Clusters[l]; m < Clusters[l+1]; m++)
-                {
-                    SumCharge += temp_ClusterAmplitudes[m]; 
-                    SumNoise += pow(stripsensor::frontend::StripNoise, 2);
-                } 
-                if (SumCharge < 5*SumNoise)
-                {
+            // for (int l = 0; l < Clusters.size(); l+=2)
+            // {
+            //     for (int m = Clusters[l]; m < Clusters[l+1]; m++)
+            //     {
+            //         SumCharge += temp_ClusterAmplitudes[m]; 
+            //         SumNoise += pow(stripsensor::frontend::StripNoise, 2);
+            //     } 
+            //     if (SumCharge < 5*SumNoise)
+            //     {
                      
-                    for (int m = Clusters[l]; m < Clusters[l+1]; m++)
-                    {
-                        ClusterStrips.erase(find(ClusterStrips.begin(), ClusterStrips.end(), temp_ClusterStrips[m]));
-                        ClusterAmplitudes.erase(find(ClusterAmplitudes.begin(), ClusterAmplitudes.end(), temp_ClusterAmplitudes[m]));
-                    } 
-                }
-                SumCharge = 0 ; 
-                SumNoise = 0 ; 
-            }
+            //         for (int m = Clusters[l]; m < Clusters[l+1]; m++)
+            //         {
+            //             ClusterStrips.erase(find(ClusterStrips.begin(), ClusterStrips.end(), temp_ClusterStrips[m]));
+            //             ClusterAmplitudes.erase(find(ClusterAmplitudes.begin(), ClusterAmplitudes.end(), temp_ClusterAmplitudes[m]));
+            //         } 
+            //     }
+            //     SumCharge = 0 ; 
+            //     SumNoise = 0 ; 
+            // }
             break; 
     }
     AdvSignal ClusterSignal(ClusterStrips, ClusterAmplitudes); 
