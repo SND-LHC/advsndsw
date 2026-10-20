@@ -62,6 +62,8 @@ namespace frontend{
     const Double_t NoiseSigmaThreshold = 2; 
     const bool PedestalOption = 0; 
     const Int_t Pedestal = 250; 
+    const Int_t hthr = 3; 
+    const Int_t lthr = 2; 
     const std::string NoiseProfile = "advsndsw/shipLHC/digitisation/tbmay_noiseprofile.csv";
     const std::string PedestalProfile = "advsndsw/shipLHC/digitisation/tbmay_pedestalprofile.csv";
     const Double_t CMNoise = 2; 

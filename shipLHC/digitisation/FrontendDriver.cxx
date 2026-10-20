@@ -201,70 +201,72 @@ AdvSignal FrontendDriver::ZeroSuppressionAlgorithms(Int_t detID, AdvSignal Signa
             }
             break; 
         case 4:
-            Double_t SumCharge = 0;
-            Double_t SumNoise = 0;
+            std::vector<int> mask; 
+            std::vector<int> h_thr; 
+            std::vector<int> l_thr; 
 
-            for (int i = 0; i < Amplitude.size(); i++)
+            for (int i =0; i < Strips.size(); i++)
             {
-                Int_t current_detid = ((detID & ~0x3FF) | (Strips[i] & 0x3FF));
-                if (Amplitude[i] > 3*StripNoise::noise_map[current_detid])
-                {
-                    temp_ClusterStrips.push_back(Strips[i]); 
-                    temp_ClusterAmplitudes.push_back(Amplitude[i]); 
-                }
-            } 
-            Int_t neighbhour = 0 ; 
-            Int_t neighbhourlower = 0; 
-            Int_t j = 0; 
-            std::vector<Int_t> Clusters ; 
-            while (j < temp_ClusterStrips.size())
-            {
-                neighbhour = 1; 
-                neighbhourlower = 1;
-                while((std::find(temp_ClusterStrips.begin(), temp_ClusterStrips.end(), temp_ClusterStrips[j]+neighbhour)!=temp_ClusterStrips.end())) 
-                {
-                    if((std::find(ClusterStrips.begin(), ClusterStrips.end(), temp_ClusterStrips[j])==ClusterStrips.end()))
-                    {
-                        ClusterStrips.push_back(temp_ClusterStrips[j]);
-                        ClusterAmplitudes.push_back(temp_ClusterAmplitudes[j]);   
-                    }
-                    auto it = std::find(temp_ClusterStrips.begin(), temp_ClusterStrips.end(), temp_ClusterStrips[j]+neighbhour );
-                    Int_t current_detid = ((detID & ~0x3FF) | ((temp_ClusterStrips[it - temp_ClusterStrips.begin()]) & 0x3FF)); 
-                    if ((temp_ClusterAmplitudes[it - temp_ClusterStrips.begin()])>2*StripNoise::noise_map[current_detid])
-                    {
-                        ClusterStrips.push_back(temp_ClusterStrips[it - temp_ClusterStrips.begin()]);
-                        ClusterAmplitudes.push_back(temp_ClusterAmplitudes[it - temp_ClusterStrips.begin()]);
-                        neighbhour += 1; 
-                    }
-                    
-                } 
-                if (neighbhour > 1)
-                {
-                    Clusters.push_back(j); 
-                    Clusters.push_back(j+neighbhour);
-                }
-                j = j + neighbhour; 
+                Int_t current_detid = ((detID & ~0x3FF) | (Strips[i] & 0x3FF)); 
+                h_thr.push_back(stripsensor::frontend::hthr * StripNoise::noise_map[current_detid]); 
+                l_thr.push_back(stripsensor::frontend::lthr * StripNoise::noise_map[current_detid]);
+                mask.push_back(0); 
             }
-  
-            // for (int l = 0; l < Clusters.size(); l+=2)
-            // {
-            //     for (int m = Clusters[l]; m < Clusters[l+1]; m++)
-            //     {
-            //         SumCharge += temp_ClusterAmplitudes[m]; 
-            //         SumNoise += pow(stripsensor::frontend::StripNoise, 2);
-            //     } 
-            //     if (SumCharge < 5*SumNoise)
-            //     {
-                     
-            //         for (int m = Clusters[l]; m < Clusters[l+1]; m++)
-            //         {
-            //             ClusterStrips.erase(find(ClusterStrips.begin(), ClusterStrips.end(), temp_ClusterStrips[m]));
-            //             ClusterAmplitudes.erase(find(ClusterAmplitudes.begin(), ClusterAmplitudes.end(), temp_ClusterAmplitudes[m]));
-            //         } 
-            //     }
-            //     SumCharge = 0 ; 
-            //     SumNoise = 0 ; 
-            // }
+            for (int j = 0; j < Strips.size(); j++)
+            {
+                if (Amplitude[j] >= h_thr[j])
+                {
+                    mask[j] = 1; 
+                }
+                else if (Amplitude[j] >= l_thr[j] && Amplitude[j] <h_thr[j])  
+                {
+                    mask[j] = 2; 
+                }
+                else 
+                {
+                    mask[j] = 0; 
+                }
+
+            }
+            for (int k = 0; k < mask.size(); k++)
+            {
+                if (mask[k] == 2)
+                {
+                    if (((mask[k-1] == 2 || mask[k-1] == 1) && (abs(Strips[k] - Strips[k-1]) == 1)) || ((mask[k+1] == 2 || mask[k+1] == 1) && (abs(Strips[k] - Strips[k+1]) == 1)))
+                    {
+                        mask[k] = 1; 
+                    }
+                }
+                if (mask[k] == 0)
+                {
+                    if ((mask[k-1]==1 && mask[k+1]==1) && abs((Strips[k] - Strips[k-1]))==1 && abs((Strips[k] - Strips[k+1]))==1)
+                    {
+                        mask[k] = 1; 
+                    }
+                    else if (((mask[k+1]==1) && (abs((Strips[k] - Strips[k+1]))==1)) && ((mask[k-1]==2) && (abs((Strips[k] - Strips[k-1]))==1)) && ((mask[k-2]==2) && (abs((Strips[k] - Strips[k-2]))==1)))
+                    {
+                        mask[k] = 1; 
+                    }
+                    else if (((mask[k-1]==1) && (abs((Strips[k] - Strips[k-1]))==1)) && ((mask[k+1]==2) && (abs((Strips[k] - Strips[k+1]))==1)) && ((mask[k+2]==2) && (abs((Strips[k] - Strips[k+2]))==2)))
+                    {
+                        mask[k] = 1; 
+                    }
+                    else if (((mask[k-2]==2) && (abs((Strips[k] - Strips[k-2]))==2)) && ((mask[k-1]==2) && (abs((Strips[k] - Strips[k-1]))==1)) && ((mask[k+1]==2) && (abs((Strips[k] - Strips[k+1]))==1)) && ((mask[k+2]==2) && (abs((Strips[k] - Strips[k+2]))==2)))
+                    {
+                        mask[k] = 1; 
+                    }
+
+                }
+            }
+            for (int n = 0; n < mask.size(); n++)
+            {
+                if (mask[n] == 1)
+                {
+                    ClusterStrips.push_back(Strips[n]); 
+                    ClusterAmplitudes.push_back(Amplitude[n]); 
+                }
+            }
+
             break; 
     }
     AdvSignal ClusterSignal(ClusterStrips, ClusterAmplitudes); 
