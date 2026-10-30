@@ -32,6 +32,28 @@ using namespace std;
 
 AdvDigitisation::AdvDigitisation() {}
 
+std::map<std::string, std::vector<Int_t>> AdvDigitisation::digirunoutput(Int_t detID)
+{
+    //FED Response 
+    FrontendDriver frontenddriver{};
+    AdvSignal FEDResponseSignal = frontenddriver.FEDResponse(detID);
+
+    //Creating map of hit 
+    std::map<std::string, std::vector<Int_t>> DigitisedHit; 
+    std::vector<Double_t> Charge = FEDResponseSignal.getIntegratedSignal();
+    std::vector<Int_t> Strips = FEDResponseSignal.getStrips();
+    std::vector<Int_t> ADC(Charge.size()); 
+    std::transform(Charge.begin(), Charge.end(), ADC.begin(), [](Double_t x) { 
+        if (x>0){return (int)x;}
+        else {return 0;}
+        });
+    DigitisedHit["Strips"] = Strips; 
+    DigitisedHit["ADC"] = ADC; 
+    
+    return DigitisedHit;
+}
+
+
 std::map<std::string, std::vector<Int_t>> AdvDigitisation::digirunoutput(Int_t detID, const std::vector<const AdvPoint *> &V)
 {
     // Charge Division
@@ -48,7 +70,7 @@ std::map<std::string, std::vector<Int_t>> AdvDigitisation::digirunoutput(Int_t d
 
     //FED Response 
     FrontendDriver frontenddriver{};
-    AdvSignal FEDResponseSignal = frontenddriver.FEDResponse(ResponseSignal);
+    AdvSignal FEDResponseSignal = frontenddriver.FEDResponse(detID, ResponseSignal);
 
     //Creating map of hit 
     std::map<std::string, std::vector<Int_t>> DigitisedHit; 
