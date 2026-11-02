@@ -47,6 +47,7 @@ class AdvDigitisation
 {
   public:
     AdvDigitisation();
+    std::map<std::string, std::vector<Int_t>> digirunoutput(Int_t detID); 
     std::map<std::string, std::vector<Int_t>> digirunoutput(Int_t detID, const std::vector<const AdvPoint*>& V);    
 };
 #endif
