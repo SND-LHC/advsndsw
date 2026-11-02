@@ -21,11 +21,15 @@ AdvSignal FrontendDriver::FEDResponse(Int_t detID)
     StripNoise stripnoise{}; 
     InducedCharge inducedcharge{}; 
 
-    //AdvSignal noisesignal = stripnoise.AddGaussianNoise(detID); 
     AdvSignal pedestalsignal = stripnoise.AddPedestals(detID);
-    //temp_FEDResponseSignal.push_back(noisesignal); 
     temp_FEDResponseSignal.push_back(pedestalsignal); 
+    if (!stripsensor::frontend::ZSModeOption)
+    {
+        AdvSignal noisesignal = stripnoise.AddGaussianNoise(detID); 
+        temp_FEDResponseSignal.push_back(noisesignal);
+    }
     AdvSignal FEDResponseSignal = inducedcharge.Combine(temp_FEDResponseSignal); 
+    FEDResponseSignal = stripnoise.MaskDeadChannels(detID, FEDResponseSignal); 
     FEDResponseSignal = ZeroSuppressionAlgorithms(detID, FEDResponseSignal);
     FEDResponseSignal = SaturateRange(FEDResponseSignal);
     return FEDResponseSignal; 
@@ -50,14 +54,19 @@ AdvSignal FrontendDriver::FEDResponse(Int_t detID, AdvSignal Signal)
         temp_FEDResponseSignal.push_back(pedestalsignal);
         //temp_FEDResponseSignal.push_back(noisesignal);
         FEDResponseSignal = inducedcharge.Combine(temp_FEDResponseSignal); 
+        FEDResponseSignal = stripnoise.MaskDeadChannels(detID, FEDResponseSignal); 
         FEDResponseSignal = ZeroSuppressionAlgorithms(detID, FEDResponseSignal);
     }
     if (!stripsensor::frontend::ZSModeOption)
     {
-        //FEDResponseSignal = stripnoise.AddGaussianNoise(Signal);
-        FEDResponseSignal = stripnoise.AddCMNoise(FEDResponseSignal); 
+        AdvSignal noisesignal = stripnoise.AddGaussianNoise(detID);
+        AdvSignal pedestalsignal = stripnoise.AddPedestals(detID);
+        //FEDResponseSignal = stripnoise.AddCMNoise(FEDResponseSignal); 
         temp_FEDResponseSignal.push_back(FEDResponseSignal);
+        temp_FEDResponseSignal.push_back(noisesignal);
+        temp_FEDResponseSignal.push_back(pedestalsignal);      
         FEDResponseSignal = inducedcharge.Combine(temp_FEDResponseSignal); 
+        FEDResponseSignal = stripnoise.MaskDeadChannels(detID, FEDResponseSignal); 
     }
     FEDResponseSignal = SaturateRange(FEDResponseSignal);
     return FEDResponseSignal;

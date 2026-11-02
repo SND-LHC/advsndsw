@@ -56,7 +56,7 @@ namespace frontend{
     const Int_t ElectronperADC = 330; 
     const bool NoiseOption = 0; //0 = using the noise profile, 1 = using the static values for all strips 
     const bool CMNoiseOption = 0;
-    const bool ZSModeOption = 1; // Please keep always 1! Changes need to be made to VR mode
+    const bool ZSModeOption = 0; // Please keep always 1! Changes need to be made to VR mode
     const Int_t StripNoise = 3; 
     const Double_t NoiseRMS = 2; 
     const Double_t NoiseSigmaThreshold = 2; 

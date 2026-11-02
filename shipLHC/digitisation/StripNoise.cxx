@@ -191,14 +191,15 @@ AdvSignal StripNoise::AddPedestals(Int_t detID)
             if (pedestal_map[current_detid].size() ==0)
             {
                 x = 0; 
-                            Strips[i] = i; 
-            Amplitude[i] = x;
+                Strips[i] = i; 
+                Amplitude[i] = x;
             }
             else 
             { 
-                x = rndm->Gaus(0, pedestal_map[current_detid][1]); 
-                            Strips[i] = i; 
-            Amplitude[i] = x;
+                if (stripsensor::frontend::ZSModeOption){x = rndm->Gaus(0, pedestal_map[current_detid][1]);}
+                else {x = pedestal_map[current_detid][0]+(rndm->Gaus(0, pedestal_map[current_detid][1]));}
+                Strips[i] = i; 
+                Amplitude[i] = x;
             }
 
         }        
@@ -305,4 +306,24 @@ double StripNoise::generate_gaussian_tail(const double a,const double sigma)
         } while (x * u > s);
         return x * sigma;
     }
+}
+
+AdvSignal StripNoise::MaskDeadChannels(Int_t detID, AdvSignal Signal)
+{
+    std::vector<Int_t> Strips = Signal.getStrips();
+    std::vector<Double_t> Amplitude = Signal.getIntegratedSignal();
+
+    if (!stripsensor::frontend::NoiseOption)
+    {
+        for (int i = 0; i < Strips.size(); i++)
+        {
+            Int_t current_detid = (((detID) & ~0x3FF) | Strips[i]); 
+            if (!noise_map[current_detid])
+            {
+                Amplitude[i]=0;  
+            }
+        }
+    }
+    AdvSignal RemovedSignal(Strips, Amplitude); 
+    return RemovedSignal; 
 }
